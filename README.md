@@ -36,8 +36,19 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │   │   └── Databricks.m
 │   └── ... (120+ more connectors)
 │
-├── docs/                         # (Coming Soon) Guides analyzing specific patterns
-│   └── authentication/           # OAuth2 vs API Key examples across connectors
+├── docs/
+│   ├── authentication/
+│   │   ├── [oauth2_pattern.md](docs/authentication/oauth2_pattern.md)           # Boilerplate for OAuth2 StartLogin/FinishLogin
+│   │   ├── [api_key_pattern.md](docs/authentication/api_key_pattern.md)         # Implementing Personal Access Tokens & Custom Headers
+│   │   └── [basic_and_anonymous_pattern.md](docs/authentication/basic_and_anonymous_pattern.md) # Handling Username/Password, Windows, or Implicit APIs
+│   │
+│   └── patterns/
+│       ├── [pagination_pattern.md](docs/patterns/pagination_pattern.md)         # How to handle API pagination using List.Generate
+│       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md) # Building nested folder UIs in Get Data
+│       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)       # Using Value.WaitFor to handle Rate Limiting (429s)
+│       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md) # Enforcing types with Table.ChangeType
+│       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md) # Avoiding Scheduled Refresh errors using RelativePath
+│       └── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md) # Tracing errors with Diagnostics.pqm
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
