@@ -1,0 +1,33 @@
+let
+    Loader = (ApiFiles as list) as record =>
+        let
+            LoadedData = Table.FromList(
+                ApiFiles, each LoadApi(_), {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf", "Functions"}
+            ),
+            NavTableData = [
+                Name = Table.Column(LoadedData, "Name"),
+                Key = Table.Column(LoadedData, "Key"),
+                Data = Table.Column(LoadedData, "Data"),
+                ItemKind = Table.Column(LoadedData, "ItemKind"),
+                ItemName = Table.Column(LoadedData, "ItemName"),
+                IsLeaf = Table.Column(LoadedData, "IsLeaf"),
+                Functions = Table.Column(LoadedData, "Functions")
+            ]
+        in
+            NavTableData,
+    LoadApi = (ApiFile as text) =>
+        let
+            loadedApi = Extension.LoadFunction(ApiFile),
+            api = {
+                loadedApi[Name],
+                loadedApi[Key],
+                loadedApi[Data](),
+                loadedApi[ItemKind],
+                loadedApi[ItemName],
+                loadedApi[IsLeaf],
+                loadedApi[Functions]
+            }
+        in
+            api
+in
+    Loader

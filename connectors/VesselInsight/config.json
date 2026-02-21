@@ -1,0 +1,9 @@
+{
+    "redirect_uri": "https://oauth.powerbi.com/views/oauthredirect.html",
+    "logout_uri": "https://login.microsoftonline.com/logout.srf",
+    "applicationId": "2907cb36-0073-4578-8e50-01ae917c1536",
+    "authorize_uri": "https://kdi.kognif.ai/powerbi/",
+    "intermediate_callback_uri": "https://visales.kognif.ai/powerbi/callback.html",
+    "voyageBaseUrl": "https://api.kognif.ai/voyagepbi/api/v1",
+    "galoreBaseUrl": "https://api.kognif.ai/galorepbi"
+}

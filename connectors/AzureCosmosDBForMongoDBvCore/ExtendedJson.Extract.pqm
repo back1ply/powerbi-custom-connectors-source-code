@@ -1,0 +1,206 @@
+let
+
+    ExtendedJson.Extract = (recordTable as table) as table =>
+        let
+            flattenEjson = (element as any) =>
+                if Value.Is(element, Record.Type) then
+                    if Record.HasFields(element, "$oid") then
+                        "ObjectId('" & element[#"$oid"] & "')"
+                    else if Record.HasFields(element, "dateType") then
+                        ExtractDate(element)
+                    else if Record.HasFields(element, "datetimeType") then
+                        ExtractDatetime(element)
+                    else if Record.HasFields(element, "datetimezoneType") then
+                        ExtractDatetimezone(element)
+                    else if Record.HasFields(element, "$date") then
+                        ExtractDatetimezone([#"datetimezoneType" = element])
+                    else if Record.HasFields(element, "$timestamp") then
+                        ExtractTimestamp(element)
+                    else if Record.HasFields(element, "$minKey") then
+                        element[#"$minKey"]
+                    else if Record.HasFields(element, "$maxKey") then
+                        element[#"$maxKey"]
+                    else if Record.HasFields(element, "$numberInt") then
+                        try Int32.From(element[#"$numberInt"]) otherwise element[#"$numberInt"]
+                    else if Record.HasFields(element, "$numberLong") then
+                        try Int64.From(element[#"$numberLong"]) otherwise element[#"$numberLong"]
+                    else if Record.HasFields(element, "$numberDecimal") then
+                        ExtractNumberDecimal(element)
+                    else if Record.HasFields(element, "$regularExpression") then
+                        ExtractRegularExpressions(element)
+                    else if Record.HasFields(element, "$binary") then
+                        ExtractBinary(element)
+                    else if Record.HasFields(element, "$numberDouble") then
+                        ExtractNumberDouble(element)
+                    else if Record.HasFields(element, "errorMessage") then
+                        error element[#"errorMessage"]
+                    else
+                        element
+                else
+                    element,
+            columnNames = Table.ColumnNames(recordTable),
+            transform = List.Transform(columnNames, each {_, flattenEjson}),
+            result = Table.TransformColumns(recordTable, transform, null, MissingField.Ignore)
+        in
+            result,
+
+    ExtractDate = (element as any) =>
+        let
+            toDate = (sinceEpoch as number) as date =>
+                #date(1970, 1, 1) + #duration(0, 0, 0, Value.Divide(sinceEpoch, 1000)),
+            dateElement = 
+                if element[dateType][#"$date"]? <> null then
+                    element[dateType][#"$date"]
+                else 
+                    element[dateType],
+            dateTimeZone =
+                if Value.Is(dateElement, type null) then
+                    null
+                else if Value.Is(dateElement, type record) then
+                    if Record.HasFields(dateElement, "$numberLong") then
+                        toDate(Int64.From(dateElement[#"$numberLong"]))
+                    else
+                        error Extension.LoadString("extractUnexpectedEJSONError") & Text.FromBinary(Json.FromValue(dateElement))
+                else if Value.Is(dateElement, type number) then
+                    toDate(dateElement)
+                else if Value.Is(dateElement, type text) then
+                    Date.From(DateTimeZone.RemoveZone(DateTimeZone.ToUtc(DateTimeZone.FromText(dateElement))))
+                else
+                    dateElement
+        in
+            dateTimeZone,
+    
+    ExtractDatetime = (element as record) =>
+        let
+            toDateTime = (sinceEpoch as number) as datetime =>
+                #datetime(1970, 1, 1, 0, 0, 0) + #duration(0, 0, 0, Value.Divide(sinceEpoch, 1000)),
+            dateElement =
+                if element[datetimeType][#"$date"]? <> null then
+                    element[datetimeType][#"$date"]
+                else 
+                    element[datetimeType],
+            dateTime =
+                if Value.Is(dateElement, type null) then
+                    null
+                else if Value.Is(dateElement, type record) then
+                    if Record.HasFields(dateElement, "$numberLong") then
+                        toDateTime(Int64.From(dateElement[#"$numberLong"]))
+                    else
+                        error Extension.LoadString("extractUnexpectedEJSONError") & Text.FromBinary(Json.FromValue(dateElement))
+                else if Value.Is(dateElement, type number) then
+                    toDateTime(dateElement)
+                else if Value.Is(dateElement, type text) then
+                    DateTimeZone.RemoveZone(DateTimeZone.ToUtc(DateTimeZone.FromText(dateElement)))
+                else
+                    dateElement
+        in
+            dateTime,
+
+    ExtractDatetimezone = (element as record) =>
+        let
+            toDateTimeZone = (sinceEpoch as number) as datetimezone =>
+                #datetimezone(1970, 1, 1, 0, 0, 0, 0, 0) + #duration(0, 0, 0, Value.Divide(sinceEpoch, 1000)),
+            dateElement = 
+                if element[datetimezoneType][#"$date"]? <> null then
+                    element[datetimezoneType][#"$date"]
+                else 
+                    element[datetimezoneType],
+            dateTimeZone =
+                if Value.Is(dateElement, type null ) then
+                    null
+                else if Value.Is(dateElement, type record) then
+                    if Record.HasFields(dateElement, "$numberLong") then
+                        toDateTimeZone(Int64.From(dateElement[#"$numberLong"]))
+                    else
+                        error Extension.LoadString("extractUnexpectedEJSONError") & Text.FromBinary(Json.FromValue(dateElement))
+                else if Value.Is(dateElement, type number) then
+                    toDateTimeZone(dateElement)
+                else if Value.Is(dateElement, type text) then
+                    DateTimeZone.From(DateTimeZone.FromText(dateElement))
+                else
+                    dateElement
+        in
+            dateTimeZone,
+
+    ExtractTimestamp = (element as record) =>
+        let
+            dateElement = element[#"$timestamp"],
+            dateTimeZone =
+                if Value.Is(dateElement, type record) then
+                    let
+                        t = if Record.HasFields(dateElement, "t") then
+                            Int64.From(dateElement[#"t"])
+                        else
+                            error Extension.LoadString("extractUnexpectedEJSONError") & Text.FromBinary(Json.FromValue(dateElement)),
+                        i = if Record.HasFields(dateElement, "i") then
+                                dateElement[#"i"]
+                            else
+                                error Extension.LoadString("extractUnexpectedEJSONError") & Text.FromBinary(Json.FromValue(dateElement))
+                    in
+                        "Timestamp({ t: " & Text.From(t) &", i: " & Text.From(i) & " })"
+                else if Value.Is(dateElement, type number) then
+                    dateElement
+                else if Value.Is(dateElement, type text) then
+                    DateTimeZone.FromText(dateElement)
+                else
+                    dateElement
+        in
+            dateTimeZone,
+
+    ExtractRegularExpressions = (element as record) =>
+        let
+            acceptedOptions = {"g", "i", "m", "s"},
+            pattern =
+                if Record.HasFields(element[#"$regularExpression"], "pattern") then
+                    element[#"$regularExpression"][#"pattern"]
+                else
+                    "",
+            options =
+                if Record.HasFields(element[#"$regularExpression"], "options") then
+                    // case sensitive test to check if option is one of four valid ejson options, otherwise it returns the empty string
+                    if List.Contains(acceptedOptions, element[#"$regularExpression"][#"options"]) then
+                        element[#"$regularExpression"][#"options"]
+                    else
+                        ""
+                else
+                    ""
+        in
+            "/" & pattern & "/" & options,
+
+    ExtractBinary = (element as record) =>
+        let
+            base64 = if Record.HasFields(element[#"$binary"], "base64") then element[#"$binary"][#"base64"] else "",
+            subType = if Record.HasFields(element[#"$binary"], "subType") then element[#"$binary"][#"subType"] else ""
+        in
+            "Binary.createFromBase64('" & base64 & "', " & Text.TrimStart(subType, "0") & ")",
+
+    ExtractNumberDouble = (element as record) =>
+        let
+            result =
+                if element[#"$numberDouble"] = "Infinity" then
+                    Number.PositiveInfinity
+                else if element[#"$numberDouble"] = "-Infinity" then
+                    Number.NegativeInfinity
+                else if element[#"$numberDouble"] = "NaN" then
+                    Number.NaN
+                else
+                    Double.From(element[#"$numberDouble"])
+        in
+            result,
+
+    ExtractNumberDecimal = (element as record) =>
+        let
+            stringValue = element[#"$numberDecimal"],
+            doubleValue = Double.From(stringValue),
+            result = if Text.From(doubleValue) = stringValue then 
+                doubleValue 
+            else 
+                stringValue
+        in
+            result
+in
+    ExtendedJson.Extract
+
+
+
+

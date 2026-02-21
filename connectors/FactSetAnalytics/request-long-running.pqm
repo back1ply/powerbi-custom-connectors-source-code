@@ -1,0 +1,121 @@
+let
+    WaitFor = (Producer as function, Interval as function, optional count as number) as any =>
+        let
+            list = List.Generate(
+                () => {0, null},
+                (state) => state{0} <> null and (count = null or state{0} < count),
+                (state) =>
+                    if state{1} <> null then
+                        {null, state{1}}
+                    else
+                        {1 + state{0}, Function.InvokeAfter(() => Producer(state{0}), Interval(state{0}))},
+                (state) => state{1}
+            )
+        in
+            List.Last(list),
+    LongRunning = (Response as binary, basePath as text, longRunningDelay as number, responseUrl as text) =>
+        let
+            status = Value.Metadata(Response)[Response.Status],
+            longRunningResponse =
+                if status = 200 then
+                    [
+                        Response = Response,
+                        Endpoint = responseUrl
+                    ]
+                else if status = 201 then
+                    LongRunningResult(Response, basePath)
+                else if status = 202 then
+                    LongRunningStatus(Response, basePath, longRunningDelay)
+                else
+                    [
+                        Response = Response,
+                        Endpoint = responseUrl
+                    ]
+        in
+            longRunningResponse,
+    LongRunningStatus = (Response as binary, basePath as text, longRunningDelay as number) =>
+        let
+            responseHeaders = Value.Metadata(Response)[Headers],
+            locationUrl = responseHeaders[Location],
+            isValidLocationUrl =
+                (Text.StartsWith(locationUrl, "http") = true and Text.StartsWith(locationUrl, basePath) = true)
+                or Text.StartsWith(locationUrl, "http") = false,
+            isAbsoluteUrl = Text.StartsWith(locationUrl, basePath),
+            basePathStatus = if isAbsoluteUrl = true then locationUrl else basePath,
+            locationUrlStatus = if isAbsoluteUrl = false then locationUrl else null,
+            longrunningResponse =
+                if isValidLocationUrl then
+                    WaitFor(
+                        (iteration) =>
+                            let
+                                statusResponse = Web.Contents(
+                                    basePathStatus,
+                                    [
+                                        RelativePath = locationUrlStatus,
+                                        Headers = [
+                                            #"Accept" = "application/json",
+                                            #"X-FactSet-Connector-Version" = Settings[XFactSetConnectorVersion]
+                                        ],
+                                        ManualStatusHandling = {201, 202},
+                                        IsRetry = true
+                                    ]
+                                ),
+                                responseHeaders = Value.Metadata(statusResponse)[Headers],
+                                status = Value.Metadata(statusResponse)[Response.Status],
+                                longrunningResponse =
+                                    if status = 201 then
+                                        LongRunningResult(statusResponse, basePath)
+                                    else if status = 202 then
+                                        null
+                                    else
+                                        [
+                                            Response = statusResponse,
+                                            Endpoint = locationUrlStatus
+                                        ]
+                            in
+                                longrunningResponse,
+                        (iteration) =>
+                            let
+                                duration =
+                                    if (iteration > 0) then
+                                        #duration(0, 0, 0, longRunningDelay)
+                                    else
+                                        #duration(0, 0, 0, 0)
+                            in
+                                duration
+                    )
+                else
+                    error Error.Record("Error", "Invalid status location url", locationUrl)
+        in
+            longrunningResponse,
+    LongRunningResult = (StatusResponse as binary, basePath as text) =>
+        let
+            responseHeaders = Value.Metadata(StatusResponse)[Headers],
+            locationUrl = responseHeaders[Location],
+            isValidLocationUrl =
+                (Text.StartsWith(locationUrl, "http") = true and Text.StartsWith(locationUrl, basePath) = true)
+                or Text.StartsWith(locationUrl, "http") = false,
+            isAbsoluteUrl = Text.StartsWith(locationUrl, basePath),
+            basePathResult = if isAbsoluteUrl = true then locationUrl else basePath,
+            locationUrlResult = if isAbsoluteUrl = false then locationUrl else null,
+            longrunningResponse =
+                if isValidLocationUrl then
+                    Web.Contents(
+                        basePathResult,
+                        [
+                            RelativePath = locationUrlResult,
+                            Headers = [
+                                #"Accept" = "application/json",
+                                #"X-FactSet-Connector-Version" = Settings[XFactSetConnectorVersion]
+                            ]
+                        ]
+                    )
+                else
+                    error Error.Record("Error", "Invalid result location url", locationUrl)
+        in
+            [
+                Response = longrunningResponse,
+                Endpoint = locationUrlResult
+            ]
+in
+    LongRunning

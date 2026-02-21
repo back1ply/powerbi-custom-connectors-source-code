@@ -1,0 +1,159 @@
+let
+AssetQuery="resources 
+        | where (type == 'microsoft.deviceregistry/namespaces/assets')  #namespacefilter
+        | extend extendedLocation = tostring(extendedLocation)
+        | extend deviceRef = tostring(properties.deviceRef)
+        | extend assetTypeRefs = tostring(properties.assetTypeRefs)
+        | extend status = tostring(properties.status)
+        | extend allTags = tostring(tags)
+        | extend datasets = tostring(properties.datasets)
+        | extend allAttributes = tostring(properties.attributes)
+        | extend discoveredAssetRefs = tostring(properties.discoveredAssetRefs)
+        | extend events = tostring(properties.events)
+        | extend streams = tostring(properties.streams)
+        | extend managementGroups = tostring(properties.managementGroups)
+        | project
+            id, 
+            armResourceType = type,
+            location,
+            kind,
+            sku,
+            name = name,
+            tenantId = tenantId,
+            resourceGroup = resourceGroup,
+            subscriptionId = subscriptionId,
+            managedBy = managedBy,
+            plan = plan,
+            uuid = properties.uuid,
+            enabled = properties.enabled,
+            externalAssetId = properties.externalAssetId,
+            displayName = properties.displayName,
+            description = properties.description,
+            version = properties.version,
+            lastTransitionTime = properties.lastTransitionTime,
+            manufacturer = properties.manufacturer,
+            manufacturerUri = properties.manufacturerUri,
+            model = properties.model,
+            productCode = properties.productCode,
+            hardwareRevision = properties.hardwareRevision,
+            softwareRevision = properties.softwareRevision,
+            documentationUri = properties.documentationUri,
+            serialNumber = properties.serialNumber,
+            discoveredAssetRefs = discoveredAssetRefs,
+            provisioningState = properties.provisioningState,
+            datasets = datasets,
+            status  = status,
+            assetTypeRefs = assetTypeRefs,
+            deviceRef = deviceRef,
+            tags = allTags,
+            events = events,
+            streams = streams, 
+            managementGroups = managementGroups,
+            extendedLocation = extendedLocation,
+            attributes = properties.attributes",
+
+AssetSchema = #table({"Name", "Type"}, {
+    {"id", type text},
+    {"name", type text},
+    {"armResourceType", type text},
+    {"location", type text},
+    {"kind", type text},
+    {"sku", type text},
+    {"tenantId", type text},
+    {"resourceGroup", type text},
+    {"subscriptionId", type text},
+    {"managedBy", type text},
+    {"plan", type text},
+    {"uuid", type text},
+    {"enabled", type text},
+    {"externalAssetId", type text},
+    {"displayName", type text},
+    {"description", type text},
+    {"version", type text},
+    {"lastTransitionTime", type text},
+    {"manufacturer", type text},
+    {"manufacturerUri", type text},
+    {"model", type text},
+    {"productCode", type text},
+    {"hardwareRevision", type text},
+    {"softwareRevision", type text},
+    {"documentationUri", type text},
+    {"serialNumber", type text},
+    {"discoveredAssetRefs", type text},
+    {"provisioningState", type text},
+    {"datasets", type text},
+    {"status", type text},
+    {"assetTypeRefs", type text},
+    {"deviceRef", type text},
+    {"tags", type text},
+    {"events", type text},
+    {"streams", type text},
+    {"managementGroups", type text},
+    {"extendedLocation", type text},
+    {"attributes", type text}
+  
+}),
+DeviceQuery = "resources 
+        | extend endpoints = tostring(properties.endpoints)
+        | extend allTags = tostring(tags)
+        | extend status = tostring(properties.status)
+        | where type == 'microsoft.deviceregistry/namespaces/devices' #namespacefilter
+        | project 
+            id,
+            name, 
+            armResourceType = type, 
+            location,
+            kind,
+            sku,
+            tenantId,
+            resourceGroup,
+            subscriptionId,
+            managedBy,
+            plan,
+            uuid = properties.uuid,
+            enabled = properties.enabled,
+            externalDeviceId = properties.externalDeviceId,
+            lastTransitionTime = properties.lastTransitionTime,
+            version = properties.version,
+            manufacturer = properties.manufacturer,
+            model = properties.model,
+            operatingSystem = properties.operatingSystem,
+            operatingSystemVersion = properties.operatingSystemVersion,
+            discoveredDeviceRef = properties.discoveredDeviceRef,
+            provisioningState = properties.provisioningState,
+            status = status,
+            endpoints = endpoints,
+            tags = allTags,
+            attributes= properties.attributes",
+           
+DeviceSchema = #table({"Name", "Type"}, {
+        {"id", type text},
+        {"name", type text},
+        {"armResourceType", type text},
+        {"location", type text},
+        {"kind", type text},
+        {"sku", type text},
+        {"tenantId", type text},
+        {"resourceGroup", type text},
+        {"subscriptionId", type text},
+        {"managedBy", type text},
+        {"plan", type text},
+        {"uuid", type text},
+        {"enabled", type text},
+        {"externalDeviceId", type text},
+        {"version", type text},
+        {"lastTransitionTime", type text},
+        {"manufacturer", type text},
+        {"model", type text},
+        {"operatingSystem", type text},
+        {"operatingSystemVersion", type text},
+        {"discoveredDeviceRef", type text},
+        {"provisioningState", type text},
+        {"status", type text},
+        {"endpoints", type text},
+        {"tags", type text},
+        {"attributes", type text}
+    })
+in
+[AssetQuery = AssetQuery, AssetSchema = AssetSchema, DeviceQuery = DeviceQuery, DeviceSchema = DeviceSchema]
+ 

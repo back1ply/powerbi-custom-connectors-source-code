@@ -1,0 +1,58 @@
+﻿(source as text, VenaBasic as text, Utils as record, pbic_version as text, apiVersion as text, configType as text, pageSize as text, optional modelQuery as text) as table =>
+    let
+        // Pull helper methods from the Utils file
+        Hierarchies.CreateTablesForModel = Utils[Hierarchies.CreateTablesForModel],
+        Values.CreateTableForModel = Utils[Values.CreateTableForModel],
+        Values.CreateTableForModelWithNewExportApiJson = Utils[Values.CreateTableForModelWithNewExportApiJson],
+        Table.ToNavigationTable = Utils[Table.ToNavigationTable],
+        Customer.GetEnabled = Utils[Customer.GetEnabled],
+        User.FetchModels = Utils[User.FetchModels],
+        Validate = Utils[Validate],
+
+
+        enabled = Customer.GetEnabled(source & "/api/etl/powerBiConnector/enabled", VenaBasic),
+
+        modelBaseUrl = source & "/api/models/",
+
+        allModels = User.FetchModels(modelBaseUrl, VenaBasic),
+
+        allModelsTable = List.Transform(allModels,
+            // We transform each model into a list of dimension tables + a values table
+            each let
+                modelId = _[id],
+                modelName = _[name],
+                modelUrl = modelBaseUrl & modelId,
+
+                // If provided we ask the server to validate the provided modelQuery string
+                validationResponse = if modelQuery <> null then
+                                            Validate(modelUrl, VenaBasic, modelQuery)
+                                     else
+                                            "valid",
+                navigationTable = 
+                    if validationResponse <> "valid" then
+                        // Present the error to the user as a table so that it is easier to read for the user
+                        Table.ToNavigationTable(
+                            {{"Error in model: " & modelName, "Error in model: " & modelName, Table.FromValue(validationResponse), "Table", "Table", true}}
+                        )
+                    else
+                        Table.ToNavigationTable(
+                            let
+                                valuesRow = 
+                                    if configType = "paginated" then
+                                        Values.CreateTableForModelWithNewExportApiJson(modelUrl, VenaBasic, pbic_version, pageSize, modelQuery)
+                                    else
+                                        Values.CreateTableForModel(modelUrl, VenaBasic, pbic_version, modelQuery),
+
+                                hierarchiesCSVRows = Hierarchies.CreateTablesForModel(modelUrl, VenaBasic, pbic_version, apiVersion, modelQuery)
+                            in
+                                // Combine the values and hierarchies tables into ones list
+                                List.Combine({hierarchiesCSVRows, {valuesRow}})
+                        )
+            in
+                {modelName, modelId, navigationTable, "Table", "Table", false}
+        )
+    in
+        if not enabled then
+            error "#(lf)Thanks for your interest in the Power BI Connector! This is a premium Vena feature. To inquire about pricing and trial options, please contact your customer success manager or csm@venacorp.com"
+        else
+            Table.ToNavigationTable(allModelsTable)

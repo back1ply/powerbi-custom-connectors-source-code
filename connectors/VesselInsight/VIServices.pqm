@@ -1,0 +1,446 @@
+let
+    config = Json.Document(Extension.Contents("config.json")),
+    redirect_uri = config[redirect_uri],
+    logout_uri = config[logout_uri],
+    powerBiApplicationId = config[powerBiApplicationId],
+    applicationId = config[applicationId],
+    authorize_uri = config[authorize_uri],
+    intermediate_callback_uri = config[intermediate_callback_uri],
+    galoreBaseUrl = config[galoreBaseUrl],
+    galoreApiQueryUrl = galoreBaseUrl & "/v1/api/query",
+    fleetRegistryBaseUrl = config[fleetRegistryBaseUrl],
+    timeSeriesPreviewUrl = config[timeSeriesPreviewUrl],
+    entitlementApiUrl = config[entitlementApiUrl],
+    entitlementUrl = entitlementApiUrl & "/api/v1/entitlementsQuery/fromToken/",
+    // fetch asset view list from API
+    VIServices.FetchAssetViews = () =>
+        let
+            assetViewUrl = galoreBaseUrl & "/v1/api/NodeSelector/Views",
+            headers = [
+                #"Content-type" = "application/json",
+                #"Accept" = "application/json"
+            ],
+            views = Json.Document(Web.Contents(assetViewUrl, [Headers = headers])),
+            viewList = if (List.Count(views) > 0) then views else {"all"}
+        in
+            viewList,
+    VIServices.GaloreLoadEdges = (
+        selector as text, maxLevelsOfChildren as number, assetView as text, optional nodePath as text
+    ) =>
+        let
+            headers = [
+                #"Content-type" = "application/json",
+                #"Accept" = "application/json"
+                // #"Authorization" = "Bearer " & token
+            ],
+            assetViewParam = "&view=" & assetView,
+            galoreUrl = galoreBaseUrl
+                & "/v1/api/nodeselector?selector="
+                & Uri.EscapeDataString(selector)
+                & "&maxLevelsOfChildren="
+                & Number.ToText(maxLevelsOfChildren)
+                & assetViewParam,
+            // Perform the first API request
+            initialResponse = try Web.Contents(galoreUrl, [Headers = headers]) otherwise null,
+            parsedInitialResponse = if initialResponse <> null then Json.Document(initialResponse) else null,
+            node =
+                if parsedInitialResponse <> null and not List.IsEmpty(parsedInitialResponse) then
+                    parsedInitialResponse
+                else if nodePath <> null then
+                    let
+                        selectorValue = "~" & nodePath,
+                        fallbackUrl = galoreBaseUrl
+                            & "/v1/api/nodeselector?selector="
+                            & Uri.EscapeDataString(selectorValue)
+                            & "&maxLevelsOfChildren="
+                            & Number.ToText(maxLevelsOfChildren)
+                            & assetViewParam,
+                        fallbackResponse = try Web.Contents(fallbackUrl, [Headers = headers]) otherwise null,
+                        parsedFallbackResponse =
+                            if fallbackResponse <> null then
+                                Json.Document(fallbackResponse)
+                            else
+                                null
+                    in
+                        parsedFallbackResponse
+                else
+                    null,
+            // Assuming you want to find the first node in the subtree
+            firstNode = if node <> null and not List.IsEmpty(node) then node{0} else error "No nodes found",
+            updatedNode =
+                if firstNode <> null then
+                    try
+                        Record.TransformFields(firstNode, {{"nodeId", each firstNode[attributes][legacyNodeId]}})
+                    catch (e) =>
+                            Table.FromRecords(
+                                {Error.Record("Transformation Failed - " & firstNode[attributes][legacyNodeId])}
+                            )
+                else
+                    Table.FromRecords({Error.Record("firstNodeFailed")})
+        in
+            updatedNode,
+    // executeGaloreTqlQuery: Used to invoke a specific TQL query using the Galore Query API
+    VIServices.ExecuteGaloreTqlQuery = (galoreQueryText as text, optional useOldStyle as logical, optional oldNodePathRecord as any) =>
+        let
+            Headers = [
+                #"Content-type" = "application/json",
+                #"Accept" = "application/json"
+            ],
+            columnNameStyle = if useOldStyle = null then true else useOldStyle,
+
+            // Galore accepts JSON in the body
+            parsedGaloreQueryJson = try Json.Document(galoreQueryText) otherwise null,
+            // if the user did not supply a JSON, maybe it's just a simple TQL query - then we wrap it in a single-element json array
+            galoreQuery = if (parsedGaloreQueryJson <> null) then galoreQueryText else "[""" & galoreQueryText & """]",
+            // invoke the query API
+            queryResult = Json.Document(
+                Web.Contents(galoreApiQueryUrl, [Headers = Headers, Content = Text.ToBinary(galoreQuery)])
+            ),
+
+            eventMetadata = List.First(queryResult)[metadata][eventMetadata],
+            events = List.First(queryResult)[events],
+
+            // convert metadata coming from Galore to columns in the results table
+            metadataColumns = List.Transform(
+                eventMetadata, each eventMetadataToColumnName(_, columnNameStyle, oldNodePathRecord)
+            ),
+            // insert Timestamp and Vessel name columns as first columns
+            columnsStep1 = List.InsertRange(metadataColumns, 0, {"Timestamp", "Vessel"}),
+            // insert Full Path as the last column
+            columns = List.InsertRange(columnsStep1, List.Count(columnsStep1), {"Full Path"}),
+            // get the node path from either displayPath, or path (when displayPath is empty)
+            fullPath =
+                if (not List.IsEmpty(eventMetadata)) then
+                    getFullPathFromEventMetadata(List.First(eventMetadata))
+                else
+                    "",
+            // find out the vessel name from the first metadata item - and do some safety checks in case we can't figure it out
+            vesselName = if (fullPath <> "") then splitAssetPathParts(fullPath){0} else "",
+            // insert timestamp and vessel name in the first columns for each row, and enhance numeric values with metadata
+            rowsStep1 = List.Transform(
+                events,
+                each
+                    List.InsertRange(
+                        enhanceEventValuesWithMetadata(_[values], eventMetadata),
+                        0,
+                        {convertNumericTimestampToDateTime(_[time]), vesselName}
+                    )
+            ),
+            // insert full path as the last column value for each row
+            rows = List.Transform(rowsStep1, each List.InsertRange(_, List.Count(_), {fullPath})),
+            testForError = try rows,
+            tableText = Table.FromRows(rows, columns),
+            typeTransformations = List.Transform(
+                columns,
+                each
+                    (
+                        {
+                            _,
+                            if _ = "Timestamp" then
+                                type datetime
+                            else if _ = "Vessel" then
+                                type text
+                            else if _ = "Full Path" then
+                                type text
+                            else
+                                type number
+                        }
+                    )
+            ),
+            FinalTable = Table.TransformColumnTypes(tableText, typeTransformations),
+            output =
+                if (testForError[HasError]) then
+                    error Error.Record(Extension.LoadString("ErrorOccurred"), queryResult{0}[error], null)
+                else
+                    FinalTable
+        in
+            output,
+    VIServices.ExecuteGaloreFleetTqlQuery = (galoreQueryText as text, optional useOldStyle as logical, optional oldNodePathRecord as any) =>
+        let
+            Headers = [
+                #"Content-type" = "application/json",
+                #"Accept" = "application/json"
+            ],
+            // Form the galoreQuery for metadata
+            galoreQuery = "{ ""query"": " & """" & galoreQueryText & """" & ",""context"": ""#1""}",
+            queryResult = Json.Document(
+                Web.Contents(
+                    galoreApiQueryUrl & "/metadata",
+                    [
+                        Headers = Headers,
+                        Content = Text.ToBinary(galoreQuery),
+                        ManualStatusHandling = {400}
+                    ]
+                )
+            ),
+            // Filter out the path from response
+            testMetaError = try queryResult,
+            listOfPath = List.Transform(queryResult[eventMetadata], each _[path]),
+            // Remove any duplicate Path
+            distintPaths = List.Distinct(listOfPath),
+            // Find the index  for Pipe(|>) and root(~) character
+            firstPipeposition = Text.PositionOf(galoreQueryText, " |>"),
+            rootPosition = Text.PositionOf(galoreQueryText, "~"),
+            // Query : "input ~/Fleet/*/Engines/Main/1/Engine_Load |> combine |> startwithlatest"
+            // New query : "input ~ |> combine |> startwithlatest"
+            modifiedgaloreQueryText = Text.RemoveRange(
+                galoreQueryText, rootPosition + 1, firstPipeposition - rootPosition - 1
+            ),
+            // Transform the wildcard character in  query with the actual path  from metadata
+            modifiedDistintPath = List.Transform(
+                distintPaths, each Text.ReplaceRange(modifiedgaloreQueryText, rootPosition + 1, 0, _)
+            ),
+            // Execute subquery and  error  handling for the subquery
+            subQueryResponse = List.Transform(modifiedDistintPath, each executeSubQuery(_)),
+            // Merge all the individual table as one
+            table = Table.FromList(subQueryResponse, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+            mergeresult = Table.Combine(table[Column1]),
+            testforMergeError = try mergeresult,
+            output =
+                if (testMetaError[HasError]) then
+                    error Error.Record(Extension.LoadString("ErrorOccurred"), queryResult, galoreQuery)
+                else if (testforMergeError[HasError]) then
+                    subQueryResponse
+                    // Return the table with proper Order
+                else
+                    reorderColumn(mergeresult)
+        in
+            output,
+    VIServices.ExecuteGaloreStateTqlQuery = (galoreQueryText as text, optional nodePath as text, optional oldNodePathRecord as any) =>
+        let
+            Headers = [
+                #"Content-type" = "application/json",
+                #"Accept" = "application/json"
+            ],
+            parsedGaloreQueryJson = try Json.Document(galoreQueryText) otherwise null,
+            // if the user did not supply a JSON, maybe it's just a simple TQL query - then we wrap it in a single-element json array
+            galoreQuery = if (parsedGaloreQueryJson <> null) then galoreQueryText else "[""" & galoreQueryText & """]",
+            // invoke the query API
+            queryResult = Json.Document(
+                Web.Contents(galoreApiQueryUrl, [Headers = Headers, Content = Text.ToBinary(galoreQuery)])
+            ),
+            stateDetail = queryResult{0}[metadata][eventMetadata]{0}[stateDescriptors],
+            vesselName = if (nodePath <> "") then splitAssetPathParts(nodePath){0} else "",
+            //Work Around:  Metadata for state is not uniform, read value directly from the events.
+            transformedList =
+                try
+                    List.Transform(
+                        queryResult{0}[events],
+                        (row) as record =>
+                            [
+                                #"Vessel" = vesselName,
+                                #"Stream Type" = row[streamType],
+                                #"Log Id" = row[logId],
+                                #"Previous State" = row[previousState],
+                                #"Previous State Indicator" = #"Previous State Attribute"[label],
+                                #"Previous State Time" = convertNumericTimestampToDateTime(row[previousTime]),
+                                #"Current State" = row[state],
+                                #"Current State Indicator" = #"Current State Attribute"[label],
+                                #"Current State Time" = convertNumericTimestampToDateTime(row[time]),
+                                #"Manual Override" = row[manualOverride],
+                                #"Author" = row[author],
+                                #"Description" = row[description],
+                                #"Current State Attribute" = fetchStateEventById(#"Current State", stateDetail),
+                                #"Previous State Attribute" = fetchStateEventById(#"Previous State", stateDetail),
+                                #"Full Path" = nodePath
+                            ]
+                    ),
+            table = Table.FromRecords(transformedList[Value]),
+            defaultTable =
+                if Table.IsEmpty(table) then
+                    #table(
+                        {
+                            "Vessel",
+                            "Stream Type",
+                            "Log Id",
+                            "Previous State",
+                            "Previous State Indicator",
+                            "Current State",
+                            "Current State Indicator",
+                            "Current State Time",
+                            "Manual Override",
+                            "Author",
+                            "Description",
+                            "Current State Attribute",
+                            "Previous State Attribute",
+                            "Full Path"
+                        },
+                        {}
+                    )
+                else
+                    table,
+            columns = Table.ColumnNames(defaultTable),
+            typeTransformations = List.Transform(
+                columns,
+                each
+                    (
+                        {
+                            _,
+                            if _ = "Previous State Time" or _ = "Current State Time" then
+                                type datetime
+                            else if _ = "Current State" or _ = "Previous State" then
+                                type number
+                            else if _ = "Current State Attribute" or _ = "Previous State Attribute" then
+                                type any
+                            else if _ = "Log Id" then
+                                type number
+                            else if _ = "Manual Override" then
+                                type logical
+                            else
+                                type text
+                        }
+                    )
+            ),
+            trandformedTable = Table.TransformColumnTypes(defaultTable, typeTransformations),
+            output =
+                if transformedList[HasError] then
+                    Error.Record(Extension.LoadString("ErrorOccurred"), queryResult{0}[error], null)
+                else
+                    trandformedTable
+        in
+            output,
+    fetchStateEventById = (stateId as any, statemeta as any) =>
+        let
+            selectRow = List.Select(statemeta, each _[state] = stateId),
+            // Table.SelectRows(statemeta, each ([state] = stateId)),
+            result = List.First(selectRow, [state = null, description = null, color = null, label = null])
+        in
+            result,
+    executeSubQuery = (subquery as text) =>
+        let
+            // Executing the Query
+            subQueryResp = VIServices.ExecuteGaloreTqlQuery(subquery),
+            testForError = try subQueryResp,
+            // If it contain error convert it to a table
+            resp =
+                if (testForError[HasError]) then
+                    #table(
+                        {"Query Error"},
+                        {
+                            {
+                                error
+                                    Error.Record(
+                                        Extension.LoadString("ErrorOccurred"),
+                                        testForError[Error][Message],
+                                        " Error in Query :" & subquery
+                                    )
+                            }
+                        }
+                    )
+                else
+                    subQueryResp
+        in
+            resp,
+    getFullPathFromEventMetadata = (eventMetadata as any) =>
+        let
+            // Check if the event metadata contains the `displayPath` property.
+            containDisplayPath = Record.HasFields(eventMetadata, "displayPath"),
+            // Determine the full path based on the presence of `displayPath` and its value.
+            fullPath =
+                // If `displayPath` exists and is not null or empty, use its value.
+                if (
+                    containDisplayPath <> false
+                    and eventMetadata[displayPath] <> null
+                    and eventMetadata[displayPath] <> ""
+                ) then
+                    eventMetadata[displayPath]
+                // If `displayPath` is not valid, but `path` exists and is not null or empty, use its value.
+                else if (eventMetadata[path] <> null and eventMetadata[path] <> "") then
+                    eventMetadata[path]
+                // If neither `displayPath` nor `path` is valid, return an empty string.
+                else
+                    ""
+        in
+            fullPath,
+    reorderColumn = (data as any) =>
+        let
+            // Get all the column name
+            columnList = Table.ColumnNames(data),
+            containQueryError =
+                if (List.Contains(columnList, "Query Error")) then
+                    {"Full Path", "Query Error"}
+                else
+                    {"Full Path"},
+            // Remove those column from list to add at last for sorting purpose
+            removeColumn = List.RemoveItems(columnList, containQueryError),
+            addColumnAtLast = List.InsertRange(removeColumn, List.Count(removeColumn), containQueryError),
+            reOrderResult = Table.ReorderColumns(data, addColumnAtLast),
+            testForError = try reOrderResult,
+            // Check any error then return the unorder result
+            reOrderOutput = if (testForError[HasError]) then data else reOrderResult
+        in
+            reOrderOutput,
+    eventMetadataToColumnName = (eventMetadata as any, useOldStyle as logical, optional oldPathRecord as any) =>
+        let
+            oldNodePath =  if oldPathRecord <> null then
+                                if Record.HasFields(oldPathRecord, "DisplayPath") then
+                                    oldPathRecord[DisplayPath]
+                                else
+                                    oldPathRecord[Path]
+                            else
+                                null,
+
+            path = if (oldNodePath <> null and oldNodePath <> "") then oldNodePath else getFullPathFromEventMetadata(eventMetadata),
+            displayName = if Record.HasFields(eventMetadata, "displayName") then eventMetadata[displayName] else eventMetadata[name] ,
+            
+            statisticsValue = if useOldStyle then
+                    Text.TrimStart(Text.Replace(displayName, "input1",""), "_")
+                else
+                    let
+                        valueType = Text.TrimStart(Text.Replace(displayName, "input1",""), "_"),
+                        matchKeyWord = [avg="_Avg", max="_Max", min="_Min", count="Count"],
+                        appendKeyWord = [avg="Avg", max="Max", min="Min", count="Count"],
+                        isAvg = Text.EndsWith(valueType, Record.Field(matchKeyWord, "avg")),
+                        isMin = Text.EndsWith(valueType, Record.Field(matchKeyWord, "min")),
+                        isMax = Text.EndsWith(valueType, Record.Field(matchKeyWord, "max")),
+                        isCount = if (valueType  = Record.Field(matchKeyWord, "count")) then true else false,
+                        parenthesisValue = if(isAvg = true) then Record.Field(appendKeyWord, "avg") else if(isMin = true) then Record.Field(appendKeyWord, "min") 
+                            else if(isMax = true) then Record.Field(appendKeyWord, "max") else if(isCount = true) then Record.Field(appendKeyWord, "count") else ""
+                    in
+                        parenthesisValue,
+            pathParts = splitAssetPathParts(path),
+            // we will only use the asset path part as the column name
+            assetPath = if (List.Count(pathParts) > 1) then pathParts{1} else pathParts{0},
+            columnName = assetPath & (if (statisticsValue = null or statisticsValue = "") then "" else (" (" & statisticsValue & ")" ))
+        in
+            columnName,
+    splitAssetPathParts = (assetPath as text) =>
+        let
+            // Full Path: /Fleet/Malabar/Engines/Main/1/Engine Power
+            // Part 1: Vessel name -> Malabar
+            // Part 2: Asset path -> Engines/Main/1/Engine Power
+            parts = Text.Split(Text.TrimStart(assetPath, "/"), "/"),
+            result =
+                if (List.Count(parts) > 2) then
+                    {parts{1}, Text.Combine(List.RemoveFirstN(parts, 2), "/")}
+                else
+                    {assetPath}
+        in
+            result,
+    enhanceEventValuesWithMetadata = (eventValues as list, eventMetadataList as list) =>
+        let
+            transformedEvents = List.Transform(
+                eventValues,
+                each
+                    _ meta [
+                        Name = eventMetadataList{List.PositionOf(eventValues, _)}[name],
+                        Unit = eventMetadataList{List.PositionOf(eventValues, _)}[unitSymbol],
+                        Path = eventMetadataList{List.PositionOf(eventValues, _)}[path]
+                    ]
+            )
+        in
+            transformedEvents,
+    Extension.LoadFunction = (name as text) =>
+        let
+            binary = Extension.Contents(name), asText = Text.FromBinary(binary)
+        in
+            Expression.Evaluate(asText, #shared),
+    convertNumericTimestampToDateTime = Extension.LoadFunction("Util.convertNumericTimestampToDateTime.pqm")
+in
+    [
+        FetchAssetViews = VIServices.FetchAssetViews,
+        GaloreLoadEdges = VIServices.GaloreLoadEdges,
+        ExecuteGaloreTqlQuery = VIServices.ExecuteGaloreTqlQuery,
+        ExecuteGaloreStateTqlQuery = VIServices.ExecuteGaloreStateTqlQuery,
+        ExecuteGaloreFleetTqlQuery = VIServices.ExecuteGaloreFleetTqlQuery
+    ]

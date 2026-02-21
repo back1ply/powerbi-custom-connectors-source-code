@@ -1,0 +1,74 @@
+let
+    ThrottledFunctionIterator = Value.ReplaceType(
+        (input_function as function, input_list as list, iterations_before_wait as number, seconds_to_wait as number) as list =>
+            let
+                RequestIteratorFunction = (producer as function, interval as function, n as number) as any =>
+                    List.Generate(
+                        () => {0, null},
+                        (state) => state{0} < n,
+                        (state) => {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), interval(state{0}))},
+                        (state) => state{1}
+                    ),
+                Results = RequestIteratorFunction(
+                    (index) => input_function(input_list{index}),
+                    (index) =>
+                        #duration(0, 0, 0, if Number.Mod(index, iterations_before_wait) = 0 then seconds_to_wait else 0),
+                    List.Count(input_list) + 1
+                ),
+                // first list entry is always null, remove it
+                CleanedResult = List.RemoveFirstN(Results, 1)
+            in
+                CleanedResult,
+        type function (
+            input_function as (
+                type function meta [
+                    DataSource.Path = false,
+                    Documentation.FieldCaption = "Function to be called by the iterator"
+                ]
+            ),
+            input_list as (
+                type list meta [
+                    DataSource.Path = false,
+                    Documentation.FieldCaption = "List used for iterating over the function"
+                ]
+            ),
+            iterations_before_wait as (
+                type number meta [
+                    DataSource.Path = false,
+                    Documentation.FieldCaption = "Number iterations before wait"
+                ]
+            ),
+            seconds_to_wait as (
+                type number meta [
+                    DataSource.Path = false,
+                    Documentation.FieldCaption = "Seconds to wait before making more iterations"
+                ]
+            )
+        ) as list meta [
+            Documentation.Name = "Throttled Function Iterator",
+            Documentation.LongDescription = "
+            <p>This function loops through the specified <code>input_list</code> of values, invoking the function defined by the <code>input_function</code> parameter for each value.
+            After <code>iterations_before_wait</code> invocations the function pauses for <code>seconds_to_wait</code>.</p>
+            <p>This function can be used if an endpoint only supports to retrive data for a single identifier and data is needed for a list of identifiers.</p>",
+            Documentation.Examples = {
+                [
+                    Description = "Example implementation of the function",
+                    Code = "let#(lf)"
+                        & "    data_list = {""value_1"", ""value_2"", ""value_3""},#(lf)"
+                        & "    iterations_before_wait = 5,#(lf)"
+                        & "    seconds_to_wait = 2,#(lf)"
+                        & "    data = ThrottledFunctionIterator(#(lf)"
+                        & "        (data_list_entry) => FunctionToBeCalled(data_list_entry, [...other parameters...]),#(lf)"
+                        & "        data_list,#(lf)"
+                        & "        iterations_before_wait,#(lf)"
+                        & "        seconds_to_wait,#(lf)"
+                        & "    )#(lf)"
+                        & "in#(lf)"
+                        & "    data#(lf)",
+                    Result = "(data as list)"
+                ]
+            }
+        ]
+    )
+in
+    ThrottledFunctionIterator

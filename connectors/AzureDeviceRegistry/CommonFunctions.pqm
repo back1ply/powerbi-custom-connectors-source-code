@@ -1,0 +1,128 @@
+let
+
+// The getNextPage function takes a single argument and is expected to return a nullable table
+Table.GenerateByPage = (getNextPage as function) as table =>
+    let 
+        listOfPages = List.Generate(
+            () => getNextPage(null),            // get the first page of data
+            (lastPage) => lastPage <> null,     // stop when the function returns null
+            (lastPage) => getNextPage(lastPage) // pass the previous page to the next function call
+        ),
+        // concatenate the pages together
+        tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
+        firstRow = tableOfPages{0}?
+    in
+        // if we didn't get back any pages of data, return an empty table
+        // otherwise set the table type based on the columns of the first page
+        if (firstRow = null) then
+            Table.FromRows({})
+    // check for empty first table
+        else if (Table.IsEmpty(firstRow[Column1])) then
+            firstRow[Column1]
+        else
+            Value.ReplaceType(
+                Table.ExpandTableColumn(tableOfPages, "Column1", Table.ColumnNames(firstRow[Column1])),
+                Value.Type(firstRow[Column1])
+            ),
+
+EnforceSchema.Strict = 1,
+// Add missing columns, do not remove extra columns
+EnforceSchema.IgnoreExtraColumns = 2,
+// Do not add or remove columns
+EnforceSchema.IgnoreMissingColumns = 3,
+
+ValidateIfTextContainsSpecialCharacters = (input as text) as logical =>
+    let
+        // Check if the input contains any special characters
+        // Azure resource names have specific restrictions depending on the resource type.
+        // Generally, most Azure resource names can only contain alphanumeric characters, hyphens, and underscores.
+        // The following list includes characters that are NOT allowed in most Azure resource names.
+        specialCharacters = {" ", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "=", "+", "{", "}", "[", "]", "|", "\\", ":", ";", "'", """", "<", ">", ",", ".", "?", "/", "`", "~"},
+        containsSpecialCharacters = List.AnyTrue(List.Transform(specialCharacters, each Text.Contains(input, _)))
+    in
+        // Return true if special characters are found, false otherwise
+        containsSpecialCharacters,
+
+SchemaTransformTable = (table as table, schema as table, optional enforceSchema as number) as table =>
+    let
+        // Default to EnforceSchema.Strict
+        _enforceSchema = if (enforceSchema <> null) then enforceSchema else EnforceSchema.Strict,
+        // Applies type transforms to a given table
+        EnforceTypes = (table as table, schema as table) as table =>
+            let
+                map = (t) => if Type.Is(t, type list) or Type.Is(t, type record) or t = type any then null else t,
+                mapped = Table.TransformColumns(schema, {"Type", map}),
+                omitted = Table.SelectRows(mapped, each [Type] <> null),
+                existingColumns = Table.ColumnNames(table),
+                removeMissing = Table.SelectRows(omitted, each List.Contains(existingColumns, [Name])),
+                primitiveTransforms = Table.ToRows(removeMissing),
+                changedPrimitives = Table.TransformColumnTypes(table, primitiveTransforms)
+            in
+                changedPrimitives,
+        // Returns the table type for a given schema
+        SchemaToTableType = (schema as table) as type =>
+            let
+                toList = List.Transform(schema[Type], (t) => [Type = t, Optional = false]),
+                toRecord = Record.FromList(toList, schema[Name]),
+                toType = Type.ForRecord(toRecord, false)
+            in
+                type table (toType),
+        // Determine if we have extra/missing columns.
+        // The enforceSchema parameter determines what we do about them.
+        schemaNames = schema[Name],
+        foundNames = Table.ColumnNames(table),
+        addNames = List.RemoveItems(schemaNames, foundNames),
+        extraNames = List.RemoveItems(foundNames, schemaNames),
+        tmp = Text.NewGuid(),
+        added = Table.AddColumn(table, tmp, each []),
+        expanded = Table.ExpandRecordColumn(added, tmp, addNames),
+        result = if List.IsEmpty(addNames) then table else expanded,
+        fullList =
+            if (_enforceSchema = EnforceSchema.Strict) then
+                schemaNames
+            else if (_enforceSchema = EnforceSchema.IgnoreMissingColumns) then
+                foundNames
+            else
+                schemaNames & extraNames,
+        // Select the final list of columns.
+        // These will be ordered according to the schema table.
+        reordered = Table.SelectColumns(result, fullList, MissingField.Ignore),
+        enforcedTypes = EnforceTypes(reordered, schema),
+        withType =
+            if (_enforceSchema = EnforceSchema.Strict) then
+                Value.ReplaceType(enforcedTypes, SchemaToTableType(schema))
+            else
+                enforcedTypes
+    in
+        withType,
+        AuthorizationUriForARG ="https://login.microsoftonline.com/common/oauth2/authorize",
+        AzureResourceManagerUri = "https://management.azure.com/",
+        AzureResourceGraphUri = Uri.Combine(AzureResourceManagerUri, "/providers/Microsoft.ResourceGraph/resources"),
+        TableNames.Asset = "Assets",
+        TableNames.Device = "Devices",
+        TruncatedResultPageSize = 100,
+        DefaultPageSize = 500,
+        MaxPageSize =1000,
+        MaxNoOfCustomAttributes = 100,
+        MaxNoOfSubscriptions = 20,
+        MaxNoOfNamespaces = 20
+in
+[
+    GenerateByPage = Table.GenerateByPage,
+    AuthorizationUriForARG = AzureResourceManagerUri,
+    AzureResourceGraphUri = AzureResourceGraphUri,
+    TruncatedResultPageSize = TruncatedResultPageSize,
+    DefaultPageSize = DefaultPageSize,
+    MaxPageSize = MaxPageSize,
+    ValidateIfTextContainsSpecialCharacters = ValidateIfTextContainsSpecialCharacters,
+    SchemaTransformTable = SchemaTransformTable,
+    EnforceSchema.Strict = EnforceSchema.Strict,
+    EnforceSchema.IgnoreExtraColumns = EnforceSchema.IgnoreExtraColumns,
+    EnforceSchema.IgnoreMissingColumns = EnforceSchema.IgnoreMissingColumns,
+    TableNames.Asset = TableNames.Asset,
+    TableNames.Device = TableNames.Device,
+    MaxNoOfCustomAttributes = MaxNoOfCustomAttributes,
+    MaxNoOfSubscriptions = MaxNoOfSubscriptions,
+    MaxNoOfNamespaces = MaxNoOfNamespaces
+]
+

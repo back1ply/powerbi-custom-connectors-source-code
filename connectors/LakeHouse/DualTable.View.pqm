@@ -1,0 +1,291 @@
+//v 1.0.0
+/**
+    This Function provides a way to apply all the transformations supported by Table.View
+    on two tables.
+    Inputs:
+    - expressionTable: The input table to apply transformations on and return in GetExpression.
+    - valueTable: The table to apply same transformations as expressionTable and use in GetRows/GetType.
+    - additionalHandlers: A record containing additional handlers which can override the default behavior of the handlers
+    - OnInvokeOverrides: An optional function which returns a record which contains any unique overrides to be 
+        used via OnInvoke handler for example: a foldable function like Lakehouse.SparkCompute or Value.Versions.
+
+    Returns:
+    A table that where GetRows/GetType returns valueTable, GetExpression returns expressionTable.
+
+**/
+(
+    expressionTable as table,
+    valueTable as table,
+    additionalHandlers as record,
+    optional OnInvokeOverrides as function
+) as table =>
+    let
+        AllValueEqualsToNull = (equalityComparers) => 
+            if (List.IsEmpty(List.Select(equalityComparers, each _ <> Value.Equals))) then null
+            else equalityComparers,
+        Function.Atomic = (n, f) => 
+            let f = Table.ViewFunction(f) in Value.ReplaceType(f, Value.Type(f) meta [Documentation.Name = n]),
+        DualTable.Expressions = Function.Atomic("DualTable.Expressions", (t) => null),
+        view = (expressionTable, valueTable) =>
+            Table.View(null,
+            [
+                GetExpression = () => Value.Expression(Value.Optimize(expressionTable)),
+
+                GetRowCount = () => Table.RowCount(valueTable),
+                GetType = () => Value.Type(valueTable),
+                GetRows = () => valueTable,
+
+                OnAddColumns = (constructors) =>
+                    let
+                        modifiedTable1 = List.Accumulate(
+                            constructors,
+                            expressionTable,
+                            (state, item) => Table.AddColumn(state, item[Name], item[Function], item[Type])),
+                        modifiedTable2 = List.Accumulate(
+                            constructors,
+                            valueTable,
+                            (state, item) => Table.AddColumn(state, item[Name], item[Function], item[Type]))
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnCombine = (tables, index) => 
+                    let
+                        modifiedTable1 = Table.Combine(List.ReplaceRange(tables, index, 1, {expressionTable})),
+                        modifiedTable2 = Table.Combine(List.ReplaceRange(tables, index, 1, {valueTable}))
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnDistinct = (columns) => 
+                    let
+                        modifiedTable1 = Table.Distinct(expressionTable, columns),
+                        modifiedTable2 = Table.Distinct(valueTable, columns)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnGroup = (keys, aggregates) => 
+                    let
+                        modifiedTable1 = Table.Group(
+                            expressionTable,
+                            keys,
+                            List.Transform(aggregates, each {[Name], [Function], [Type]})),
+                        modifiedTable2 = Table.Group(
+                            valueTable,
+                            keys,
+                            List.Transform(aggregates, each {[Name], [Function], [Type]}))
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnInvoke = (function, args, index) =>
+                    if Value.Metadata(Value.Type(function))[Documentation.Name]? = "DualTable.Expressions" then 
+                        Diagnostics.Trace(
+                            TraceLevel.Information,
+                            [Name = "DualTable.Expressions", Data = []],
+                            Table.FromRecords({
+                                [
+                                    ExpressionTable = expressionTable,
+                                    ValueTable = valueTable
+                                ]
+                            }))
+                    else if (OnInvokeOverrides <> null) then
+                        let
+                            documentationName = Value.Metadata(Value.Type(function))[Documentation.Name]?,
+                            invokeOverrides = OnInvokeOverrides(expressionTable, valueTable, @view)
+                        in
+                            Record.FieldOrDefault(invokeOverrides,documentationName) 
+                            ?? DefaultOnInvoke(function, args, index)
+                    else
+                        DefaultOnInvoke(function, args, index),
+                DefaultOnInvoke = (function, args, index) =>
+                    let
+                        expressionTableResult = Function.Invoke(
+                            function, 
+                            List.ReplaceRange(args, index, 1, {expressionTable})),
+                        valueTableResult = Function.Invoke(function, List.ReplaceRange(args, index, 1, {valueTable}))
+                    in
+                        if (expressionTableResult is table and valueTableResult is table) then 
+                            @view(expressionTableResult, valueTableResult)
+                        else
+                            valueTableResult,
+
+                OnJoin = (joinSide, leftTable, rightTable, joinKeys, joinKind) =>
+                    let
+                        resultTable1 = if (joinSide = JoinSide.Left) then
+                                let
+                                    updatedRightTable = DualTable.Expressions(rightTable)
+                                in
+                                    if updatedRightTable <> null then
+                                        Table.Join(
+                                            expressionTable,
+                                            joinKeys[Left],
+                                            updatedRightTable{0}[ExpressionTable],
+                                            joinKeys[Right],
+                                            joinKind,
+                                            null,
+                                            AllValueEqualsToNull(joinKeys[EqualityComparer]))
+                                    else
+                                        ...
+                            else if (joinSide = JoinSide.Right) then
+                                let
+                                    updatedLeftTable = DualTable.Expressions(leftTable)
+                                in
+                                    if updatedLeftTable <> null then
+                                        Table.Join(
+                                            updatedLeftTable{0}[ExpressionTable],
+                                            joinKeys[Left],
+                                            expressionTable,
+                                            joinKeys[Right],
+                                            joinKind,
+                                            null,
+                                            AllValueEqualsToNull(joinKeys[EqualityComparer]))
+                                    else
+                                        ...
+                            else 
+                                error
+                                [
+                                    Reason = "Expression.Error",
+                                    Message = "InvalidJoinSide",
+                                    Detail = joinSide
+                                ],
+                        resultTable2 = if (joinSide = JoinSide.Left) then
+                                let
+                                    updatedRightTable = DualTable.Expressions(rightTable)
+                                in
+                                    if updatedRightTable <> null then
+                                        Table.Join(
+                                            valueTable,
+                                            joinKeys[Left],
+                                            updatedRightTable{0}[ValueTable],
+                                            joinKeys[Right],
+                                            joinKind,
+                                            null,
+                                            AllValueEqualsToNull(joinKeys[EqualityComparer]))
+                                    else
+                                        ...
+                            else if (joinSide = JoinSide.Right) then
+                                let
+                                    updatedLeftTable = DualTable.Expressions(leftTable)
+                                in
+                                    if updatedLeftTable <> null then
+                                        Table.Join(
+                                            updatedLeftTable{0}[ValueTable],
+                                            joinKeys[Left],
+                                            valueTable,
+                                            joinKeys[Right],
+                                            joinKind,
+                                            null,
+                                            AllValueEqualsToNull(joinKeys[EqualityComparer]))
+                                    else
+                                        ...
+                            else 
+                                error
+                                [
+                                    Reason = "Expression.Error",
+                                    Message = "InvalidJoinSide",
+                                    Detail = joinSide
+                                ]
+                    in
+                        @view(resultTable1, resultTable2),
+
+                OnPivot = (pivotValues, attributeColumn, valueColumn, aggregateFunction) =>
+                    let
+                        modifiedTable1 = Table.Pivot(
+                            expressionTable,
+                            pivotValues,
+                            attributeColumn,
+                            valueColumn,
+                            aggregateFunction),
+                        modifiedTable2 = Table.Pivot(
+                            valueTable,
+                            pivotValues,
+                            attributeColumn,
+                            valueColumn,
+                            aggregateFunction)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnRenameColumns = (renames) => 
+                    let
+                        modifiedTable1 = Table.RenameColumns
+                        (
+                            expressionTable,
+                            List.Transform(renames, each {[OldName], [NewName]})
+                        ),
+                        modifiedTable2 = Table.RenameColumns
+                        (
+                            valueTable,
+                            List.Transform(renames, each {[OldName], [NewName]})
+                        )
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnSelectColumns = (columns) => 
+                    let
+                        modifiedTable1 = Table.SelectColumns(expressionTable, columns),
+                        modifiedTable2 = Table.SelectColumns(valueTable, columns)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnSelectRows = (condition) => 
+                    let
+                        modifiedTable1 = Table.SelectRows(expressionTable, condition),
+                        modifiedTable2 = Table.SelectRows(valueTable, condition)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnSkip = (count) => 
+                    let
+                        modifiedTable1 = Table.Skip(expressionTable, count),
+                        modifiedTable2 = Table.Skip(valueTable, count)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnSort = (order) => 
+                    let
+                        modifiedTable1 = Table.Sort(
+                            expressionTable,
+                            List.Transform(order, each {[Name], [Order]})),
+                        modifiedTable2 = Table.Sort(
+                            valueTable,
+                            List.Transform(order, each {[Name], [Order]}))
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnTake = (count) => 
+                    let
+                        modifiedTable1 = Table.FirstN(expressionTable, count),
+                        modifiedTable2 = Table.FirstN(valueTable, count)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnUnpivot = (pivotColumns, attributeColumn, valueColumn) =>
+                    let
+                        modifiedTable1 = Table.Unpivot(
+                            expressionTable,
+                            pivotColumns,
+                            attributeColumn,
+                            valueColumn),
+                        modifiedTable2 = Table.Unpivot(
+                            valueTable,
+                            pivotColumns,
+                            attributeColumn,
+                            valueColumn)
+                    in
+                        @view(modifiedTable1, modifiedTable2),
+
+                OnNativeQuery = (query, optional parameters, optional options) =>
+                    let
+                        modifiedTable1 = Value.NativeQuery(
+                            expressionTable,
+                            query,
+                            parameters,
+                            options),
+                        modifiedTable2 = Value.NativeQuery(
+                            valueTable,
+                            query,
+                            parameters,
+                            options)
+                    in
+                        @view(modifiedTable1, modifiedTable2)
+            ] &  additionalHandlers)
+    in
+        view(expressionTable, valueTable)

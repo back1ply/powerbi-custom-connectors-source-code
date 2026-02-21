@@ -1,0 +1,36 @@
+let 
+    AdbcDriverDefinition = 
+    [
+        Name =  "DatabricksAdbc",
+        Folder =  "Databricks",
+        File =  "Apache.Arrow.Adbc.Drivers.Databricks.dll",
+        DriverType =  "Managed",
+        TypeName =  "Apache.Arrow.Adbc.Drivers.Databricks.DatabricksDriver",
+        IdentifierQuoteChar =  "`",
+        CatalogNameSeparator =  ".",
+        TableTypes =  null,
+        SupportsCatalog =  true,
+        SupportsSchema =  true,
+        SupportedConnectionOptions = [
+            adbc.connection.catalog = false,
+            adbc.connection.db_schema = false
+        ],
+        TypeInfo =  Table.FromRecords({
+            [Name="BOOLEAN",   SqlType=-7, Unsigned=false, ColumnSize=1,     NumberPrecisionRadix=null, LiteralPrefix=null, LiteralSuffix=null],
+            [Name="BIGINT",    SqlType=-5, Unsigned=false, ColumnSize=19,    NumberPrecisionRadix=10,   LiteralPrefix=null, LiteralSuffix=null],
+            [Name="BINARY",    SqlType=-3, Unsigned=false, ColumnSize=32767, NumberPrecisionRadix=null, LiteralPrefix="0x", LiteralSuffix=null],
+            [Name="CHAR",      SqlType=-8, Unsigned=false, ColumnSize=255,   NumberPrecisionRadix=null, LiteralPrefix="'",  LiteralSuffix="'"],
+            [Name="DATE",      SqlType=91, Unsigned=false, ColumnSize=10,    NumberPrecisionRadix=null, LiteralPrefix="'",  LiteralSuffix="'"],
+            [Name="DECIMAL",   SqlType=3,  Unsigned=false, ColumnSize=38,    NumberPrecisionRadix=10,   LiteralPrefix=null, LiteralSuffix=null],
+            [Name="DOUBLE",    SqlType=8,  Unsigned=false, ColumnSize=53,    NumberPrecisionRadix=2,    LiteralPrefix=null, LiteralSuffix=null],
+            [Name="FLOAT",     SqlType=7,  Unsigned=false, ColumnSize=24,    NumberPrecisionRadix=2,    LiteralPrefix=null, LiteralSuffix=null],
+            [Name="INT",       SqlType=4,  Unsigned=false, ColumnSize=10,    NumberPrecisionRadix=10,   LiteralPrefix=null, LiteralSuffix=null],
+            [Name="SMALLINT",  SqlType=5,  Unsigned=false, ColumnSize=5,     NumberPrecisionRadix=10,   LiteralPrefix=null, LiteralSuffix=null],
+            [Name="STRING",    SqlType=-9, Unsigned=false, ColumnSize=65535, NumberPrecisionRadix=null, LiteralPrefix="'",  LiteralSuffix="'"],
+            [Name="TIMESTAMP", SqlType=93, Unsigned=false, ColumnSize=29,    NumberPrecisionRadix=null, LiteralPrefix="'",  LiteralSuffix="'"],
+            [Name="TINYINT",   SqlType=-6, Unsigned=false, ColumnSize=3,     NumberPrecisionRadix=10,   LiteralPrefix=null, LiteralSuffix=null],
+            [Name="VARCHAR",   SqlType=-9, Unsigned=false, ColumnSize=65535, NumberPrecisionRadix=null, LiteralPrefix="'",  LiteralSuffix="'"]
+        })
+    ]
+in
+    AdbcDriverDefinition

@@ -1,0 +1,851 @@
+let
+    config = Json.Document(Extension.Contents("config.json")),
+    voyageBaseUrl = config[voyageBaseUrl],
+    VoyageServices.GaloreVoyage = () =>
+        let
+            functionReturn = (commaSeparatedIMOs as text) =>
+                let
+                    Headers = [
+                        #"Content-type" = "application/json",
+                        #"Accept" = "application/json"
+                    ],
+                    // Validate only allowable character are there or not
+                    validateText = try VoyageServices.ValidateInput(commaSeparatedIMOs, {"0".."9", ","}),
+                    validateIMOs =
+                        if (validateText[HasError]) then
+                            null
+                        else
+                            try VoyageServices.SplitAndValidateIMOs(validateText[Value]),
+                    inputValidation =
+                        if (validateText[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg12")
+                                )
+                        else if (validateIMOs[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    Extension.LoadString("InvalidParametersMesg7"),
+                                    validateIMOs[Error][Reason]
+                                )
+                        else
+                            null,
+                    response =
+                        if (inputValidation <> null) then
+                            inputValidation
+                        else
+                            let
+                                // Form the Voyage url
+                                queryResult = Json.Document(
+                                    Web.Contents(
+                                        voyageBaseUrl & "/api/Voyage/" & validateText[Value] & "?outputAsObject=false",
+                                        [
+                                            Headers = Headers
+                                        ]
+                                    )
+                                ),
+                                checkerror = try queryResult,
+                                // Transform the Response
+                                result =
+                                    if (checkerror[HasError]) then
+                                        error
+                                            Error.Record(
+                                                Extension.LoadString("ErrorOccurred"), null, checkerror[Error]
+                                            )
+                                    else
+                                        VoyageServices.TransformVoyageColumn(queryResult)
+                            in
+                                result
+                in
+                    response,
+            functionResponse = Value.ReplaceType(functionReturn, voyageIMOType)
+        in
+            functionResponse,
+    VoyageServices.SplitAssetPathParts = (assetPath as text) =>
+        let
+            // Full Path: /Fleet/Malabar/Engines/Main/1/Engine Power
+            // Part 1: Vessel name -> Malabar
+            // Part 2: Asset path -> Engines/Main/1/Engine Power
+            parts = Text.Split(Text.TrimStart(assetPath, "/"), "/"),
+            result =
+                if (List.Count(parts) > 2) then
+                    {parts{1}, Text.Combine(List.RemoveFirstN(parts, 2), "/")}
+                else
+                    {assetPath}
+        in
+            result,
+    VoyageServices.EventMetadataToColumnName = (eventMetadata as any) =>
+        let
+            path = VoyageServices.GetFullPathFromEventMetadata(eventMetadata),
+            displayName =
+                if Record.HasFields(eventMetadata, "displayName") then
+                    eventMetadata[displayName]
+                else
+                    eventMetadata[name],
+            valueType = Text.TrimStart(Text.Replace(displayName, "input1", ""), "_"),
+            matchKeyWord = [avg = "_Avg", max = "_Max", min = "_Min", count = "Count"],
+            appendKeyWord = [avg = "Avg", max = "Max", min = "Min", count = "Count"],
+            isAvg = Text.EndsWith(valueType, Record.Field(matchKeyWord, "avg")),
+            isMin = Text.EndsWith(valueType, Record.Field(matchKeyWord, "min")),
+            isMax = Text.EndsWith(valueType, Record.Field(matchKeyWord, "max")),
+            isCount = if (valueType = Record.Field(matchKeyWord, "count")) then true else false,
+            parenthesisValue =
+                if (isAvg = true) then
+                    Record.Field(appendKeyWord, "avg")
+                else if (isMin = true) then
+                    Record.Field(appendKeyWord, "min")
+                else if (isMax = true) then
+                    Record.Field(appendKeyWord, "max")
+                else if (isCount = true) then
+                    Record.Field(appendKeyWord, "count")
+                else
+                    "",
+            pathParts = VoyageServices.SplitAssetPathParts(path),
+            // we will only use the asset path part as the column name
+            assetPath = if (List.Count(pathParts) > 1) then pathParts{1} else pathParts{0},
+            columnName = assetPath
+                & (if (parenthesisValue = null or parenthesisValue = "") then "" else (" (" & parenthesisValue & ")"))
+        in
+            columnName,
+    VoyageServices.EnhanceEventValuesWithMetadata = (eventValues as list, eventMetadataList as list) =>
+        let
+            transformedEvents = List.Transform(
+                eventValues,
+                each
+                    _ meta [
+                        Name = eventMetadataList{List.PositionOf(eventValues, _)}[name],
+                        Unit = eventMetadataList{List.PositionOf(eventValues, _)}[unitSymbol],
+                        Path = eventMetadataList{List.PositionOf(eventValues, _)}[path]
+                    ]
+            )
+        in
+            transformedEvents,
+    VoyageServices.ValidateInput = (input as text, allowedCharacters as list) =>
+        let
+            removeSpace = Text.Remove(input, {" "}),
+            // Select the allowed character
+            removeSpecialCharacter = Text.Select(removeSpace, allowedCharacters),
+            checkAnyExtraCharacter =
+            // If Input string contain any extra character then the allow removeSpecialCharacter will be smaller
+            // Eg : removeSpace = "123456$", allowedCharacter = "0-9"
+            // removeSpecialCharacter = "123456"
+            if (Text.Length(removeSpace) <> Text.Length(removeSpecialCharacter)) then
+                error Error.Record(Extension.LoadString("InvalidParameters"), null, null)
+            else
+                removeSpecialCharacter
+        in
+            checkAnyExtraCharacter,
+    VoyageServices.SplitAndValidateIMOs = (commaSeparatedIMOs as text) =>
+        let
+            // Create a IMO list
+            imosList =
+                if (Text.Contains(commaSeparatedIMOs, ",")) then
+                    Text.Split(commaSeparatedIMOs, ",")
+                else
+                    {commaSeparatedIMOs},
+            // Remove Empty value
+            removeEmptyList = List.RemoveItems(imosList, {""}),
+            imoValidateList = List.Transform(removeEmptyList, each VoyageServices.ValidateIMO(_)),
+            invalidImo = List.RemoveItems(imoValidateList, {0}),
+            // Combine all the invalid imo
+            commaSeparatedInvalidImo = List.Accumulate(
+                invalidImo,
+                "",
+                (state, current) =>
+                    let
+                        commaseparted = if (Text.Length(state) = 0) then current else state & ", " & current
+                    in
+                        commaseparted
+            ),
+            isImosValid =
+                if (List.Count(invalidImo) <> 0) then
+                    error Error.Record(commaSeparatedInvalidImo & " - Invalid IMOs", null, null)
+                else
+                    true
+        in
+            isImosValid,
+    VoyageServices.ValidateIMO = (imo as text) =>
+        let
+            // The imo length should be 7
+            response =
+                if (Text.Length(imo) <> 7) then
+                    imo
+                else
+                    let
+                        // Create a list from the text
+                        imoCharacters = Text.ToList(imo),
+                        // first one is sum and second is the position
+                        seed = {0, 7},
+                        // Find the checkSum, let imo = 1234567
+                        // Total = 1^7 + 2^6 + 3^5 + 4^4 + 5^3 + 6^2
+                        total = List.Accumulate(
+                            imoCharacters,
+                            seed,
+                            (states, current) =>
+                                let
+                                    position = states{1},
+                                    prevStates = states{0},
+                                    sum = (Number.FromText(current)) * (position) + prevStates,
+                                    result = if (position > 1) then {sum, position - 1} else {prevStates, position}
+                                in
+                                    result
+                        ),
+                        isValid = if (Number.Mod(total{0}, 10) = Number.FromText(imoCharacters{6})) then 0 else imo
+                    in
+                        isValid
+        in
+            response,
+    VoyageServices.TransformLocationColumn = (records as any) as table =>
+        let
+            // Convert the record to a table
+            convertedTable = Record.ToTable(records),
+            // Default value if location history is empty
+            isEmpty = if (Table.IsEmpty(convertedTable)) then #table({"Name", "Value"}, {}) else convertedTable,
+            // Expand the columns as required
+            locationRecord = Table.ExpandListColumn(isEmpty, "Value"),
+            expandedLocation = Table.ExpandRecordColumn(
+                locationRecord,
+                "Value",
+                {
+                    "vesselImo",
+                    "destination",
+                    "latitude",
+                    "longitude",
+                    "draft",
+                    "speed",
+                    "heading",
+                    "navStatus",
+                    "cog",
+                    "fuelConsumption",
+                    "lastUpdated",
+                    "weatherData"
+                },
+                {
+                    "vesselImo",
+                    "destination",
+                    "latitude",
+                    "longitude",
+                    "draft",
+                    "speed",
+                    "heading",
+                    "navStatus",
+                    "cog",
+                    "fuelConsumption",
+                    "lastUpdated",
+                    "weatherData"
+                }
+            ),
+            expandedWeather = Table.ExpandRecordColumn(
+                expandedLocation,
+                "weatherData",
+                {
+                    "seaCharacteristics",
+                    "cloudcover",
+                    "humidity",
+                    "pressure",
+                    "sigHeight_m",
+                    "swellDir",
+                    "swellHeight_m",
+                    "swellPeriod_secs",
+                    "tempC",
+                    "tempF",
+                    "visibility",
+                    "waterTemp_C",
+                    "waterTemp_F",
+                    "windspeedMiles",
+                    "windspeedKmph",
+                    "winddirDegree",
+                    "weatherCode",
+                    "precipMM",
+                    "weatherDesc",
+                    "astronomy",
+                    "isDay"
+                },
+                {
+                    "seaCharacteristics",
+                    "cloudcover",
+                    "humidity",
+                    "pressure",
+                    "sigHeight_m",
+                    "swellDir",
+                    "swellHeight_m",
+                    "swellPeriod_secs",
+                    "tempC",
+                    "tempF",
+                    "visibility",
+                    "waterTemp_C",
+                    "waterTemp_F",
+                    "windspeedMiles",
+                    "windspeedKmph",
+                    "winddirDegree",
+                    "weatherCode",
+                    "precipMM",
+                    "weatherDesc",
+                    "astronomy",
+                    "isDay"
+                }
+            ),
+            expandedSeaCharacteristics = Table.ExpandRecordColumn(
+                expandedWeather,
+                "seaCharacteristics",
+                {"seaStateCode", "seaStateCharacteristic", "seaSwellCharacteristic", "seaSwellCode"},
+                {"seaStateCode", "seaStateCharacteristic", "seaSwellCharacteristic", "seaSwellCode"}
+            ),
+            weatherDescRecord = Table.ExpandListColumn(expandedSeaCharacteristics, "weatherDesc"),
+            expandedWeatherDesc = Table.ExpandRecordColumn(
+                weatherDescRecord, "weatherDesc", {"value"}, {"value"}
+            ),
+            addedWeatherDescription = Table.AddColumn(expandedWeatherDesc, "weatherDescription", each [value], type text),
+            astronomyRecord = Table.ExpandListColumn(addedWeatherDescription, "astronomy"),
+            expandedAstronomy = Table.ExpandRecordColumn(
+                astronomyRecord,
+                "astronomy",
+                {"sunrise", "sunset", "moonrise", "moonset", "moon_phase", "moon_illumination"},
+                {"sunrise", "sunset", "moonrise", "moonset", "moon_phase", "moon_illumination"}
+            ),
+            replacedTable = Table.ReplaceValue(
+                expandedAstronomy, null, "N/A", Replacer.ReplaceValue, Table.ColumnNames(expandedAstronomy)
+            ),
+            // Define transformation with error handling
+            transformedTable = Table.TransformColumns(
+                replacedTable,
+                {
+                    {"vesselImo", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"destination", each try Text.From(_) otherwise "n/a", type text},
+                    {"latitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"longitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"draft", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"speed", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"heading", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"navStatus", each try Text.From(_) otherwise "n/a", type text},
+                    {"cog", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"fuelConsumption", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"lastUpdated", each try DateTime.From(_) otherwise null, type datetime},
+                    {"cloudcover", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"humidity", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"pressure", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"sigHeight_m", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"swellDir", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"swellHeight_m", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"swellPeriod_secs", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"tempC", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"tempF", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"visibility", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"waterTemp_C", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"waterTemp_F", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"windspeedMiles", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"windspeedKmph", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"winddirDegree", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"weatherCode", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"precipMM", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"value", each try Text.From(_) otherwise "n/a", type text},
+                    {"weatherDescription", each try Text.From(_) otherwise "n/a", type text},
+                    {"seaStateCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"seaStateCharacteristic", each try Text.From(_) otherwise "n/a", type text},
+                    {"seaSwellCharacteristic", each try Text.From(_) otherwise "n/a", type text},
+                    {"seaSwellCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"sunrise", each try Time.From(_) otherwise null, type time},
+                    {"sunset", each try Time.From(_) otherwise null, type time},
+                    {"moonrise", each try Time.From(_) otherwise null, type time},
+                    {"moonset", each try Time.From(_) otherwise null, type time},
+                    {"moon_phase", each try Text.From(_) otherwise "n/a", type text},
+                    {"moon_illumination", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"isDay", each try Logical.From(_) otherwise false, type logical}
+                }
+            )
+        in
+            transformedTable,
+    VoyageServices.ExpandColumn = (records as any, columnName as any) =>
+        let
+            result =
+                if (List.Contains(Table.ColumnNames(records), columnName)) then
+                    let
+                        // Error handling for empty rows.
+                        fillUpNullRecords = Table.FillUp(records, {columnName}),
+                        firstElement = Record.Field(Table.First(fillUpNullRecords), columnName),
+                        // If column is list convert it to Record for Expanding
+                        listToRecord =
+                            if (firstElement is list) then
+                                Table.ExpandListColumn(records, columnName)
+                            else if (firstElement is record) then
+                                records
+                            else
+                                null,
+                        expandedTable =
+                                if (listToRecord <> null) then
+                                    Table.ExpandRecordColumn(
+                                        listToRecord,
+                                        columnName,
+                                        Table.ColumnNames(
+                                            Table.FromRecords(
+                                                List.Select(
+                                                    Table.Column(listToRecord, columnName),
+                                                    each _ <> "" and _ <> null
+                                                )
+                                            )
+                                        ),
+                                        Table.ColumnNames(
+                                            Table.FromRecords(
+                                                List.Select(
+                                                    Table.Column(listToRecord, columnName),
+                                                    each _ <> "" and _ <> null
+                                                )
+                                            )
+                                        )
+                                    )
+                                else
+                                    error
+                                        Error.Record(
+                                            Extension.LoadString("InvalidParametersMesg13"),
+                                            "Column type is not list nor record",
+                                            null
+                                        ),
+                        expandedResult = if (expandedTable[HasError]) then expandedTable[Error] else expandedTable[
+                            Value
+                        ]
+                    in
+                        expandedResult
+                else
+                    error
+                        Error.Record(
+                            Extension.LoadString("InvalidParametersMesg13"),
+                            "Column is not present :" & columnName,
+                            null
+                        )
+        in
+            result,
+    // Common function for Voyage history as well as Voyage By IMO
+    VoyageServices.TransformVoyageColumn = (records as any) =>
+        let
+            expandedTable =
+                if (List.IsEmpty(records))
+                // If response is empty we are creating a empty table with headers
+                then
+                    #table(
+                        {
+                            "vesselImo",
+                            "origin.countryCode",
+                            "origin.portCode",
+                            "origin.placeName",
+                            "origin.coordinates.latitude",
+                            "origin.coordinates.longitude",
+                            "destination.countryCode",
+                            "destination.portCode",
+                            "destination.placeName",
+                            "destination.coordinates.latitude",
+                            "destination.coordinates.longitude",
+                            "rawOrigin",
+                            "rawDestination",
+                            "latitude",
+                            "longitude",
+                            "draft",
+                            "speed",
+                            "heading",
+                            "lastUpdated",
+                            "eta",
+                            "sourceOfMessage",
+                            "destinationMessageFromSource"
+                        },
+                        {}
+                    )
+                else
+                    let
+                        // Transform the list of record to Table
+                        resp = Table.FromRecords(records),
+                        // Expand the table
+                        expandColumn = VoyageServices.ExpandVoyageColumn(resp)
+                    in
+                        expandColumn
+        in
+            expandedTable,
+    // Logic to expand the column
+    VoyageServices.ExpandVoyageColumn = (input as table) =>
+        let
+            expandedOrigin = Table.ExpandRecordColumn(
+                input,
+                "origin",
+                {"countryCode", "portCode", "placeName", "coordinates"},
+                {"origin.countryCode", "origin.portCode", "origin.placeName", "origin.coordinates"}
+            ),
+            expandedOriginCoordinates = Table.ExpandRecordColumn(
+                expandedOrigin,
+                "origin.coordinates",
+                {"latitude", "longitude"},
+                {"origin.coordinates.latitude", "origin.coordinates.longitude"}
+            ),
+            expandedDestination = Table.ExpandRecordColumn(
+                expandedOriginCoordinates,
+                "destination",
+                {"countryCode", "portCode", "placeName", "coordinates"},
+                {
+                    "destination.countryCode",
+                    "destination.portCode",
+                    "destination.placeName",
+                    "destination.coordinates"
+                }
+            ),
+            finalTable = Table.ExpandRecordColumn(
+                expandedDestination,
+                "destination.coordinates",
+                {"latitude", "longitude"},
+                {"destination.coordinates.latitude", "destination.coordinates.longitude"}
+            ),
+            replacedTable = Table.ReplaceValue(
+                finalTable, null, "n/a", Replacer.ReplaceValue, Table.ColumnNames(finalTable)
+            ),
+            transformedTable = Table.TransformColumns(
+                replacedTable,
+                {
+                    {"vesselImo", each try Text.From(_) otherwise "n/a", type text},
+                    {"origin.countryCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"origin.portCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"origin.placeName", each try Text.From(_) otherwise "n/a", type text},
+                    {"origin.coordinates.latitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"origin.coordinates.longitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"destination.countryCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.portCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.placeName", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.coordinates.latitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"destination.coordinates.longitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"rawOrigin", each try Text.From(_) otherwise "n/a", type text},
+                    {"rawDestination", each try Text.From(_) otherwise "n/a", type text},
+                    {"destinationMessageFromSource", each try Text.From(_) otherwise "n/a", type text},
+                    {"latitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"longitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"draft", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"speed", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"distance", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"heading", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"cog", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"averageSpeed", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"sourceOfMessage", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"lastUpdated", each try DateTime.From(_) otherwise null, type datetime},
+                    {"eta", each try DateTime.From(_) otherwise null, type datetime},
+                    {"voyageStartTime", each try DateTime.From(_) otherwise null, type datetime},
+                    {"voyageEndTime", each try DateTime.From(_) otherwise null, type datetime}
+                }
+            )
+        in
+            transformedTable,
+    VoyageServices.ExpandAiSColumn = (input as table) =>
+        let
+            expandedDestination = Table.ExpandRecordColumn(
+                input,
+                "destination",
+                {"countryCode", "portCode", "placeName", "coordinates"},
+                {
+                    "destination.countryCode",
+                    "destination.portCode",
+                    "destination.placeName",
+                    "destination.coordinates"
+                }
+            ),
+            finalTable = Table.ExpandRecordColumn(
+                expandedDestination,
+                "destination.coordinates",
+                {"latitude", "longitude"},
+                {"destination.coordinates.latitude", "destination.coordinates.longitude"}
+            ),
+            // nanValue = 0 / 0
+            replacedTable = Table.ReplaceValue(
+                finalTable, null, "n/a", Replacer.ReplaceValue, Table.ColumnNames(finalTable)
+            ),
+            transformedTable = Table.TransformColumns(
+                replacedTable,
+                {
+                    {"vesselImo", each try Text.From(_) otherwise "n/a", type text},
+                    {"vesselName", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.countryCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.portCode", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.placeName", each try Text.From(_) otherwise "n/a", type text},
+                    {"destination.coordinates.latitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"destination.coordinates.longitude", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"rawOrigin", each try Text.From(_) otherwise "n/a", type text},
+                    {"rawDestination", each try Text.From(_) otherwise "n/a", type text},
+                    {"destinationMessageFromSource", each try Text.From(_) otherwise "n/a", type text},
+                    {"cog", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"sourceOfMessage", each try Number.From(_) otherwise Number.NaN, type number},
+                    {"lastUpdated", each try DateTime.From(_) otherwise null, type datetime},
+                    {"eta", each try DateTime.From(_) otherwise null, type datetime}
+                }
+            )
+        in
+            transformedTable,
+    VoyageServices.GetFullPathFromEventMetadata = (eventMetadata as any) =>
+        let
+            containDisplayPath = Record.HasFields(eventMetadata, "displayPath"),
+            fullPath =
+                if (
+                    containDisplayPath <> false
+                    and eventMetadata[displayPath] <> null
+                    and eventMetadata[displayPath] <> ""
+                ) then
+                    eventMetadata[displayPath]
+                else if (eventMetadata[path] <> null and eventMetadata[path] <> "") then
+                    eventMetadata[path]
+                else
+                    ""
+        in
+            fullPath,
+    VoyageServices.Decoder = () =>
+        let
+            functionReturn = (ais as text) =>
+                let
+                    Headers = [
+                        #"Content-type" = "application/json",
+                        #"Accept" = "application/json"
+                    ],
+                    validateText = try VoyageServices.ValidateInput(ais, {"A".."Z", "a".."z", "-"}),
+                    inputValidation =
+                        if (validateText[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg11")
+                                )
+                        else
+                            null,
+                    response =
+                        if (inputValidation <> null) then
+                            inputValidation
+                        else
+                            let
+                                // Form voyage/ais url
+                                queryResult = Json.Document(
+                                    Web.Contents(
+                                        voyageBaseUrl & "/api/Voyage?aisDestination=" & validateText[Value],
+                                        [
+                                            Headers = Headers
+                                        ]
+                                    )
+                                ),
+                                // Convert the record to table
+                                convertedtoTable = Record.ToTable(queryResult),
+                                // Transpose the column to row
+                                transposedTable = Table.Transpose(convertedtoTable),
+                                promotedHeaders = Table.PromoteHeaders(transposedTable, [PromoteAllScalars = true]),
+                                expandTable = VoyageServices.ExpandAiSColumn(promotedHeaders)
+                            in
+                                expandTable
+                in
+                    response,
+            functionResponse = Value.ReplaceType(functionReturn, voyageAisType)
+        in
+            functionResponse,
+    VoyageServices.VoyageHistory = () =>
+        let
+            functionReturn = (commaSeparatedIMOs as text, startDate as text, endDate as text) =>
+                let
+                    Headers = [
+                        #"Content-type" = "application/json",
+                        #"Accept" = "application/json"
+                    ],
+                    start = try DateTime.FromText(startDate),
+                    end = try DateTime.FromText(endDate),
+                    validateText = try VoyageServices.ValidateInput(commaSeparatedIMOs, {"0".."9", ","}),
+                    validateIMOs =
+                        if (validateText[HasError]) then
+                            null
+                        else
+                            try VoyageServices.SplitAndValidateIMOs(validateText[Value]),
+                    // Start end date Validation
+                    inputValidation =
+                        if (validateText[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg12")
+                                )
+                        else if (validateIMOs[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    Extension.LoadString("InvalidParametersMesg7"),
+                                    validateIMOs[Error][Reason]
+                                )
+                        else if (start[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg8")
+                                )
+                        else if (end[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg9")
+                                )
+                        else if (Number.From(start[Value]) > Number.From(end[Value])) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg10")
+                                )
+                        else
+                            null,
+                    response =
+                        if (inputValidation <> null) then
+                            inputValidation
+                        else
+                            let
+                                // Form the Voyage url
+                                queryResult = Json.Document(
+                                    Web.Contents(
+                                        voyageBaseUrl
+                                            & "/api/Voyage/History/"
+                                            & validateText[Value]
+                                            & "?dateRangeFrom="
+                                            & startDate
+                                            & "&dateRangeTo="
+                                            & endDate,
+                                        [
+                                            Headers = Headers
+                                        ]
+                                    )
+                                ),
+                                // expand the Voyage result
+                                checkerror = try queryResult,
+                                result =
+                                    if (checkerror[HasError]) then
+                                        error
+                                            Error.Record(
+                                                Extension.LoadString("InvalidParameters"),
+                                                null,
+                                                Extension.LoadString("InvalidParametersMesg10")
+                                            )
+                                    else
+                                        VoyageServices.TransformVoyageColumn(queryResult)
+                            in
+                                result
+                in
+                    response,
+            // wrap the documentation object around the function for the UI to show info and suggestions
+            functionReturnExplained = Value.ReplaceType(functionReturn, voyageHistoryType)
+        in
+            functionReturnExplained,
+    VoyageServices.LocationHistory = () =>
+        let
+            functionReturn = (commaSeparatedIMOs as text, startDate as text, endDate as text) =>
+                let
+                    Headers = [
+                        #"Content-type" = "application/json",
+                        #"Accept" = "application/json"
+                    ],
+                    start = try DateTime.FromText(startDate),
+                    end = try DateTime.FromText(endDate),
+                    validateText = try VoyageServices.ValidateInput(commaSeparatedIMOs, {"0".."9", ","}),
+                    validateIMOs =
+                        if (validateText[HasError]) then
+                            null
+                        else
+                            try VoyageServices.SplitAndValidateIMOs(validateText[Value]),
+                    // Start end date Validation
+                    inputValidation =
+                        if (validateText[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg12")
+                                )
+                        else if (validateIMOs[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    Extension.LoadString("InvalidParametersMesg7"),
+                                    validateIMOs[Error][Reason]
+                                )
+                        else if (start[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg8")
+                                )
+                        else if (end[HasError]) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg9")
+                                )
+                        else if (Number.From(start[Value]) > Number.From(end[Value])) then
+                            error
+                                Error.Record(
+                                    Extension.LoadString("InvalidParameters"),
+                                    null,
+                                    Extension.LoadString("InvalidParametersMesg10")
+                                )
+                        else
+                            null,
+                    response =
+                        if (inputValidation <> null) then
+                            inputValidation
+                        else
+                            let
+                                // Form the Voyage url
+                                queryResult = Json.Document(
+                                    Web.Contents(
+                                        voyageBaseUrl
+                                            & "/api/location/"
+                                            & validateText[Value]
+                                            & "?fromDate="
+                                            & startDate
+                                            & "&toDate="
+                                            & endDate,
+                                        [
+                                            Headers = Headers
+                                        ]
+                                    )
+                                ),
+                                // expand the Voyage result
+                                checkerror = try queryResult,
+                                result =
+                                    if (checkerror[HasError]) then
+                                        error
+                                            Error.Record(
+                                                Extension.LoadString("NoContent"),
+                                                "No data Content for the imo :" & validateText[Value],
+                                                null
+                                            )
+                                    else
+                                        VoyageServices.TransformLocationColumn(queryResult)
+                            in
+                                result
+                in
+                    response,
+            // wrap the documentation object around the function for the UI to show info and suggestions
+            functionReturnExplained = Value.ReplaceType(functionReturn, voyageHistoryType)
+        in
+            functionReturnExplained,
+    Extension.LoadFunction = (name as text) =>
+        let
+            binary = Extension.Contents(name), asText = Text.FromBinary(binary)
+        in
+            Expression.Evaluate(asText, #shared),
+    voyageIMOType = Extension.LoadFunction("Documentation.voyage.pqm"),
+    voyageHistoryType = Extension.LoadFunction("Documentation.voyageHistory.pqm"),
+    voyageAisType = Extension.LoadFunction("Documentation.voyageAis.pqm")
+in
+    [
+        GaloreVoyage = VoyageServices.GaloreVoyage,
+        ExpandColumn = VoyageServices.ExpandColumn,
+        ValidateIMO = VoyageServices.ValidateIMO,
+        SplitAndValidateIMOs = VoyageServices.SplitAndValidateIMOs,
+        ValidateInput = VoyageServices.ValidateInput,
+        EnhanceEventValuesWithMetadata = VoyageServices.EnhanceEventValuesWithMetadata,
+        SplitAssetPathParts = VoyageServices.SplitAssetPathParts,
+        EventMetadataToColumnName = VoyageServices.EventMetadataToColumnName,
+        GetFullPathFromEventMetadata = VoyageServices.GetFullPathFromEventMetadata,
+        Decoder = VoyageServices.Decoder,
+        VoyageHistory = VoyageServices.VoyageHistory,
+        LocationHistory = VoyageServices.LocationHistory
+    ]

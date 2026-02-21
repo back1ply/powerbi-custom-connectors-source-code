@@ -1,0 +1,124 @@
+
+let
+    config = Json.Document( Extension.Contents( "config.json") ),
+
+    redirect_uri=  config[redirect_uri],
+    logout_uri = config[logout_uri],
+    powerBiApplicationId=  config[powerBiApplicationId],
+    applicationId = config[applicationId],
+    authorize_uri = config[authorize_uri],
+    intermediate_callback_uri = config [intermediate_callback_uri],
+
+     // The StartLogin method defines the starting point of the authentication process by specifying the login and callback URLs for the authentication window
+    VIAuth.StartLogin = (resourceUrl, state, display) =>
+        let
+            // we want to use OAuth authorization_code flow with PKCE (Proof Key for Code Exchange)
+            // https://tools.ietf.org/html/rfc7636#page-8
+            // https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-protocols-oauth-code
+
+            // to use the authorization_code flow with PKCE, we need to generate a code verifier (ref. https://tools.ietf.org/html/rfc7636#page-8)
+            // it needs to be a random string which is impossible (or very difficult) to be generated on another client
+            // so we use two concatenated GUIDs which should ensure the uniqueness of the verifier
+            codeChallenge = Text.NewGuid() & Text.NewGuid(), // min length: 43
+
+            authorizeUrl = authorize_uri & "?" & Uri.BuildQueryString([
+                response_type = "code",             // we request the authorization code as a response
+                resource = applicationId,           // the OIDC client id (Azure AD application id) that we use
+                client_id = applicationId,
+                scope = "openid profile",           // we request the required OIDC scopes
+                redirect_uri = redirect_uri,
+                code_challenge_method = "plain",    // we send the code_challenge as plain text     // TODO
+                code_challenge = codeChallenge,     // the code_challenge
+                state = state
+            ])
+        in
+            [
+                LoginUri = authorizeUrl,
+                CallbackUri = redirect_uri,
+                WindowHeight = 720,
+                WindowWidth = 1024,
+                Context = codeChallenge
+            ],
+
+    // The FinishLogin method defines the final point of the authentication process - after the browser in the authentication window
+    // has been navigated to the final URL. In the authorization_code flow, we get an authorization code and exchange it with a token
+    VIAuth.FinishLogin = (context, callbackUri, state) =>
+        let
+            // we get the authorization code in the query string of the callback
+            parts = Uri.Parts(callbackUri)[Query],
+
+            // tenant ID should be available in the querystring as kognifaitenant
+            tenantId = parts[kognifaitenant],
+
+            // we check for errors (query string contains "error" and "error_description" parameters)
+            // and if there are no errors, we get the access token
+            result = if (Record.HasFields(parts, {"error", "error_description"})) then
+                        error Error.Record(parts[error], parts[error_description], parts)
+                    else
+                        VIAuth.TokenMethod("authorization_code", "code", parts[code], tenantId, context)
+            in
+            result,
+
+    // The TokenMethod exchanges an authorization code or a refresh token with an access token
+    VIAuth.TokenMethod = (grantType as text, tokenField as text, code as text, tenantIdParam as text, optional codeVerifier as text, optional oldCredential) =>
+        let
+            isRefreshRequest = grantType = "refresh_token",
+
+            // if this is a refresh_token request, the tenantId can be found in the oldCredential record (we put it there)
+            // otherwise we expect it to be passed as a parameter from the FinishLogin function
+            tenantId = if (isRefreshRequest) then oldCredential[tenant_id] else tenantIdParam,
+
+            // if this is a refresh_token request, we get the code from the oldCredential record,
+            // otherwise we expect it to be passed as a parameter from the FinishLogin function
+            actualCode = if (isRefreshRequest) then oldCredential[refresh_token] else code,
+
+
+            // construct the token endpoint URL using the tenant ID
+            tokenEndpointUrl = Text.Format(Extension.LoadString("TokenUrlFormat"), { tenantId }),
+
+            // we build the request that we will send to the token endpoint
+            queryStringInitial = [
+                grant_type = grantType,
+                redirect_uri = intermediate_callback_uri,
+                client_id = applicationId
+            ],
+
+            // code_verifier is only needed when we exchange authorization code with a token
+            queryStringWithCodeVerifier = if (isRefreshRequest) then queryStringInitial else Record.AddField(queryStringInitial, "code_verifier", codeVerifier),
+
+            // add the authorization code to the request
+            queryString = Record.AddField(queryStringWithCodeVerifier, tokenField, actualCode),
+
+            // we send a POST request to the token endpoint
+            tokenResponse = Web.Contents(tokenEndpointUrl, [
+                ManualCredentials = true,   // we do not need to send the Authorization header to the token endpoint
+                Content = Text.ToBinary(Uri.BuildQueryString(queryString)),
+                Headers = [
+                    #"Content-type" = "application/x-www-form-urlencoded",
+                    #"Accept" = "application/json"
+                ],
+                ManualStatusHandling = {400, 401}
+            ]),
+
+            // if there are no errors, the response should contain the access_token
+            body = Json.Document(tokenResponse),
+            result = if (Record.HasFields(body, {"error", "error_description"})) then
+                        error Error.Record(body[error], body[error_description], body)
+                    else
+                        Record.AddField(body, "tenant_id", tenantId)
+            in
+                result,
+
+    // The Refresh method handles refreshing of the access token when it is expired. It uses the TokenMethod to exchange the refresh token with a new access token
+    VIAuth.Refresh = (clientApplication, resourceUrl, oldCredential) => VIAuth.TokenMethod("refresh_token", "refresh_token", "", "", null, oldCredential),
+
+    // Navigates to the logout url
+    VIAuth.Logout = (token) => logout_uri
+in
+    [
+        StartLogin = VIAuth.StartLogin,
+        FinishLogin = VIAuth.FinishLogin,
+        Refresh = VIAuth.Refresh,
+        Logout = VIAuth.Logout
+    ]
+

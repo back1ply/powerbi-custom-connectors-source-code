@@ -1,0 +1,100 @@
+// Required resource strings for consuming connectors:
+// - "WorkspaceAccessDeniedByDlpPolicy": "Access to the target workspace is denied by the workspace outbound access protection policy"
+
+let
+    // DLP Policy Constants - matching C# enum values
+    DlpPolicyResource = [
+        FQDN = 0,
+        BaseURL = 1,
+        WorkspaceObjectId = 2
+    ],
+
+    DlpPolicyType = [
+        Allow = 0
+    ],
+
+    DlpPolicyScope = [
+        Workspace = 0
+    ],
+
+    NonPii = (x) => x meta [Is.Pii = false],
+
+    // Private helper functions
+    ParseDlpPolicies = (dlpPoliciesJson as nullable text) as nullable list =>
+        if (dlpPoliciesJson = null) then
+            null
+        else
+            try
+                Json.Document(dlpPoliciesJson)
+            catch (e) =>
+                error [
+                    Reason = NonPii("DLP Policy Parse Error"),
+                    Message = NonPii("Failed to parse DLP policies from credential properties"),
+                    Detail = [
+                        DlpPoliciesJson = NonPii(dlpPoliciesJson),
+                        ParseError = e
+                    ]
+                ],
+
+    ExtractAllowedWorkspaces = (policies as nullable list) as nullable list =>
+        if (policies = null) then
+            null
+        else if (List.IsEmpty(policies)) then
+            error [
+                Reason = NonPii("Invalid DLP Configuration"), 
+                Message = NonPii("DLP policy exists but contains no policies. This is an invalid configuration.")
+            ]
+        else
+            let
+                // Filter for workspace-scoped allow policies using constants
+                workspacePolicies = List.Select(policies, each 
+                    Record.Field(_, "resource") = DlpPolicyResource[WorkspaceObjectId] and 
+                    Record.Field(_, "type") = DlpPolicyType[Allow] and 
+                    Record.Field(_, "scope") = DlpPolicyScope[Workspace]),
+                allowedWorkspaceIds = List.Transform(workspacePolicies, each Record.Field(_, "value"))
+            in
+                allowedWorkspaceIds,
+
+    // Public functions
+    GetDlpPolicies = () as record =>
+        let
+            credential = Extension.CurrentCredential(),
+            properties = credential[Properties]?,
+            dlpPoliciesJson = if (properties = null) then null else Record.FieldOrDefault(properties, "Dmts_DlpPolicies", null),
+            policies = ParseDlpPolicies(dlpPoliciesJson),
+            allowedWorkspaces = ExtractAllowedWorkspaces(policies)
+        in
+            [
+                PolicyExists = (policies <> null),
+                AllowedWorkspaces = allowedWorkspaces
+            ],
+
+    IsWorkspaceAllowed = (workspaceId as text, dlpPolicies as record) as logical =>
+        let
+            policyExists = Record.Field(dlpPolicies, "PolicyExists"),
+            allowedWorkspaces = Record.Field(dlpPolicies, "AllowedWorkspaces")
+        in
+            (not policyExists) or List.Contains(allowedWorkspaces, workspaceId),
+
+    CheckWorkspaceAllowed = (workspaceId as text, dlpPolicies as record) as text =>
+        let
+            isAllowed = IsWorkspaceAllowed(workspaceId, dlpPolicies)
+        in
+            if (not isAllowed) then
+                error Table.ViewError([
+                    Reason = NonPii("Access Denied"),
+                    Message = NonPii(Extension.LoadString("WorkspaceAccessDeniedByDlpPolicy")),
+                    Detail = [
+                        WorkspaceId = NonPii(workspaceId),
+                        DlpPolicies = NonPii(dlpPolicies)
+                    ]
+                ])
+            else
+                workspaceId
+
+in
+    [
+        GetDlpPolicies = GetDlpPolicies,
+        IsWorkspaceAllowed = IsWorkspaceAllowed,
+        CheckWorkspaceAllowed = CheckWorkspaceAllowed
+    ]

@@ -1,0 +1,209 @@
+let
+
+    API_HOST = Settings[ApiHost],
+    LOOKUPS_URL =  Analytics[Constants][LOOKUPS_URL],
+    LOOKUPS_V3_URL = Analytics[Constants][LOOKUPS_V3_URL],
+    ENGINES_URL = Analytics[Constants][ENGINES_URL],
+    ENGINES_V3_URL = Analytics[Constants][ENGINES_V3_URL],
+    calcUnitId = Analytics[Constants][calcUnitId],
+    AdditionalHeaders = Analytics[Constants][AdditionalHeaders],
+
+    Value.WaitFor = Analytics[Utils][Value.WaitFor],
+    formatGetComponentsResponse = Analytics[Utils][formatGetComponentsResponse],
+    formatGetFrequenciesResponse = Analytics[Utils][formatGetFrequenciesResponse],
+    getGroups = Analytics[Utils][getGroups],
+    HandleCalculationV3ADSResult = Analytics[Utils][HandleCalculationV3ADSResult],
+    HandleCalculationV3PBIResult = Analytics[Utils][HandleCalculationV3PBIResult],
+    GetErrorResponseForV3 = Analytics[Utils][GetErrorResponseForV3],
+    formatV3GetAllCalculations = Analytics[Utils][formatV3GetAllCalculations],
+    formatGetPAV3PricingSourcesGetPAV3Columns = Analytics[Utils][formatGetPAV3PricingSourcesGetPAV3Columns],
+    formatGetAccountsReturnType = Analytics[Utils][formatGetAccountsReturnType],
+    
+    // ==================================================================
+    //
+    // Request Functions
+    //
+    // ==================================================================
+
+    // Datastore Fetch Data
+    datastore = (Url as text, Query as record) as any =>
+        let
+            response = Web.Contents(Url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200,400,404,500}, Query = Query]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            json = Json.Document(response),
+            result = if status = 200 then HandleCalculationV3ADSResult(json)
+                    else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                    else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                    else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                    else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            result,
+
+    lookup = (Url as text, Query as record) as any =>
+        let
+            response = Web.Contents(LOOKUPS_URL & Url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200,400,404,500}, Query = Query]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            result = if status = 200 then Json.Document(response)
+                    else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                    else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                    else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                    else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            result,
+
+    RunCalculation = (Calculation as record, EngineType as text) =>
+        let
+            body = Json.FromValue(Record.AddField([], EngineType, Record.AddField([], calcUnitId, Calculation))),
+            response = Web.Contents(ENGINES_URL & "calculations", [Headers = Record.Combine({[ #"Content-Type" = "application/json"], AdditionalHeaders}), Content = body, ManualStatusHandling = {202,400,404,500}, IsRetry=true]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            result = if status = 202 then GetCalculationStatus(response, EngineType)
+                else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.Combine(List.Combine(Record.FieldValues(Json.Document(response))), " "))
+                else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            result,
+
+    GetCalculationStatus = (Response as binary, EngineType as text) =>
+        let
+            responseHeaders = Value.Metadata(Response)[Headers],
+            locationUrl = responseHeaders[Location],
+            status =  Value.WaitFor(
+                (iteration) =>
+                    let
+                        statusResponse = Web.Contents(locationUrl, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200}, IsRetry = true]),
+                        buffered = Binary.Buffer(statusResponse),
+                        json = Json.Document(statusResponse),
+                        calculationStatus = json[status],
+                        unitStatuses = Record.Field(json, EngineType),
+                        table = if calculationStatus = "Queued" or calculationStatus = "Executing" then null
+                            else if calculationStatus = "Completed" then GetCalculationResult(unitStatuses[1])
+                            else error Error.Record("Error", "Calculation cancelled")
+                    in
+                        table,
+                (iteration) => #duration(0, 0, 0, 5))
+        in
+            status,
+
+    GetCalculationResult = (UnitStatus as record) =>
+        let
+            url = if UnitStatus[status] = "Success" then UnitStatus[result] else error Error.Record("Error", "Calculation Failed", UnitStatus[error]),
+            result = Web.Contents(url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), Query = [format = "bison"], IsRetry = true]),
+            json = Json.Document(result),
+            #"Returned" = json[tables][0][datarows],
+            #"Columns" = json[tables][0][definition][columns],
+            #"ColumnTable" = Table.FromList(#"Columns", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+            #"ColumnRows" = Table.ExpandRecordColumn(#"ColumnTable", "Column1", {"name"}),
+            #"Headers" = Table.ToList(#"ColumnRows"),
+            #"Table" = Table.FromRecords(#"Returned"),
+            #"OldNames" = Table.ColumnNames(#"Table"),
+            #"FormattedTable" = Table.RenameColumns(#"Table", List.Zip({#"OldNames", #"Headers"}), MissingField.UseNull)
+        in
+            #"FormattedTable",
+
+    RunV3Calculation = (Calculation as record, EngineType as text, CachedOutputAge as nullable number) =>
+        let
+            post = [],
+            format = Record.AddField([], "contentorganization", "SimplifiedRow" ),
+            metaValue = Record.AddField(format, "contenttype", "Json"),
+            data = Record.AddField(post, "data", Record.AddField([], calcUnitId, Calculation)),
+            val = Record.AddField(data, "meta", metaValue),
+            body = Json.FromValue(val),
+            maxstaleValue = let
+                                value = if CachedOutputAge = null then 12 * 60 * 60 else CachedOutputAge * 60
+                            in
+                                value,
+            response =  Web.Contents(ENGINES_V3_URL & EngineType & "/v3/calculations", [Headers = Record.Combine({[ #"Content-Type" = "application/json", #"X-FactSet-Api-Long-Running-Deadline" = "0", #"Cache-control" = "max-stale=" & Text.From(maxstaleValue)], AdditionalHeaders}), Content = body, ManualStatusHandling = {201,202,400,404,500}, IsRetry=true]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            table = if status = 201 then HandleCalculationV3PBIResult(Json.Document(response))
+                else if status = 200 then GetErrorResponseForV3(Json.Document(response))
+                else if status = 202 then PollCalculationV3Status(response, EngineType)
+                else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            table,
+
+    PollCalculationV3Status = (Response as binary, EngineType as text) =>
+        let
+            responseHeaders = Value.Metadata(Response)[Headers],
+            #"locationUrl" = responseHeaders[Location],
+            #"status" = GetCalculationV3Status(#"locationUrl", EngineType)
+        in
+            #"status",
+
+    GetCalculationV3Status = (locationUrl as text, EngineType as text) =>
+        let
+            status =  Value.WaitFor(
+                (iteration) =>
+                    let
+                        statusResponse = Web.Contents(locationUrl, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200, 202, 400, 404, 500}, IsRetry = true]),
+                        buffered = Binary.Buffer(statusResponse),
+                        json = Json.Document(statusResponse),
+                        status = Value.Metadata(statusResponse)[Response.Status],
+                        responseHeaders = Value.Metadata(statusResponse)[Headers],
+                        table = if status = 200 then GetCalculationV3Result(json)
+                                else if status = 202 then null
+                                else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(statusResponse))
+                                else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(statusResponse))
+                                else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                                else error Error.Record("Error", "Calculation cancelled", Text.FromBinary(statusResponse))
+                    in
+                        table,
+                    (iteration) => #duration(0, 0, 0, 5))
+                in
+                status,
+
+    GetCalculationV3Result = (CalcStatus as record) =>
+        let
+            unitStatus = Record.Field(CalcStatus[data][units], calcUnitId),
+            unitStatusToJson = Json.FromValue(unitStatus),
+            unitStatusInText = Text.FromBinary(unitStatusToJson),
+            url = if unitStatus[status] = "Success" then unitStatus[result] else error Error.Record("Error", "Calculation Failed", unitStatusInText),
+            result = Web.Contents(url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200}, IsRetry = true]),
+            json = Json.Document(result),
+            #"FormattedTable" = HandleCalculationV3PBIResult(json)
+        in
+            #"FormattedTable",
+
+    common = (Url as text, Query as record) as any =>
+        let
+            response = Web.Contents(ENGINES_V3_URL & Url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200,400,404,500}, Query = Query]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            record = if status = 200 then Json.Document(response)[data]
+                    else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                    else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                    else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                    else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            record,
+
+    lookupV3 = (Url as text, Query as record) as any =>
+        let
+            response = Web.Contents(LOOKUPS_V3_URL & Url, [Headers = Record.Combine({[#"Accept" = "application/json"], AdditionalHeaders}), ManualStatusHandling = {200,400,404,500}, Query = Query]),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            record = if status = 200 then Json.Document(response)[data]
+                    else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                    else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                    else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                    else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            record
+in
+    [
+        datastore = datastore,
+        lookup = lookup,
+        RunCalculation = RunCalculation,
+        GetCalculationStatus = GetCalculationStatus,
+        RunV3Calculation = RunV3Calculation,
+        PollCalculationV3Status = PollCalculationV3Status,
+        common = common,
+        lookupV3 = lookupV3
+    ]

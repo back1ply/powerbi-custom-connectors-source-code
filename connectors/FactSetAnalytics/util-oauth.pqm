@@ -1,0 +1,127 @@
+//
+// OAuth2 flow with PKCE
+//
+let
+    oauthConfig = GetOAuthConfigurations(Settings[OAuth][WellKnownUrl]),
+    authorizationEndpoint = oauthConfig[authorization_endpoint],
+    tokenEndpoint = oauthConfig[token_endpoint],
+    revocationEndpoint = oauthConfig[revocation_endpoint],
+    CreateCodeVerifier = () =>
+        let
+            stringLength = 50,
+            validCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+            FnRandomCharacter = (text) =>
+                Text.Range(validCharacters, Int32.From(Number.RandomBetween(0, Text.Length(validCharacters) - 1)), 1),
+            GenerateList = List.Generate(
+                () => [Counter = 0, Character = FnRandomCharacter(validCharacters)],
+                each [Counter] < stringLength,
+                each [Counter = [Counter] + 1, Character = FnRandomCharacter(validCharacters)],
+                each [Character]
+            ),
+            RandomString = List.Accumulate(GenerateList, "", (a, b) => a & b)
+        in
+            RandomString,
+    CreateCodeChallenge = (codeVerifier as text) =>
+        let
+            hash = Crypto.CreateHash(CryptoAlgorithm.SHA256, Text.ToBinary(codeVerifier)),
+            base64 = Binary.ToText(hash, BinaryEncoding.Base64),
+            codeChallenge = Text.Replace(Text.Replace(Text.Replace(base64, "+", "-"), "/", "_"), "=", "")
+        in
+            codeChallenge,
+    GetOAuthConfigurations = (url as text) as any =>
+        let
+            response = Web.Contents(
+                url,
+                [
+                    Headers = [#"Accept" = "application/json", #"X-FactSet-Connector-Version" = Settings[XFactSetConnectorVersion]],
+                    ManualStatusHandling = {200}
+                ]
+            ),
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            record =
+                if status = 200 then
+                    Json.Document(response)
+                else
+                    error
+                        Error.Record(
+                            "Error",
+                            "Server Error",
+                            "Please report this error to FactSet Support. X-DataDirect-Request-Key "
+                                & Record.Field(responseHeaders, "X-DataDirect-Request-Key")
+                                & "."
+                        )
+        in
+            record,
+    StartLogin = (resourceUrl, state, display) =>
+        let
+            codeVerifier = CreateCodeVerifier(),
+            authorizeUrl = authorizationEndpoint
+                & "?"
+                & Uri.BuildQueryString(
+                    [
+                        client_id = Settings[OAuth][ClientId],
+                        scope = Settings[OAuth][Scope],
+                        state = state,
+                        redirect_uri = Settings[OAuth][RedirectUri],
+                        response_type = "code",
+                        response_mode = "query",
+                        code_challenge = CreateCodeChallenge(codeVerifier),
+                        code_challenge_method = "S256"
+                    ]
+                )
+        in
+            [
+                LoginUri = authorizeUrl,
+                CallbackUri = Settings[OAuth][RedirectUri],
+                WindowHeight = Settings[OAuth][WindowHeight],
+                WindowWidth = Settings[OAuth][WindowWidth],
+                Context = codeVerifier
+            ],
+    TokenMethod = (code, grantType, optional verifier) =>
+        let
+            codeVerifier = if (verifier <> null) then [code_verifier = verifier] else [],
+            codeParameter = if (grantType = "authorization_code") then [code = code] else [refresh_token = code],
+            query = codeVerifier
+                & codeParameter
+                & [
+                    client_id = Settings[OAuth][ClientId],
+                    grant_type = grantType,
+                    redirect_uri = Settings[OAuth][RedirectUri]
+                ],
+            response = Web.Contents(
+                tokenEndpoint,
+                [
+                    Content = Text.ToBinary(Uri.BuildQueryString(query)),
+                    Headers = [
+                        #"Content-type" = "application/x-www-form-urlencoded",
+                        #"Accept" = "application/json",
+                        #"X-FactSet-Connector-Version" = Settings[XFactSetConnectorVersion]
+                    ],
+                    ManualStatusHandling = {400}
+                ]
+            ),
+            body = Json.Document(response)
+        in
+            if (body[error]? <> null) then
+                error Error.Record(body[error], body[error_description]?)
+            else
+                body,
+    FinishLogin = (context, callbackUri, state) =>
+        let
+            parts = Uri.Parts(callbackUri)[Query],
+            result =
+                if (Record.HasFields(parts, {"error", "error_description"})) then
+                    error Error.Record(parts[error], parts[error_description], parts)
+                else
+                    TokenMethod(parts[code], "authorization_code", context)
+        in
+            result,
+    Refresh = (resourceUrl, refreshToken) => TokenMethod(refreshToken, "refresh_token")
+in
+    [
+        StartLogin = StartLogin,
+        FinishLogin = FinishLogin,
+        Refresh = Refresh,
+        Label = Settings[OAuth][DialogLabel]
+    ]

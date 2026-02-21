@@ -1,0 +1,28 @@
+// NOTE: This File is referenced in Lakehouse connector for supporting Spark Compute. 
+let
+    GetNumberLiteral = (value as number) => Number.ToText(value),
+    GetTimeLiteral = (value as time) => Time.ToText(value, [Format = "HH:mm:ss.fffffff"]),
+    GetDateLiteral = (value as date) => Date.ToText(value, [Format = "yyyy-MM-dd"]),    GetDateTimeLiteral = (value as datetime) as text =>
+        DateTime.ToText(value, [Format = "yyyy-MM-dd HH:mm:ss.fffffff"]),
+    GetStringLiteral = (value as text) as text => Text.Combine({"'",Text.Replace(value, "'", "\'"),"'"}),
+    TypeInfo = Table.FromRecords({
+        [Name = "STRING",    SqlType = -9, Type = Text.Type,     Unsigned = false, ColumnSize = 255,   GetLiteral = GetStringLiteral,   Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "VARCHAR",   SqlType = -9, Type = Text.Type,     Unsigned = false, ColumnSize = 255,   GetLiteral = GetStringLiteral,   Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "CHAR",      SqlType = -8, Type = Text.Type,     Unsigned = false, ColumnSize = 255,   GetLiteral = GetStringLiteral,   Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "BOOLEAN",   SqlType = -7, Type = Logical.Type,  Unsigned = false, ColumnSize = 1,     GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = null, LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "TINYINT",   SqlType = -6, Type = Int8.Type,     Unsigned = false, ColumnSize = 3,     GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 10,   LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "BIGINT",    SqlType = -5, Type = Int64.Type,    Unsigned = false, ColumnSize = 19,    GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 10,   LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "BINARY",    SqlType = -3, Type = Binary.Type,   Unsigned = false, ColumnSize = 32767, GetLiteral = null,               Searchable = 0, NumberPrecisionRadix = null, LiteralPrefix = "0x", LiteralSuffix = null],
+        [Name = "DECIMAL",   SqlType = 3,  Type = Decimal.Type,  Unsigned = false, ColumnSize = 38,    GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 10,   LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "INTEGER",   SqlType = 4,  Type = Int32.Type,    Unsigned = false, ColumnSize = 10,    GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 10,   LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "SMALLINT",  SqlType = 5,  Type = Int16.Type,    Unsigned = false, ColumnSize = 5,     GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 10,   LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "FLOAT",     SqlType = 7,  Type = Single.Type,   Unsigned = false, ColumnSize = 24,    GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 2,    LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "DOUBLE",    SqlType = 8,  Type = Double.Type,   Unsigned = false, ColumnSize = 53,    GetLiteral = GetNumberLiteral,   Searchable = 2, NumberPrecisionRadix = 2,    LiteralPrefix = null, LiteralSuffix = null],
+        [Name = "DATE",      SqlType = 91, Type = Date.Type,     Unsigned = false, ColumnSize = 10,    GetLiteral = GetDateLiteral,     Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "TIMESTAMP", SqlType = 93, Type = DateTime.Type, Unsigned = false, ColumnSize = 29,    GetLiteral = GetDateTimeLiteral, Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "ARRAY",     SqlType = 12, Type = Text.Type,     Unsigned = false, ColumnSize = 16777216, GetLiteral = null,            Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "MAP",       SqlType = 12, Type = Text.Type,     Unsigned = false, ColumnSize = 16777216, GetLiteral = null,            Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"],
+        [Name = "STRUCT",    SqlType = 12, Type = Text.Type,     Unsigned = false, ColumnSize = 16777216, GetLiteral = null,            Searchable = 3, NumberPrecisionRadix = null, LiteralPrefix = "'",  LiteralSuffix = "'"]
+    })
+in
+    TypeInfo

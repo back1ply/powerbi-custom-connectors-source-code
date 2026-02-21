@@ -1,0 +1,758 @@
+let
+    Formula = () as table =>
+        FactSetAnalytics.ToNavigationTable({{"v1", "v1", Formula.V1(), "Folder", "Folder", false}}),
+    // Might not need this table, if we want to get rid of subtabs
+    Formula.V1 = () as table =>
+        FactSetAnalytics.ToNavigationTable(
+            {
+                {
+                    "v1GetRequestBuilderResponse",
+                    "FactSet.Formula.v1GetRequestBuilderResponse",
+                    GetRequestBuilderResponse,
+                    "Function",
+                    "Function",
+                    true
+                },
+                {
+                    "v1GetTimeSeriesByIds",
+                    "FactSet.Formula.v1GetTimeSeriesByIds",
+                    GetTimeSeriesByIds,
+                    "Function",
+                    "Function",
+                    true
+                },
+                {
+                    "v1GetTimeSeriesByUniverse",
+                    "FactSet.Formula.v1GetTimeSeriesByUniverse",
+                    GetTimeSeriesByUniverse,
+                    "Function",
+                    "Function",
+                    true
+                },
+                {
+                    "v1GetCrossSectionalByIds",
+                    "FactSet.Formula.v1GetCrossSectionalByIds",
+                    GetCrossSectionalByIds,
+                    "Function",
+                    "Function",
+                    true
+                },
+                {
+                    "v1GetCrossSectionalByUniverse",
+                    "FactSet.Formula.v1GetCrossSectionalByUniverse",
+                    GetCrossSectionalByUniverse,
+                    "Function",
+                    "Function",
+                    true
+                }
+            }
+        ),
+    CommonDescription = "<li><b><code>calendar</code></b>: Calendar of data returned. The default value is
+        <code>FIVEDAY</code> which displays Monday through Friday, regardless of whether there were trading holidays.
+        </li>
+        <li><b><code>fsymId</code></b>: Specify <code>Y</code> for the <code>fsymId</code> parameter to return the
+        fsymId (FactSet Default Permanent Identifier) of the <code>requestId</code>, in addition to the
+        <code>requestId</code> field, in each response object. The default value for the <code>fsymId</code> parameter
+        is <code>N</code>. The fsymId field returned is the FactSet Default Permanent Identifier for the
+        <code>requestId</code>. Currently, the <code>fsymId</code> parameter only supports equities.</li>
+        <li><b><code>displayName</code></b>: Define display names for the formulas inputted. Enter the list of display
+        names in the same order as the formulas inputted. An additional field <code>displayName</code> will be returned
+        in the data object for a formula. If the number of display names does not match the number of formulas
+        provided, an error will be returned. To define the display name for a subset of the formulas, leave a blank in
+        the position of the formula that won't be renamed.</li>",
+    GetTimeSeriesByIds = Value.ReplaceType(
+        (
+            ids as list,
+            formulas as list,
+            optional displayName as list,
+            optional symbolType as text,
+            optional calendar as text,
+            optional fsymId as text,
+            optional dates as text,
+            optional batch as text
+        ) =>
+            FactSetAnalytics.Request(
+                "/formula-api/v1/time-series",
+                FactSetAnalytics.Utilities.DeepMergeRecords(
+                    [],
+                    [
+                        Content = [
+                            data = [
+                                ids = ids,
+                                formulas = formulas,
+                                symbolType = symbolType,
+                                calendar = calendar,
+                                fsymId = fsymId,
+                                displayName = displayName,
+                                dates = dates,
+                                batch = batch,
+                                flatten = "Y"
+                            ]
+                        ],
+                        Headers = [#"X-FactSet-Connector-Origin" = "Formula.GetTimeSeriesByIds"],
+                        LongRunning = true
+                    ]
+                )
+            ),
+        type function (
+            // function parameters
+            ids as (
+                type list meta [
+                    DataSource.Path = false,
+                    Documentation.Description = "List of entity identifiers.",
+                    Documentation.SampleValues = {"FDS", "AAPL", "FDS, IBM, MSFT"}
+                ]
+            ),
+            formulas as (
+                type list meta [
+                    Documentation.FieldCaption = "List of FQL formulas.",
+                    Documentation.SampleValues = {"P_PRICE(0)", "FG_COMPANY_NAME"}
+                ]
+            ),
+            optional displayName as (
+                type list meta [
+                    Documentation.FieldCaption = "Define display names for the formulas inputted.",
+                    Documentation.SampleValues = {"PRICE", "COMPANY NAME"}
+                ]
+            ),
+            optional symbolType as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify the type of symbols submitted as the ids.",
+                    Documentation.AllowedValues = {"DEFAULT", "BLOOMBERG"}
+                ]
+            ),
+            optional calendar as (
+                type text meta [
+                    Documentation.FieldCaption = "Calendar of data returned.",
+                    Documentation.SampleValues = {"FIVEDAY", "SEVENDAY"}
+                ]
+            ),
+            optional fsymId as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to return the fsymId.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional dates as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify N to suppress the dates of the response.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional batch as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to allow batch-request handling.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            )
+            // function description
+        ) as table meta [
+            Documentation.Name = "Time Series by ID - FactSet Formula API",
+            Documentation.LongDescription = "<p>The /time-series endpoint is closely aligned with FactSet's powerful
+                data retrieval language FactSet Query Language (FQL) which is optimized for time-series analysis. FQL
+                can also perform sophisticated statistical, mathematical, logical, and other complex operations on the
+                data.</p>
+
+                <p>This endpoint has a unique TIMESERIES data object that pairs the requested data with FactSet provided
+                dates. This helps reduce the need for additional data requests and reduces the work required by users.
+                </p>
+
+                <ul>
+                    <li><b><code>ids</code></b>: List of entity identifiers. This request value is sent back in the
+                    response as the field requestId. By default, accepted symbol types include Market
+                    Tickers, SEDOLs, ISINs, CUSIPs, or FactSet
+                    Permanent Ids. Use the <code>symbolType</code> parameter to submit other supported third-party identifier
+                    types. The ids and universe parameters provide two different ways to specify the identifiers for
+                    which you want data retrieved.</li>
+                    <li><b><code>formulas</code></b>: List of FQL Formulas.</li>
+                    <li><b><code>displayName</code></b>: Define display names for the formulas inputted. Enter the list
+                    of display names in the same order as the formulas inputted. An additional field
+                    <code>displayName</code> will be returned in the data object for a formula. If the number of
+                    display names does not match the number of formulas provided, an error will be returned. To define
+                    the display name for a subset of the formulas, leave a blank in the position of the formula that
+                    won't be renamed.</li>
+                    <li><b><code>symbolType</code></b>: Specify the type of symbols submitted in the <code>ids</code>
+                    parameter. This is only required when submitting ids that are not supported by default.
+                    Available symbol types -
+                        <ul>
+                            <li><code>DEFAULT</code> - Accepted symbol types include Market Tickers,
+                            SEDOLs, ISINs, CUSIPs, or FactSet Permanent
+                            Ids.</li>
+                            <li><code>BLOOMBERG</code> - Accepted symbol types include Bloomberg Tickers
+                            and Bloomberg FIGIs.</li>
+                        </ul>
+                    </li>
+                    <li><b><code>calendar</code></b>: Calendar of data returned. The default value is
+                    <code>FIVEDAY</code> which displays Monday through Friday, regardless of whether there were trading
+                    holidays.</li>
+                    <li><b><code>fsymId</code></b>: Specify <code>Y</code> for the <code>fsymId</code> parameter to
+                    return the fsymId (FactSet Default Permanent Identifier) of the
+                    <code>requestId</code>, in addition to the <code>requestId</code> field, in each response object.
+                    The default value for the <code>fsymId</code> parameter is <code>N</code>. The fsymId
+                    field returned is the FactSet Default Permanent Identifier for the <code>requestId</code>.
+                    Currently, the <code>fsymId</code> parameter only supports equities.</li>
+                    <li><b><code>dates</code></b>: The default value for the dates parameter is <code>Y</code>. Setting
+                    dates to <code>N</code> will remove the 'dates' attribute from the response objects.</li>
+                    <li><b><code>batch</code></b>: Enables the ability to asynchronously <code>batch</code> the request,
+                    supporting a long-running request up to 30 minutes.
+                    <i>Individual users are allowed 5 concurrent Batch Requests, while Production users are allowed 10
+                    concurrent Batch Requests. This feature is available to Individual Users subscribed to the Performance
+                    Package and Performance Package Plus Performance Tiers and all Production Users. If you are unsure
+                    which Performance Tier you are subscribed to or you would like to gain access to the batch capabilities,
+                    please contact your FactSet Account Team.</i></li>
+                </ul>
+                <p>The <code>flatten</code> parameter has been set to <code>Y</code> by default to optimize the table
+                structure in Power Query.</p>
+
+                <p>In order to make a selection for the ids, formula, and display names, you must create a table in
+                Power Query using the Enter Data button within the Home ribbon. Each column can contain as many items
+                as needed per request.</p>
+
+                <p>Response table schema</p>
+                <ul>
+                    <li><code><b>requestId</b></code>: Id used in request parameter (e.g <code>""IBM""</code>)</li>
+                    <li><code><b>formulas</b></code>: All formulas requested will return their own columns. By default,
+                    the formula name is used as the column header, but if a display name is requested, then that will
+                    be used as the column header (e.g <code>""P_PRICE(0)""</code>)</li>
+                    <li><code><b>Date</b></code>: Date related to the returned formula values, format: YYYY-MM-DD (e.g
+                    <code>""2020-07-09""</code>)</li>
+                </ul>"
+        ]
+    ),
+    GetTimeSeriesByUniverse = Value.ReplaceType(
+        (
+            formulas as list,
+            universe as text,
+            optional universeType as text,
+            optional universeExclusion as list,
+            optional calendar as text,
+            optional fsymId as text,
+            optional displayName as list,
+            optional dates as text,
+            optional batch as text
+        ) =>
+            FactSetAnalytics.Request(
+                "/formula-api/v1/time-series",
+                FactSetAnalytics.Utilities.DeepMergeRecords(
+                    [],
+                    [
+                        Content = [
+                            data = [
+                                formulas = formulas,
+                                universe = universe,
+                                universeType = universeType,
+                                universeExclusion = universeExclusion,
+                                calendar = calendar,
+                                fsymId = fsymId,
+                                displayName = displayName,
+                                dates = dates,
+                                batch = batch,
+                                flatten = "Y"
+                            ]
+                        ],
+                        Headers = [#"X-FactSet-Connector-Origin" = "Formula.GetTimeSeriesByUniverse"],
+                        LongRunning = true
+                    ]
+                )
+            ),
+        type function (
+            // function parameters
+            formulas as (
+                type list meta [
+                    Documentation.FieldCaption = "List of FQL formulas.",
+                    Documentation.SampleValues = {"P_PRICE(0)", "FG_COMPANY_NAME"}
+                ]
+            ),
+            universe as (
+                type text meta [
+                    Documentation.FieldCaption = "Screening expression to limit the universe.",
+                    Documentation.SampleValues = {"FG_CONSTITUENTS(SP50,0,CLOSE)", "EQUITY(P_SYMBOL)='SBUX-US'"}
+                ]
+            ),
+            optional universeType as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify the universe type for calculation.",
+                    Documentation.AllowedValues = {"DEBT", "FUND", "EQUITY"}
+                ]
+            ),
+            optional universeExclusion as (
+                type list meta [
+                    Documentation.FieldCaption = "Specify the security types to exclude.",
+                    Documentation.AllowedValues = {"INACTIVE", "SECONDARY", "NONEQUITY"}
+                ]
+            ),
+            optional calendar as (
+                type text meta [
+                    Documentation.FieldCaption = "Calendar of data returned.",
+                    Documentation.SampleValues = {"FIVEDAY", "SEVENDAY"}
+                ]
+            ),
+            optional fsymId as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to return the fsymId.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional displayName as (
+                type list meta [
+                    Documentation.FieldCaption = "Define display names for the formulas inputted.",
+                    Documentation.SampleValues = {"PRICE", "COMPANY NAME"}
+                ]
+            ),
+            optional dates as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify N to suppress the dates of the response.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional batch as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to allow batch-request handling.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            )
+            // function description
+        ) as table meta [
+            Documentation.Name = "Time Series by Universe - FactSet Formula API",
+            Documentation.LongDescription = "<p>The /time-series endpoint is closely aligned with FactSet's powerful
+                data retrieval language FactSet Query Language (FQL) which is optimized for time-series analysis. FQL
+                can also perform sophisticated statistical, mathematical, logical, and other complex operations on the
+                data. This endpoint has a unique TIMESERIES data object that pairs the requested data with FactSet
+                provided dates. This helps reduce the need for additional data requests and reduces the work required
+                by users.</p>
+
+                <p>This endpoint has a unique TIMESERIES data object that pairs the requested data with FactSet
+                provided dates. This helps reduce the need for additional data requests and reduces the work required
+                by users.</p>
+                <ul>
+                    <li><b><code>formulas</code></b>: List of FQL Formulas.</li>
+                    <li><b><code>universe</code></b>: Screening expression to limit the universe.</li>
+                    <li><b><code>universeType</code></b>: Specify the universe type to calculate the universe in.</li>
+                    <li><b><code>universeExclusion</code></b>: Specify the security types to exclude from your EQUITY universe expression. 
+                    The supported exclusion values are INACTIVE, SECONDARY, and NONEQUITY. For more information on how to use this parameter
+                    visit the Formula API Developer Portal page.
+                    </li>"
+                & CommonDescription
+                & "<li><b><code>dates</code></b>: The default value for the <code>dates</code> parameter is
+                <code>Y</code>. Setting <code>dates</code> to <code>N</code> will remove the 'dates' attribute from
+                the response objects.</li>
+                    <li><b><code>batch</code></b>: Enables the ability to asynchronously <code>batch</code> the request,
+                    supporting a long-running request up to 30 minutes.
+                    <i>Individual users are allowed 5 concurrent Batch Requests, while Production users are allowed 10
+                    concurrent Batch Requests. This feature is available to Individual Users subscribed to the Performance
+                    Package and Performance Package Plus Performance Tiers and all Production Users. If you are unsure
+                    which Performance Tier you are subscribed to or you would like to gain access to the batch capabilities,
+                    please contact your FactSet Account Team.</i></li>
+                </ul>
+
+                <p>The <code>flatten</code> parameter has been set to <code>Y</code> by default to optimize the table
+                structure in Power Query.</p>
+
+                <p>In order to make a selection for the formula, and display names, you must create a table in Power
+                Query using the Enter Data button within the Home ribbon. Each column can contain as many items as
+                needed per request. Batch processing is not currently supported through the connector.</p>
+
+                <p>Response table schema</p>
+                <ul>
+                    <li><b><code>requestId</code></b>: Id used in request parameter (e.g <code>""G0250X10""</code>)</li>
+                    <li><b><code>formulas</code></b>: All formulas requested will return their own columns. By default,
+                    the formula name is used as the column header, but if a display name is requested, then that will
+                    be used as the column header (e.g <code>""FF_SALES(QTR_R,0,-3,FQ)""</code>)</li>
+                    <li><b><code>Dates</code></b>: Date related to the returned formula values, format: YYYY-MM-DD (e.g
+                    <code>""2020-07-09""</code>)</li>
+                </ul>",
+            Documentation.Examples = {
+                [
+                    Description = "Commonly used screening codes to get you started:",
+                    Code = "MSCI Emerging Markets: (fg_constituents(891800,0,close))=1#(lf)"
+                        & "MSCI Europe: (fg_constituents(990500,0,close))=1#(lf)"
+                        & "United States: (fg_constituents(fc0000us,0,close))=1#(lf)"
+                        & "Europe: (fg_constituents(fr0000r3,0,close))=1#(lf)"
+                        & "S&P 500: (fg_constituents(sp50,0,close))=1#(lf)"
+                        & "Russell 3000: (fg_constituents(r.3000,0,close))=1#(lf)",
+                    Result = "(data as table)"
+                ]
+            }
+        ]
+    ),
+    GetCrossSectionalByIds = Value.ReplaceType(
+        (
+            ids as list,
+            formulas as list,
+            optional displayName as list,
+            optional symbolType as text,
+            optional calendar as text,
+            optional fsymId as text,
+            optional backTestDate as date,
+            optional batch as text
+        ) =>
+            FactSetAnalytics.Request(
+                "/formula-api/v1/cross-sectional",
+                FactSetAnalytics.Utilities.DeepMergeRecords(
+                    [],
+                    [
+                        Content = [
+                            data = [
+                                ids = ids,
+                                formulas = formulas,
+                                symbolType = symbolType,
+                                calendar = calendar,
+                                fsymId = fsymId,
+                                displayName = displayName,
+                                backTestDate = backTestDate,
+                                batch = batch,
+                                flatten = "Y"
+                            ]
+                        ],
+                        Headers = [#"X-FactSet-Connector-Origin" = "Formula.GetCrossSectionalByIds"],
+                        LongRunning = true
+                    ]
+                )
+            ),
+        type function (
+            // function parameters
+            ids as (
+                type list meta [
+                    DataSource.Path = false,
+                    Documentation.Description = "List of entity identifiers.",
+                    Documentation.SampleValues = {"FDS", "AAPL", "FDS, IBM, MSFT"}
+                ]
+            ),
+            formulas as (
+                type list meta [
+                    Documentation.FieldCaption = "List of FQL formulas.",
+                    Documentation.SampleValues = {"P_PRICE(0)", "FG_COMPANY_NAME"}
+                ]
+            ),
+            optional displayName as (
+                type list meta [
+                    Documentation.FieldCaption = "Define display names for the formulas inputted.",
+                    Documentation.SampleValues = {"PRICE", "COMPANY NAME"}
+                ]
+            ),
+            optional symbolType as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify the type of symbols submitted as the ids.",
+                    Documentation.AllowedValues = {"DEFAULT", "BLOOMBERG"}
+                ]
+            ),
+            optional calendar as (
+                type text meta [
+                    Documentation.FieldCaption = "Calendar of data returned.",
+                    Documentation.SampleValues = {"FIVEDAY", "SEVENDAY"}
+                ]
+            ),
+            optional fsymId as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to return the fsymId.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional backTestDate as (
+                type date meta [
+                    Documentation.FieldCaption = "Specify the backtest date",
+                    Documentation.SampleValues = {"01/01/2012"}
+                ]
+            ),
+            optional batch as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to allow batch-request handling.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            )
+            // function description
+        ) as table meta [
+            Documentation.Name = "Cross Sectional by ID - FactSet Formula API",
+            Documentation.LongDescription = "<p>The /cross-sectional endpoint is closely aligned with FactSet's
+            powerful data retrieval Screening language which is optimized for analysis of data items at single point in
+            time for different entities and is extremely efficient for large universes.</p>
+
+                <ul>
+                    <li><b><code>ids</code></b>: List of entity identifiers. This request value is sent back in the
+                    response as the field <code>requestId</code>. By default, accepted symbol types include Market
+                    Tickers, SEDOLs, ISINs, CUSIPs, or FactSet
+                    Permanent Ids. Use the <code>symbolType</code> parameter to submit other supported
+                    third-party identifier types. The <code>ids</code> and <code>universe</code> parameters provide two
+                    different ways to specify the identifiers for which you want data retrieved.</li>
+                    <li><b><code>formulas</code></b>: List of FQL Formulas.</li>
+                    <li><b><code>displayName</code></b>: Define display names for the formulas inputted. Enter the list
+                    of display names in the same order as the formulas inputted. An additional field
+                    <code>displayName</code> will be returned in the data object for a formula. If the number of
+                    display names does not match the number of formulas provided, an error will be returned. To define
+                    the display name for a subset of the formulas, leave a blank in the position of the formula that
+                    won't be renamed.</li>
+                    <li><b><code>symbolType</code></b>: Specify the type of symbols submitted in the <code>ids</code>
+                    parameter. This is only required when submitting <code>ids</code> that are not supported by
+                    default. Available symbol types -
+                        <ul>
+                            <li><code>DEFAULT</code> - Accepted symbol types include Market Tickers,
+                            SEDOLs, ISINs, CUSIPs, or FactSet Permanent Ids.</li>
+                            <li><code>BLOOMBERG</code> - Accepted symbol types include Bloomberg Tickers
+                            and Bloomberg FIGIs.</li>
+                        </ul>
+                    </li>
+                    <li><b><code>calendar</code></b>: Calendar of data returned. The default value is
+                    <code>FIVEDAY</code> which displays Monday through Friday, regardless of whether there were trading
+                    holidays.</li>
+                    <li><b><code>fsymId</code></b>: Specify <code>Y</code> for the <code>fsymId</code> parameter to
+                    return the fsymId (FactSet Default Permanent Identifier) of the
+                    <code>requestId</code>, in addition to the <code>requestId</code> field, in each response object.
+                    The default value for the <code>fsymId</code> parameter is <code>N</code>. The fsymId
+                    field returned is the FactSet Default Permanent Identifier for the <code>requestId</code>.
+                    Currently, the <code>fsymId</code> parameter only supports equities.</li>
+                    <li><b><code>backTestDate</code></b>: Specify the backtest date.</li>
+                    <li><b><code>batch</code></b>: Enables the ability to asynchronously <code>batch</code> the request,
+                    supporting a long-running request up to 30 minutes.
+                    <i>Individual users are allowed 5 concurrent Batch Requests, while Production users are allowed 10
+                    concurrent Batch Requests. This feature is available to Individual Users subscribed to the Performance
+                    Package and Performance Package Plus Performance Tiers and all Production Users. If you are unsure
+                    which Performance Tier you are subscribed to or you would like to gain access to the batch capabilities,
+                    please contact your FactSet Account Team.</i></li>
+                </ul>
+
+                <p>The <code>flatten</code> parameter has been set to <code>Y</code> by default to optimize the table
+                structure in Power Query.</p>
+
+                <p>In order to make a selection for the ids, formula, and display names, you must create a table in
+                Power Query using the Enter Data button within the Home ribbon. Each column can contain as many items
+                as needed per request.</p>
+
+                <p>Response table schema</p>
+
+                <ul>
+                    <li><b><code>requestId</code></b>: Id used in request parameter (e.g <code>""IBM""</code>)</li>
+                    <li><b><code>formulas</code></b>: All formulas requested will return their own columns. By default,
+                    the formula name is used as the column header, but if a display name is requested, then that will
+                    be used as the column header (e.g <code>""P_PRICE(0)""</code>)</li>
+                </ul>
+                "
+        ]
+    ),
+    GetCrossSectionalByUniverse = Value.ReplaceType(
+        (
+            formulas as list,
+            universe as text,
+            optional universeType as text,
+            optional universeExclusion as list,
+            optional calendar as text,
+            optional fsymId as text,
+            optional displayName as list,
+            optional backTestDate as date,
+            optional batch as text
+        ) =>
+            FactSetAnalytics.Request(
+                "/formula-api/v1/cross-sectional",
+                FactSetAnalytics.Utilities.DeepMergeRecords(
+                    [],
+                    [
+                        Content = [
+                            data = [
+                                formulas = formulas,
+                                universe = universe,
+                                universeType = universeType,
+                                universeExclusion = universeExclusion,
+                                calendar = calendar,
+                                fsymId = fsymId,
+                                displayName = displayName,
+                                backTestDate = backTestDate,
+                                batch = batch,
+                                flatten = "Y"
+                            ]
+                        ],
+                        Headers = [#"X-FactSet-Connector-Origin" = "Formula.GetCrossSectionalByUniverse"],
+                        LongRunning = true
+                    ]
+                )
+            ),
+        type function (
+            // function parameters
+            formulas as (
+                type list meta [
+                    Documentation.FieldCaption = "List of FQL formulas.",
+                    Documentation.SampleValues = {"P_PRICE(0)", "FG_COMPANY_NAME"}
+                ]
+            ),
+            universe as (
+                type text meta [
+                    Documentation.FieldCaption = "Screening expression to limit the universe.",
+                    Documentation.SampleValues = {"FG_CONSTITUENTS(SP50,0,CLOSE)", "EQUITY(P_SYMBOL)='SBUX-US'"}
+                ]
+            ),
+            optional universeType as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify the universe type for calculation.",
+                    Documentation.AllowedValues = {"DEBT", "FUND", "EQUITY"}
+                ]
+            ),
+            optional universeExclusion as (
+                type list meta [
+                    Documentation.FieldCaption = "Specify the security types to exclude.",
+                    Documentation.AllowedValues = {"INACTIVE", "SECONDARY", "NONEQUITY"}
+                ]
+            ),
+            optional calendar as (
+                type text meta [
+                    Documentation.FieldCaption = "Calendar of data returned.",
+                    Documentation.SampleValues = {"FIVEDAY", "SEVENDAY"}
+                ]
+            ),
+            optional fsymId as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to return the fsymId.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            ),
+            optional displayName as (
+                type list meta [
+                    Documentation.FieldCaption = "Define display names for the formulas inputted.",
+                    Documentation.SampleValues = {"PRICE", "COMPANY NAME"}
+                ]
+            ),
+            optional backTestDate as (type date meta [
+                Documentation.FieldCaption = "Specify the backtest date"
+            ]),
+            optional batch as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify Y to allow batch-request handling.",
+                    Documentation.AllowedValues = {"Y", "N"}
+                ]
+            )
+            // function description
+        ) as table meta [
+            Documentation.Name = "Cross Sectional by Universe - FactSet Formula API",
+            Documentation.LongDescription = "<p>The /cross-sectional endpoint is closely aligned with FactSet's
+                powerful data retrieval Screening language which is optimized for analysis of data items at single
+                point in time for different entities and is extremely efficient for large universes.</p>
+
+                <ul>
+                    <li><b><code>formulas</code></b>: List of FQL Formulas.</li>
+                    <li><b><code>universe</code></b>: Screening expression to limit the universe.</li>
+                    <li><b><code>universeType</code></b>: Specify the universe type to calculate the universe in.</li>
+                    <li><b><code>universeExclusion</code></b>: Specify the security types to exclude from your EQUITY universe expression. 
+                    The supported exclusion values are INACTIVE, SECONDARY, and NONEQUITY. For more information on how to use this parameter
+                    visit the Formula API Developer Portal page.
+                    </li>"
+                & CommonDescription
+                & "<li><b><code>backTestDate</code></b>: Specify the backtest date.</li>
+                    <li><b><code>batch</code></b>: Enables the ability to asynchronously <code>batch</code> the request,
+                    supporting a long-running request up to 30 minutes.
+                    <i>Individual users are allowed 5 concurrent Batch Requests, while Production users are allowed 10
+                    concurrent Batch Requests. This feature is available to Individual Users subscribed to the Performance
+                    Package and Performance Package Plus Performance Tiers and all Production Users. If you are unsure
+                    which Performance Tier you are subscribed to or you would like to gain access to the batch capabilities,
+                    please contact your FactSet Account Team.</i></li>
+                </ul>
+
+                <p>The <code>flatten</code> parameter has been set to <code>Y</code> by default to optimize the table
+                structure in Power Query.</p>
+
+                <p>In order to make a selection for the ids, formula, and display names, you must create a table in
+                Power Query using the Enter Data button within the Home ribbon. Each column can contain as many items
+                as needed per request.</p>
+
+                <p>Response table schema</p>
+
+                <ul>
+                    <li><b><code>requestId</code></b>: Id used in request parameter (e.g <code>""G0250X10""</code>)</li>
+                    <li><b><code>formulas</code></b>: All formulas requested will return their own columns. By default,
+                    the formula name is used as the column header, but if a display name is requested, then that will
+                    be used as the column header (e.g <code>""P_PRICE(0)""</code>)</li>
+                </ul>
+                ",
+            Documentation.Examples = {
+                [
+                    Description = "Commonly used screening codes to get you started:",
+                    Code = "MSCI Emerging Markets: (fg_constituents(891800,0,close))=1#(lf)"
+                        & "MSCI Europe: (fg_constituents(990500,0,close))=1#(lf)"
+                        & "United States: (fg_constituents(fc0000us,0,close))=1#(lf)"
+                        & "Europe: (fg_constituents(fr0000r3,0,close))=1#(lf)"
+                        & "S&P 500: (fg_constituents(sp50,0,close))=1#(lf)"
+                        & "Russell 3000: (fg_constituents(r.3000,0,close))=1#(lf)",
+                    Result = "(data as table)"
+                ]
+            }
+        ]
+    ),
+    GetRequestBuilderResponse = Value.ReplaceType(
+        (endpoint as text, body as text) =>
+            let
+                endpointToUse =
+                    if endpoint = "Time-Series" then
+                        "/formula-api/v1/time-series"
+                    else
+                        "/formula-api/v1/cross-sectional",
+                bodyAsRecord = Json.Document(Text.ToBinary(body)),
+                updatedData = Record.Combine({bodyAsRecord[data], [flatten = "Y"]}),
+                result = FactSetAnalytics.Request(
+                    endpointToUse,
+                    FactSetAnalytics.Utilities.DeepMergeRecords(
+                        [],
+                        [
+                            Content = [data = updatedData],
+                            Headers = [#"X-FactSet-Connector-Origin" = "Formula.GetRequestBuilderResponse"],
+                            LongRunning = true
+                        ]
+                    )
+                )
+            in
+                result,
+        type function (
+            // function parameters
+            endpoint as (
+                type text meta [
+                    Documentation.FieldCaption = "Specify the endpoint to fetch the response for.",
+                    Documentation.AllowedValues = {"Time-Series", "Cross-Sectional"}
+                ]
+            ),
+            body as (
+                type text meta [
+                    Documentation.FieldCaption = "Formula API Request Builder JSON body.",
+                    Documentation.SampleValues = {
+                        "{#(lf) ""data"": {#(lf)  ""ids"": [""IBM-US"", ""FDS-US""],#(lf)  ""formulas"": [""P_DATE(0)"", ""FREF_MARKET_VALUE_COMPANY(0,,,,,0)""#(lf)]}}"
+                    },
+                    Formatting.IsMultiLine = true,
+                    Formatting.IsCode = true
+                ]
+            )
+            // function description
+        ) as table meta [
+            Documentation.Name = "Request Builder Response - FactSet Formula API",
+            Documentation.LongDescription = "<p>Build a request with the Formula API Request Builder tool, then copy
+                and paste the POST body into the input box below. Batch processing is not currently supported through
+                the connector.</p>
+
+                <p>The endpoints supports Long Running asynchronous requests up to 30 minutes via the batch parameter.
+                <i>This feature is available to Individual Users subscribed to the Performance Package and Performance
+                Package Plus Performance Tiers and all Production Users. If you are unsure which Performance Tier you
+                are subscribed to or you would like to gain access to the batch capabilities, please contact your FactSet Account Team.</i>
+
+                <ul>
+                    <li><b><code>endpoint</code></b>: Select the endpoint for which you'd like to fetch the response for.</li>
+                    <li><b><code>body</code></b>: After selecting the endpoint for which the response needs to be
+                    fetched, paste in the JSON Body from Formula API Request Builder.</li>
+
+                </ul>
+
+                <p>Response table schema</p>
+                <ul>
+                    <li><b><code>requestId</code></b>: Ids of constituent firms of universe expression used in request
+                    parameter (e.g <code>""IBM""</code>)</li>
+                    <li><b><code>formulas</code></b>: All formulas requested will return their own columns. By default,
+                    the formula name is used as the column header, but if a display name is requested, then that will
+                    be used as the column header (e.g <code>""P_PRICE(0)""</code>)</li>
+                    <li><b><code>Date</code></b>: Date related to the returned formula values, format: YYYY-MM-DD. Only
+                    returns for time-series requests (e.g <code>""2020-07-09""</code>)</li>
+                </ul>
+                "
+        ]
+    )
+in
+    [
+        Name = "Formula",
+        Key = "Formula",
+        Data = Formula,
+        ItemKind = "Folder",
+        ItemName = "Folder",
+        IsLeaf = false,
+        Functions = []
+    ]

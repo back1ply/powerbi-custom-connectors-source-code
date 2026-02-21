@@ -1,0 +1,36 @@
+let
+    // Load dependent modules via dependency injection following FabricSql pattern
+    Utils = try #shared[Utils] otherwise error "Module Utils not found in shared context. Ensure the Utils module is loaded.",
+
+    // Configuration constants
+    UseNewClusterAPI = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseNewClusterAPI", true)),
+    
+    GetTenantIdRequestHeader = (tenantId as nullable text) => if tenantId <> null then [#"x-ms-tid" = tenantId] else [],
+
+    GetClusterUrl = (baseUrl as text, optional tenantId as nullable text) =>
+        let
+            maxRetryCount = 5,
+            props = (Extension.CurrentCredential()[Properties]? ?? []) & Extension.CurrentApplication(),
+            serviceEndpoint = props[PBIEndpointUrl]? ?? baseUrl,
+            uriEnd = if UseNewClusterAPI then "/metadata/cluster" else "/powerbi/globalservice/v201606/clusterdetails",
+            discoveryUrl = Uri.Combine(serviceEndpoint, uriEnd),
+            response = Utils[Web.JsonContents](
+                discoveryUrl,
+                /* headers */ GetTenantIdRequestHeader(tenantId),
+                /*additionalHandlers*/ [500 = Utils[RetryHandler](maxRetryCount)],
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetClusterUrl")]),
+            clusterUrlViaRequest = if UseNewClusterAPI then response[backendUrl] else response[clusterUrl],
+            _clusterUrl = props[PBI_ClusterUrl]? ?? clusterUrlViaRequest,
+            clusterUrl = Diagnostics.Trace(TraceLevel.Information, [
+                    Name = "GetClusterUrl",
+                    Data = [],
+                    SafeData = [ ServiceEndpoint = serviceEndpoint, PBI_ClusterUrl = props[PBI_ClusterUrl]? ]
+                ],
+                _clusterUrl)
+        in
+            clusterUrl
+
+in
+    GetClusterUrl

@@ -1,0 +1,289 @@
+let
+    Utils = try #shared[Utils] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "ModuleLoadError", Data = []], e),
+    LivyEndpointFormat = "#{0}/v1/workspaces/#{1}/lakehouses/#{2}/livyapi/versions/2023-12-01/#{3}",
+    LivyStatementEndpointFormat = "#{0}/v1/workspaces/#{1}/lakehouses/#{2}/livyapi/versions/2023-12-01/#{3}/#{4}/statements",
+    LivyStatementStatusEndpointFormat = "#{0}/v1/workspaces/#{1}/lakehouses/#{2}/livyapi/versions/2023-12-01/#{3}/#{4}/statements/#{5}",
+    LivySessionEndpointFormat = "#{0}/v1/workspaces/#{1}/lakehouses/#{2}/livyapi/versions/2023-12-01/sessions/#{3}",
+    GenerateLivyEndpointDetails = (baseUrl, workspaceId, lakehouseId, endpointName) =>
+        Text.Format(LivyEndpointFormat, {baseUrl, workspaceId, lakehouseId, endpointName}),
+
+    GenerateLivyStatementEndpointDetails = (baseUrl, workspaceId, lakehouseId, endpointName, identifier) =>
+        Text.Format(LivyStatementEndpointFormat, {baseUrl, workspaceId, lakehouseId, endpointName, identifier}),
+
+    // Get or create a livy session on a lakehouse and associate it with the destination lakehouse id.
+    GetLivySessionDetails = (
+        apiUrl,
+        workspaceId as nullable text,
+        lakehouseId as nullable text,
+        destinationLakehouseId as text,
+        options,
+        optional maxCount,
+        optional startState as record) =>
+        let
+            retryCount = if maxCount = null then 3 else maxCount - 1,
+            listSesionsRequest = Text.Format(LivyEndpointFormat, {apiUrl, workspaceId, lakehouseId, "sessions"}),
+            listSessionResponse = Utils[Web.JsonContents](
+                listSesionsRequest,
+                [
+                    Origin = Utils[NonPii]("ListSparkSessions")
+                ],
+                [
+                    503 = Utils[RetryHandler](1)
+                ],
+                null,
+                [Iteration = 1]),
+            sessionTable = Table.FromList(listSessionResponse[items], Splitter.SplitByNothing(), {"Sessions"}),
+            livySessions = Table.ExpandRecordColumn(
+                sessionTable,
+                "Sessions",
+                {"id", "name", "livyState"}),
+            firstIdleSession = Table.SelectRows(
+                livySessions,
+                each [livyState] = "idle" and Text.Contains([name], "Mashup_Engine_Spark_Session_")),
+            getOrCreateLivySession = if Table.RowCount(firstIdleSession) < 1 then
+                let
+                    // associate the destination lakehouse id to the new spark session.
+                    sessionName = Text.Format("#{0}_#{1}", {"Mashup_Engine_Spark_Session", Text.NewGuid()}),
+                    createSessionRequest = GenerateLivySessionRequest(sessionName, destinationLakehouseId),
+                    response = Utils[Web.JsonContents](
+                        listSesionsRequest,
+                        [Origin = Utils[NonPii]("CreateSparkSessionsForLakehoue")],
+                        [503 = Utils[RetryHandler](1)],
+                        createSessionRequest,
+                        startState
+                    )
+                in
+                    Json.Document(response)[id]
+            else
+                firstIdleSession{0}[id],
+            sessionStateRequest = Text.Format(LivySessionEndpointFormat, {apiUrl, workspaceId, lakehouseId, getOrCreateLivySession}),
+            getSessionStateResponse = Utils[Web.JsonContents](
+                sessionStateRequest,
+                [
+                    Origin = Utils[NonPii]("GetSparkSessionState")
+                ],
+                [
+                    200 = JsonRetryHandler(10),// Retry 10 times if the state is not idle
+                    503 = Utils[RetryHandler](1)
+                ])
+
+        in
+            if getSessionStateResponse[state] = "idle" then
+                getOrCreateLivySession
+            // If session is busy, we retry to either create a new session or get first idle session.
+            else if getSessionStateResponse[state] = "busy" and retryCount > 0 then
+                @GetLivySessionDetails(
+                    apiUrl,
+                    workspaceId,
+                    lakehouseId,
+                    destinationLakehouseId,
+                    options,
+                    retryCount,
+                    [Iteration = 1]
+                )
+            // If after 3 attempts to get a session, we still get a busy state, we will use the busy session to execute the statement.
+            else if getSessionStateResponse[state] = "busy" then
+                getOrCreateLivySession
+            else
+                "", // Return an empty session id if we cannot get an valid session so we can report an error later
+
+    /**
+        Runs a Spark SQL query by creating session using the livy API.
+        These are the steps:
+        1. Use the session id to trigger a spark sql statement using the Livy Statement API.
+        2. If the session is not ready, we poll on http 409 status code to check if the session is ready to start running the statement.
+        3. Remove CRLF characters from the query to avoid issues with Spark SQL.
+        4. Once the statement is submitted, we poll for the status of the statement.
+        5. Return the result of the statement execution.
+
+    **/
+    RunSparkSqlStatement =  (
+        apiUrl,
+        workspaceId,
+        lakehouseId,
+        sessionId,
+        finalSparkSqlStatement,
+        optional maxCount,
+        optional startState) => 
+        let
+            retryCount = if maxCount = null then 1 else maxCount - 1,
+            statementEndpoint = Text.Format(
+                LivyStatementEndpointFormat,
+                {
+                    apiUrl,
+                    workspaceId,
+                    lakehouseId,
+                    "sessions",
+                    sessionId
+                }),
+            // Remove CRLF characters from the query to avoid issues with Spark SQL.
+            escapeCrlfCharactersFromText = (input) => Diagnostics.Trace(
+                TraceLevel.Information, 
+                [
+                    Name = "RunSparkStatement",
+                    Data = [
+                        Query = Utils[Value.ToText](input)
+                    ]
+                ], 
+                Text.Replace(Text.Replace(input, "#(cr)", "\r"),"#(lf)","\n")),
+
+            sparkSqlStatementToRun = Text.Format(
+                "spark.catalog.clearCache();spark.sql(""#{0}"")",
+                {
+                    escapeCrlfCharactersFromText(finalSparkSqlStatement)
+                }),
+
+            request = GenerateLivyStatementRequest(sparkSqlStatementToRun),
+            response = Utils[Web.JsonContents](
+                statementEndpoint,
+                [Origin = Utils[NonPii]("ExecuteStatementOnSession")],
+                [409 = Utils[RetryHandler](3, ((i) => i+1 * 5))],
+                request,
+                startState),
+            statementId = response[id],
+            
+            getStatementStatusEndpoint = Text.Format(
+                LivyStatementStatusEndpointFormat,
+                {
+                    apiUrl, workspaceId, lakehouseId, "sessions", sessionId, statementId
+                }
+            ),
+            maxPollCount = 55,
+            startState = if startState = null then 
+                [Iteration = 1] //force retry with iteration = 1
+            else 
+                startState,
+            // Poll till status changes to success.
+            result = try PollStatementForResult(getStatementStatusEndpoint, startState, maxPollCount),
+            isRetryOperation = result[HasError] = true and result[Error][Detail]?[RetryOperation]? = true,
+            finalResult = if isRetryOperation and retryCount > 0 then
+                Function.InvokeAfter(
+                    () => Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [Name = "RetryOperationOnError", Data = [RetryCount = Utils[NonPii](retryCount)]],
+                        @RunSparkSqlStatement(
+                            workspaceId,
+                            lakehouseId,
+                            sessionId,
+                            finalSparkSqlStatement,
+                            retryCount,
+                            [Iteration = 1])),
+                    #duration(0,0,0, 15))
+            else
+                result
+        in
+            finalResult,
+
+
+    PollStatementForResult = (getStatementStatusEndpoint as text, startState as record, maxPollCount, optional maxRetry) =>
+        let
+            retryCount = if maxRetry = null then 1 else maxRetry,
+            waitForResult = Utils[Value.WaitFor](
+                (iteration) =>
+                    let
+                        statementResponse = Utils[Web.JsonContents](
+                            getStatementStatusEndpoint,
+                            [Origin = Utils[NonPii]("CheckStatementStatus")],
+                            [503 = Utils[RetryHandler](1)],
+                            null,
+                            startState),
+                        newState = statementResponse[state]? ?? "(null)",
+                        continuePolling = Diagnostics.Trace(TraceLevel.Information, [
+                            Name = "Polling",
+                            Data = [Response = Utils[Value.ToText](statementResponse), NewState = Utils[Value.ToText](newState)]
+                        ], newState = "waiting" or newState = "running"),
+                        status = Diagnostics.Trace(
+                            TraceLevel.Information,
+                            [
+                                Name = "WaitForPoll",
+                                Data = [Status = Utils[Value.ToText](newState)]
+                            ],
+                            Table.FromRecords({statementResponse})
+                        ),
+                        statementResultStatus = statementResponse[output]?[status]?,
+                        errorMessage = statementResponse[output]?[evalue]?,
+                        result = if statementResultStatus <> null and statementResultStatus = "error" then
+                            // If the table is recently created, we might get a TABLE_OR_VIEW_NOT_FOUND error and
+                            // we can retry the operation as per the advice from the Spark Team.
+                            if retryCount > 0  and Text.Contains(errorMessage, "[TABLE_OR_VIEW_NOT_FOUND]") then
+                                error Error.Record(
+                                    "DataSource.Error",
+                                    Extension.LoadString("LakehouseSparkStatementExecutionError"),
+                                    [RetryOperation = true]
+                                )
+                            else
+                                error Error.Record(
+                                    "DataSource.Error",
+                                    Extension.LoadString("LakehouseSparkStatementExecutionError"),
+                                    statementResponse
+                                )
+                        else
+                            status
+                    in
+                        if iteration > maxPollCount then
+                            result
+                        else if continuePolling then
+                            null
+                        else
+                            result,
+                (iteration) => #duration(0, 0, 0, Number.Power(1.1, iteration + 1)-1),
+                maxPollCount)
+            in
+                waitForResult,
+
+
+    GenerateLivySessionRequest = (name as text, lakehouseId as text) =>
+        let
+            payload = 
+            [
+                #"name" = name,
+                conf = [
+                    #"spark.targetLakehouse" = lakehouseId,
+                    #"spark.sql.parquet.vorder.default" = "true"
+                ]
+            ]
+        in
+            payload,
+
+    GenerateLivyStatementRequest = (codeBlock as text) =>
+        let
+            payload = 
+            [
+                #"code" = codeBlock,
+                #"kind" = "spark"
+            ]
+        in
+            payload,
+
+    // Special Retry Handler for checking if session is ready.
+    JsonRetryHandler = (count) => 
+        let
+            delay = ((i) => i * 2)
+        in
+            (state) =>
+            let
+                response = state[Response],
+                responseValue = Json.Document(response) meta Value.Metadata(response),
+                retryableState = responseValue[state] <> "idle",
+                // retry 5 times if the state is not idle.
+                retryState = if retryableState and state[Iteration] < count then 
+                    Function.InvokeAfter(
+                        () => state & [Complete = false, Iteration = state[Iteration] + 1],
+                        #duration(0, 0, 0, delay(state[Iteration] + 1))
+                    )
+                else 
+                    Utils[JsonHandler](state)
+            in
+                retryState
+in
+    [  
+        Value.ToText = Utils[Value.ToText],
+        RunSparkSqlStatement=RunSparkSqlStatement,
+        GetLivySessionDetails = GetLivySessionDetails,
+        Connector.EvaluateQueryAndActionsForErrors = Utils[Connector.EvaluateQueryAndActionsForErrors],
+        Value.ConvertToLogical = Utils[Value.ConvertToLogical],
+        NonPii = Utils[NonPii]
+     ]
+
+

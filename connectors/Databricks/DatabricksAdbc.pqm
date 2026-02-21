@@ -1,0 +1,877 @@
+// This module implements ADBC helpers and navigation functions for the Databricks connector.
+// It provides the functions necessary for connecting to Databricks via ADBC and navigating 
+// through the catalog, schemas, and tables.
+let
+// Extension library functions
+    Extension.LoadFunction = (name as text) =>
+    let
+        binary = Extension.Contents(name),
+        asText = Text.FromBinary(binary)
+    in
+        Expression.Evaluate(asText, #shared),
+    DatabricksSqlGenerator = Extension.LoadFunction("SqlGenerator.pqm"),
+    AdbcDriver = Extension.LoadFunction("DatabricksDriverDefinition.pqm"),      
+    AdvancedOptionsModule = Extension.LoadFunction("AdvancedOptions.pqm"),
+    ValidateAdvancedOptions = AdvancedOptionsModule[ValidateAdvancedOptions],
+    AdbcFieldsFromOptions = AdvancedOptionsModule[AdbcFieldsFromOptions],
+    GetPlatformVersion = () => try Number.From(Text.Split(Module.Versions()[Core], "."){1}) otherwise 0,
+
+    // Define a value that's unique to the module and use it to build a connection-specific identifier
+    ModuleIdentifier = () => ...,
+    MakeUniqueIdentifier = (connectionString) => [Module=ModuleIdentifier, Signature=connectionString],
+
+    // Statement properties for metadata calls
+    AllStatementProperties = [],
+
+    // Helper function to get default catalog and schema from validated options
+    GetDefaultCatalogAndSchema = (validatedOptions as record) as record =>
+        let
+            DefaultSchema = validatedOptions[Database]?,
+            DefaultCatalog = validatedOptions[Catalog]?
+        in
+            [Catalog = DefaultCatalog, Schema = DefaultSchema],
+
+    // Wrapper function for ADBC operations
+    HandleAdbcError = (operation as function) =>
+        try operation() catch (e) =>
+            let
+                errorMessage = e[Message],
+                errorDetail = e[Detail],
+                
+                // Check for common ADBC error patterns
+                isAuthError = Text.Contains(errorMessage, "Forbidden") or Text.Contains(errorMessage, "Unauthorized"),
+
+                
+                // Handle different error types
+                handledError = if isAuthError then
+                    error Extension.CredentialError("AccessDenied", errorMessage)
+                else
+                    error e
+            in
+                handledError,
+
+    // ADBC equivalent of the ODBC DatabricksQuery function
+    DatabricksAdbcQuery = (context as record, wrappedSqlQuery as text) as table =>
+        context[ExecuteQuery](wrappedSqlQuery),
+
+    // Implement ADBC logic similar to AdbcConnectorTemplate
+    DatabricksAdbc = (host as text, httpPath as text, options as nullable record, optional wrappedSqlQuery as text) =>
+        let
+            Credential = Extension.CurrentCredential(),
+            ValidatedOptions = ValidateAdvancedOptions(options),
+            ConnectionString = GetAdbcConnectionString(host, httpPath, ValidatedOptions),
+            CredentialConnectionString = GetAdbcCredentialConnectionString(Credential),
+
+            AllStatementProperties = [],
+            EnableActivityDiagnostics = Record.FieldOrDefault(options, "EnableActivityDiagnostics", "enabled") = "enabled",
+            FinalConnectionString = ConnectionString & CredentialConnectionString,
+            // Wrap Adbc.DataSource
+            Databases = HandleAdbcError(() => 
+                Adbc.DataSource(AdbcDriver, ConnectionString, [
+                    SqlGenerator = DatabricksSqlGenerator,
+                    CredentialConnectionString = CredentialConnectionString,
+                    ClientConnectionPooling = true
+                ])
+            ),
+
+            // NEW: Create Adbc.Connection
+            Connection = HandleAdbcError(() =>
+                Adbc.Connection(AdbcDriver, FinalConnectionString, [], [ConnectionPoolType=2])
+            ),
+
+            // NEW: Updated ExecuteQuery function to use Adbc.Connection
+            ExecuteQuery = (sql, optional options) =>
+                let
+                    sqlWithOptionalComment = if EnableActivityDiagnostics then
+                        "/*ActivityId: " & Diagnostics.ActivityId() & " CorrelationId: " & Diagnostics.CorrelationId() & " */" & sql
+                        else
+                        sql,
+                    connectionOptions = [
+                        ConnectionProperties = [],
+                        StatementProperties = if options[Catalog]? <> null then [adbc.get_metadata.target_catalog = options[Catalog]] else [],
+                        // For all metadata calls, we should pass IsMetadata as true
+                        IsMetadata = options[IsMetadata]?
+                    ]
+                in
+                    HandleAdbcError(() =>
+                        Connection[ExecuteQuery](sqlWithOptionalComment, null, connectionOptions)
+                    ),
+
+            // Wrap ExecuteThriftApi
+            ExecuteThriftApi = (thriftApi, statementProperties) =>
+                let
+                    connectionOptions = [
+                        ConnectionProperties = [],
+                        IsMetadata = true
+                    ] & statementProperties
+                in
+                    HandleAdbcError(() =>
+                        Connection[ExecuteQuery](thriftApi, null, connectionOptions)
+                    ),
+
+            //This is a GetData function used by SqlGenerator API to execute folded query, refere Pluggable Sql Generator document for more details
+            GetData = (query as text, resultType as type, context) => CreateDataTable(query, resultType, context, ExecuteQuery), 
+
+            CreateDataTable = (query as text, resultType as type, context, executeQuery) =>
+                Table.View(null, [
+                    GetType = () => resultType,
+                    GetRows = () =>
+                        let
+                            data = executeQuery(query, context[[Catalog],[IsMetadata]]?),
+                            oldNames = Table.ColumnNames(data),
+                            newNames = Table.ColumnNames(#table(resultType, {})),
+                            renamed = Table.RenameColumns(data, List.Zip({oldNames, newNames})),
+                            rows = if ValidateGetRows then renamed else data,
+                            durationIndexes = GetDurationColumnIndexes(resultType),
+                            dataWithDuration = ApplyDurationFrom(rows, durationIndexes)
+                        in
+                            dataWithDuration,
+                    ValidateGetRows = GetPlatformVersion() > 147
+                ]),   
+
+            GetDurationColumnIndexes = (tableType as type) as list =>
+                let
+                    schema = Type.TableSchema(tableType),
+                    durationTypes = Table.SelectRows(schema,each [TypeName] = "Duration.Type"),
+                    durationIndexes = Table.Column(durationTypes,"Position")
+                in
+                    durationIndexes,
+
+            ApplyDurationFrom = (table as table, durationIndexes as list) as table =>
+                let
+                    columnNames = Table.ColumnNames(table),
+                    durationColumns = List.Transform(durationIndexes, each columnNames{_}),
+                    transformedTable = Table.TransformColumns(
+                        table,
+                        List.Transform(durationColumns, each {_, CreateDurationFromTicks})
+                    )
+                in
+                    transformedTable,
+
+            CreateDurationFromTicks = (ticks as nullable number) =>
+                let 
+                    totalSeconds = ticks / 1000,
+                    days = Number.IntegerDivide(totalSeconds, 86400),  // Calculate days (1 day = 86400 seconds)
+                    remainingSecondsAfterDays = Number.Mod(totalSeconds, 86400),
+                    hours = Number.IntegerDivide(remainingSecondsAfterDays, 3600),  // Calculate hours (1 hour = 3600 seconds)
+                    remainingSecondsAfterHours = Number.Mod(remainingSecondsAfterDays, 3600),
+                    minutes = Number.IntegerDivide(remainingSecondsAfterHours, 60),  // Calculate minutes (1 minute = 60 seconds)
+                    seconds = Number.Mod(remainingSecondsAfterHours, 60),  // Remaining seconds
+                    result = #duration(days, hours, minutes, seconds)
+                in
+                    result,
+
+            UniqueIdentifier = MakeUniqueIdentifier(ConnectionString),
+            SqlGenerator = SqlView.Generator(UniqueIdentifier, DatabricksSqlGenerator, GetData),
+
+            // Add navigation property generator
+            NavPropGenerator = if Tables.NavigationPropertyGenerator = null or ValidatedOptions[EnablePKFK]? = 0 then null else
+                Tables.NavigationPropertyGenerator(null, (path) => AdbcDatabases{[Name=path{0}]}[Data]{[Name=path{1}]}[Data]{[Name=path{2}]}[Data]),
+
+            context = [
+                Connection = Connection,
+                ExecuteQuery = ExecuteQuery,
+                ExecuteThriftApi = ExecuteThriftApi,
+                SqlGenerator = SqlGenerator,
+                NavPropGenerator = NavPropGenerator,
+                ValidatedOptions = ValidatedOptions
+            ],
+
+            Defaults = GetDefaultCatalogAndSchema(ValidatedOptions),
+            AdbcDatabases = if Defaults[Schema] <> null then
+                // For catalog, this is already earlier passed in as a initial catalog parameter to the driver, which sets the session catalog. 
+                // If no catalog is explicitly passed in for metadata catalog, the metadata request by the driver will use this driver's session catalog instead
+                // We should prefer this, since user may pass in SPARK or empty initial catalog here. This behavior is not true for initial schema.
+                GetTablesWithMetadata(context, Defaults[Schema])
+            else GetDatabases(context, Databases),
+
+            // Add conditional logic for SQL query execution (similar to ODBC implementation)
+            DataSourceOrQuery = if wrappedSqlQuery = null then
+                AdbcDatabases
+            else
+                DatabricksAdbcQuery(context, wrappedSqlQuery)
+         in 
+            DataSourceOrQuery,
+
+    // NEW: Type adjustment function for Adbc.Connection
+    // May need driver changes
+    AdjustNativeTypes = (tableType as type) as type =>
+        let
+            rowType = Type.TableRow(tableType),
+            rowFields = Record.ToTable(Type.RecordFields(rowType)),
+            adjusted = Table.TransformColumns(rowFields, {{"Value", (field) =>
+                let
+                    originalType = field[Type],
+                    connectorType = Text.Upper(Value.Metadata(originalType)[#"Spark:DataType:SqlName"]?) ?? "NOTFOUND",
+                    // This logic should be similar to DatabricksTypeMap below
+                    adjustedType = if Text.StartsWith(connectorType, "DECIMAL") then "DECIMAL"
+                        else if Text.StartsWith(connectorType, "STRUCT") or Text.StartsWith(connectorType, "ARRAY") or Text.StartsWith(connectorType, "MAP") then "STRING"
+                        else if Text.StartsWith(connectorType, "INTERVAL") then "INTERVAL"
+                        else connectorType,
+                    newType = Type.ReplaceFacets(originalType, [NativeTypeName = adjustedType])
+                in
+                    [Type = newType, Optional = field[Optional]]
+                }})
+        in
+            type table Type.ForRecord(Record.FromTable(adjusted), false),
+
+    //Folding navigation step function
+    FoldNavigationStep = (selector, loader, kind) =>
+        let
+            reduceAnd = (ast) => if ast[Kind] = "Binary" and ast[Operator] = "And" then List.Combine({@reduceAnd(ast[Left]), @reduceAnd(ast[Right])}) else {ast},
+            matchFieldAccess = (ast) => if ast[Kind] = "FieldAccess" and ast[Expression] = RowExpression.Row then ast[MemberName] else ...,
+            matchConstant = (ast) => if ast[Kind] = "Constant" then ast[Value] else ...,
+            matchIndex = (ast) => if ast[Kind] = "Binary" and ast[Operator] = "Equals"
+                then
+                    if ast[Left][Kind] = "FieldAccess"
+                        then Record.AddField([], matchFieldAccess(ast[Left]), matchConstant(ast[Right]))
+                        else Record.AddField([], matchFieldAccess(ast[Right]), matchConstant(ast[Left]))
+                else ...,
+            predicate1 = Record.Combine(List.Transform(reduceAnd(RowExpression.From(selector)), matchIndex)),
+            isKindList = kind is list,
+            kindMatch = if isKindList then List.Contains(kind,predicate1[Kind]?) else predicate1[Kind]? = kind,
+            predicate2 = if kindMatch then Record.RemoveFields(predicate1, {"Kind"}) else predicate1,
+            pickKind = if isKindList then 
+                        if List.Contains(kind,predicate1[Kind]?) then predicate1[Kind]? else ...
+                    else kind,
+            name = if Record.FieldCount(predicate2) = 1 and predicate2[Name]? <> null then 
+                        predicate2[Name] 
+                    else if predicate2[Item]? <> null then 
+                        predicate2[Item] 
+                    else 
+                        ...
+        in
+            // TODO: Make Description work when folding
+            Table.FromRecords({[Name=name, Description="", Data=loader(name), Kind=pickKind]}),
+
+
+    //Creating TabeView with folding support
+    AvoidFoldingFailure = (table) =>
+    let
+        view = (x) => Table.View(null, Handlers((op, transform) =>
+            if List.Contains({"GetRows", "GetType", "GetRowCount", "GetExpression", "OnTestConnection", "OnNativeQuery", "OnNativeStatement"}, op) then transform(x(table))
+            else @view((y) => transform(x(y)))))
+    in
+        view((t) => t),
+
+    AllValueEqualsToNull = (equalityComparers) =>
+        if (List.IsEmpty(List.Select(equalityComparers, each _ <> Value.Equals))) then null
+        else equalityComparers,
+
+    Handlers = (fn) => [
+        GetExpression = () => fn("GetExpression", (table) => Value.Expression(Value.Optimize(table))),
+        GetRows = () => fn("GetRows", (table) => table),
+        GetRowCount = () => fn("GetRowCount", (table) => Table.RowCount(table)),
+        GetType = () => fn("GetType", (table) => Value.Type(table)),
+
+        OnAddColumns = (constructors) => fn("OnAddColumns", (table) => List.Accumulate(
+            constructors,
+            table,
+            (state, item) => Table.AddColumn(state, item[Name], item[Function], item[Type]))),
+        OnCombine = (tables, index) => fn("OnCombine", (table) => Table.Combine(List.ReplaceRange(tables, index, 1, {table}))),
+        OnDistinct = (columns) => fn("OnDistinct", (table) => Table.Distinct(table, columns)),
+        OnGroup = (keys, aggregates) => fn("OnGroup", (table) => Table.Group(table, keys, List.Transform(aggregates, each {[Name], [Function], [Type]}))),
+        OnInvoke = (function, arguments, index) => fn("OnInvoke", (table) => Function.Invoke(function, List.ReplaceRange(arguments, index, 1, {table}))),
+        OnJoin = (joinSide, leftTable, rightTable, joinKeys, joinKind) =>
+            if (joinSide = JoinSide.Left) then fn("OnJoin", (table) => Table.Join(table, joinKeys[Left], rightTable, joinKeys[Right], joinKind, null, AllValueEqualsToNull(joinKeys[EqualityComparer])))
+            else if (joinSide = JoinSide.Right) then fn("OnJoin", (table) => Table.Join(leftTable, joinKeys[Left], table, joinKeys[Right], joinKind, null, AllValueEqualsToNull(joinKeys[EqualityComparer])))
+            else error
+            [
+                Reason = "Expression.Error",
+                Message = "Invalid join side",
+                Detail = joinSide
+            ],
+        OnPivot = (pivotValues, attributeColumn, valueColumn, aggregateFunction) => fn("OnPivot", (table) =>
+            Table.Pivot(table, pivotValues, attributeColumn, valueColumn, aggregateFunction)),
+        OnRenameColumns = (renames) => fn("OnRenameColumns", (table) => Table.RenameColumns(table, List.Transform(renames, each {[OldName], [NewName]}))),
+        OnSelectColumns = (columns) => fn("OnSelectColumns", (table) => Table.SelectColumns(table, columns)),
+        OnSelectRows = (selector) => fn("OnSelectRows", (table) => Table.SelectRows(table, selector)),
+        OnSkip = (count) => fn("OnSkip", (table) => Table.Skip(table, count)),
+        OnSort = (order) => fn("OnSort", (table) => Table.Sort(table, List.Transform(order, each {[Name], [Order]}))),
+        OnTake = (count) => fn("OnTake", (table) => Table.FirstN(table, count)),
+        OnUnpivot = (pivotColumns, attributeColumn, valueColumn) => fn("OnUnpivot", (table) =>
+            Table.Unpivot(table, pivotColumns, attributeColumn, valueColumn)),
+
+        OnNativeQuery = (query, optional parameters, optional options) => fn("OnNativeQuery", (table) =>
+            let
+                optionsString = Text.Combine(
+                    List.Transform(
+                        Record.FieldNames(options),
+                        each _ & "=" & Text.From(Record.Field(options, _))
+                    ),
+                    ", "
+                ),
+                
+                tracedOptions = Diagnostics.Trace(
+                    TraceLevel.Information, [
+                        Name = "Databricks/QueryType",
+                        Data = [],
+                        SafeData = [QueryType = "Value.NativeQuery", QueryOptions = optionsString]
+                    ],
+                    options
+                )
+            in
+                Value.NativeQuery(table, query, parameters, tracedOptions)),
+        OnNativeStatement = (statement, optional parameters, optional options) => fn("OnNativeStatement", (table) =>
+            ValueAction.NativeStatement(table, statement, parameters, options)),
+        OnTestConnection = () => fn("OnTestConnection", (table) => DataSource.TestConnection(table)),
+        ThrowFoldingFailures = false
+    ],
+    // Helpers for Adbc
+
+    AdvancedOptionsValidators = Extension.LoadFunction("AdvancedOptions.pqm")[AdvancedOptionsValidators],
+    // Helper function to construct ADBC connection string
+    GetAdbcConnectionString = (host as text, httpPath as text, validatedOptions as record) as record =>
+        let
+            UseCachedResult = if validatedOptions[SSP_use_cached_result]? = null then true else validatedOptions[SSP_use_cached_result],
+            BaseConnectionString = [
+                adbc.spark.type = "http",
+                adbc.spark.host = host,
+                adbc.spark.path = httpPath,
+                adbc.spark.port = 443,
+                adbc.http_options.tls.enabled = true,
+                adbc.spark.user_agent_entry = "PowerBI",
+                adbc.databricks.ssp_use_cached_result = Logical.ToText(UseCachedResult),
+                adbc.databricks.token_renew_limit = 10
+            ],
+            OptionAdbcFields = AdbcFieldsFromOptions(validatedOptions),
+
+            EnableAutomaticProxyDiscovery = Record.FieldOrDefault(validatedOptions, "EnableAutomaticProxyDiscovery", false),
+            ProxyOptions = if EnableAutomaticProxyDiscovery then
+            let
+            ProxyUriRecord = Web.DefaultProxy(host),
+            ops = if Record.FieldCount(ProxyUriRecord) > 0 then
+                let
+                    UriRecord = Uri.Parts(ProxyUriRecord[ProxyUri]),
+                    proxyOptions = [
+                        adbc.proxy_options.use_proxy = true,
+                        adbc.proxy_options.proxy_host = UriRecord[Host],
+                        adbc.proxy_options.proxy_port = UriRecord[Port]
+                    ]
+                in 
+                    proxyOptions
+                else []
+            in
+               ops 
+            else [],
+            ConnectionStringWithOptions = Record.Combine({BaseConnectionString, ProxyOptions, OptionAdbcFields}),
+            ConnectionStringWithStringOptions = Record.TransformFields(
+                ConnectionStringWithOptions,
+                List.Transform(
+                    Record.FieldNames(ConnectionStringWithOptions),
+                    each {_, (value) => 
+                        if value is text then value 
+                        else if value is number then Text.From(value)
+                        else if value is logical then Logical.ToText(value)
+                        else if value is null then ""
+                        else Text.From(value)}
+                )
+            ),
+            ConnectionStringWithEmptyRemoved = Record.SelectFields(
+                ConnectionStringWithStringOptions,
+                List.Select(
+                    Record.FieldNames(ConnectionStringWithStringOptions),
+                    each Record.Field(ConnectionStringWithStringOptions, _) <> null and Record.Field(ConnectionStringWithStringOptions, _) <> ""
+                )
+            )
+        in
+            ConnectionStringWithEmptyRemoved,
+
+    // Helper function to construct ADBC credential connection string
+    GetAdbcCredentialConnectionString = (Credential as record) as record =>
+        let
+            AuthKind = Credential[AuthenticationKind]
+        in
+            if AuthKind = "Key" then [
+                adbc.spark.auth_type = "token",
+                adbc.spark.token = Credential[Key]
+            ] else if AuthKind = "OAuth" then [
+                adbc.spark.auth_type = "oauth",
+                adbc.spark.access_token = Credential[access_token]
+            ] else if AuthKind = "UsernamePassword" then
+                if Credential[Username] = "token" then
+                    [
+                        adbc.spark.auth_type = "token",
+                        adbc.spark.token =  Credential[Password]
+                    ]
+                else
+                    [
+                        adbc.spark.auth_type = "oauth",
+                        adbc.databricks.oauth.grant_type = "client_credentials",
+                        adbc.databricks.oauth.client_id = Credential[Username],
+                        adbc.databricks.oauth.client_secret = Credential[Password],
+                        adbc.databricks.oauth.scope = "sql"
+                    ]
+            else
+                error Extension.CredentialError("DataSource.UnsupportedAuthenticationKind", Text.Format("Unsupported authentication mode #{0}", {AuthKind})),
+
+    // Helper function to escape identifiers with backticks for Databricks
+    EscapeIdentifier = (identifier as text) as text => "`" & Text.Replace(identifier, "`", "``") & "`",
+
+    MakeNavTableType = (isLeaf) =>
+        let
+            dataType = type table meta [
+                NavigationTable.ItemKind = "Table",
+                Preview.Delay = "Table",
+                NavigationTable.RowConfigurationColumn = "Kind"
+            ],
+            tableType = type table [
+                Name = text,
+                Description = nullable text,
+                Data = dataType,
+                Kind = text
+            ],
+            withKeys = Type.ReplaceTableKeys(tableType, {[Columns={"Name", "Kind"}, Primary=true]}) meta [
+                NavigationTable.NameColumn="Name",
+                NavigationTable.DataColumn="Data",
+                NavigationTable.KindColumn="Kind"
+            ]
+        in
+            withKeys,
+
+    // Extended navigation table type for GetTablesWithMetadata that includes additional metadata columns
+    MakeNavTableTypeWithExtendedMetadata = (isLeaf) =>
+        let
+            dataType = type table meta [
+                NavigationTable.ItemKind = "Table",
+                Preview.Delay = "Table",
+                NavigationTable.RowConfigurationColumn = "Kind"
+            ],
+            tableType = type table [
+                Name = text,
+                Item = text,
+                Schema = text,
+                Catalog = text,
+                Description = nullable text,
+                Data = dataType,
+                Kind = text
+            ],
+            withKeys = Type.ReplaceTableKeys(tableType, {[Columns={"Item", "Schema", "Catalog", "Kind"}, Primary=true]}) meta [
+                NavigationTable.NameColumn="Name",  // Still display the full name
+                NavigationTable.DataColumn="Data", 
+                NavigationTable.KindColumn="Kind"
+            ]
+        in
+            withKeys,
+
+    // This will give navigation table for databases
+    GetDatabases = (context, dataSource) =>
+        let
+            isLeaf = false,
+            kind = "Database",   
+            thriftApi = "GetCatalogs",
+            properties = [adbc.apache.statement.is_metadata_command = "true"],
+            result = context[ExecuteThriftApi](thriftApi, [StatementProperties = properties]),
+            tables = Table.RenameColumns(Table.AddColumn(result, "Description", each [TABLE_CAT]), {{"TABLE_CAT", "Name"}}),
+            getSchemas = (name) => GetSchemas(context, dataSource, name),
+            withData = Table.AddColumn(tables, "Data", each getSchemas([Name]), type table),
+            withKind = Table.AddColumn(withData, "Kind", each kind meta [NavigationTable.IsLeaf = isLeaf], type text),
+            withFolding = AvoidFoldingFailure(Table.View(null, [
+                GetType = () => MakeNavTableType(isLeaf),
+                GetRows = () => withKind,
+                OnSelectRows = (selector) => FoldNavigationStep(selector, getSchemas, kind),
+                ThrowFoldingFailures = false
+            ]))
+        in
+            withFolding,
+
+    // This will give navigation table for schemas
+    GetSchemas = (context, dataSource, catalog) =>
+        let
+            isLeaf = false,
+            kind = "Schema",
+            thriftApi = "GetSchemas",
+            properties = [adbc.apache.statement.is_metadata_command = "true", adbc.get_metadata.escape_pattern_wildcards="true", adbc.get_metadata.target_catalog = catalog],
+            result = context[ExecuteThriftApi](thriftApi, [StatementProperties = properties]),
+    // tables variable below should have two columns "Name" and "Description", If execution of command doesn't return result in appropriate format
+    // then modify code below to format it. #todo
+            schemasRaw = Table.RenameColumns(Table.AddColumn(result, "Description", each [TABLE_SCHEM]), {{"TABLE_SCHEM", "Name"}}), 
+            schemas = Table.SelectColumns(schemasRaw,{"Name","Description"}),
+            withoutInformationSchema = Table.SelectRows(schemas, each [Name] <> "INFORMATION_SCHEMA"),
+            getTables = (name) => GetTables(context, catalog, name),
+            withData =  Table.AddColumn(withoutInformationSchema, "Data", each getTables([Name]), type table),
+            withKind = Table.AddColumn(withData, "Kind", each kind meta [NavigationTable.IsLeaf = isLeaf], type text),
+            db = dataSource{[Name=catalog, Kind="Database"]}[Data],
+            withFolding = AvoidFoldingFailure(Table.View(null, [
+                GetType = () => MakeNavTableType(isLeaf),
+                GetRows = () => withKind,
+                OnSelectRows = (selector) => FoldNavigationStep(selector, getTables, kind),
+    // Alok Deorani : This was standard code for NativeQuery support, any reason why this has been changed?
+    // Alok Deorani : Actual code looks something like this (commented)
+    //            OnNativeQuery = (cmd, params, options) =>
+    //            let
+    //                useFallback = options[EnableFolding]? <> true
+    //                   or (params <> null and params <> [] and params <> {}),
+    //                fallback = Value.NativeQuery(db, cmd, params, options),
+    //                foldable = NativeQuery(context, catalog, cmd)
+    //            in
+    //                try if useFallback then fallback else foldable catch (e) => error Table.ViewError(e),
+                OnNativeQuery = (cmd, params, options) =>
+                   let
+                        useFallback = options[EnableFolding]? <> true
+                        or (params <> null and params <> [] and params <> {}),
+                        fallback = Value.NativeQuery(db, cmd, params, options),
+                        foldable = NativeQuery(context, catalog, cmd)
+                    in
+                        try if useFallback then fallback else foldable catch (e) => error Table.ViewError(e),
+                // TODO: Does this need anything?        
+                OnNativeStatement = (cmd, params, options) =>
+                    try ValueAction.NativeStatement(db, cmd, params, options) catch (e) => error Table.ViewError(e),
+                ThrowFoldingFailures = false
+            ]))
+        in
+            withFolding,
+
+    NativeQuery = (context, catalog, cmd) =>
+        let
+            hasPermission = Extension.HasPermission([PermissionKind = "NativeQuery", Value = cmd]), // ends in challenge on failure
+            typeQuery = "select *#(cr)#(lf)from (#(cr)#(lf)" & cmd & "#(cr)#(lf)) as `_`#(cr)#(lf)where 0 = 1",
+            typeResult = context[ExecuteQuery](typeQuery, [Catalog=catalog, IsMetadata=true]),
+            tableType = Value.Type(Table.Buffer(typeResult)),
+            //If Connection is null then we are using tableType as it is, else we are adjusting native types  ---New Change For Adbc.Connection
+            adjustedType = if context[Connection]? = null then tableType else AdjustNativeTypes(tableType),
+            reference = [Kind = "FromQuery", Query = [Kind="Verbatim", Query=cmd], Alias = "_"],
+            result = context[SqlGenerator](reference, adjustedType, [Catalog = catalog])
+        in
+            if hasPermission then result else ...,
+
+        // Helper function for shared table processing logic
+    GetTablesCore = (context, catalog, schema) =>
+        let
+            isLeaf = true,
+            thriftApi = "GetTables",
+            baseProperties = [adbc.apache.statement.is_metadata_command = "true", adbc.get_metadata.escape_pattern_wildcards = "true", adbc.get_metadata.target_db_schema = schema],
+            propertiesWithCatalog = if catalog <> null then Record.AddField(baseProperties, "adbc.get_metadata.target_catalog", catalog) else baseProperties,
+            result = context[ExecuteThriftApi](thriftApi, [StatementProperties = propertiesWithCatalog]),
+            
+            // tables variable below should have two columns "Name" and "Description", If execution of command doesn't return result in appropriate format
+            // then modify code below to format it. #todo
+            // Build base table with description and renamed table name column
+            tablesRaw = Table.RenameColumns(Table.AddColumn(result, "Description", each [TABLE_NAME]), {{"TABLE_NAME", "Item"}}), 
+            tablesBase = Table.SelectColumns(tablesRaw,{"Item","Description","TABLE_TYPE","TABLE_CAT","TABLE_SCHEM"}),
+
+            // Replace TABLE_CAT with "SPARK" if EnableMultipleCatalogsSupport = 0 or TABLE_CAT is null/empty
+            enableMultipleCatalogsSupport = Record.FieldOrDefault(context[ValidatedOptions], "EnableMultipleCatalogsSupport", "1"),
+            tablesWithCatalogFixed = Table.TransformColumns(tablesBase, {
+                "TABLE_CAT", each if enableMultipleCatalogsSupport = "0" or _ = null or _ = "" then "SPARK" else _
+            }),
+            
+            // The TABLE_TYPE column must be removed since the schema for a table required by PowerBI is fixed
+            // Convert TABLE_TYPE to camel case before adding as Kind
+            // Note: For legacy non multiple catalog cases, TABLE_TYPE may be empty/null
+            // In such cases, we default to "Table" as the Kind value
+            withKind = Table.RemoveColumns(
+                Table.AddColumn(
+                    tablesWithCatalogFixed, 
+                    "Kind", 
+                    each if [TABLE_TYPE] = null or [TABLE_TYPE] = "" then 
+                        "Table" meta [NavigationTable.IsLeaf = isLeaf]
+                    else
+                        (Text.Upper(Text.Start([TABLE_TYPE], 1)) & Text.Lower(Text.Range([TABLE_TYPE], 1))) meta [NavigationTable.IsLeaf = isLeaf],
+                    type text
+                ), 
+                "TABLE_TYPE"
+            )
+        in
+            withKind,
+
+        // This will give all tables within schema. Catalog and schema should not be null.
+        GetTables = (context, catalog, schema) =>
+            let
+                isLeaf = true,
+                tablesCore = GetTablesCore(
+                    context, 
+                    catalog, 
+                    schema
+                ),
+                getTable = (tableName) => GetTable(context, catalog, schema, tableName),
+                withData = Table.AddColumn(tablesCore, "Data", each getTable([Item]), type table),
+                rearrangedColumns = Table.SelectColumns(Table.RenameColumns(withData,{{"Item", "Name"}}), {"Name", "Description", "Data", "Kind"}),
+                withFolding = AvoidFoldingFailure(Table.View(null, [
+                    GetType = () => MakeNavTableType(isLeaf),
+                    GetRows = () => rearrangedColumns,
+                    OnSelectRows = (selector) => FoldNavigationStep(selector, getTable, {"Table","View"}),
+                    ThrowFoldingFailures = false
+                ]))
+            in
+                withFolding,
+
+        // Function to get tables with full metadata (3-part names in Name column)
+        GetTablesWithMetadata = (context, schema) =>
+            let
+                isLeaf = true,
+                tablesCore = GetTablesCore(context, null, schema),
+                // rename TABLE_CAT and TABLE_SCHEM to Catalog and Schema
+                tablesWithRenamedColumns = Table.RenameColumns(tablesCore, {{"TABLE_CAT", "Catalog"}, {"TABLE_SCHEM", "Schema"}}),
+                // Create 3-part name using the actual catalog and schema from the data
+                tablesWithName = Table.AddColumn(tablesWithRenamedColumns, "Name", each "`" & [Catalog] & "`.`" & [Schema] & "`.`" & [Item] & "`"),
+                // Use the catalog from each row for GetTable calls
+                // If driver returns null catalog, GetTablesCore will replace it with "SPARK"
+                withData = Table.AddColumn(tablesWithName, "Data", each GetTable(context, [Catalog], [Schema], [Item]), type table),
+                tablesWithColumns = Table.SelectColumns(withData, {"Name", "Item", "Schema", "Catalog", "Description", "Data", "Kind"}),
+                withFolding = AvoidFoldingFailure(Table.View(null, [
+                    GetType = () => MakeNavTableTypeWithExtendedMetadata(isLeaf),
+                    GetRows = () => tablesWithColumns,
+                    // OnSelectRows = (selector) => FoldNavigationStep(selector, getTable, {"Table","View"}),
+                    ThrowFoldingFailures = false
+                ]))
+            in
+                withFolding,
+
+        // This function gives table details
+        GetTable = (context, catalog, databaseName, tableName) =>
+            let
+        //Get TableType and metadata
+                tableInfo = GetTableType(context[ExecuteThriftApi], catalog, databaseName, tableName),
+                tableType = tableInfo[Type],
+                metadata = tableInfo[Metadata],
+        //Create SqlGenerator Function. Details of the API are in Pluggable Sql Generator document shared earlier.
+                // For legacy non-multiple catalog support cases, the ADBC driver accepts raw SQL queries as text strings
+                // It's more efficient to handle the SPARK catalog override here rather than in the driver
+                // When catalog is "SPARK", we omit the Catalog field entirely to maintain compatibility with legacy queries
+                isSparkCatalog = Diagnostics.Trace(
+                    TraceLevel.Information, [
+                        Name = "Databricks/GetTableCatalog",
+                        Data = [],
+                        SafeData = [IsSparkCatalog = Text.Upper(catalog) = "SPARK"]
+                    ],
+                    Text.Upper(catalog) = "SPARK"
+                ),
+                tableReference = [Kind = "FromTable", Table = [Schema=databaseName, Name=tableName] & (if isSparkCatalog then [] else [Catalog=catalog])],
+                withSqlView = context[SqlGenerator](tableReference, tableType, []),      
+
+        // withSqlView is datasource table with folding support, in case if you want to perform more operation on it
+        // like adding custom columns/transforming columns, then you can do it here.
+                tableSchema = Table.Schema(#table(tableType, {})),
+                
+
+                // TODO: Alok to check if we can simplify
+                complexColumns = Table.ToRecords(Table.SelectRows(tableSchema,
+                            (s) => s[NativeTypeName]  = "STRUCT" or s[NativeTypeName] = "ARRAY" or s[NativeTypeName] = "MAP")),
+                TransformOperations = List.Accumulate(complexColumns, withSqlView, (state, column) =>
+                    let
+                        ColumnType = Type.TableColumn(tableType, column[Name]),
+                        PreservedFacetFields = { "NativeTypeName", "NativeDefaultExpression", "NativeExpression" },
+                        Facets = Record.SelectFields(Type.Facets(ColumnType), PreservedFacetFields),
+                        ComplexType = if (column[NativeTypeName] = "STRUCT" or column[NativeTypeName] = "MAP") then type record else type list,
+                        AddNullable = if Type.IsNullable(ComplexType) then type nullable ComplexType else ComplexType,
+                        TypeWithFacets = Type.ReplaceFacets(AddNullable, Facets),
+                        ToNullableJson = (value) => if value = null then null else Json.Document(value),
+                        TransformColumn = Table.TransformColumns(state, { column[Name], ToNullableJson, TypeWithFacets })
+                    in
+                        TransformColumn),
+                // Add navigation properties if enabled
+                WithNavigation = if context[NavPropGenerator] = null then TransformOperations else
+                    context[NavPropGenerator](TransformOperations, {catalog, databaseName, tableName}, () => GetRelationships(metadata))
+            in
+                WithNavigation,
+
+     // This function provides m type for table
+    GetTableType = (exec, database, schema, table) =>
+        let
+            // Use GetColumns Thrift API instead of DESCRIBE TABLE
+            thriftApi = "GetColumnsExtended",
+            properties = [
+                adbc.apache.statement.is_metadata_command = "true",
+                adbc.get_metadata.escape_pattern_wildcards = "true",
+                adbc.get_metadata.target_catalog = database, 
+                adbc.get_metadata.target_db_schema = schema,
+                adbc.get_metadata.target_table = table
+            ],
+            
+            // Execute the Thrift API call
+            result = exec(thriftApi, [StatementProperties = properties]),
+            
+            // Get just the columns we need for type creation
+            columnsForType = Table.SelectColumns(result, {
+                "COLUMN_NAME", 
+                "TYPE_NAME", 
+                "BASE_TYPE_NAME", 
+                "COLUMN_SIZE", 
+                "DECIMAL_DIGITS", 
+                "NULLABLE", 
+                "PK_COLUMN_NAME",
+                "FK_FKCOLUMN_NAME",
+                "FK_PKTABLE_CAT",
+                "FK_PKTABLE_SCHEM",
+                "FK_PKTABLE_NAME",
+                "FK_PKCOLUMN_NAME"
+            }),
+            
+            // Convert to records for processing
+            columnRecords = Table.ToRecords(columnsForType),
+            
+            // Extract column names
+            columnNames = List.Transform(columnRecords, each [COLUMN_NAME]),
+            
+            // Create type information for each column
+            columnTypes = List.Transform(columnRecords, each [
+                Type = GetPowerQueryType(_),
+                Optional = false  // Always false
+            ]),
+            
+            // Create the record type using Type.ForRecord
+            rowType = Type.ForRecord(Record.FromList(columnTypes, columnNames), false),
+            
+            // Extract primary key columns directly from the result
+            primaryKeyColumns = List.Select(columnRecords, each [PK_COLUMN_NAME] <> null and [PK_COLUMN_NAME] <> ""),
+            primaryKeyNames = List.Transform(primaryKeyColumns, each [COLUMN_NAME]),
+            primaryKeys = if List.IsEmpty(primaryKeyNames) then {} else {[Columns = primaryKeyNames, Primary = true]},
+
+            tableType = type table rowType,
+            tableTypeWithPrimaryKey = Type.ReplaceTableKeys(tableType, primaryKeys),
+            metadata = result
+        in
+            [Type = tableTypeWithPrimaryKey, Metadata = metadata],
+
+    // Type mapping for Databricks SQL types to Power Query types
+    DatabricksTypeMap = [
+        STRING = Type.ReplaceFacets(Text.Type, [
+            NativeTypeName = "STRING",
+            IsVariableLength = true  // Compatibility with ODBC
+        ]),
+        BOOLEAN = Type.ReplaceFacets(Logical.Type, [
+            NativeTypeName = "BOOLEAN"
+        ]),
+        TINYINT = Type.ReplaceFacets(Int8.Type, [
+            NativeTypeName = "TINYINT"
+        ]),
+        SMALLINT = Type.ReplaceFacets(Int16.Type, [
+            NativeTypeName = "SMALLINT"
+        ]),
+        INT = Type.ReplaceFacets(Int32.Type, [
+            NativeTypeName = "INT"
+        ]),
+        // The base_type_name can be integer, but let's map to INT since that's what being handled in sqlGenerator
+        INTEGER = Type.ReplaceFacets(Int32.Type, [
+            NativeTypeName = "INT"
+        ]),
+        BIGINT = Type.ReplaceFacets(Int64.Type, [
+            NativeTypeName = "BIGINT"
+        ]),
+        FLOAT = Type.ReplaceFacets(Single.Type, [
+            NativeTypeName = "FLOAT"
+        ]),
+        DOUBLE = Type.ReplaceFacets(Double.Type, [
+            NativeTypeName = "DOUBLE"
+        ]),
+        DATE = Type.ReplaceFacets(Date.Type, [
+            NativeTypeName = "DATE"
+        ]),
+        TIMESTAMP = Type.ReplaceFacets(DateTime.Type, [
+            NativeTypeName = "TIMESTAMP"
+        ]),
+        TIMESTAMP_NTZ = Type.ReplaceFacets(DateTime.Type, [
+            NativeTypeName = "TIMESTAMP"
+        ]),
+        BINARY = Type.ReplaceFacets(Binary.Type, [
+            NativeTypeName = "BINARY"
+        ]),
+        INTERVAL = Type.ReplaceFacets(type text, [
+            NativeTypeName = "INTERVAL"
+        ]),
+        ARRAY = Type.ReplaceFacets(type text, [
+            NativeTypeName = "STRING",
+            IsVariableLength = true  // Compatibility with ODBC
+        ]),
+        MAP = Type.ReplaceFacets(type text, [
+            NativeTypeName = "STRING",
+            IsVariableLength = true  // Compatibility with ODBC
+        ]),
+        STRUCT = Type.ReplaceFacets(type text, [
+            NativeTypeName = "STRING",
+            IsVariableLength = true  // Compatibility with ODBC
+        ]),
+        VARIANT = Type.ReplaceFacets(type text, [
+            NativeTypeName = "VARIANT",
+            IsVariableLength = true  // Compatibility with ODBC
+        ])
+    ],
+    
+    GetPowerQueryType = (column as record) =>
+        let
+            // Use BASE_TYPE_NAME directly from the column metadata
+            typeName = Text.Upper(column[BASE_TYPE_NAME]),
+            rawTypeName = column[TYPE_NAME],
+            isNullable = column[NULLABLE] = 1,
+            
+            // Special handling for DECIMAL which needs precision and scale
+            baseType = if typeName = "DECIMAL" then 
+                        Type.ReplaceFacets(Decimal.Type, [
+                            NativeTypeName = typeName,
+                            NumericPrecision = column[COLUMN_SIZE],
+                            NumericScale = column[DECIMAL_DIGITS],
+                            NumericPrecisionBase = 10
+                        ])
+                     else if typeName = "CHAR" or typeName = "VARCHAR" then
+                        // Add precision information for character types
+                        Type.ReplaceFacets(Text.Type, [
+                            NativeTypeName = typeName,
+                            NumericPrecision = column[COLUMN_SIZE],
+                            NumericPrecisionBase = 10,
+                            IsVariableLength = typeName = "VARCHAR"
+                        ])
+                     else if Record.HasFields(DatabricksTypeMap, {typeName}) then
+                        // Use the type directly from the map
+                        Record.Field(DatabricksTypeMap, typeName)
+                     else
+                        error Error.Record("DataSource.Error", 
+                            "Unsupported Databricks SQL type: " & rawTypeName,
+                            rawTypeName),
+                        
+            adjustedType = if isNullable then type nullable baseType else baseType
+        in
+            adjustedType,
+
+    // Function to discover relationships between tables
+    GetRelationships = (metadata) =>
+        let
+            // Get just the columns we need for relationships
+            columnsForRelationships = Table.SelectColumns(metadata, {
+                "COLUMN_NAME",
+                "FK_PKCOLUMN_NAME",
+                "FK_PKTABLE_CAT",
+                "FK_PKTABLE_SCHEM",
+                "FK_PKTABLE_NAME",
+                "FK_FK_NAME",
+                "FK_KEQ_SEQ"
+            }),
+            
+            // Filter for columns that have foreign key relationships
+            foreignKeyColumns = Table.SelectRows(columnsForRelationships, each [FK_PKCOLUMN_NAME] <> null),
+            
+            // Sort by foreign key name and key sequence to ensure proper ordering
+            orderedForeignKeys = Table.Sort(foreignKeyColumns, {
+                "FK_PKTABLE_CAT", 
+                "FK_PKTABLE_SCHEM", 
+                "FK_PKTABLE_NAME", 
+                "FK_FK_NAME", 
+                "FK_KEQ_SEQ"
+            }),
+            
+            // Group by foreign key name to handle composite foreign keys
+            // This assumes that the groupings will retain the sort order
+            groupedForeignKeys = Table.Group(orderedForeignKeys, {
+                "FK_PKTABLE_CAT", 
+                "FK_PKTABLE_SCHEM", 
+                "FK_PKTABLE_NAME", 
+                "FK_FK_NAME"
+            }, {
+                {"Key1", each [COLUMN_NAME]},
+                {"Key2", each [FK_PKCOLUMN_NAME]}
+            }),
+            
+            // Transform into relationship records
+            relationships = Table.FromRecords(Table.TransformRows(groupedForeignKeys, each [
+                Key1=[Key1],
+                Identity2={[FK_PKTABLE_CAT], [FK_PKTABLE_SCHEM], [FK_PKTABLE_NAME]},
+                Key2=[Key2],
+                Expanded=true
+            ]))
+        in
+            relationships
+
+in
+    [
+        DatabricksAdbc = DatabricksAdbc
+    ] 

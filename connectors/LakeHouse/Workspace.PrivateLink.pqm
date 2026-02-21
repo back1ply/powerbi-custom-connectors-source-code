@@ -1,0 +1,166 @@
+/**
+    WorkspacePL Setup
+    For Workspace Private Link, the connector needs to use a workspace specific url for
+    all downstream service calls. To achieve this the connector does the following
+    1. Call Network communicationPolicy API, if this API returns a value of 'Deny', then PL 
+       is enabled on the workspace.
+    2. Once the connector detects PL is enabled on the workspace, GenerateWorkspacePLUrl is called
+       to generate a workspace specific URL.
+    3. This base URL is passed around for all downstream connector calls.
+    4. For GC based scenarios, the connector needs to pass in a 'x-ms-fabric-s2s-access-context' header.
+       this header is built in the GetWorkspaceBaseUrl method and set in metadata of the BaseUrl so it can be
+       accessed in the Web.JsonContents which sets headers on the http calls.
+       Once Current workspace id is available to the connector, the creation logic for x-ms-fabric-s2s-access-context
+       can move to PBIRequestHeaders method.
+**/
+let            
+    Utils = try #shared[Utils] otherwise 
+        error "Internal Error: Utils module not found in shared context. Ensure the module is loaded with the correct context.",
+    
+    PBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
+    AadWorkspaceApiOAuthResource = Environment.FeatureSwitch("PowerBiAadResource", "https://analysis.windows.net/powerbi/api"),
+    UseWorkspacePL = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseWorkspacePL", false)),
+    WorkspacePLUrlFormat = "https://#{0}.z#{1}.w.#{2}.fabric.microsoft.com",
+        
+    cloud = Environment.FeatureSwitch("Cloud", "global"),
+    
+    // Public functions
+    GenerateBaseUrlOrDefaultForWSPL = (baseUrl as text, cloud as text) =>
+        if Text.Contains(PBIBaseUrl, "powerbistagingapi") then 
+            "https://dxtapi.fabric.microsoft.com"
+        else if Text.Contains(Text.Lower(baseUrl), "msit") then
+            "https://msitapi.fabric.microsoft.com"
+        else 
+            PBIBaseUrl,
+            
+    GenerateWorkspacePLUrl = (baseUrl, workspaceId as text) =>
+        let
+            newPBIBaseUrl = GenerateBaseUrlOrDefaultForWSPL(baseUrl, cloud),
+            uriParts = 
+                try Uri.Parts(newPBIBaseUrl) 
+                catch(e) => error Diagnostics.Trace(
+                    TraceLevel.Information,
+                    [
+                        Name = "PBIBaseUrlParseError",
+                        Data = [],
+                        SafeData = [Url = Utils[Value.ToText](newPBIBaseUrl)]
+                    ],
+                    Error.Record(
+                        Utils[NonPii]("DataSource.Error"),
+                        Utils[NonPii](Extension.LoadString("UrlParseError")),
+                        [
+                            ActualError = e,
+                            Url = Utils[NonPii](newPBIBaseUrl)
+                        ],
+                        {
+                            Utils[NonPii](newPBIBaseUrl),
+                            Utils[NonPii](Utils[Value.ToText](e, 5))
+                        })),
+            hostName = uriParts[Host]? ?? "",
+            cloudName = Text.Split(hostName, "."){0},
+            workspaceIdFirstTwoChars = Text.Start(workspaceId, 2),
+            workspaceIdWithoutDashes = Text.Replace(workspaceId, "-", ""),
+            finalUrl = Text.Format(WorkspacePLUrlFormat, {workspaceIdWithoutDashes, workspaceIdFirstTwoChars, cloudName})
+        in
+            if hostName <> "" then finalUrl else "",
+            
+    IsWorkspacePLUrl = (baseUrl as text) =>
+        let
+            uriParts = Uri.Parts(baseUrl),
+            splitUriHost = Text.Split(uriParts[Host], "."),
+            isPLFormattedBaseUrl = List.Count(splitUriHost) > 5 
+                and Text.Contains(splitUriHost{1}, "z") 
+                and Text.Length(splitUriHost{1}) = 3 
+                and splitUriHost{2} = "w"
+        in
+            isPLFormattedBaseUrl,
+            
+    GenerateS2SAccessContextHeaderValue = (workspaceId as text, tenantId as text) as text =>
+        let
+            headerValue = [
+                #"WorkspaceId" = workspaceId,
+                #"TenantId" = tenantId
+            ],
+            base64HeaderValue = Binary.ToText(Json.FromValue(headerValue), BinaryEncoding.Base64)
+        in
+            base64HeaderValue,
+            
+    GetWorkspaceBaseUrl = (baseUrl as text, workspaceId as text) =>
+        let
+            //TODO: Move this logic to PBIRequestHeaders method
+            // once Current WS ID is available to the connector.
+            workspacePLUrl = GenerateWorkspacePLUrl(baseUrl, workspaceId),
+            workspaceNetworkPolicyUrl = Uri.Combine(
+                baseUrl,
+                Text.Format(
+                    "/v1/workspaces/#{0}",
+                    {workspaceId})
+                ),
+            response = try Utils[Web.JsonContents](
+                workspaceNetworkPolicyUrl,
+                /*headers*/ null,
+                /*additionalHandlers*/ [403 = ErrorOrRefreshTokenHandler],
+                /*jsonBody*/ null,
+                /*startState*/ null,
+                /*traceContext*/ [Origin = Utils[NonPii]("CheckWorkspaceAccess")]
+            ),
+            publicAccessDeny = if response[HasError] then
+                let
+                    responseErrorCode = response[Error][Detail]?[ErrorCode]?,
+                    result = responseErrorCode = "RequestDeniedByInboundPolicy"
+                in
+                    Diagnostics.Trace(
+                        TraceLevel.Warning,
+                        [
+                            Name = "WorkspacePublicAccess",
+                            Data = [
+                                Url =  Utils[NonPii](workspaceNetworkPolicyUrl),
+                                ErrorCode = Utils[NonPii](responseErrorCode)
+                            ]
+                        ],
+                        result)
+            else
+                false
+        in
+            if UseWorkspacePL and publicAccessDeny then
+                workspacePLUrl
+            else baseUrl,
+
+    GetPrivateLinkS2SHeader = (workspaceId as text, optional tenantId as nullable text) =>
+        let
+            serviceAccessToken = Extension.CurrentCredential()[Properties]?[ServiceAccessToken]?,
+            _tenantId = tenantId ?? GetTenantIdFromToken(),
+            serviceAccessContext = GenerateS2SAccessContextHeaderValue(workspaceId, _tenantId)
+        in
+            if UseWorkspacePL and serviceAccessToken <> null then 
+                [
+                    // Fabric S2S Access: "x-ms-s2s-actor-authorization" and "x-ms-fabric-s2s-access-context" must go together
+                    #"x-ms-s2s-actor-authorization" = serviceAccessToken,
+                    #"x-ms-fabric-s2s-access-context" = serviceAccessContext,
+                    #"x-ms-public-api-system-call" = "true"
+                ]
+            else [],
+    
+    // Do not refresh token all the time on 403 errors. Check the error code instead.
+    ErrorOrRefreshTokenHandler = (state) =>
+        let
+            result = try Utils[Web.DefaultErrorHandler](state),
+            errorCode = result[Error]?[Detail]?[ErrorCode]? ?? ""
+        in
+            if errorCode = "TokenExpired" then Utils[AuthHandler](state) else error result[Error],
+            
+    GetTenantIdFromToken = () =>
+        let
+            token = Utils[GetCredential](AadWorkspaceApiOAuthResource)[access_token],
+            payloadEncoded = Text.Split(token, "."){1},
+            decodeBase64Url = Binary.FromText(Text.Replace(Text.Replace(payloadEncoded, "-", "+"), "_", "/") & {"", "", "==", "="}{Number.Mod(Text.Length(payloadEncoded), 4)}, BinaryEncoding.Base64),
+            document = Json.Document(Text.FromBinary(decodeBase64Url))
+        in
+            document[tid]
+in
+    // Export record with public members only
+    [
+        GetPrivateLinkS2SHeader = GetPrivateLinkS2SHeader,
+        GetWorkspaceBaseUrl = GetWorkspaceBaseUrl,
+        IsWorkspacePLUrl = IsWorkspacePLUrl
+    ]

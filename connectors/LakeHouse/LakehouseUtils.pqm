@@ -1,0 +1,30 @@
+//Common Utils Module for Lakehouse Connector.
+let
+    PBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
+    OneLakeFormatWithHttps = "https://#{0}",
+    GetOneLakeBaseUrl = (cloudEnv, isMsit as logical, includeHttps as logical) => 
+    let
+        result = 
+            if cloudEnv = "tip1" 
+                or Text.Contains(PBIBaseUrl, "powerbistagingapi") 
+                or Text.Contains(PBIBaseUrl, "dxtapi") 
+            then
+                "dxt-onelake.dfs.fabric.microsoft.com" 
+            else if cloudEnv = "tip2" 
+                or Text.Contains(PBIBaseUrl, "daily") 
+            then 
+                "daily-onelake.dfs.fabric.microsoft.com" 
+            else if isMsit 
+            then 
+                "msit-onelake.dfs.fabric.microsoft.com" // there is no separate cloud identifier for MSIT
+            else 
+                "onelake.dfs.fabric.microsoft.com"
+    in
+        if includeHttps then 
+            Text.Format(OneLakeFormatWithHttps, {result}) 
+        else 
+            result
+in
+    [
+        GetOneLakeBaseUrl = GetOneLakeBaseUrl
+    ]

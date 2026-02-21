@@ -1,0 +1,57 @@
+let
+    DeepMerge = (record1 as record, record2 as record) as record =>
+        let
+            fieldNames1 = Record.FieldNames(record1),
+            fieldNames2 = Record.FieldNames(record2),
+            allFieldNames = List.Union({fieldNames1, fieldNames2}),
+            result = List.Accumulate(
+                allFieldNames,
+                [],
+                (state, fieldName) =>
+                    let
+                        field1 = Record.FieldOrDefault(record1, fieldName, null),
+                        field2 = Record.FieldOrDefault(record2, fieldName, null),
+                        combinedField =
+                            if field1 is record and field2 is record then
+                                @DeepMerge(field1, field2)
+                            else if field2 <> null then
+                                field2
+                            else
+                                field1
+                    in
+                        Record.AddField(state, fieldName, combinedField)
+            )
+        in
+            result
+in
+    Value.ReplaceType(
+        DeepMerge,
+        type function (record1 as record, record2 as record) as record meta [
+            Documentation.Name = "Merges two records recursively.",
+            Documentation.LongDescription = "Merges two records recursively and returns a new record with values from both.
+            <br>If the same field exists in both records, and their values are also records, both
+            values will be merged, otherwise the value of the second record shows up in the result.",
+            Documentation.Examples = {
+                [
+                    Description = "A simple merge.",
+                    Code = "= DeepMergeRecords(#(lf)"
+                        & "  [#(lf)"
+                        & "    left = 1,#(lf)"
+                        & "    both = [left = 2],#(lf)"
+                        & "    alist = {3, 4}#(lf)"
+                        & "  ], [#(lf)"
+                        & "    right = 5,#(lf)"
+                        & "    both = [right = 6],#(lf)"
+                        & "    alist = {7, 8}#(lf)"
+                        & "  ]#(lf)"
+                        & ")",
+                    Result = "[#(lf)"
+                        & "  left = 1,#(lf)"
+                        & "  right = 5,#(lf)"
+                        & "  both = [left = 2, right=6],#(lf)"
+                        & "  alist = {7, 8}#(lf)"
+                        & "]#(lf)"
+                ]
+            }
+        ]
+    )

@@ -1,0 +1,481 @@
+/**
+ * Spark Compute Module
+ * This module provides functions to generate and execute Spark SQL queries
+ * on Delta tables in a lakehouse.
+ * The module includes functionality for:
+ * 1. Generating Spark SQL views on Delta tables.
+ * 2. Storing and retrieving Spark SQL queries in a state table.
+ * 3. Executing the Spark SQL queries via the livy session api on a staging lakehouse.
+**/
+(uniqueIdentifier) => let
+    // Modules
+    LakehouseUtils = try #shared[LakehouseUtils] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "LakehouseUtilsModuleLoadError", Data = []], e),
+    SqlGenerator = try #shared[SqlGenerator] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "SqlGeneratorModuleLoadError", Data = []], e),
+    SqlView.Generator = try #shared[SqlView.Generator] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "SqlViewGeneratorModuleLoadError", Data = []], e),
+    DualTable.View = try #shared[DualTable.View] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "DualTableViewModuleLoadError", Data = []], e),
+    SparkUtils = try #shared[SparkComputeUtils] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "SparkComputeUtilsModuleLoadError", Data = []], e),
+
+    UseSparkCompute = SparkUtils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseSparkCompute", false)),
+
+    cloud = Environment.FeatureSwitch("Cloud", "global"),
+    ABFSFormat = "abfss://#{0}@#{1}/#{2}/Tables/#{3}",
+    ABFSFormatWithSchema = "abfss://#{0}@#{1}/#{2}/Tables/#{3}/#{4}",
+    Lakehouse.TrySparkCompute = (table) => try Lakehouse.SparkCompute(table) otherwise null,
+    Lakehouse.SparkCompute = Function.Atomic("Lakehouse.SparkCompute", (t) => error [
+        Reason = SparkUtils[NonPii]("Expression.Error"),
+        Message = SparkUtils[NonPii](SparkUtils[Value.ToText](t, 5)),
+        Detail = t
+    ]),
+
+    Function.Atomic = (n, f) => let f = Table.ViewFunction(f) in Value.ReplaceType(f, Value.Type(f) meta [Documentation.Name = n]),
+
+
+    // SQL Generator Setup
+    SignatureVal = "LakehouseSparkCompute",
+    MakeUniqueIdentifier = () => [Module = uniqueIdentifier, Signature = SignatureVal],
+
+    /**
+        Creates a view using the Spark SQL Generator on top of a Delta table.
+
+        This function generates a Spark SQL query that can be used for folding writes to Spark.
+        To ensure that all user transformations are consistently applied to both the Delta table and the SQL Generator table,
+        the DualTable.View function is used to create a unified view. This view applies all transformations to both tables,
+        guaranteeing that the resulting Spark SQL query accurately reflects the user's intent.
+    */
+    SparkSqlViewOnDelta = (
+        apiUrl,
+        workspaceId,
+        lakehouseId,
+        tableName,
+        tableData,
+        schemaName,
+        deltaTableTypes,
+        options) =>
+        let
+            initialSparkSqlTable = SparkSqlGenerator(
+                apiUrl,
+                workspaceId,
+                lakehouseId,
+                tableName,
+                schemaName,
+                deltaTableTypes,
+                options
+            ),
+            OnInvokeOverrides = (table1, table2, view) => [
+                Lakehouse.SparkCompute = Value.Expression(Value.Optimize(table1)),
+                Value.Versions = @view(table1, Value.Versions(table2))
+            ],
+            withDualView = DualTable.View(initialSparkSqlTable, tableData, [], OnInvokeOverrides)
+        in
+            withDualView,
+
+    /**
+        This function leverages the SQL Generator to create a SQL view which can be used by 
+        the SparkSQLViewOnDelta function. 
+        Algorithm:
+        1. Generate an ABFSS indentifier for the input table.
+           for example, abfss://<wsid>@msit-onelake.dfs.fabric.microsoft.com/<lkid>/Tables/<table_name>
+           or abfss://<wsid>@msit-onelake.dfs.fabric.microsoft.com/<lkid>/Tables/<schema_name>/<table_name>
+        2. Converts the delta types into equivalent Spark types.
+        3. Pass the modified table into the SqlView.Generator function to generate a SQL view.
+        4. The GetData Function for the SQL View will generate a table with spark sql query and lakehouse detail record
+           with type [SourceLakehouseId = text, SourceWorkspaceId = text, TableName = text].
+    */
+    SparkSqlGenerator = (
+        apiUrl,
+        workspaceId,
+        lakehouseId,
+        tableName,
+        schemaName,
+        deltaTableTypes,
+        options) =>
+        let
+            createTableIdentifier = CreateTableIdentifier(apiUrl, schemaName, tableName, lakehouseId, workspaceId),
+            tableType = ConvertTypesToSpark(deltaTableTypes),
+            tableDetails = [Catalog = "delta", Name = createTableIdentifier],
+            tableReference = [Kind = "FromTable", Table = tableDetails],
+            GetData = (query as text, resultType as type, context) =>
+                let
+                    tracedQuery = Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [
+                            Name = "SparkSqlGenerator",
+                            Data = [Query = query]
+                        ],
+                        query
+                    ),
+                    finalResult = #table(
+                        {"query", "SourceLakehouseDetails"},
+                        {
+                            {
+                                tracedQuery,
+                                [
+                                    SourceLakehouseId = lakehouseId, 
+                                    SourceWorkspaceId = workspaceId,
+                                    TableName = tableName
+                                ]
+                            }
+                        }
+                    )
+                in
+                    finalResult,
+            generatorFn = SqlView.Generator(MakeUniqueIdentifier(), SqlGenerator, GetData),
+            withSqlView = Diagnostics.Trace(
+                TraceLevel.Information,
+                [
+                    Name = "CallSqlViewGenerator",
+                    Data = []
+                ],
+                generatorFn(tableReference, tableType, []))
+        in
+            withSqlView,
+
+    GenerateSparkSqlFormatAndParameters = (
+        tableIdentifier,
+        mode,
+        columnList,
+        selectQuery) =>
+        let
+            sparkSqlInsertStatment = 
+                Text.Format(
+                        "insert #{0} `delta`.`#{1}` #{2} #{3}",
+                        {
+                            mode,
+                            tableIdentifier,
+                            columnList,
+                            selectQuery
+                        }
+                    )
+
+        in
+            sparkSqlInsertStatment,
+
+    GenerateAbfssFormatAndParameterRecord = (
+        apiUrl,
+        schemaName,
+        tableName,
+        lakehouseId,
+        workspaceId) =>
+        let
+            finalAbfssFormat = 
+                if schemaName <> "default" then 
+                    ABFSFormatWithSchema 
+                else 
+                    ABFSFormat,
+            baseParameters = [
+                Workspace = workspaceId,
+                OneLakeBaseUrl = LakehouseUtils[GetOneLakeBaseUrl](cloud, Text.Contains(Text.Lower(apiUrl), "msit"), false),
+                Lakehouse = lakehouseId,
+                TableName = tableName
+            ],
+            finalParametersForFormat = if schemaName <> "default" then 
+                Record.ReorderFields
+                (
+                    baseParameters & [SchemaName = schemaName],
+                    {"Workspace", "OneLakeBaseUrl", "Lakehouse", "SchemaName", "TableName"}
+                )
+            else 
+                baseParameters
+            in
+            [
+                Format = finalAbfssFormat,
+                Parameters = finalParametersForFormat
+            ],
+
+    CreateTableIdentifier = (apiUrl, schemaName, tableName, lakehouseId, workspaceId) =>
+        let
+            abfsFormatWithParameters = GenerateAbfssFormatAndParameterRecord(
+                apiUrl,
+                schemaName,
+                tableName,
+                lakehouseId,
+                workspaceId),
+            tablePath = Text.Format(
+                abfsFormatWithParameters[Format],
+                Record.FieldValues(abfsFormatWithParameters[Parameters]))
+        in
+            tablePath,
+
+    ConvertTypesToSpark = (inputTableType) =>
+    let
+        fields = Record.ToTable(Type.RecordFields(Type.TableRow((inputTableType)))),
+        transformed = Table.TransformColumns(
+            fields, 
+            {
+                {
+                    "Value",
+                    (t) => if t[Type] = type text or t[Type] = type nullable text then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type],[NativeTypeName = "STRING"]), 
+                                Optional = false
+                            ]
+                        else if t[Type] = Double.Type or t[Type] = type nullable Double.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "DOUBLE"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = Int32.Type or t[Type] = type nullable Int32.Type then
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "INTEGER"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = type number or t[Type] = type nullable number then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "DOUBLE"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = Int64.Type or t[Type] = type nullable Int64.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "BIGINT"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = Logical.Type or t[Type] = type nullable Logical.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "BOOLEAN"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = Date.Type or t[Type] = type nullable Date.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "DATE"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = DateTime.Type or t[Type] = type nullable DateTime.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type], [NativeTypeName = "TIMESTAMP"]),
+                                Optional = false
+                            ]
+                        else if t[Type] = Decimal.Type or t[Type] = type nullable Decimal.Type then 
+                            [
+                                Type = Type.ReplaceFacets(t[Type],
+                                [
+                                    NativeTypeName = "DECIMAL", 
+                                    NumericPrecisionBase = 10,
+                                    NumericPrecision = 34,
+                                    NumericScale = 6
+                                ]),
+                                Optional = false
+                            ]
+                    else t
+                }
+            }),
+        newType = type table Type.ForRecord(Record.FromTable(transformed), false)
+
+    in
+        Diagnostics.Trace(
+            TraceLevel.Information,
+            [
+                Name = "SparkTypeTransformation",
+                Data = []
+            ],
+            newType
+        ),
+    
+    // Parse the AST expression to extract the Spark SQL Query.
+    GetSparkSqlQueryIfFolded = (t) => let
+        LiftTableReorderColumnExpression = (ast) =>
+            if (ast[Kind] = "Invocation" and ast[Function][Value]? = Table.ReorderColumns) then
+                ast[Arguments]{0}
+            else 
+                ast,
+        ExtractNativeQuerySource = (ast) => 
+            if (ast[Kind] = "Invocation" and ast[Function][Value]? = Value.NativeQuery) then
+                ast[Arguments]{0}
+            else 
+                ast,
+        ExtractSparkSqlQuery = (ast) =>
+            if (ast[Kind] = "Invocation" and ast[Arguments]{0}?[Kind] = "Constant") then  
+                try (ast[Arguments]{0}[Value]{0}{0}) otherwise null
+            else if (ast[Kind] = "Constant") then 
+                [
+                    query = if Value.Type(ast[Value]) = Text.Type then ast[Value] else null
+                ]
+            else 
+                null,
+        Expression = 
+            try 
+                ExtractSparkSqlQuery(ExtractNativeQuerySource(LiftTableReorderColumnExpression(t))) 
+            otherwise 
+                null
+    in
+        Expression,
+
+    /**
+        Generate and run a Spark SQL query for versioned write.
+        Steps:
+        1. Generate Livy Session for the Staging Lakehouse and associate it with the destination lakehouse.
+        2. Using the spark sql query generated by SQL View, generate a spark insert statement.
+        3. Execute the spark insert statement on the livy session via the livy statement api.
+        4. Return the result of statement execution.
+        5. If the session is not available, return an error.
+        Note: The sessionId is generated by the SparkUtils[GetLivySessionDetails]
+    */
+    GenerateAndRunSparkSqlFragmentForVersionWrite = (
+        apiUrl,
+        sqlQueryWithMeta,
+        tableName,
+        workspaceId,
+        lakehouseId,
+        destinationLakehouseId,
+        destinationWorkspaceId,
+        schemaName) =>
+        let
+            finalSqlDetails = Diagnostics.Trace(
+                TraceLevel.Information,
+                [
+                    Name = "GenerateAndRunSparkSqlFragment",
+                    Data = 
+                    [
+                        QueryWithLakehouseDetails = SparkUtils[Value.ToText](sqlQueryWithMeta,/*depth:*/ 5)
+                    ]
+                ],
+                sqlQueryWithMeta
+            ),
+            sparkSqlQuery = finalSqlDetails[Query],
+            columnNames = finalSqlDetails[ColumnNames],
+            EscapeCharactersForSpark = (colName) =>
+                Text.Replace(Text.Replace(Text.Replace(colName, "\", "\\"), """", "\"""), "`", "``"),
+            quotedColumnNames = List.Transform(columnNames, each Text.Format("`#{0}`", {EscapeCharactersForSpark(_)})),
+            columnNamesForSql = Text.Format("(#{0})", {Text.Combine(quotedColumnNames, ", ")}),
+            sessionId = SparkUtils[GetLivySessionDetails](
+                apiUrl,
+                workspaceId,
+                lakehouseId,
+                destinationLakehouseId,
+                []),
+
+            insertMode = if finalSqlDetails[Mode] = "append" then 
+                "INTO" 
+            else 
+                "OVERWRITE",
+
+            sparkSqlCodeSnippet = GenerateSparkSqlFormatAndParameters(
+                CreateTableIdentifier(
+                    apiUrl,
+                    schemaName,
+                    tableName,
+                    destinationLakehouseId,
+                    destinationWorkspaceId
+                ),
+                insertMode,
+                columnNamesForSql,
+                sparkSqlQuery
+            ),
+
+            executeSparkAction = Action.Sequence(
+                {
+                    () => Action.Return(
+                        let
+                            tryRunSparkStatement = Diagnostics.Trace(
+                                TraceLevel.Information,
+                                [
+                                    Name = "RunSparkStatement",
+                                    Data =
+                                    [
+                                        Code = sparkSqlCodeSnippet
+                                    ]
+                                ],
+                                () => try SparkUtils[RunSparkSqlStatement](
+                                    apiUrl,
+                                    workspaceId,
+                                    lakehouseId,
+                                    sessionId,
+                                    sparkSqlCodeSnippet),
+                                true
+                            ),
+                            sparkStatementFailed = tryRunSparkStatement[Value][HasError]?,
+                            finalStatus = 
+                                if sparkStatementFailed then 
+                                    "error" 
+                                else 
+                                    tryRunSparkStatement[Value],
+                            logLevel = 
+                                if sparkStatementFailed then 
+                                    TraceLevel.Error
+                                else
+                                    TraceLevel.Information,
+
+                            statusTraceData = [
+                                Name = "SparkStatement/Status",
+                                Data = [],
+                                SafeData = [FinalStatus=SparkUtils[Value.ToText](finalStatus)]
+                            ]
+                        in
+                            if Diagnostics.Trace(logLevel, statusTraceData, sparkStatementFailed) then 
+                                error tryRunSparkStatement[Value][Error]
+                            else 
+                                null),
+                    () => Action.DoNothing
+            })
+        in
+            if sessionId = ""  then 
+                error Error.Record(
+                    ("DataSource.Error"),
+                    Extension.LoadString("LakehouseSparkSessionUnavailable"),
+                    [
+                        WorkspaceId = SparkUtils[NonPii](workspaceId),
+                        LakehouseId = SparkUtils[NonPii](lakehouseId)
+                    ],
+                    {
+                        SparkUtils[NonPii](lakehouseId),
+                        SparkUtils[NonPii](workspaceId)
+                    }
+                )
+            else 
+                executeSparkAction,
+
+    // State table for Spark Compute.
+    State.SparkTableActions = (Id) as nullable table =>
+        Extension.State(){[Name = Id]}?[Value]?,
+
+    // Store the spark sql queries and other details in the state table.
+    State.SparkComputeStoreActions = (versionKey, tableKey, dataToStore) =>
+        let
+            stateTableKey = versionKey & "_" & tableKey,
+            tableActionsValue = State.SparkTableActions(stateTableKey),
+            finalResultToStore = Diagnostics.Trace(
+                TraceLevel.Information,
+                [Name= "UpdatedVersionTable", Data=[]],
+                if Extension.State(){[Name = stateTableKey]}? <> null then 
+                    dataToStore 
+                else 
+                    dataToStore),
+            generateTableToStore = #table({"SparkDetails"}, {{dataToStore}}), 
+            updateOrInsertAction = 
+                if Extension.State(){[Name = stateTableKey]}? = null then
+                    TableAction.InsertRows(
+                        Extension.State(),
+                        #table({"Name", "Value"}, {{stateTableKey, generateTableToStore}}))
+                else
+                    Action.Sequence({
+                        TableAction.DeleteRows(Table.SelectRows(Extension.State(), each [Name] = stateTableKey)),
+                        TableAction.InsertRows(
+                            Extension.State(),
+                            #table({"Name", "Value"}, {{stateTableKey, generateTableToStore}}))
+                    }),
+            insertActions = Diagnostics.Trace(
+                TraceLevel.Information,
+                [Name = "StateTableAction", Data = []],
+                Action.Sequence(
+                    {
+                        updateOrInsertAction,
+                        Action.Return(tableActionsValue{0}[SparkDetails])
+                    }))
+        in
+            try insertActions catch(e) => error Table.ViewError(e),
+
+    IsSparkComputeEnabled = (options) => options[UseSparkCompute]? = true and UseSparkCompute
+in
+    [
+        GetSparkSqlQueryIfFolded = GetSparkSqlQueryIfFolded,
+        SparkSqlViewOnDelta = SparkSqlViewOnDelta,
+        GenerateAndRunSparkSqlFragmentForVersionWrite = GenerateAndRunSparkSqlFragmentForVersionWrite,
+        Lakehouse.TrySparkCompute = Lakehouse.TrySparkCompute,
+        State.SparkComputeStoreActions = State.SparkComputeStoreActions,
+        State.SparkTableActions = State.SparkTableActions,
+        IsSparkComputeEnabled = IsSparkComputeEnabled
+    ]

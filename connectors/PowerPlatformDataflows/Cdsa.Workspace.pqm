@@ -1,0 +1,243 @@
+// Workspace.pqm - PowerPlatform Dataflows Workspace Module
+let
+    // Load dependent modules
+    Table.NavigationTableView = try #shared[Table.NavigationTableView] otherwise error "Internal Error: Table.NavigationTableView not found in shared context. Ensure the module is loaded with the correct context.",
+    Table.ToNavigationTable = try #shared[Table.ToNavigationTable] otherwise error "Internal Error: Table.ToNavigationTable not found in shared context. Ensure the module is loaded with the correct context.",
+    Utils = try #shared[Utils] otherwise error "Internal Error: Utils module not found in shared context. Ensure the module is loaded with the correct context.",
+    Fabric.GetClusterUrl = try #shared[Fabric.GetClusterUrl] otherwise error "Module GetClusterUrl not found in shared context. Ensure the GetClusterUrl module is loaded.",
+    WorkspaceDlp = try #shared[WorkspaceDlp] otherwise error "Internal Error: WorkspaceDlp not found in shared context. Ensure the WorkspaceDlp module is loaded with the correct context.",
+
+    Cdsa.GetNavTableForWorkspaces = (getNavTableForDataflow as function, options as nullable record) as nullable table =>
+        let
+            pbiBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
+            baseUrl = Fabric.GetClusterUrl(pbiBaseUrl, options[TenantId]?),
+            isMwcRefresh = options[DataflowId]? <> null
+        in
+            if isMwcRefresh then
+                Cdsa.GetLocalWorkspacesForMwcRefresh(baseUrl, getNavTableForDataflow, options)
+            else
+                Cdsa.GetWorkspacesNavTable(baseUrl, getNavTableForDataflow, options),
+
+    Cdsa.GetWorkspacesNavTable = (_baseUrl as text, getNavTableForDataflow as function, options as nullable record) =>
+        let
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            workspaces = Cdsa.GetWorkspaces(_baseUrl),
+            // Filter workspaces based on DLP policy
+            filteredWorkspaces = Diagnostics.Trace(TraceLevel.Information,
+                [
+                    Name="Cdsa.GetWorkspacesNavTable/ApplyWorkspaceDlp",
+                    Data=[
+                        DlpPolicies = Utils[NonPii](Utils[Value.ToText](dlpPolicies))
+                    ]
+                ],
+                Table.SelectRows(workspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies))),
+            withData = Table.AddColumn(
+                filteredWorkspaces, 
+                "Data", 
+                each Cdsa.GetNavTableForWorkspace(_baseUrl, [workspaceId], [workspaceType], getNavTableForDataflow, options, dlpPolicies)),
+            
+            // Build navigation table with folding support
+            nav = Table.NavigationTableView(
+                () => withData,
+                {"workspaceId"},
+                (_workspaceId) =>
+                    // Note: Navigation table folding breaks because workspaceType is needed from workspaces call.
+                    Cdsa.GetNavTableForWorkspace(_baseUrl, _workspaceId, filteredWorkspaces{[workspaceId = _workspaceId]}[workspaceType], getNavTableForDataflow, options, dlpPolicies),
+                [
+                    Name = {"workspaceName", each [workspaceName]},
+                    workspaceType = each "Folder",
+                    Tags = each "",
+                    Data = each [Data],
+                    ItemKind = each "Folder",
+                    ItemName = each "Folder",
+                    IsLeaf = each false
+                ]
+            )
+        in
+            nav,
+            
+    Cdsa.GetWorkspaces = (baseUrl as text) as table =>
+        let
+            url = Uri.Combine(baseUrl, "/metadata/v201606/cdsa/workspaces"),
+            response = Utils[Web.JsonContents](
+                url, 
+                /* headers */ Cdsa.GetTenantIdRequestHeader(null), 
+                /* additionalHandlers */ null, 
+                /* jsonBody */ null, 
+                /* startState */ null, 
+                /* traceContext */ [Origin = Utils[NonPii]("Workspace/GetWorkspaces")]),
+            workspaces = Table.FromRecords(response, {"id", "name", "type"}),
+            rename = Table.RenameColumns(
+                workspaces, 
+                {
+                    {"id", "workspaceId"}, 
+                    {"name", "workspaceName"}, 
+                    {"type", "workspaceType"}
+                }),
+            // Filter out User workspaces as they don't contain dataflows
+            withoutUserWorkspace = Table.SelectRows(rename, each [workspaceType] <> "User")
+        in
+            withoutUserWorkspace,
+
+    Cdsa.GetNavTableForWorkspace = (_baseUrl as text, workspaceId as text, workspaceType as text, getNavTableForDataflow as function, options as nullable record, dlpPolicies as record) as nullable table =>
+        let
+            // Check workspace access with DLP policy and use validated workspace ID
+            validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
+            modelsWithTags = Cdsa.GetCertificationForWorkspace(_baseUrl, validatedWorkspaceId),
+            dataflows = Cdsa.GetDataflows(_baseUrl, validatedWorkspaceId, workspaceType, options[TenantId]?),
+            dataflowsWithCertification = Table.Join(
+                dataflows, 
+                "dataflowId", 
+                modelsWithTags, 
+                "modelObjectId", 
+                JoinKind.LeftOuter
+            ),
+            withData = Table.AddColumn(
+                dataflowsWithCertification,
+                "Data",
+                each getNavTableForDataflow(_baseUrl, validatedWorkspaceId, workspaceType, [dataflowId], options)
+            ),
+            
+            // Build navigation table for dataflows
+            nav = Table.NavigationTableView(
+                () => withData,
+                {"dataflowId"},
+                (_dataflowId) => getNavTableForDataflow(_baseUrl, validatedWorkspaceId, workspaceType, _dataflowId, options),
+                [
+                    Name = {"dataflowName", each [dataflowName]},
+                    description = each [description] ?? "",
+                    Tags = each [Tags] ?? "",
+                    Data = each [Data],
+                    ItemKind = each "Database",
+                    ItemName = each "Database",
+                    IsLeaf = each false
+                ]
+            )
+        in
+            nav,
+   
+    Cdsa.GetDataflows = (baseUrl as text, workspaceId as text, workspaceType as text, tenantId as nullable text) as nullable table =>
+        let
+            url = Uri.Combine(baseUrl, Text.Format("/metadata/v201606/cdsa/dataflows/#{0}", {workspaceId})),
+            headers = Cdsa.GetServiceRequestHeaders(workspaceId, workspaceType, tenantId),
+            response = Utils[Web.JsonContents](
+                url, 
+                /* headers */ headers, 
+                /* additionalHandlers */ null,
+                /* jsonBody */ null,
+                /* startState */ null,
+                /* traceContext */ [
+                    Origin = Utils[NonPii]("Workspace/GetDataflows"), 
+                    WorkspaceId = Utils[NonPii](workspaceId)
+                ]
+            ),
+            dataflows = Table.FromRecords(response, {"dataflowId", "name", "description"}),
+            rename = Table.RenameColumns(dataflows, {{"name", "dataflowName"}})
+        in
+            if (response = null) then null else rename,
+
+    Cdsa.GetCertificationForWorkspace = (baseUrl as text, workspaceId as text) as table =>
+        let
+            // default return value on errors
+            emptyResult = Table.FromRecords({[modelObjectId="00000000-0000-0000-0000-000000000000",Tags=""]}),
+
+            // Returns the list of dataflows with gallery information.
+            url = Uri.Combine(baseUrl, "/metadata/v201606/cdsa/endorsement/" & workspaceId),
+
+            // ignore errors for now until gallery API will be available in all environments
+            context = [Origin = Utils[NonPii]("Workspace/GetCertificationForWorkspace")],
+            response = try Utils[Web.JsonContents](
+                url, 
+                /* headers */ Cdsa.GetTenantIdRequestHeader(null), 
+                /* additionalHandlers */ null, 
+                /* jsonBody */ null, 
+                /* startState */ null, 
+                /* traceContext */ context)
+                otherwise null,
+
+            toTable = Table.FromList(response, Splitter.SplitByNothing(), {"Column1"}),
+            expandResponse = Table.ExpandRecordColumn(toTable, "Column1", {"artifactObjectId", "status", "stage"}),
+            expandModelsWithId = Table.AddColumn(expandResponse, "modelObjectId", each Text.Lower([artifactObjectId])),
+
+            expandModelsWithCertification = Table.AddColumn(expandModelsWithId, "Tags",
+                each if [status] = 0 then CertificationStringFromFlag([stage]) else ""),
+
+            // remove columns used for computations
+            cleanedUpEntries = Table.RemoveColumns(expandModelsWithCertification, {"artifactObjectId", "status", "stage"})
+        in
+            if (response = null or List.IsEmpty(response)) then emptyResult else cleanedUpEntries,
+
+    Cdsa.GetTenantIdRequestHeader = (tenantId as nullable text) => if tenantId <> null then [#"x-ms-tid" = tenantId] else [],
+
+    Cdsa.GetServiceRequestHeaders = (workspaceId as text, workspaceType as text, tenantId as nullable text, optional userId as text) as record =>
+        let
+            capacityId = Record.FieldOrDefault(Extension.CurrentApplication(), "PBI_CapacityObjectId", null),
+            workspaceHeader = if (workspaceType <> "User" and workspaceType <> "Folder") then [ #"X-PowerBI-User-GroupId" = workspaceId ] else [],
+            userIdHeader = if userId <> null then [#"X-AS-AuthorizedUserID" = userId] else [],
+            capacityIdHeader = if capacityId <> null then [#"x-ms-caller-capacity-id" = capacityId] else []
+        in
+            Cdsa.GetTenantIdRequestHeader(tenantId) & workspaceHeader & userIdHeader & capacityIdHeader,
+
+    CertificationStringFromFlag = (flag as nullable number) as text =>
+        if flag = null then
+            ""
+        else if flag = 1 then
+            "PowerBI.Promoted"
+        else if flag = 2 then
+            "PowerBI.Certified"
+        else if flag = 3 then
+            "PowerBI.Master"
+        else if flag = 4 then
+            "PowerBI.Recommended"
+        else
+            "",
+
+    /*
+    * Cdsa.GetLocalWorkspacesForMwcRefresh - Special workspace navigation for MWC refresh scenarios
+    * 
+    * Purpose: Simplified workspace enumeration when MWC refreshes specific dataflows
+    * Optimization: No need to enumerate all workspaces since target is known
+    */
+    Cdsa.GetLocalWorkspacesForMwcRefresh = (baseUrl as text, getNavTableForDataflow as function, options as nullable record) =>
+        let
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            // MWC specifies exact targets, no enumeration needed
+            dataflowId = options[DataflowId],
+            workspaceId = options[WorkspaceId],
+            
+            // Check workspace access with DLP policy and use validated workspace ID
+            validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
+            
+            workspaces = Table.FromRecords({
+                [workspaceId = validatedWorkspaceId, name = "cdsa workload", workspaceType = "Folder"]
+            }),
+            
+            result = Table.AddColumn(
+                workspaces,
+                "Data",
+                each Cdsa.GetWorkspaceMwcRefresh(baseUrl, workspaceId, [workspaceType], dataflowId, getNavTableForDataflow, options)
+            )
+        in
+            result,
+
+    Cdsa.GetWorkspaceMwcRefresh = (baseUrl as text, workspaceId as text, workspaceType as text, dataflowId as text, getNavTableForDataflow as function, options as nullable record) =>
+        let
+            // creating record for the dataflows received from MWC
+            d = dataflowId,
+            dataflows = Table.FromRecords({[dataflowId = d, dataflowName = "mwcDataflow", dataflowDescription = "mwcDataflow"]}),
+
+            withData = Table.AddColumn(dataflows, "Data", each getNavTableForDataflow(baseUrl, workspaceId, workspaceType, [dataflowId], options), type table),
+            withTags = Table.AddColumn(withData, "Tags", each ""),
+            withItemKind = Table.AddColumn(withTags, "ItemKind", each "Database"),
+            withItemName = Table.AddColumn(withItemKind, "ItemName", each "Database"),
+            withIsLeaf = Table.AddColumn(withItemName, "IsLeaf", each false),
+
+            // build navigation table for workspace
+            nav = Table.ToNavigationTable(withIsLeaf, {"dataflowId"}, "dataflowName", "Data", "Tags", "ItemKind", "ItemName", "IsLeaf")
+        in
+            nav
+in
+    [
+        Cdsa.GetNavTableForWorkspaces = Cdsa.GetNavTableForWorkspaces,
+        Cdsa.GetServiceRequestHeaders = Cdsa.GetServiceRequestHeaders
+    ]

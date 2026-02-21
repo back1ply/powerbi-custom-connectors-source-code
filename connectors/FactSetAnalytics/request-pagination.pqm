@@ -1,0 +1,62 @@
+let
+    GenerateByPage = (getNextPage as function) =>
+        List.Generate(
+        // get the first page of data
+        () => getNextPage(null),
+        // stop when the function returns null
+        (lastPage) => lastPage <> null,
+        // pass the previous page to the next function call
+        (lastPage) => getNextPage(lastPage)),
+    GetAllPagesCursor = (response as any, options as record) =>
+        GenerateByPage(
+            (currentPage) =>
+                let
+                    // if previous is null, then this is our first page of data
+                    nextCursor =
+                        if (currentPage = null) then
+                            "firstPage"
+                        else
+                            currentPage[meta][pagination][next] ?? "endOfPages",
+                    updatedOptions =
+                        if (nextCursor = "firstPage") then
+                            options
+                        else
+                            UpdateOptionsForNextPage(options, nextCursor),
+                    page =
+                        if nextCursor = "firstPage" then
+                            response
+                        else if nextCursor = "endOfPages" then
+                            null
+                        else
+                            GetPage(updatedOptions)
+                in
+                    page
+        ),
+    UpdateOptionsForNextPage = (options as record, nextCursor as text) =>
+        FactSetAnalytics.Utilities.DeepMergeRecords(
+            options,
+            if Record.HasFields(options, "Query") then
+                [
+                    Query = Record.AddField(options[Query], "_paginationCursor", nextCursor)
+                ]
+            else
+                [
+                    Content = Record.AddField(options[Content], "meta", [
+                        pagination = [cursor = nextCursor]
+                    ])
+                ]
+        ),
+    GetPage = (options as record) =>
+        let
+            endpoint = Record.Field(options, "RelativePath"),
+            removedOptions = Record.RemoveFields(
+                options, {"Pagination", "RelativePath", "ResultFormat"}, MissingField.Ignore
+            ),
+            addedOptions = Record.AddField(removedOptions, "ResultFormat", "record"),
+            response = FactSetAnalytics.Request(endpoint, addedOptions)
+        in
+            response
+in
+    [
+        GetAllPagesCursor = GetAllPagesCursor
+    ]

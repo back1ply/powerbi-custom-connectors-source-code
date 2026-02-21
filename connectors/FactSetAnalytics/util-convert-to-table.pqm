@@ -1,0 +1,68 @@
+let
+    FlattenRecord = (rec as record, optional prefix as text) as record =>
+        let
+            _prefix = prefix ?? "",
+            visitField = (fieldName as text) as record =>
+                let
+                    currFieldValue = Record.Field(rec, fieldName),
+                    fieldValue =
+                        if currFieldValue is record then
+                            @FlattenRecord(currFieldValue, _prefix & fieldName & ".")
+                        else
+                            currFieldValue
+                in
+                    if fieldValue is record then
+                        fieldValue
+                    else
+                        Record.AddField([], _prefix & fieldName, fieldValue),
+            fieldNames = Record.FieldNames(rec),
+            visited = List.Transform(fieldNames, visitField)
+        in
+            Record.Combine(visited),
+    ListToTable = (records as list) as table =>
+        let
+            flattenedRecords = List.Transform(records, FlattenRecord),
+            allFields = List.Transform(flattenedRecords, Record.FieldNames),
+            fields = List.Union(allFields),
+            convertedToTable = Table.FromList(
+                flattenedRecords, Splitter.SplitByNothing(), null, null, ExtraValues.Error
+            ),
+            expandedColumns =
+                if List.Count(records) = 0 then
+                    Table.FromList({})
+                else
+                    Table.ExpandRecordColumn(convertedToTable, "Column1", fields)
+        in
+            expandedColumns
+in
+    Value.ReplaceType(
+        (data as any) as any =>
+            if data is list then
+                ListToTable(data)
+            else if data is record then
+                if Record.FieldCount(data) = 0 then
+                    #table({}, {})
+                else
+                    ListToTable({data})
+            else
+                data,
+        type function (data as any) as any meta [
+            Documentation.Name = "Convert a record or list to a table.",
+            Documentation.LongDescription = "Returns the given record or list to a table.
+             If any other value is passed it is returned as-is.
+            <br><br>Field names of the records will be columns, the values will be rows.
+            <br>Record values within the given record will be flattened and their field names concatenated with a dot.",
+            Documentation.Examples = {
+                [
+                    Description = "Converting a single record",
+                    Code = "= ConvertToTable([ a = 1, b = [ nested = 2] ])",
+                    Result = "#table({""a"", ""b.nested""}, {{1, 2}})"
+                ],
+                [
+                    Description = "Converting a list of records",
+                    Code = "= ConvertToTable({[ a = 1, b = 2 ], [ a = 3, b = 4 ]})",
+                    Result = "#table({""a"", ""b""}, {{1, 2}, {3, 4}})"
+                ]
+            }
+        ]
+    )

@@ -1,0 +1,265 @@
+// DremioAdbcOptions.pqm
+// This module contains helper functions for building ADBC driver configuration options.
+// These functions are used to construct the ConnectionString for ADBC Flight SQL connections.
+
+let
+    IsPositiveNumber = (value) => Value.Is(value, type number) and value > 0,
+
+    // IsValidDomain validates that a value is a valid hostname WITHOUT port number or protocol prefix.
+    // Valid: "localhost", "dremio.example.com", "data.dremio.cloud", "192.168.1.1"
+    // Invalid: "https://dremio.example.com", "dremio.example.com:9047", "http://localhost:8080"
+    IsValidDomain = (value) =>
+        Value.Is(value, type text)
+        and value <> ""  // Reject empty strings
+        and Text.PositionOfAny(value, {":", "/", "?"}) = -1,
+
+    // GetOptionValue is a generic helper function for extracting and validating optional configuration values.
+    // Parameters:
+    //   - optionName: The field name to look for in the options record
+    //   - validator: A function that takes a value and returns true if valid, false otherwise
+    //   - errorMessage: The error message to display if validation fails
+    //   - options: The options record to extract from (optional)
+    // Returns the option value if present and valid, null if not present or explicitly null.
+    // Throws an error if the value is present but fails validation.
+    GetOptionValue = (optionName as text, validator as function, errorMessage as text, optional options as record) as any =>
+        let
+            Result =
+                if options <> null and Record.HasFields(options, optionName) then
+                  let
+                    Value = Record.Field(options, optionName)
+                  in
+                    if Value = null then
+                      null
+                    else if validator(Value) then
+                      Value
+                    else
+                      error Error.Record("Expression.Error", errorMessage)
+                else
+                  null
+        in
+          Result,
+
+    // BuildAdbcOption creates a record with a single ADBC configuration field if the value is not null.
+    // Parameters:
+    //   - adbcFieldName: The ADBC driver configuration field name (e.g., "adbc.flight.sql.client_option.with_max_msg_size")
+    //   - value: The value to set (if null, returns empty record)
+    // Returns a record with the ADBC field set, or an empty record if value is null.
+    BuildAdbcOption = (adbcFieldName as text, value as any) as record =>
+        if value = null then
+          []
+        else
+          Record.FromList({value}, {adbcFieldName}),
+
+    // GetAdbcMaxMessageSize returns a record with the max message size configuration for ADBC Flight SQL connections.
+    // If AdbcMaxMessageSize is provided in the options record, returns a record with the adbc.flight.sql.client_option.with_max_msg_size field.
+    // If not provided or null, returns an empty record, allowing the ADBC driver to use its default (16 MiB).
+    GetAdbcMaxMessageSize = (optional options as record) as record =>
+        let
+            MaxMessageSize = GetOptionValue(
+                "AdbcMaxMessageSize",
+                IsPositiveNumber,
+                "The AdbcMaxMessageSize option must be a positive number",
+                options
+            )
+        in
+          BuildAdbcOption("adbc.flight.sql.client_option.with_max_msg_size", MaxMessageSize),
+
+    // GetAdbcConnectTimeout returns a record with the connect timeout configuration for ADBC Flight SQL connections.
+    // If AdbcConnectTimeout is provided in the options record, returns a record with the adbc.flight.sql.rpc.timeout_seconds.connect field.
+    // If not provided or null, returns an empty record, allowing the ADBC driver to use its default.
+    GetAdbcConnectTimeout = (optional options as record) as record =>
+        let
+            ConnectTimeout = GetOptionValue(
+                "AdbcConnectTimeout",
+                IsPositiveNumber,
+                "The AdbcConnectTimeout option must be a positive number",
+                options
+            )
+        in
+          BuildAdbcOption("adbc.flight.sql.rpc.timeout_seconds.connect", ConnectTimeout),
+
+    // GetAdbcFetchTimeout returns a record with the fetch timeout configuration for ADBC Flight SQL connections.
+    // If AdbcFetchTimeout is provided in the options record, returns a record with the adbc.flight.sql.rpc.timeout_seconds.fetch field.
+    // If not provided or null, returns an empty record, allowing the ADBC driver to use its default.
+    GetAdbcFetchTimeout = (optional options as record) as record =>
+        let
+            FetchTimeout = GetOptionValue(
+                "AdbcFetchTimeout",
+                IsPositiveNumber,
+                "The AdbcFetchTimeout option must be a positive number",
+                options
+            )
+        in
+          BuildAdbcOption("adbc.flight.sql.rpc.timeout_seconds.fetch", FetchTimeout),
+
+    // GetAdbcQueryTimeout returns a record with the query timeout configuration for ADBC Flight SQL connections.
+    // If AdbcQueryTimeout is provided in the options record, returns a record with the adbc.flight.sql.rpc.timeout_seconds.query field.
+    // If not provided or null, returns an empty record, allowing the ADBC driver to use its default.
+    GetAdbcQueryTimeout = (optional options as record) as record =>
+        let
+            QueryTimeout = GetOptionValue(
+                "AdbcQueryTimeout",
+                IsPositiveNumber,
+                "The AdbcQueryTimeout option must be a positive number",
+                options
+            )
+        in
+          BuildAdbcOption("adbc.flight.sql.rpc.timeout_seconds.query", QueryTimeout),
+
+    // GetAdbcUpdateTimeout returns a record with the update timeout configuration for ADBC Flight SQL connections.
+    // If AdbcUpdateTimeout is provided in the options record, returns a record with the adbc.flight.sql.rpc.timeout_seconds.update field.
+    // If not provided or null, returns an empty record, allowing the ADBC driver to use its default.
+    GetAdbcUpdateTimeout = (optional options as record) as record =>
+        let
+            UpdateTimeout = GetOptionValue(
+                "AdbcUpdateTimeout",
+                IsPositiveNumber,
+                "The AdbcUpdateTimeout option must be a positive number",
+                options
+            )
+        in
+          BuildAdbcOption("adbc.flight.sql.rpc.timeout_seconds.update", UpdateTimeout),
+
+    // GetAdbcDriverOptions returns a consolidated record of all ADBC driver-specific configuration options.
+    // This function centralizes all ADBC driver settings, making it easy to add new options in the future.
+    // Parameters:
+    //   - options: The options record containing user-specified ADBC configuration (optional)
+    // Returns a record with all ADBC driver configuration fields, including:
+    //   - adbc.flight.sql.rpc.with_cookie_middleware (always true)
+    //   - adbc.flight.sql.client_option.with_max_msg_size (conditional, based on AdbcMaxMessageSize option)
+    //   - adbc.flight.sql.rpc.timeout_seconds.connect (conditional, based on AdbcConnectTimeout option)
+    //   - adbc.flight.sql.rpc.timeout_seconds.fetch (conditional, based on AdbcFetchTimeout option)
+    //   - adbc.flight.sql.rpc.timeout_seconds.query (conditional, based on AdbcQueryTimeout option)
+    //   - adbc.flight.sql.rpc.timeout_seconds.update (conditional, based on AdbcUpdateTimeout option)
+    GetAdbcDriverOptions = (optional options as record) as record =>
+        let
+            // Always enable cookie middleware for ADBC connections
+            CookieMiddleware = [adbc.flight.sql.rpc.with_cookie_middleware = "true"],
+
+            // Get optional max message size configuration
+            MaxMessageSizeConfig = GetAdbcMaxMessageSize(options),
+
+            // Get optional timeout configurations
+            ConnectTimeoutConfig = GetAdbcConnectTimeout(options),
+            FetchTimeoutConfig = GetAdbcFetchTimeout(options),
+            QueryTimeoutConfig = GetAdbcQueryTimeout(options),
+            UpdateTimeoutConfig = GetAdbcUpdateTimeout(options),
+
+            // Merge all ADBC driver options into a single record
+            AllOptions = CookieMiddleware
+                & MaxMessageSizeConfig
+                & ConnectTimeoutConfig
+                & FetchTimeoutConfig
+                & QueryTimeoutConfig
+                & UpdateTimeoutConfig
+        in
+          AllOptions,
+
+    // GetOAuthTokenExchangeParameters returns the OAuth token exchange configuration for ADBC Flight SQL connections.
+    // This function should only be called when OAuth authentication is being used.
+    //
+    // Token URI Resolution Priority:
+    //   1. For Dremio Cloud regions OR private link domains, use the designated login service (ignores custom domain and port)
+    //   2. Otherwise, if AuthorizationServerDomain is provided, use it with the configured or default port
+    //   3. Otherwise, construct from the server host and port (defaults to <host>:9047)
+    //
+    // Parameters:
+    //   - domain: The Dremio server host domain
+    //   - encryption: Whether encryption is enabled (affects http vs https protocol for Dremio Software)
+    //   - options: The options record containing optional AuthorizationServerDomain and/or AuthorizationServerPort (optional)
+    //
+    // Options:
+    //   - AuthorizationServerDomain: Domain of the authorization server (no scheme or port), e.g., "auth.example.com"
+    //     Ignored for Dremio Cloud regions and private link domains
+    //   - AuthorizationServerPort: Port number for the authorization server (defaults to 9047 for Dremio Software)
+    //     Used for Dremio Software flows (including when AuthorizationServerDomain is set); ignored for Dremio Cloud regions and private link domains
+    //
+    // Returns a record with OAuth token exchange configuration fields.
+    GetOAuthTokenExchangeParameters = (domain as text, encryption as logical, optional options as record) as record =>
+        let
+            // Map of Dremio Cloud regions to their login services
+            CloudRegionMap = [
+              data.eu.dremio.cloud = "https://login.eu.dremio.cloud",
+              data.dremio.cloud = "https://login.dremio.cloud"
+            ],
+
+            // Build the token URI with priority:
+            // 1. Use CloudRegionMap or private link pattern for known cloud regions (takes precedence and ignores custom domain/port)
+            // 2. Use AuthorizationServerDomain/Port override when provided (non-cloud only)
+            // 3. Construct from server host and port for Dremio Software
+            // Exact region mapping (match must be against the original server host, not the override)
+            ExactCloudLogin = Record.FieldOrDefault(CloudRegionMap, domain, null),
+            // Private link mapping (treat as cloud): <org>.data.privatelink.dremio.cloud -> https://<org>.login.privatelink.dremio.cloud
+            // Private link mapping (treat as cloud). Supported patterns:
+            //   - <org>.data.privatelink.dremio.cloud -> https://<org>.login.privatelink.dremio.cloud
+            //   - <org>.data.privatelink.<environment>.dremio.site -> https://<org>.login.privatelink.<environment>.dremio.site
+            PrivateLinkLogin =
+                if Text.EndsWith(domain, ".data.privatelink.dremio.cloud") then
+                    let
+                        Org = Text.BeforeDelimiter(domain, ".data.privatelink.dremio.cloud")
+                    in
+                        "https://" & Org & ".login.privatelink.dremio.cloud"
+                else if Text.Contains(domain, ".data.privatelink.") and Text.EndsWith(domain, ".dremio.site") then
+                    let
+                        Prefix = ".data.privatelink.",
+                        Suffix = ".dremio.site",
+                        Org = Text.BeforeDelimiter(domain, Prefix),
+                        AfterPrefix = Text.AfterDelimiter(domain, Prefix),
+                        Env = Text.BeforeDelimiter(AfterPrefix, Suffix),
+                        Expected = Org & Prefix & Env & Suffix
+                    in
+                        if (domain = Expected) and (Env <> "") and (Text.PositionOf(Env, ".") = -1) then
+                            "https://" & Org & ".login.privatelink." & Env & ".dremio.site"
+                        else
+                            null
+                else
+                    null,
+            CloudLoginUri = if ExactCloudLogin <> null then ExactCloudLogin else PrivateLinkLogin,
+
+            // If cloud/private link matched, ignore any custom AuthorizationServer* options entirely
+            TokenUri = if CloudLoginUri <> null then
+                CloudLoginUri
+            else
+                let
+                    // Non-cloud path: now (and only now) retrieve/validate overrides
+                    DefaultPort = 9047,
+                    Port = GetOptionValue(
+                        "AuthorizationServerPort",
+                        IsPositiveNumber,
+                        "The AuthorizationServerPort option must be a valid port",
+                        options
+                    ) ?? DefaultPort,
+                    DomainOverride = GetOptionValue(
+                        "AuthorizationServerDomain",
+                        IsValidDomain,
+                        "The AuthorizationServerDomain option must be a valid domain",
+                        options
+                    ),
+                    Host = DomainOverride ?? domain,
+                    DefaultTokenUri = (if encryption then "https://" else "http://") & Host & ":" & Text.From(Port)
+                in
+                    DefaultTokenUri,
+            // Return the complete OAuth token exchange configuration
+            OAuthConfig = [
+              adbc.flight.sql.oauth.flow = "token_exchange",
+              adbc.flight.sql.oauth.exchange.scope = "dremio.all",
+              adbc.flight.sql.oauth.exchange.subject_token_type = "urn:ietf:params:oauth:token-type:jwt",
+              adbc.flight.sql.oauth.token_uri = TokenUri & "/oauth/token"
+            ]
+        in
+          OAuthConfig
+in
+    [
+        IsValidDomain = IsValidDomain,
+        IsPositiveNumber = IsPositiveNumber,
+        GetOptionValue = GetOptionValue,
+        BuildAdbcOption = BuildAdbcOption,
+        GetAdbcMaxMessageSize = GetAdbcMaxMessageSize,
+        GetAdbcConnectTimeout = GetAdbcConnectTimeout,
+        GetAdbcFetchTimeout = GetAdbcFetchTimeout,
+        GetAdbcQueryTimeout = GetAdbcQueryTimeout,
+        GetAdbcUpdateTimeout = GetAdbcUpdateTimeout,
+        GetAdbcDriverOptions = GetAdbcDriverOptions,
+        GetOAuthTokenExchangeParameters = GetOAuthTokenExchangeParameters
+    ]
+

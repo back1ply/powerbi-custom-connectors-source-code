@@ -1,0 +1,418 @@
+let
+    // Run PA Calculation
+
+    FactSetAnalytics.v3.RunPACalculation = Value.ReplaceType(runPAV3CalculationImpl, runPAV3CalculationType),
+
+    runPAV3CalculationType = type function (
+        optional componentid as (type text meta [
+            Documentation.FieldCaption = "Component Identifier",
+            Documentation.SampleValues = { "D1CDCCD48DF1B9B8FCFC227844DAF825114728C0BE17E48295D76C0E8B265F01" }
+        ]),
+        optional accountid as (type text meta [
+            Documentation.FieldCaption = "Account Identifier",
+            Documentation.SampleValues = { "BENCH:SP50" }
+        ]),
+        optional accountholdingsmode as (type text meta [
+            Documentation.FieldCaption = "Account Holdings Mode",
+            Documentation.SampleValues = { "B&H" }
+        ]),
+        optional benchmarkid as (type text meta [
+            Documentation.FieldCaption = "Benchmark Identifier",
+            Documentation.SampleValues = { "BENCH:R.1000" }
+        ]),
+        optional benchmarkholdingsmode as (type text meta [
+            Documentation.FieldCaption = "Benchmark Holdings Mode",
+            Documentation.SampleValues = { "B&H" }
+        ]),
+        optional startdate as (type text meta [
+            Documentation.FieldCaption = "Start Date",
+            Documentation.SampleValues = { "-2M" }
+        ]),
+        optional enddate as (type text meta [
+            Documentation.FieldCaption = "End Date",
+            Documentation.SampleValues = { "0" }
+        ]),
+        optional frequency as (type text meta [
+            Documentation.FieldCaption = "Frequency",
+            Documentation.SampleValues = { "Monthly" }
+        ]),
+        optional currencyisocode as (type text meta [
+            Documentation.FieldCaption = "Currency ISO Code",
+            Documentation.SampleValues = { "USD" }
+        ]),
+        optional componentdetail as (type text meta [
+            Documentation.FieldCaption = "Component Detail",
+            Documentation.AllowedValues = { "Groupsall", "Securities", "Groups", "Totals", "" }
+        ]),
+        optional cachedoutputage as (type number meta [
+            Documentation.FieldCaption = "Cached Output Age in minutes",
+            Documentation.SampleValues = { "720 (Default Value)" }
+        ]))
+        as table meta [
+            Documentation.Name = "Run PA V3 Calculation",
+            Documentation.LongDescription = "This function runs the PA calculation for the specified parameters.",
+            Documentation.Examples = {[
+                Description = "Runs the PA calculation for the specified parameters.",
+                Code = "= v3RunPACalculation(""D1CDCCD48DF1B9B8FCFC227844DAF825114728C0BE17E48295D76C0E8B265F01"",""BENCH:SP50"",""B&H"",""BENCH:DJII"",""B&H"",""-2M"",""0"",""Monthly"", ""USD"", ""Securities"", 720)",
+                Result = "#table(...)"
+            ]}
+        ],
+
+    runPAV3CalculationImpl = (
+        optional _componentid as text,
+        optional _accountid as text,
+        optional _accountholdingsmode as text,
+        optional _benchmarkid as text,
+        optional _benchmarkholdingsmode as text,
+        optional _startdate as text,
+        optional _enddate as text,
+        optional _frequency as text,
+        optional _currencyisocode as text,
+        optional _componentdetail as text,
+        optional _cachedoutputage as number
+    ) as table =>
+        let
+            accounts = if _accountid is null and _accountholdingsmode is null then null else {[
+                id = _accountid,
+                holdingsmode = _accountholdingsmode
+            ]},
+            benchmarks = if _benchmarkid is null and _benchmarkholdingsmode is null then null else {[
+                id = _benchmarkid,
+                holdingsmode = _benchmarkholdingsmode
+            ]},
+            table = FactSetAnalytics.v3.RunPAMultiPortCalculation(_componentid, accounts, benchmarks, _startdate, _enddate, _frequency, _currencyisocode, _componentdetail, _cachedoutputage)
+        in
+            table,
+
+    FactSetAnalytics.v3.RunPAMultiPortCalculation = Value.ReplaceType(runPAV3MultiPortCalculationImpl, runPAV3MultiPortCalculationType),
+
+    runPAV3MultiPortCalculationType = type function (
+        optional componentid as (type text meta [
+            Documentation.FieldCaption = "Component Identifier",
+            Documentation.SampleValues = { "D1CDCCD48DF1B9B8FCFC227844DAF825114728C0BE17E48295D76C0E8B265F01" }
+        ]),
+        optional accounts as (type list meta [
+            Documentation.FieldCaption = "Accounts"
+        ]),
+        optional benchmarks as (type list meta [
+            Documentation.FieldCaption = "Benchmarks"
+        ]),
+        optional startdate as (type text meta [
+            Documentation.FieldCaption = "Start Date",
+            Documentation.SampleValues = { "-2M" }
+        ]),
+        optional enddate as (type text meta [
+            Documentation.FieldCaption = "End Date",
+            Documentation.SampleValues = { "0" }
+        ]),
+        optional frequency as (type text meta [
+            Documentation.FieldCaption = "Frequency",
+            Documentation.SampleValues = { "Monthly" }
+        ]),
+        optional currencyisocode as (type text meta [
+            Documentation.FieldCaption = "Currency ISO Code",
+            Documentation.SampleValues = { "USD" }
+        ]),
+        optional componentdetail as (type text meta [
+            Documentation.FieldCaption = "Component Detail",
+            Documentation.AllowedValues = { "Groupsall", "Securities", "Groups", "Totals", "" }
+        ]),
+        optional cachedoutputage as (type number meta [
+            Documentation.FieldCaption = "Cached Output Age in minutes",
+            Documentation.SampleValues = { "720 (Default Value)" }
+        ]))
+        as table meta [
+            Documentation.Name = "Run PA V3 Multi-Port Calculation",
+            Documentation.LongDescription = "This function runs the PA calculation for the specified parameters.",
+            Documentation.Examples = {[
+                Description = "Runs the PA calculation for the specified parameters.",
+                Code = "= v3RunPAMultiPortCalculation(""D1CDCCD48DF1B9B8FCFC227844DAF825114728C0BE17E48295D76C0E8B265F01"",{ [ id = ""BENCH:SP50"", holdingsmode = ""B&H"" ] },{ [ id = ""BENCH:DJII"", holdingsmode = ""B&H"" ] },""-2M"",""0"",""Monthly"",""USD"", ""Securities"", 720)",
+                Result = "#table(...)"
+            ]}
+        ],
+
+    runPAV3MultiPortCalculationImpl = (
+        optional _componentid as text,
+        optional _accounts as list,
+        optional _benchmarks as list,
+        optional _startdate as text,
+        optional _enddate as text,
+        optional _frequency as text,
+        optional _currencyisocode as text,
+        optional _componentdetail as text,
+        optional _cachedoutputage as number
+    ) as table =>
+        let
+            dates = if _startdate is null and _enddate is null and _frequency is null then null else  [
+                startdate = _startdate,
+                enddate = _enddate,
+                frequency = _frequency
+            ],
+
+            calculation = [
+                componentid = _componentid,
+                accounts = _accounts,
+                benchmarks = _benchmarks,
+                dates = dates,
+                currencyisocode = _currencyisocode,
+                componentdetail = _componentdetail
+            ],
+            table = Analytics[Request][RunV3Calculation](calculation, "pa", _cachedoutputage)
+        in
+            table,
+
+    // Run SPAR V3 Calculation
+    
+    FactSetAnalytics.v3.RunSPARCalculation = Value.ReplaceType(runSPARV3CalculationImpl, runSPARV3CalculationType),
+
+    runSPARV3CalculationType = type function (
+        optional componentid as (type text meta [
+            Documentation.FieldCaption = "Component Identifier",
+            Documentation.SampleValues = { "8DB4D9629C65705DEC03B0796FCC39DB1ADBBE0BD1F00D3BD46CC7E6BEEF2872" }
+        ]),
+        optional accountid as (type text meta [
+            Documentation.FieldCaption = "Account Identifier",
+            Documentation.SampleValues = { "00000117" }
+        ]),
+        optional accountreturntype as (type text meta [
+            Documentation.FieldCaption = "Account Return Type",
+            Documentation.SampleValues = { "GTR" }
+        ]),
+        optional accountprefix as (type text meta [
+            Documentation.FieldCaption = "Account Prefix",
+            Documentation.SampleValues = { "SPUS_GR" }
+        ]),
+        optional benchmarkid as (type text meta [
+            Documentation.FieldCaption = "Benchmark Identifier",
+            Documentation.SampleValues = { "R.1000" }
+        ]),
+        optional benchmarkreturntype as (type text meta [
+            Documentation.FieldCaption = "Benchmark Return Type",
+            Documentation.SampleValues = { "GTR" }
+        ]),
+        optional benchmarkprefix as (type text meta [
+            Documentation.FieldCaption = "Benchmark Prefix",
+            Documentation.SampleValues = { "RUSSELL" }
+        ]),
+        optional startdate as (type text meta [
+            Documentation.FieldCaption = "Start Date",
+            Documentation.SampleValues = { "-2M" }
+        ]),
+        optional enddate as (type text meta [
+            Documentation.FieldCaption = "End Date",
+            Documentation.SampleValues = { "0" }
+        ]),
+        optional frequency as (type text meta [
+            Documentation.FieldCaption = "Frequency",
+            Documentation.SampleValues = { "Monthly" }
+        ]),
+        optional currencyisocode as (type text meta [
+            Documentation.FieldCaption = "Currency ISO Code",
+            Documentation.SampleValues = { "USD" }
+        ]),
+        optional cachedoutputage as (type number meta [
+            Documentation.FieldCaption = "Cached Output Age in minutes",
+            Documentation.SampleValues = { "720 (Default Value)" }
+        ]))
+        as table meta [
+            Documentation.Name = "Run SPAR V3 Calculation",
+            Documentation.LongDescription = "This function runs the SPAR calculation for the specified parameters.",
+            Documentation.Examples = {[
+                Description = "Runs the SPAR calculation for the specified parameters.",
+                Code = "= v3RunSPARCalculation(""8DB4D9629C65705DEC03B0796FCC39DB1ADBBE0BD1F00D3BD46CC7E6BEEF2872"",""R.1000"",""GTR"",""RUSSELL"",""R.2000"",""GTR"",""RUSSELL"",""-2M"",""0"",""Monthly"", ""USD"", 720)",
+                Result = "#table(...)"
+            ]}
+        ],
+
+    runSPARV3CalculationImpl = (
+        optional _componentid as text,
+        optional _accountid as text,
+        optional _accountreturntype as text,
+        optional _accountprefix as text,
+        optional _benchmarkid as text,
+        optional _benchmarkreturntype as text,
+        optional _benchmarkprefix as text,
+        optional _startdate as text,
+        optional _enddate as text,
+        optional _frequency as text,
+        optional _currencyisocode as text,
+        optional _cachedoutputage as number
+    ) as table =>
+        let
+            accounts = if _accountid is null and _accountreturntype is null and _accountprefix is null then null else {[
+                id = _accountid,
+                returntype = _accountreturntype,
+                prefix = _accountprefix
+            ]},
+            table = FactSetAnalytics.v3.RunSPARMultiPortCalculation(_componentid, accounts, _benchmarkid, _benchmarkreturntype, _benchmarkprefix, _startdate, _enddate, _frequency, _currencyisocode, _cachedoutputage)
+        in
+            table,
+
+    FactSetAnalytics.v3.RunSPARMultiPortCalculation = Value.ReplaceType(runSPARV3MultiPortCalculationImpl, runSPARV3MultiPortCalculationType),
+
+    runSPARV3MultiPortCalculationType = type function (
+        optional componentid as (type text meta [
+            Documentation.FieldCaption = "Component Identifier",
+            Documentation.SampleValues = { "8DB4D9629C65705DEC03B0796FCC39DB1ADBBE0BD1F00D3BD46CC7E6BEEF2872" }
+        ]),
+        optional accounts as (type list meta [
+            Documentation.FieldCaption = "Accounts"
+        ]),
+        optional benchmarkid as (type text meta [
+            Documentation.FieldCaption = "Benchmark Identifier",
+            Documentation.SampleValues = { "R.1000" }
+        ]),
+        optional benchmarkreturntype as (type text meta [
+            Documentation.FieldCaption = "Benchmark Return Type",
+            Documentation.SampleValues = { "GTR" }
+        ]),
+        optional benchmarkprefix as (type text meta [
+            Documentation.FieldCaption = "Benchmark Prefix",
+            Documentation.SampleValues = { "RUSSELL" }
+        ]),
+        optional startdate as (type text meta [
+            Documentation.FieldCaption = "Start Date",
+            Documentation.SampleValues = { "-2M" }
+        ]),
+        optional enddate as (type text meta [
+            Documentation.FieldCaption = "End Date",
+            Documentation.SampleValues = { "0" }
+        ]),
+        optional frequency as (type text meta [
+            Documentation.FieldCaption = "Frequency",
+            Documentation.SampleValues = { "Monthly" }
+        ]),
+        optional currencyisocode as (type text meta [
+            Documentation.FieldCaption = "Currency ISO Code",
+            Documentation.SampleValues = { "USD" }
+        ]),
+        optional cachedoutputage as (type number meta [
+            Documentation.FieldCaption = "Cached Output Age in minutes",
+            Documentation.SampleValues = { "720 (Default Value)" }
+        ]))
+        as table meta [
+            Documentation.Name = "Run SPAR V3 Multi-Port Calculation",
+            Documentation.LongDescription = "This function runs the SPAR calculation for the specified parameters.",
+            Documentation.Examples = {[
+                Description = "Runs the SPAR calculation for the specified parameters.",
+                Code = "= v3RunSPARMultiPortCalculation(""8DB4D9629C65705DEC03B0796FCC39DB1ADBBE0BD1F00D3BD46CC7E6BEEF2872"",{ [ id = ""R.1000"", returntype = ""GTR"", prefix = ""RUSSELL"" ] },""R.2000"",""GTR"",""RUSSELL"",""-2M"",""0"",""Monthly"", ""USD"", 720)",
+                Result = "#table(...)"
+            ]}
+        ],
+
+    runSPARV3MultiPortCalculationImpl = (
+        optional _componentid as text,
+        optional _accounts as list,
+        optional _benchmarkid as text,
+        optional _benchmarkreturntype as text,
+        optional _benchmarkprefix as text,
+        optional _startdate as text,
+        optional _enddate as text,
+        optional _frequency as text,
+        optional _currencyisocode as text,
+        optional _cachedoutputage as number
+    ) as table =>
+        let
+            benchmark = if _benchmarkid is null and _benchmarkreturntype is null and _benchmarkprefix is null then null else  [
+                id = _benchmarkid,
+                returntype = _benchmarkreturntype,
+                prefix = _benchmarkprefix
+            ],
+            dates = if _startdate is null and _enddate is null and _frequency is null then null else  [
+                startdate = _startdate,
+                enddate = _enddate,
+                frequency = _frequency
+            ],
+            calculation = [
+                componentid = _componentid,
+                accounts = _accounts,
+                benchmark = benchmark,
+                currencyisocode = _currencyisocode,
+                dates = dates
+            ],
+            table = Analytics[Request][RunV3Calculation](calculation, "spar", _cachedoutputage)
+        in
+            table,
+
+    FactSetAnalytics.v3.RunVaultCalculation = Value.ReplaceType(runVaultV3CalculationImpl, runVaultV3CalculationType),
+
+    runVaultV3CalculationType = type function (
+        optional componentid as (type text meta [
+            Documentation.FieldCaption = "Component Identifier",
+            Documentation.SampleValues = { "E1E54AC0CEA63CC229F0E5A2FBD8BED510E1C0687A34E827804BC7C7D3945FF0" }
+        ]),
+        optional accountid as (type text meta [
+            Documentation.FieldCaption = "Account Identifier",
+            Documentation.SampleValues = { "CLIENT:/ANALYTICS/DATA/US_MID_CAP_CORE.ACTM" }
+        ]),
+        optional startdate as (type text meta [
+            Documentation.FieldCaption = "Start Date",
+            Documentation.SampleValues = { "-2M" }
+        ]),
+        optional enddate as (type text meta [
+            Documentation.FieldCaption = "End Date",
+            Documentation.SampleValues = { "0" }
+        ]),
+        optional frequency as (type text meta [
+            Documentation.FieldCaption = "Frequency",
+            Documentation.SampleValues = { "Monthly" }
+        ]),
+        optional configid as (type text meta [
+            Documentation.FieldCaption = "Configuration identifier",
+            Documentation.SampleValues = { "c6574f19-77d3-487d-96b1-955dc1a4da28" }
+        ]),
+        optional componentdetail as (type text meta [
+            Documentation.FieldCaption = "Component Detail",
+            Documentation.AllowedValues = { "Securities", "Groups", "Totals", "" }
+        ]),
+        optional cachedoutputage as (type number meta [
+            Documentation.FieldCaption = "Cached Output Age in minutes",
+            Documentation.SampleValues = { "720 (Default Value)" }
+        ]))
+        as table meta [
+            Documentation.Name = "Run Vault V3 Calculation",
+            Documentation.LongDescription = "This function runs the Vault calculation for the specified parameters.",
+            Documentation.Examples = {[
+                Description = "Runs the Vault calculation for the specified parameters.",
+                Code = "= v3RunVaultCalculation(""E1E54AC0CEA63CC229F0E5A2FBD8BED510E1C0687A34E827804BC7C7D3945FF0"",""CLIENT:/ANALYTICS/DATA/US_MID_CAP_CORE.ACTM"",""-2M"",""0"",""Monthly"",""c6574f19-77d3-487d-96b1-955dc1a4da28"", ""Securities"", 720)",
+                Result = "#table(...)"
+            ]}
+        ],
+
+    runVaultV3CalculationImpl = (
+        optional _componentid as text,
+        optional _accountid as text,
+        optional _startdate as text,
+        optional _enddate as text,
+        optional _frequency as text,
+        optional _configid as text,
+        optional _componentdetail as text,
+        optional _cachedoutputage as number
+    ) as table =>
+        let
+            account = if _accountid is null then null else  [
+                id = _accountid
+            ],
+            dates = if _startdate is null and _enddate is null and _frequency is null then null else  [
+                startdate = _startdate,
+                enddate = _enddate,
+                frequency = _frequency
+            ],
+            calculation = [
+                componentid = _componentid,
+                account = account,
+                dates = dates,
+                configid = _configid,
+                componentdetail = _componentdetail
+            ],
+            table = Analytics[Request][RunV3Calculation](calculation, "vault", _cachedoutputage)
+        in
+            table
+in
+    [
+        RunPACalculation = FactSetAnalytics.v3.RunPACalculation,
+        RunPAMultiPortCalculation = FactSetAnalytics.v3.RunPAMultiPortCalculation,
+        RunSPARCalculation = FactSetAnalytics.v3.RunSPARCalculation,
+        RunSPARMultiPortCalculation = FactSetAnalytics.v3.RunSPARMultiPortCalculation,
+        RunVaultCalculation = FactSetAnalytics.v3.RunVaultCalculation
+    ]

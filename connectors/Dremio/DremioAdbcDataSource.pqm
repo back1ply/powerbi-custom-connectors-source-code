@@ -1,0 +1,479 @@
+// DremioAdbcDataSource.pqm
+// Encapsulates ADBC DataSource/Connection/Metadata logic extracted from Dremio.pq.
+// Built incrementally: Step 2a — add module scaffolding, loaders, shims, and core helpers.
+let
+    // Local loader helpers to avoid depending on global wrappers
+    LoadExpression = (name as text) as any =>
+        let
+            binary = Extension.Contents(name),
+            asText = Text.FromBinary(binary)
+        in
+            Expression.Evaluate(asText, #shared),
+
+    // Shims to reference ADBC primitives if available in the host
+    Adbc.DataSource = try #shared[Adbc.DataSource] otherwise (driver, connectionString, options) =>
+        error Error.Record("Expression.Error","The Adbc.DataSource function is not available in this environment"),
+    Adbc.Query = try #shared[Adbc.Query] otherwise (driver, connectionString, query) =>
+        error Error.Record("Expression.Error","The Adbc.Query function is not available in this environment"),
+    Adbc.Connection = try #shared[Adbc.Connection] otherwise (driver, databaseProperties, connectionProperties, options) =>
+        error Error.Record("Expression.Error", "The Adbc.Connection function is not available in this environment"),
+    Tables.NavigationPropertyGenerator = try #shared[Tables.NavigationPropertyGenerator] otherwise null,
+
+
+    ModuleIdentifier = () => ...,
+    MakeUniqueIdentifier = (connectionString as record) as record => [Module = ModuleIdentifier, Signature = connectionString],
+
+    // Core module dependencies
+    DremioSqlGenerator = LoadExpression("SqlGenerator.pqm"),
+    TransformDataSource = LoadExpression("DataTransform.pqm")[TransformDataSource],
+    FlightSqlAdbcConfig = LoadExpression("FlightSqlAdbcConfig.pqm")[FlightSqlAdbcConfig],
+    CACerts = LoadExpression("CACerts.pqm"),
+
+    // ADBC options module
+    AdbcOptions = LoadExpression("DremioAdbcOptions.pqm"),
+    GetOAuthTokenExchangeParameters = AdbcOptions[GetOAuthTokenExchangeParameters],
+    GetAdbcDriverOptions = AdbcOptions[GetAdbcDriverOptions],
+
+    // Access GetAddress from main connector if available; fallback simple parser
+    GetAddress = try #shared[GetAddress] otherwise (server as text, defaultPort as number) as record =>
+    let
+        Address = Uri.Parts(server),
+        BadServer = Address[Host] = "" or Address[Path] <> "/" or Address[Query] <> [] or Address[Fragment] <> "" or Address[UserName] <> "" or Address[Password] <> "",
+        Host = Address[Host],
+
+        // Determine ODBC port
+        Port = 
+            if (Address[Port] = 80 and (not Text.EndsWith(server, ":80")))
+                or (Address[Port] = 443 and (not Text.EndsWith(server, ":443")))
+                or Address[Port]? = null or Address[Port] = ""  then
+                defaultPort
+            else
+                Address[Port],
+
+        Result = [Host = Host, Port = Port]
+    in
+        if BadServer then
+            error Extension.LoadString("InvalidServerNameError")
+        else
+            Result,
+
+    // Helper to convert a partial record to ADBC/Flight headers with proper prefix
+    RecordToHeaders = (input as record) as record =>
+        let
+            NonNullParameters = List.Select(Record.FieldNames(input), each Record.Field(input, _) <> null)
+        in
+            Record.FromList(
+                List.Transform(NonNullParameters, each Record.Field(input, _)),
+                List.Transform(NonNullParameters, each "adbc.flight.sql.rpc.call_header." & _)
+            ),
+
+
+    // Add extra encryption props (TLS roots) when needed
+    GetExtraEncryptionProperties = (server as text, optional encryption as text) as record =>
+        if (Text.PositionOf(server, "dremio.cloud") > 0) or (encryption = "Enabled-PEM") then
+            [adbc.flight.sql.client_option.tls_root_certs = CACerts]
+        else
+            [],
+
+    // Telemetry header helper. Read ConnectorVersion from #shared if present.
+    Telemetry = (connectorName as text) as record =>
+        let
+            version = try #shared[ConnectorVersion] otherwise "3.11.0"
+        in
+            [#"user-agent-application" = connectorName & "/" & version & " Mashup/" & Module.Versions()[Core]],
+
+    // Build credential connection string for ADBC per auth kind
+    GetAdbcCredentialConnectionString =
+      let
+        Credential = Extension.CurrentCredential()
+      in
+        if Credential[AuthenticationKind]? = "UsernamePassword" then
+          [username = Credential[Username], password = Credential[Password]]
+        else if Credential[AuthenticationKind]? = "Key" then
+          [adbc.flight.sql.authorization_header = "Bearer " & Credential[Key]]
+        else if Credential[AuthenticationKind]? = "OAuth" then
+          [adbc.flight.sql.oauth.exchange.subject_token = Credential[access_token]]
+        else
+          error "Not implemented AuthenticationKind",
+
+    BuildAdbcDataSourceInputs_SW = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) as record =>
+        let
+            Headers = RecordToHeaders([engine = engine, routing_tag = routingTag, routing_queue = routingQueue] & Telemetry("Power-BI-Dremio-SW")),
+            DisabledEncryption = encryption = "Disabled",
+            UriSchema = if DisabledEncryption then "grpc+tcp" else "grpc+tls",
+            DefaultPort = 32010,
+            Address = GetAddress(server, DefaultPort),
+            AuthKind = Extension.CurrentCredential()[AuthenticationKind]?,
+            OAuthParams = if AuthKind = "OAuth" then GetOAuthTokenExchangeParameters(Address[Host], not DisabledEncryption, options) else [],
+            ConnectionString = [uri = UriSchema & "://" & Address[Host] & ":" & Number.ToText(Address[Port])] & GetAdbcDriverOptions(options) & Headers & OAuthParams & GetExtraEncryptionProperties(server, encryption),
+            DataSourceOptions = [
+                SqlGenerator = DremioSqlGenerator[SqlGenerator],
+                CredentialConnectionString = GetAdbcCredentialConnectionString
+            ]
+        in
+            [ ConnectionString = ConnectionString, DataSourceOptions = DataSourceOptions ],
+
+    BuildAdbcDataSourceInputs_Cloud = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) as record =>
+        let
+            projectIdCookie = if projectId = null then null else "project_id=" & Text.Split(projectId, ";"){0},
+            Headers = RecordToHeaders([cookie = projectIdCookie, engine = engine, routing_tag = routingTag, routing_queue = routingQueue] & Telemetry("Power-BI-Dremio-Cloud")),
+            UriSchema = "grpc+tls",
+            DefaultPort = 443,
+            Address = GetAddress(server, DefaultPort),
+            AuthKind = Extension.CurrentCredential()[AuthenticationKind]?,
+            OAuthParams = if AuthKind = "OAuth" then GetOAuthTokenExchangeParameters(Address[Host], true, options) else [],
+            ConnectionString = [uri = UriSchema & "://" & Address[Host] & ":" & Number.ToText(Address[Port])] & GetAdbcDriverOptions(options) & Headers & OAuthParams & GetExtraEncryptionProperties(server, encryption),
+            DataSourceOptions = [
+                SqlGenerator = DremioSqlGenerator[SqlGenerator],
+                CredentialConnectionString = GetAdbcCredentialConnectionString
+            ]
+        in
+            [ ConnectionString = ConnectionString, DataSourceOptions = DataSourceOptions ],
+
+    BuildAdbcConnectionInputs_SW = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) as record =>
+        let
+            Headers = RecordToHeaders([engine = engine, routing_tag = routingTag, routing_queue = routingQueue] & Telemetry("Power-BI-Dremio-SW")),
+            DisabledEncryption = encryption = "Disabled",
+            UriSchema = if DisabledEncryption then "grpc+tcp" else "grpc+tls",
+            DefaultPort = 32010,
+            Address = GetAddress(server, DefaultPort),
+            AuthKind = Extension.CurrentCredential()[AuthenticationKind]?,
+            OAuthParams = if AuthKind = "OAuth" then GetOAuthTokenExchangeParameters(Address[Host], true, options) else [],
+            ConnectionString = [uri = UriSchema & "://" & Address[Host] & ":" & Number.ToText(Address[Port])] & GetAdbcDriverOptions(options) & Headers & OAuthParams & GetExtraEncryptionProperties(server, encryption),
+            CredentialConnectionString = try GetAdbcCredentialConnectionString otherwise []
+        in
+            [ ConnectionString = ConnectionString, CredentialConnectionString = CredentialConnectionString ],
+
+    BuildAdbcConnectionInputs_Cloud = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) as record =>
+        let
+            projectIdCookie = if projectId = null then null else "project_id=" & Text.Split(projectId, ";"){0},
+            Headers = RecordToHeaders([cookie = projectIdCookie, engine = engine, routing_tag = routingTag, routing_queue = routingQueue] & Telemetry("Power-BI-Dremio-Cloud")),
+            UriSchema = "grpc+tls",
+            DefaultPort = 443,
+            Address = GetAddress(server, DefaultPort),
+            AuthKind = Extension.CurrentCredential()[AuthenticationKind]?,
+            OAuthParams = if AuthKind = "OAuth" then GetOAuthTokenExchangeParameters(Address[Host], true, options) else [],
+            ConnectionString = [uri = UriSchema & "://" & Address[Host] & ":" & Number.ToText(Address[Port])] & GetAdbcDriverOptions(options) & Headers & OAuthParams & GetExtraEncryptionProperties(server, encryption),
+            CredentialConnectionString = try GetAdbcCredentialConnectionString otherwise []
+        in
+            [ ConnectionString = ConnectionString, CredentialConnectionString = CredentialConnectionString ],
+
+    BuildAdbcConnectionContext = (connection as record, connectionString as record, optional options as record) as record =>
+        let
+            ExecuteQueryCtor = (cxn as record) => (sql as text, optional opts as record) =>
+                let
+                    options = [ IsMetadata = opts[IsMetadata]? ]
+                in
+                    cxn[ExecuteQuery](sql, null, options),
+            GetData = (query as text, resultType as type, ctx as record) => CreateDataTable(query, resultType, ctx, context[ExecuteQuery]),
+            UniqueIdentifier = MakeUniqueIdentifier(connectionString),
+            SqlGenerator = SqlView.Generator(UniqueIdentifier, DremioSqlGenerator[SqlGenerator], GetData),
+            NavPropGenerator = if Tables.NavigationPropertyGenerator = null or options[CreateNavigationProperties]? = false then null else
+                Tables.NavigationPropertyGenerator(null, (path) => GetCatalogs(context, options){[Name=path{0}]}[Data]{[Name=path{1}]}[Data]{[Name=path{2}]}[Data]),
+            context = [
+                Connection = connection,
+                ExecuteQuery = ExecuteQueryCtor(connection),
+                ExecuteQueryCtor = ExecuteQueryCtor,
+                SqlGenerator = SqlGenerator,
+                NavPropGenerator = NavPropGenerator
+            ]
+        in
+            context,
+
+    ParseUseAdbcConnectionOption = (options as nullable record) as record =>
+        let
+            useVal = if options = null then null else options[UseAdbcConnection]?,
+            isBool = Value.Is(useVal, type logical),
+            useConn = if isBool then useVal else false,
+            cleanOptions = if isBool then Record.RemoveFields(options, {"UseAdbcConnection"}) else options
+        in
+            [useConn = useConn, cleanOptions = cleanOptions],
+
+    DremioAdbcDatabase = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) =>
+        let
+            inputs = BuildAdbcDataSourceInputs_SW(server, encryption, engine, routingTag, routingQueue, options),
+            Databases = Adbc.DataSource(FlightSqlAdbcConfig, inputs[ConnectionString], inputs[DataSourceOptions])
+         in
+            TransformDataSource(Databases),
+
+    DremioCloudAdbcDatabase = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) =>
+        let
+            inputs = BuildAdbcDataSourceInputs_Cloud(server, projectId, engine, routingTag, routingQueue, encryption, options),
+            Databases = Adbc.DataSource(FlightSqlAdbcConfig, inputs[ConnectionString], inputs[DataSourceOptions])
+         in
+            TransformDataSource(Databases),
+
+    DremioAdbcConnection = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) =>
+        let
+            inputs = BuildAdbcConnectionInputs_SW(server, encryption, engine, routingTag, routingQueue, options),
+            Connection = Adbc.Connection(FlightSqlAdbcConfig, inputs[ConnectionString] & inputs[CredentialConnectionString], [], []),
+            context = BuildAdbcConnectionContext(Connection, inputs[ConnectionString], options),
+            AdbcSchemas = GetCatalogs(context, options)
+        in
+            AdbcSchemas,
+
+    DremioCloudAdbcConnection = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) =>
+        let
+            inputs = BuildAdbcConnectionInputs_Cloud(server, projectId, engine, routingTag, routingQueue, encryption, options),
+            Connection = Adbc.Connection(FlightSqlAdbcConfig, inputs[ConnectionString] & inputs[CredentialConnectionString], [], []),
+            context = BuildAdbcConnectionContext(Connection, inputs[ConnectionString], options),
+            AdbcSchemas = GetCatalogs(context, options)
+        in
+            AdbcSchemas,
+
+    DremioAdbcDataSource = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) =>
+        let
+            parsed = ParseUseAdbcConnectionOption(options),
+            result = if parsed[useConn] then 
+                    DremioAdbcConnection(server, encryption, engine, routingTag, routingQueue, parsed[cleanOptions]) 
+                else 
+                    DremioAdbcDatabase(server, encryption, engine, routingTag, routingQueue, parsed[cleanOptions])
+        in
+            result,
+
+    DremioCloudAdbcDataSource = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) =>
+            let
+                parsed = ParseUseAdbcConnectionOption(options),
+                result = if parsed[useConn] then
+                        DremioCloudAdbcConnection(server, projectId, engine, routingTag, routingQueue, encryption, parsed[cleanOptions])
+                    else
+                        DremioCloudAdbcDatabase(server, projectId, engine, routingTag, routingQueue, encryption, parsed[cleanOptions])
+            in
+                result,
+
+    CreateDataTable = (query as text, resultType as type, context as record, executeQuery as function) =>
+        Table.View(null, [
+            GetType = () => resultType,
+            GetRows = () =>
+                let
+                    data = executeQuery(query, context),
+                    oldNames = Table.ColumnNames(data),
+                    newNames = Table.ColumnNames(#table(resultType, {})),
+                    renamed = Table.RenameColumns(data, List.Zip({oldNames, newNames})),
+                    rows = if ValidateGetRows then renamed else data
+                in
+                    rows,
+            ValidateGetRows = true
+        ]),
+
+    Combine = (context as record, cxn as record) as record => context & [Connection = cxn, ExecuteQuery = context[ExecuteQueryCtor](cxn)],
+
+    // TODO: Review this logic. At least 42S02 is a snowflake specific error
+    FoldNavigationStep = (selector, loader, kind, optional immediate) =>
+    let
+        reduceAnd = (ast) => if ast[Kind] = "Binary" and ast[Operator] = "And" then List.Combine({@reduceAnd(ast[Left]), @reduceAnd(ast[Right])}) else {ast},
+        matchFieldAccess = (ast) => if ast[Kind] = "FieldAccess" and ast[Expression] = RowExpression.Row then ast[MemberName] else ...,
+        matchConstant = (ast) => if ast[Kind] = "Constant" then ast[Value] else ...,
+        matchIndex = (ast) => if ast[Kind] = "Binary" and ast[Operator] = "Equals"
+            then
+                if ast[Left][Kind] = "FieldAccess"
+                    then Record.AddField([], matchFieldAccess(ast[Left]), matchConstant(ast[Right]))
+                    else Record.AddField([], matchFieldAccess(ast[Right]), matchConstant(ast[Left]))
+            else ...,
+        predicate1 = Record.Combine(List.Transform(reduceAnd(RowExpression.From(selector)), matchIndex)),
+        isKindList = kind is list,
+        kindMatch = if isKindList then List.Contains(kind,predicate1[Kind]?) else predicate1[Kind]? = kind,
+        predicate2 = if kindMatch then Record.RemoveFields(predicate1, {"Kind"}) else predicate1,
+        pickKind = if isKindList then
+                       if List.Contains(kind,predicate1[Kind]?) then predicate1[Kind]? else ...
+                   else kind,
+        name = if Record.FieldCount(predicate2) = 1 and predicate2[Name]? <> null then predicate2[Name] else ...,
+        dataResult = loader(name),
+        emptyResult = #table(type table [Name = text, Description = nullable text, Data = table, Kind = text], {}),
+        resultOrEmpty = if immediate = true
+            then try dataResult catch (e) => if Text.Contains(e[Message], "(42S02)") then null else error e
+            else dataResult
+    in
+        if resultOrEmpty = null
+            then emptyResult
+            else Table.FromRecords({[Name=name, Description="", Data=resultOrEmpty, Kind=pickKind]}),
+
+    MakeNavTableType = (isLeaf as logical) as type =>
+        let
+            dataType = type table meta [
+                NavigationTable.ItemKind = "Table",
+                Preview.Delay = "Table",
+                NavigationTable.RowConfigurationColumn = "Kind"
+            ],
+            tableType = type table [
+                Name = text,
+                Data = dataType,
+                Kind = text
+            ],
+            withKeys = Type.ReplaceTableKeys(tableType, {[Columns={"Name", "Kind"}, Primary=true]}) meta [
+                NavigationTable.NameColumn="Name",
+                NavigationTable.DataColumn="Data",
+                NavigationTable.KindColumn="Kind"
+            ]
+        in
+            withKeys,
+
+    EscapeIdentifier = (identifier as text) as text => "'" & Text.Replace(identifier, "'", "\\'") & "'",
+
+    NativeQuery = (context as record, cmd as text) =>
+        let
+            hasPermission = Extension.HasPermission([PermissionKind = "NativeQuery", Value = cmd]),
+            typeQuery = "
+            /* PBI ADBC NativeQuery */
+            SELECT * FROM (" & cmd & ") as ""_"" where 0 = 1",
+            typeResult = context[ExecuteQuery](typeQuery, []),
+            tableType = Value.Type(Table.Buffer(typeResult)),
+            adjustedType = AdjustNativeTypes(tableType),
+            reference = [Kind = "FromQuery", Query = [Kind="Verbatim", Query=cmd], Alias = "_"],
+            result = context[SqlGenerator](reference, adjustedType, [])
+        in
+            if hasPermission then result else error Error.Record("PermissionError", "NativeQuery permission denied", [Query = cmd]),
+
+    GetCatalogs = (context as record, optional options as record) =>
+        let
+            supportCatalog = options[SupportCatalog]? ?? false,
+            isLeaf = false,
+            kind = "Catalog",
+            command = "/* PBI ADBC metadata: GetCatalogs */
+            SELECT CATALOG_NAME FROM INFORMATION_SCHEMA.CATALOGS",
+            tables = Table.RenameColumns(context[ExecuteQuery](command, [IsMetadata = true])[[CATALOG_NAME]], {{"CATALOG_NAME", "Name"}}),
+            getSchemas = (catalogName as text) => GetSchemas(context, catalogName),
+            withData = Table.AddColumn(tables, "Data", each [Name], type table),
+            withKind = Table.AddColumn(withData, "Kind", each kind meta [NavigationTable.IsLeaf = isLeaf], type text),
+            withFolding = Table.View(null, [
+                GetType = () => MakeNavTableType(isLeaf),
+                GetRows = () => withKind,
+                OnSelectRows = (selector) => FoldNavigationStep(selector, getSchemas, kind),
+                ThrowFoldingFailures = false
+            ])
+        in
+            if not supportCatalog then GetSchemas(context, "DREMIO") else withFolding,
+
+    GetSchemas = (context, catalogName) =>
+        let
+            isLeaf = false,
+            kind = "Schema",
+            command = "/* PBI ADBC metadata: GetSchemas */
+            SELECT DISTINCT TABLE_SCHEMA
+            FROM INFORMATION_SCHEMA.""TABLES""
+            WHERE TABLE_CATALOG = " & EscapeIdentifier(catalogName) & " AND TABLE_TYPE <> 'SYSTEM_TABLE'
+            ORDER BY TABLE_SCHEMA",
+            tables = Table.RenameColumns(context[ExecuteQuery](command, [IsMetadata = true])[[TABLE_SCHEMA]], {{"TABLE_SCHEMA", "Name"}}),
+            getTables = (schemaName) => GetTables(context, catalogName, schemaName),
+            withData = Table.AddColumn(tables, "Data", each [Name], type table),
+            withKind = Table.AddColumn(withData, "Kind", each kind meta [NavigationTable.IsLeaf = isLeaf], type text),
+            withFolding = Table.View(null, [
+                GetType = () => MakeNavTableType(isLeaf),
+                GetRows = () => withKind,
+                OnSelectRows = (selector) => FoldNavigationStep(selector, getTables, kind),
+                OnNativeQuery = (cmd, params, options) => NativeQuery(context, cmd),
+                ThrowFoldingFailures = false
+            ])
+        in
+            withFolding,
+
+    GetTables = (context as record, catalog as text, schema as text) =>
+        let
+            isLeaf = true,
+            kind = {"Table","View"},
+            command = "/* PBI ADBC metadata: GetTables */
+                SELECT TABLE_NAME, TABLE_TYPE
+                FROM INFORMATION_SCHEMA.""TABLES""
+                WHERE TABLE_SCHEMA = " & EscapeIdentifier(schema) & " 
+                AND TABLE_CATALOG = " & EscapeIdentifier(catalog) & " 
+                AND TABLE_TYPE <> 'SYSTEM_TABLE'",
+            tables = Table.RenameColumns(context[ExecuteQuery](command, [IsMetadata=true])[[TABLE_NAME],[TABLE_TYPE]], {{"TABLE_NAME", "Name"}, {"TABLE_TYPE", "NativeKind"}}),
+            getTable = (name as text) => GetTable(context, catalog, schema, name),
+            withData = Table.AddColumn(tables, "Data", each getTable([Name]), type table),
+            withKind = Table.AddColumn(withData, "Kind", each ( if [NativeKind] = "TABLE" then "Table" else "View" ) meta [NavigationTable.IsLeaf = isLeaf], type text),
+            withoutNativeKind = Table.RemoveColumns(withKind, {"NativeKind"}),
+            withFolding = Table.View(null, [
+                GetType = () => MakeNavTableType(isLeaf),
+                GetRows = () => withoutNativeKind,
+                OnSelectRows = (selector) => FoldNavigationStep(selector, getTable, kind, true),
+                ThrowFoldingFailures = false
+            ])
+        in
+            withFolding,
+
+    GetTable = (context as record, catalog as text, schema as text, table as text) =>
+        let
+            tableType = GetTableType(context, catalog, schema, table, false),
+            tableReference = [Kind = "FromTable", Table = [Schema=schema, Name=table]],
+            withSqlView = context[SqlGenerator](tableReference, tableType, [])
+        in
+            withSqlView,
+
+    GetTableType  = (context as record, database as text, schema as text, table as text, useHighPrecision as logical) =>
+        let
+            command = "/* PBI ADBC metadata: GetTableType */
+            SELECT column_name, data_type FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = " & EscapeIdentifier(schema) & "
+            AND TABLE_NAME = " & EscapeIdentifier(table) & "
+            AND TABLE_CATALOG = " & EscapeIdentifier(database) & ";",
+           adbccolumnInfo = Table.Buffer(context[ExecuteQuery](command, [IsMetadata = true])),
+
+           columnNames = adbccolumnInfo[column_name],
+           adbcColumnTypes = adbccolumnInfo[data_type],
+           columnTypes = List.Transform(adbcColumnTypes, each [Type = GetColumnType(_), Optional = false]),
+           rowType = Type.ForRecord(Record.FromList(columnTypes, columnNames), false),
+           tableType = type table rowType
+         in
+           tableType,
+
+    GetColumnType = (colType as text) =>
+        let
+            matchedType = Record.FieldOrDefault(DremioSqlGenerator[TypeFacets], colType, null)
+        in
+           if matchedType <> null then matchedType else error "TYPE NOT FOUND: " & colType,
+
+// TODO: this works for now. It requires changes to the driver to fill in metadata so we can distinguish different arrow types.
+// Right now dremioType refers to the default type caught by MashupEngine and is not capable of distinguish
+// CHARACTER VARYING from NATIONAL CHARACTER VARYING. Most like likely, after fixing the driver we just need to figure out what to
+// do if the type is any. Other complex types are not supported (e.g ARRAY)
+AdjustNativeTypes = (tableType as type) as type =>
+    let
+        rowType = Type.TableRow(tableType),
+        rowFields = Record.ToTable(Type.RecordFields(rowType)),
+        adjusted = Table.TransformColumns(rowFields, {{"Value", (field) => 
+            let
+                originalType = field[Type],
+                dremioType = Type.Facets(originalType)[NativeTypeName] ?? "NOTFOUND",
+                adjustedType = if dremioType = "int32" then "INTEGER"
+                else if dremioType = "int64" then "BIGINT"
+                else if dremioType = "utf8" then "CHARACTER VARYING"
+                else if dremioType = "decimal128" then "DECIMAL"
+                else if dremioType = "float32" then "FLOAT"
+                else if dremioType = "float64" then "DOUBLE"
+                else if dremioType = "binary" then "BINARY VARYING"
+                else if dremioType = "bool" then "BOOLEAN"
+                else if dremioType = "date64" then "DATE"
+                else if dremioType = "time32" then "TIME"
+                else if dremioType = "timestamp" then "TIMESTAMP"
+                
+                else if dremioType = "NOTFOUND" then error "NativeTypeName not found in type facets " & Text.FromBinary(Json.FromValue(Type.Facets(originalType)))
+                else error "Unknown type " & dremioType,
+                
+                newType = Type.ReplaceFacets(originalType, [NativeTypeName = adjustedType])
+            in
+                [Type = newType, Optional = field[Optional]]
+            }})
+    in
+        type table Type.ForRecord(Record.FromTable(adjusted), false)
+
+in
+    [
+        RecordToHeaders = RecordToHeaders,
+        Telemetry = Telemetry,
+        GetAdbcCredentialConnectionString = GetAdbcCredentialConnectionString,
+        BuildAdbcDataSourceInputs_SW = BuildAdbcDataSourceInputs_SW,
+        BuildAdbcDataSourceInputs_Cloud = BuildAdbcDataSourceInputs_Cloud,
+        BuildAdbcConnectionInputs_SW = BuildAdbcConnectionInputs_SW,
+        BuildAdbcConnectionInputs_Cloud = BuildAdbcConnectionInputs_Cloud,
+        BuildAdbcConnectionContext = BuildAdbcConnectionContext,
+        GetTableType = GetTableType,
+        GetTables = GetTables,
+        GetSchemas = GetSchemas,
+        GetCatalogs = GetCatalogs,
+        TypeFacets = DremioSqlGenerator[TypeFacets],
+        DremioAdbcDatabase = DremioAdbcDatabase,
+        DremioCloudAdbcDatabase = DremioCloudAdbcDatabase,
+        DremioAdbcConnection = DremioAdbcConnection,
+        DremioAdbcDataSource = DremioAdbcDataSource,
+        DremioCloudAdbcDataSource = DremioCloudAdbcDataSource,
+        DremioCloudAdbcConnection = DremioCloudAdbcConnection
+    ]

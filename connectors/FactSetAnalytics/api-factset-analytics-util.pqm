@@ -1,0 +1,186 @@
+let
+    // ==================================================================
+    //
+    // Utility Functions
+    //
+    // ==================================================================
+    calcUnitId = Analytics[Constants][calcUnitId],
+
+    Value.WaitFor = (Producer as function, Interval as function, optional count as number) as any =>
+        let
+            list = List.Generate(
+                () => {0, null},
+                (state) => state{0} <> null and (count = null or state{0} < count),
+                (state) => if state{1} <> null then {null, state{1}} else {1 + state{0}, Function.InvokeAfter(() => Producer(state{0}), Interval(state{0}))},
+                (state) => state{1})
+        in
+            List.Last(list),
+
+    formatGetComponentsResponse = (Source as record) as table =>
+        let
+            #"Converted to Table" = Record.ToTable(Source),
+            #"Expanded Value" = Table.ExpandRecordColumn(#"Converted to Table", "Value", {"name", "category"}, {"Component Name", "Category"}),
+            #"Renamed Value" = Table.RenameColumns(#"Expanded Value", {"Name", "Component Id"})
+        in
+            #"Renamed Value",
+
+    formatGetFrequenciesResponse = (Source as record) as table =>
+        let
+            #"Converted to Table" = Record.ToTable(Source),
+            #"Expanded Value" = Table.ExpandRecordColumn(#"Converted to Table", "Value", {"name"}, {"Frequency Name"}),
+            #"Renamed Value" = Table.RenameColumns(#"Expanded Value", {"Name", "Frequency Id"})
+        in
+            #"Renamed Value",
+
+    getGroups = (groupsId as list, groupsFrequency as list, finalList as list, index as number, totalLength as number) as list =>
+        let
+            output =
+                if totalLength=index then finalList
+                else
+                    let
+                        tempRecord = [id = groupsId{index}, frequency = groupsFrequency{index}],
+                        tempList = {tempRecord},
+                        fList = List.Combine({finalList, tempList}),
+                        answer = @getGroups(groupsId, groupsFrequency, fList, index+1, totalLength)
+                    in
+                        answer
+        in
+            output,
+
+    // Handle Result
+    HandleCalculationV3ADSResult = (Response as record) =>
+        let
+            tableId = Record.FieldNames(Response[tables]),
+            tableData = Record.Field(Response[tables], tableId{0}),
+            #"Returned" = List.Transform(tableData[data][rows], each _[values]),
+            #"Columns" = tableData[definition][columns],
+            #"ColumnTable" = Table.FromList(#"Columns", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+            #"ColumnRows" = Table.ExpandRecordColumn(#"ColumnTable", "Column1", {"description"}),
+            #"Headers" = Table.ToList(#"ColumnRows"),
+            #"Table" = Table.FromRecords(#"Returned"),
+            #"OldNames" = Table.ColumnNames(#"Table"),
+            #"FormattedTable" = Table.RenameColumns(#"Table", List.Zip({#"OldNames", #"Headers"}), MissingField.UseNull)
+        in
+            #"FormattedTable",
+
+    HandleCalculationV3PBIResult = (Response as record) =>
+        let
+            tableId = Record.FieldNames(Response[data][tables]),
+            update = Record.Field(Response[data][tables], tableId{0}),
+            #"Columns" = update[definition][columns],
+            #"ColumnTable" = Table.FromList(#"Columns", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+            #"ColumnRows" = Table.ExpandRecordColumn(#"ColumnTable", "Column1", {"description"}),
+            #"Headers" = Table.ToList(#"ColumnRows"),
+            #"IdColumn" = Table.ExpandRecordColumn(#"ColumnTable", "Column1", {"id"}),
+            #"IdList" = Table.ToList(#"IdColumn"),
+            #"Returned" = List.Transform(update[data][rows], each Record.ReorderFields( _[values], #"IdList")),
+            #"Table" = Table.FromRecords(#"Returned"),
+            #"OldNames" = Table.ColumnNames(#"Table"),
+            #"FormattedTable" = Table.RenameColumns(#"Table", List.Zip({#"OldNames", #"Headers"}), MissingField.UseNull)
+        in
+            #"FormattedTable",
+
+    GetErrorResponseForV3 = (Response as record) =>
+        let
+            unitResponse = Record.Field(Response[data][units],calcUnitId),
+            status = unitResponse[status],
+            json = Json.FromValue(unitResponse),
+            text = Text.FromBinary(json),
+            message = if status = "Success" then HandleCalculationV3PBIResult(Response)
+                    else if status = "Failed" then error Error.Record("Error", "Calculation Failed", text)
+                    else error Error.Record("Error", "Unknown Error", "Neither Success nor Failure case")
+        in
+            message,
+
+    formatV3GetAllCalculations = (response as any) as table =>
+        let
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            record = if status = 200 then
+                                        let
+                                            Source = Json.Document(response),
+                                            data = Source[data],
+                                            pages = Source[meta][pagination][totalPages],
+                                            calcs = Source[meta][pagination][totalCalculations],
+                                            #"Converted to Table" = Record.ToTable(data),
+                                            a = Table.ExpandRecordColumn(#"Converted to Table", "Value", {"status", "units", "requestTime", "lastPollTime"}, {"Status", "Units", "Request Time", "Last Poll Time"}),
+                                            b = Table.AddColumn(a, "Total Pages", each pages),
+                                            c = Table.AddColumn(b, "Total Calculations", each calcs)
+                                        in
+                                            c
+                    else if status = 400 then error Error.Record("Error", "Invalid input parameters", Text.FromBinary(response))
+                    else if status = 404 then error Error.Record("Error", "Input parameter not found", Text.FromBinary(response))
+                    else if status = 500 then error Error.Record("Error", "Server Error", "Please report this error to FactSet Support. X-DataDirect-Request-Key " & Record.Field(responseHeaders, "X-DataDirect-Request-Key") & ".")
+                    else error Error.Record("Error", "Unknown Error", Text.FromBinary(response))
+        in
+            record,
+
+    formatGetPAV3PricingSourcesGetPAV3Columns = (Source as record) as table =>
+        let
+            #"Converted to Table" = Record.ToTable(Source),
+            #"Renamed" = Table.RenameColumns(#"Converted to Table",{{"Name", "Column Id"}}),
+            #"Expanded Value" = Table.ExpandRecordColumn(#"Renamed", "Value", {"name", "directory", "category"}, {"Name", "Directory", "Category"})
+        in
+            #"Expanded Value",
+
+    formatGetAccountsReturnType = (Source as record) as table =>
+        let
+            #"List Of Records" = Source[returnsType],
+            #"Expanded Table" = Table.FromRecords(#"List Of Records")
+        in
+            #"Expanded Table",
+
+    ConstructListOfRecords = (ids as list, holdingsModes as list, idsTotalLength as number, holdingsModeTotalLength, index as number, finalList as list) as list =>
+        let
+            output =
+                if index = idsTotalLength then finalList
+                else
+                    let
+                        tempIdRecord = [id = ids{index}],
+                        tempHmRecord =
+                            if index >= holdingsModeTotalLength then [holdingsmode = "B&H"]
+                            else [holdingsmode = holdingsModes{index}],
+                        tempRecord = Record.Combine({tempIdRecord, tempHmRecord}),
+                        fList = List.Combine({finalList, {tempRecord}}),
+                        answer = @ConstructListOfRecords(ids, holdingsModes, idsTotalLength, holdingsModeTotalLength, index+1, fList)
+                    in
+                        answer
+        in
+            output,
+    
+    ConstructListOfAccounts = (ids as list, returnTypes as list, prefixes as list, idsTotalLength as number, returnTypesTotalLength as number, prefixesTotalLength as number, index as number, finalList as list) as list =>
+    let
+        output = 
+            if index = idsTotalLength then finalList
+            else 
+                let
+                    tempIdRecord = [id = ids{index}],
+                    tempRtRecord = 
+                        if index >= returnTypesTotalLength then [returntype = null]
+                        else [returntype = returnTypes{index}],
+                    tempPrecord = 
+                        if index >= prefixesTotalLength then [prefix = null]
+                        else [prefix = prefixes{index}],
+                    tempRecord = Record.Combine({tempIdRecord, tempRtRecord, tempPrecord}),
+                    fList = List.Combine({finalList, {tempRecord}}),
+                    answer = @ConstructListOfAccounts(ids, returnTypes, prefixes, idsTotalLength, returnTypesTotalLength, prefixesTotalLength, index+1, fList)
+                in
+                    answer
+
+    in
+        output
+in
+    [
+        Value.WaitFor = Value.WaitFor,
+        formatGetComponentsResponse = formatGetComponentsResponse,
+        formatGetFrequenciesResponse = formatGetFrequenciesResponse,
+        getGroups = getGroups,
+        HandleCalculationV3ADSResult = HandleCalculationV3ADSResult,
+        HandleCalculationV3PBIResult = HandleCalculationV3PBIResult,
+        GetErrorResponseForV3 = GetErrorResponseForV3,
+        formatV3GetAllCalculations = formatV3GetAllCalculations,
+        formatGetPAV3PricingSourcesGetPAV3Columns = formatGetPAV3PricingSourcesGetPAV3Columns,
+        formatGetAccountsReturnType = formatGetAccountsReturnType,
+        ConstructListOfRecords = ConstructListOfRecords,
+        ConstructListOfAccounts = ConstructListOfAccounts
+    ]

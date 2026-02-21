@@ -1,0 +1,161 @@
+let
+    AdvancedOptionsValidators = let
+        EmptyTextToNull = (schema as text) => if schema = "" then
+                null
+            else
+                schema,
+
+        PositiveInteger = (number as number) => if number > 0 then
+                Int32.From(number)
+            else
+                error Error.Record("Expression.Error"),
+
+        IdentityFn = (x as any) => x,
+
+        ToAdbcBoolean = (value as any) => 
+            if value is number then
+                if value = 1 then "true" else if value = 0 then "false" else Text.From(value)
+            else if value is text then
+                if value = "1" then "true" else if value = "0" then "false" else value
+            else
+                value,
+
+        RenameField = (key as text, optional valueTransform as function) => 
+            (value) => Record.AddField([], key, if valueTransform <> null then valueTransform(value) else value)
+
+    in
+        #table(
+            {"Key", "Type", "Validator", "ToOdbcFields", "ToAdbcFields"},
+            {
+
+                // ODBC and ADBC connection string overrides
+                {"BatchSize", type number, PositiveInteger, RenameField("RowsFetchedPerBlock"), RenameField("adbc.apache.statement.batch_size")},
+                {"Database", type text, EmptyTextToNull,  RenameField("Schema"), RenameField("adbc.connection.db_schema")},
+                {"Catalog", type text, EmptyTextToNull,  RenameField("Catalog"), RenameField("adbc.connection.catalog")},
+                {"QueryTags", type text, EmptyTextToNull, RenameField("SSP_query_tags"), RenameField("adbc.databricks.ssp_query_tags")},
+                {"EnableArrow", type text, IdentityFn,  RenameField("EnableArrow"), null},
+                {"EnableQueryResultDownload", type text, IdentityFn, RenameField("EnableQueryResultDownload"), RenameField("adbc.databricks.cloudfetch.enabled", ToAdbcBoolean)},
+                {"EnableQueryResultLZ4Compression", type text, IdentityFn, RenameField("EnableQueryResultLZ4Compression"), RenameField("adbc.databricks.cloudfetch.lz4.enabled", ToAdbcBoolean)},
+                {"EnableMultipleCatalogsSupport", type text, IdentityFn, RenameField("EnableMultipleCatalogsSupport"), RenameField("adbc.databricks.enable_multiple_catalog_support", ToAdbcBoolean)},
+                {"MaxNumResultFileDownloadThreads", type text, IdentityFn, RenameField("MaxNumResultFileDownloadThreads"), RenameField("adbc.databricks.cloudfetch.parallel_downloads")},
+                {"MaxConsecutiveResultFileDownloadRetries", type text, IdentityFn, RenameField("MaxConsecutiveResultFileDownloadRetries"), RenameField("adbc.databricks.cloudfetch.max_retries")},
+                {"MaxBytesPerFetchRequest", type text, IdentityFn, RenameField("MaxBytesPerFetchRequest"), RenameField("adbc.databricks.max_bytes_per_fetch_request")},
+                {"EnableFetchHeartbeat", type text, IdentityFn, RenameField("EnableFetchHeartbeat"), null},
+                {"FetchHeartbeatInterval", type text, IdentityFn, RenameField("FetchHeartbeatInterval"), RenameField("adbc.databricks.fetch_heartbeat_interval")},
+                {"RowsFetchedPerBlock", type text, IdentityFn, RenameField("RowsFetchedPerBlock"),  RenameField("adbc.apache.statement.batch_size")},
+                {"DefaultStringColumnLength", type text, IdentityFn, RenameField("DefaultStringColumnLength"), null},
+                {"DecimalColumnScale", type text, IdentityFn, RenameField("DecimalColumnScale"), null},
+                {"UseNativeQuery", type text, IdentityFn, RenameField("UseNativeQuery"), null},
+                {"SSP_spark.databricks.sql.initial.catalog.namespace", type text, IdentityFn, RenameField("SSP_spark.databricks.sql.initial.catalog.namespace"), RenameField("adbc.databricks.ssp_spark.databricks.sql.initial.catalog.namespace")},
+                {"SSP_databricks.catalog", type text, IdentityFn, RenameField("SSP_databricks.catalog"), RenameField("adbc.databricks.ssp_databricks.catalog")},
+                {"SSP_spark.thriftserver.cloudfetch.enabled", type text, IdentityFn, RenameField("SSP_spark.thriftserver.cloudfetch.enabled"), RenameField("adbc.databricks.ssp_spark.thriftserver.cloudfetch.enabled")},
+                {"EnablePKFK", type number, IdentityFn, RenameField("EnablePKFK"), RenameField("adbc.databricks.enable_pk_fk", ToAdbcBoolean)},
+
+                {"UseDescTableExtended", type number, IdentityFn, null, RenameField("adbc.databricks.use_desc_table_extended", ToAdbcBoolean)},
+                {"TokenRenewLimit", type number, IdentityFn, RenameField("TokenRenewLimit"), RenameField("adbc.databricks.token_renew_limit")},
+
+                // automatic proxy discovery optional field
+                {"EnableAutomaticProxyDiscovery", type text, (val as text) => val = "enabled", null, null},
+
+                // non-connectionstring fields
+                {"SQL_API_SQLBINDCOL", type logical, IdentityFn, null, null},
+                {"SupportsIncrementalNavigation", type logical, IdentityFn, null, null},
+                // show system schemas, e.g. #temp, global_temp
+                {"ShowSystemSchemas", type logical, IdentityFn, null, null},
+
+                {"CancelQueryExplicitly", type logical, IdentityFn, null, null},
+
+                // Versioned for forward compatibility with new experimental features
+                {"EnableExperimentalFlagsV1_1_0", type text, (val as text) => val = "disabled", null, null}, 
+                {"SSP_use_cached_result", type logical, IdentityFn, null, null},
+
+                {"Implementation",type nullable text, IdentityFn, null, null}
+
+            }
+        ),
+    ExpandExperimentalFlags = (options as record) as record =>
+        let
+            flagDefinitions = #table(
+                {"Key", "ExpandedFlags"},
+                {
+                    {"EnableExperimentalFlagsV1_1_0", [UseNativeQuery = "0", SQL_API_SQLBINDCOL = false] }
+                }
+            ),
+
+            enabledFlagsList = Table.TransformRows(flagDefinitions, each if Record.FieldOrDefault(options, [Key], false) then [ExpandedFlags] else []),
+            enabledFlags = List.Accumulate(enabledFlagsList, [], (accum, flags) => accum & flags)
+        in
+            // flags should not override explicit settings
+            enabledFlags & options,
+        
+    ValidateAdvancedOptions = (optional options as record) as record =>
+        let
+            allKeys = Table.Column(AdvancedOptionsValidators, "Key"),
+
+            // all advanced options are assumed to be nullable
+            assertType = (field as record) => (v) =>
+                try
+                    if v = null then
+                        null
+                    else if Value.Is(v, field[Type]) then
+                        field[Validator](v)
+                    else error Error.Record("Expression.Error")
+                otherwise
+                    error Error.Record("Expression.Error", Text.Format(Extension.LoadString("ErrorAdvancedOptionValue"), {v, field[Key]})),
+
+            fieldToValidatorMap = List.Transform(Table.ToRecords(AdvancedOptionsValidators), each {[Key], assertType(_)}),
+
+            knownFields = Record.SelectFields(options, allKeys, MissingField.Ignore),
+
+            validatedWithNulls = Record.TransformFields(knownFields, fieldToValidatorMap, MissingField.Ignore),
+
+            nonNullKeys = List.Select(Record.FieldNames(validatedWithNulls), each Record.Field(validatedWithNulls, _) <> null),
+            validatedOptions = Record.SelectFields(validatedWithNulls, nonNullKeys),
+
+            validatedOptionsExpanded = ExpandExperimentalFlags(validatedOptions)
+        in
+            if options <> null then
+                validatedOptionsExpanded
+            else
+                [],
+
+            
+
+    MapFieldsFromOptions = (options as record, columnName as text) as record =>
+        let
+            // Extract keys that should be excluded (i.e., have null in the given columnName)
+            excludeKeys = Table.Column(
+                Table.SelectRows(AdvancedOptionsValidators, each Record.Field(_, columnName) = null),
+                "Key"
+            ),
+            // Filter out excluded keys
+            filteredOptions = Record.RemoveFields(options, excludeKeys, MissingField.Ignore),
+
+            // Create a map from key to transformation function (ToOdbcFields or ToAdbcFields)
+            fieldFunctionMap = Record.Combine(
+                List.Transform(
+                    Table.ToRecords(AdvancedOptionsValidators),
+                    (v) => Record.AddField([], v[Key], Record.Field(v, columnName))
+                )
+            ),
+            // Apply each transformation function to its corresponding value in options
+            fieldLists = List.Transform(
+                Record.FieldNames(filteredOptions),
+                (key) => Record.Field(fieldFunctionMap, key)(Record.Field(filteredOptions, key))
+            ),
+            mappedFields = Record.Combine(fieldLists)
+        in
+            mappedFields,
+
+
+    OdbcFieldsFromOptions = (options as record) => MapFieldsFromOptions(options, "ToOdbcFields"),
+    AdbcFieldsFromOptions = (options as record) => MapFieldsFromOptions(options, "ToAdbcFields")
+
+
+    in
+      [
+        ValidateAdvancedOptions = ValidateAdvancedOptions,
+        OdbcFieldsFromOptions = OdbcFieldsFromOptions,
+        AdbcFieldsFromOptions = AdbcFieldsFromOptions
+
+    ] 

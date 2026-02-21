@@ -1,0 +1,32 @@
+[
+    TransformDataSource = (datasource) =>
+        TransformColumnKeepType(datasource, "Data",
+            (schema) => TransformColumnKeepType(schema, "Data",
+                (Table) => TransformComplexColumns(Table))),
+    
+    TransformColumnKeepType = (Table, columnName, operation) =>
+        let
+            origTableType = Value.Type(Table),
+            transformedTable = Table.TransformColumns(Table, { columnName, operation, Type.TableColumn(origTableType, columnName) })
+        in
+            Value.ReplaceType(transformedTable, origTableType),
+
+    TransformComplexColumns = (originalTable) =>
+        let
+            tableType = Value.Type(originalTable),
+            schema = Table.Schema(originalTable),
+            complexColumns = Table.ToRecords(Table.SelectRows(
+                schema,
+                (c) => (c[NativeTypeName] = "ARRAY" and c[TypeName] = "Binary.Type"))),
+            transformations = List.Transform(complexColumns, (column) =>
+                let
+                    originalType = Type.TableColumn(tableType, column[Name]),
+                    facets = Type.Facets(originalType),
+                    typeWithNullable = if Type.IsNullable(originalType) then type nullable text else type text,
+                    typeWithFacets = Type.ReplaceFacets(typeWithNullable, facets)
+                in
+                    {column[Name], Text.From, typeWithFacets}
+            )
+        in
+            Table.TransformColumns(originalTable, transformations)
+]

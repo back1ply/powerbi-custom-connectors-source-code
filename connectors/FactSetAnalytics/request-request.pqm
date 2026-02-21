@@ -1,0 +1,263 @@
+let
+    // Sends an HTTP request and returns the response in the format specified with the ResultFormat option
+    // Adds the response headers as Metadata to the returned value.
+    // * url - api endpoint to be requested
+    // * options (optional) - options passed to Web.Contents
+    //   * everything Web.Contents supports
+    //   * LongRunning - Enables longrunning functionality
+    //   * LongRunningDelay - Delay between calls to the status endpoint
+    //   * ResultFormat - The
+    //   * Pagination - Enables pagination functionality
+    //   * BasePath - Host to which the requests are made
+    Request = (url as text, optional options as record) =>
+        let
+            Source = FactSetAnalytics.Contents(),
+            Utilities = Source{[Key="Utilities"]}[Data],
+            FactSetAnalytics.Utilities.Stach.V2.RowOrganizedTable = Utilities{[Key="FactSet.Utilities.RowOrganizedTable"]}[Data],
+            FactSetAnalytics.Utilities.Stach.V2.ColumnOrganizedTable = Utilities{[Key="FactSet.Utilities.ColumnOrganizedTable"]}[Data],
+                
+            // request flags
+            resultFormat = Record.FieldOrDefault(options, "ResultFormat") ?? "table",
+            longRunning = Record.FieldOrDefault(options, "LongRunning", false),
+            longRunningDelay = Record.FieldOrDefault(options, "LongRunningDelay", Settings[LongRunningDefaultDelay]),
+            pagination = Record.FieldOrDefault(options, "Pagination", false),
+            // prepare request
+            query =
+                if Record.HasFields(options ?? [], "Query") then
+                    ConvertRecordValuesToText(RemoveNullParametersFromQuery(options[Query]))
+                else
+                    [],
+            rawContent = Record.FieldOrDefault(options, "Content", null),
+            content = EncodeContent(rawContent),
+            headers = BuildHeaders(options, content),
+            mergedOptions = Record.Combine(
+                {
+                    options ?? [],
+                    [
+                        Headers = headers,
+                        Content = content,
+                        Query = query,
+                        ManualStatusHandling = {400, 401, 403, 404, 408, 500, 201, 202}
+                    ]
+                }
+            ),
+            requestOptions = RemoveCustomFactSetFields(mergedOptions),
+            // inital request
+            response = Web.Contents(url, requestOptions),
+            status = Value.Metadata(response)[Response.Status],
+            // handle long running requests if enabled
+            longRunningRawResponse =
+                if longRunning = true then
+                    LongRunning(response, url, longRunningDelay, Record.Field(requestOptions, "RelativePath"))
+                else
+                    [
+                        Response = response,
+                        Endpoint = Record.Field(options, "RelativePath")
+                    ],
+            // error handling
+            longRunningResponse = HandleHttpErrors(longRunningRawResponse[Response]),
+            // handle pagination if enabled
+            optionsForPagination = Record.AddField(
+                Record.RemoveFields(options, {"RelativePath"}), "RelativePath", longRunningRawResponse[Endpoint]
+            ),
+            paginatedResponse =
+                if pagination = true then
+                    Pagination[GetAllPagesCursor](TransformToJson(longRunningResponse), optionsForPagination)
+                else
+                    longRunningResponse,
+            // transform result
+            transformedResponse = if pagination = true then paginatedResponse else TransformToJson(paginatedResponse),
+            processedResult =
+                if (resultFormat = "record") then
+                    transformedResponse
+                else if (pagination = true) then
+                    Table.Combine(List.Transform(transformedResponse, each ProcessResponse(resultFormat)(_)))
+                else
+                    ProcessResponse(resultFormat)(transformedResponse)
+        in
+            processedResult,
+    //////
+    // Process Response
+    ProcessResponse = (resultFormat as text) =>
+        Pipe({ExtractDataWithMetadata, TransformFormatFunction(resultFormat)}),
+    //////
+    // Return the transform function according to the result format
+    TransformFormatFunction = (resultFormat as text) =>
+        let
+            transformFunction =
+                if resultFormat = "stach-v2-row" then
+                    FactSetAnalytics.Utilities.Stach.V2.RowOrganizedTable
+                else if resultFormat = "stach-v2-column" then
+                    FactSetAnalytics.Utilities.Stach.V2.ColumnOrganizedTable
+                else if resultFormat = "table" then
+                    FactSetAnalytics.Utilities.ConvertToTable
+                else
+                    null
+        in
+            transformFunction,
+    //////
+    // Transformations
+    // { meta, data: ? } -> data + meta as Metadata
+    ExtractDataWithMetadata = (json as any) =>
+        let
+            metaValues = Record.FieldOrDefault(json, "meta", [])
+        in
+            Value.ReplaceMetadata(json[data], [meta = metaValues]),
+    TransformToJson = (response as any) =>
+        let
+            json = Json.Document(response),
+            result = Value.ReplaceMetadata(
+                json, Record.SelectFields(Value.Metadata(response), {"Headers", "Response.Status"})
+            )
+        in
+            result,
+    //////
+    // Remove Custom FactSet Fields form request options
+    RemoveCustomFactSetFields = (fields as record) =>
+        Record.RemoveFields(
+            fields ?? [],
+            {"LongRunning", "LongRunningDelay", "ResultFormat", "Pagination", "BasePath"},
+            MissingField.Ignore
+        ),
+    //////
+    // Handle Http Errors
+    HandleHttpErrors = (response as binary) =>
+        let
+            responseHeaders = Value.Metadata(response)[Headers],
+            status = Value.Metadata(response)[Response.Status],
+            result =
+                if status = 200 or status = 201 or status = 202 then
+                    response
+                else if status >= 400 and status < 500 then
+                    error Create4XXError(status, response)
+                else if status >= 500 then
+                    error
+                        Error.Record(
+                            "Error",
+                            "Server Error",
+                            "Please report this error to FactSet Support. X-DataDirect-Request-Key "
+                                & Record.Field(responseHeaders, "X-DataDirect-Request-Key")
+                                & "."
+                        )
+                else
+                    error Error.Record("Error", "Unknown Error (http " & status & ")", Text.FromBinary(response))
+        in
+            result,
+    Create4XXError = (status as number, response as binary) as record =>
+        let
+            statusErrorMessages = [
+                400 = "Invalid input parameters",
+                401 = "Credentials invalid",
+                403 = "Operation not allowed",
+                404 = "Input parameter not found",
+                408 = "Request timeout"
+            ],
+            errorMessage = Record.FieldOrDefault(
+                statusErrorMessages, Number.ToText(status), "Unknown Error (http " & Number.ToText(status) & ")"
+            ),
+            errorResult = Error.Record("Error", errorMessage, Text.FromBinary(response))
+        in
+            errorResult,
+    //////
+    // Encode conntent according to its content
+    EncodeContent = (content as any) =>
+        if content = null or content = "" then
+            null
+        else if content is text then
+            // TODO check for valid json here?
+            Text.ToBinary(content)
+        else if content is record or content is list then
+            Json.FromValue(if Record.HasFields(content, "data") then RemoveNullsFromData(content) else content)
+        else
+            error Error.Record("Unsupported Content"),
+    //////
+    // build headers
+    BuildHeaders = (options as record, encodedBody as any) =>
+        Record.Combine(
+            {
+                Record.FieldOrDefault(options, "Headers", []),
+                if encodedBody <> null then
+                    [#"Content-Type" = "application/json"]
+                else
+                    [],
+                [
+                    #"Accept" = "application/json",
+                    #"X-FactSet-Connector-Version" = Settings[XFactSetConnectorVersion]
+                ]
+            }
+        ),
+    ConvertDateTimeZoneToUTCText = (dtz as datetimezone) as text =>
+        let
+            // 0 is added timezone hours, which makes it UTC
+            udtz = DateTimeZone.SwitchZone(dtz, 0),
+            dt = DateTimeZone.RemoveZone(udtz),
+            stringResult = DateTime.ToText(dt, [Format = "yyyy-MM-dd'T'HH:mm:ss'Z'"])
+        in
+            stringResult,
+    ConvertFieldValueToText = (paramValue as any) as any =>
+        if paramValue is date then
+            Date.ToText(paramValue, [Format = "yyyy-MM-dd"])
+        else if paramValue is datetime then
+            DateTime.ToText(paramValue, [Format = "yyyy-MM-dd'T'HH:mm:ss'Z'"])
+        else if paramValue is datetimezone then
+            ConvertDateTimeZoneToUTCText(paramValue)
+        else if paramValue is list then
+            Text.Combine(List.Transform(paramValue, @ConvertFieldValueToText), ",")
+        else if paramValue is logical then
+            Logical.ToText(paramValue)
+        else if paramValue is number then
+            Number.ToText(paramValue)
+        else
+            paramValue,
+    // Takes the values of each of the fields and if they are of type text, they
+    // stay the same, otherwise they are converted to a valid text format for
+    // that equivalent type.
+    ConvertRecordValuesToText = (rec as record) as record =>
+        let
+            fieldNames = Record.FieldNames(rec),
+            updatedFields = List.Transform(
+                fieldNames, each Record.AddField([], _, ConvertFieldValueToText(Record.Field(rec, _)))
+            ),
+            newRecord = Record.Combine(updatedFields)
+        in
+            newRecord,
+    RemoveNullParametersFromQuery = (query as record) as record =>
+        let
+            nonNullFields = List.Select(Record.FieldNames(query), each Record.Field(query, _) <> null),
+            filteredQuery = Record.SelectFields(query, nonNullFields)
+        in
+            filteredQuery,
+    RemoveNullsFromData = (content as record) as record =>
+        let
+            data = Record.Field(content, "data"),
+            nonNullFields = List.Select(Record.FieldNames(data), each Record.Field(data, _) <> null),
+            filteredData = Record.SelectFields(data, nonNullFields)
+        in
+            Record.Combine({content, [data = filteredData]}),
+    //////
+    // Utils
+    // given a function from A->B, returns a new function A->B,
+    // that preserves all Metadata set on A, by adding it to B as well.
+    PreserveMetaData = (Fn as function) as function =>
+        (v as any) =>
+            let
+                existingMeta = Value.Metadata(v), result = Fn(v), resultMeta = Value.Metadata(result)
+            in
+                Value.ReplaceMetadata(result, Record.Combine({existingMeta, resultMeta})),
+    // returns a function that pipes the given value through the given list of functios
+    // and returns the result.
+    // E.g:
+    // a      = fn1(value)
+    // b      = fn2(a)
+    // result = fn3(b)
+    Pipe = (Fns as list) as function =>
+        (value as any) =>
+            let
+                metaPreservingFns = List.Transform(Fns, (Fn) => PreserveMetaData(Fn)),
+                result = List.Accumulate(metaPreservingFns, value, (v, Fn) => Fn(v))
+            in
+                result
+in
+    [
+        Request = Request
+    ]

@@ -1,0 +1,358 @@
+let
+    // Core Utilities
+    NonPii = (x) => x meta [Is.Pii = false],
+    IsNonPii = (x) => Value.Metadata(x)[Is.Pii]? = false,
+    
+    Value.ToText = (value, optional depth) =>
+        let
+            nextDepth = if depth = null then 3 else depth - 1,
+            result = if depth = 0 then "..."
+                else if value is null then "<null>"
+                else if value is function then Record.FieldOrDefault(Value.Metadata(Value.Type(value)), "Documentation.Name", "<function>")
+                else if value is table then "#table({" & Text.Combine(Table.ColumnNames(value), ",") & "},{" & Text.Combine(
+                    List.Transform(Table.ToRows(Table.FirstN(value, 2)), each @Value.ToText(_, nextDepth)), "},#(cr)#(lf){") & "})"
+                    //& "Row Count (" & Number.ToText(Table.RowCount(value)) & ")"
+                else if value is list then "{" & Text.Combine(List.Transform(List.FirstN(value, 10), each @Value.ToText(_, nextDepth)), ",") & "}"
+                else if value is record then "[" & Text.Combine(List.Transform(Record.FieldNames(value), each _ & "=" & @Value.ToText(Record.Field(value, _), nextDepth)), ",") & "]"
+                else if value is type then List.First(Table.Schema(#table({"type"}, {{value}}))[TypeName], "<type>")
+                else if value is action then "action"
+                else Text.From(value)
+        in
+            try result catch (e) => @Value.ToText(e, nextDepth),
+  
+    Connector.GenerateErrorRecord = (marker as text, piiFreeLogMessage as text, callerName as text, optional errorRecord as nullable record) =>
+        let
+            message = errorRecord[Message]?,
+            messageFormat = errorRecord[Message.Format]?,
+            errorMessage = if IsNonPii(message) then 
+                message 
+            else 
+                if IsNonPii(messageFormat) then 
+                    messageFormat
+                else 
+                    null,
+            finalErrorMessage = if errorMessage <> null then
+                Text.Format(Extension.LoadString("TraceMessageWithDetails"), {piiFreeLogMessage, errorMessage})
+            else 
+                piiFreeLogMessage,
+            recordToLogAsSafeData = [ ErrorCode = marker, ErrorMessage = finalErrorMessage ],
+            withNonPiiMeta = CreateSafeRecordToLog(recordToLogAsSafeData),
+            recordToLog = [ 
+                ErrorDetailMessage = errorRecord[Message],
+                ErrorDetail = Value.ToText(errorRecord) 
+            ] & withNonPiiMeta,
+            tracedMessage = Diagnostics.Trace(
+                TraceLevel.Error,
+                [
+                    Name = callerName,
+                    Data = recordToLog
+                ],
+                errorRecord[Message]),
+            reason = if IsNonPii(errorRecord[Reason]?) then errorRecord[Reason]? else NonPii("DataSource.Error")
+        in
+            if (errorRecord = null) then
+                // fallback to previous behavior when no error record is provided
+                Error.Record(
+                    NonPii("DataSource.Error"),
+                    NonPii(Diagnostics.Trace(TraceLevel.Error, [Name = callerName,  Data = [], SafeData = [ErrorCode = marker, ErrorMessage = piiFreeLogMessage]], piiFreeLogMessage)))
+            else
+                Error.Record(
+                    reason,
+                    NonPii(Extension.LoadString("FinalErrorMessageWithDetails")),
+                    errorRecord,
+                    {
+                        NonPii(finalErrorMessage),
+                        tracedMessage
+                    }),
+
+    CreateSafeRecordToLog = (input as record) =>
+        let
+            withNonPiiMeta = List.Transform(Record.FieldValues(input), (t) => NonPii(t)),
+            fieldNames = Record.FieldNames(input)
+        in
+            Record.FromList(withNonPiiMeta, fieldNames),
+
+    Text.IsNullOrEmpty = (a as text) =>
+        a = null or Text.Trim(a) = "",
+
+    Value.ConvertToLogical = (a) =>
+        a <> null and a <> "" and Logical.From(a),
+
+    Value.WaitFor = (producer as function, delay as function, optional count as number) as any =>
+        let
+            list = List.Generate(
+                () => {0, null},
+                (state) => state{0} <> null and (count = null or state{0} <= (count + 1)), //first row is {0, null} and doesn't invoke the producer.
+                (state) => if state{1} <> null
+                    then {null, state{1}}
+                    else {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), delay(state{0}))},
+                (state) => state{1}),
+            result = List.Last(list)
+        in
+            result,
+
+    Utility.CreateScope = (aadSqlResourceUrl as text, powerBiAadResourceUrl as text) as text =>
+        let
+            appendix = "user_impersonation",
+            scopeForSql = Text.Format("#{1}/#{0}", {appendix, aadSqlResourceUrl}),
+            scopeForWorkspaces = Text.Format("#{1}/#{0}", {appendix, powerBiAadResourceUrl}),
+            result = Text.Combine({scopeForWorkspaces, scopeForSql}, " ")
+        in
+            result,
+
+    // Web Utilities
+    
+    PBICommonHeaderNames = {
+        UniqueRequestHeader,
+        "x-ms-client-session-id",
+        "RequestId",
+        "ActivityId"
+    },
+
+    UniqueRequestHeader = "x-ms-client-request-id",
+
+    PBICommonHeaders = () =>
+        let
+            activityId = Diagnostics.ActivityId(),
+            requestId = Text.NewGuid()
+        in
+            Record.FromList({requestId, activityId, requestId, activityId}, PBICommonHeaderNames),
+
+    DefaultHandlers = [
+        302 = DefaultErrorHandler,
+        400 = DefaultErrorHandler,
+        403 = AuthHandler,
+        401 = AuthHandler,
+        404 = DefaultErrorHandler,
+        500 = DefaultErrorHandler,
+        503 = DefaultErrorHandler,
+        Error = RequestFailureHandler
+    ],
+
+    JsonHandler = (state) => state & [
+        Response = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
+        Complete = true
+    ],
+
+    Http.Request = (url as text, options as record, handlers as record, optional startState as nullable record) =>
+        let
+            errorHandler = handlers[Error]?,
+            handledStatuses = List.Buffer(List.Transform(Record.FieldNames(Record.RemoveFields(handlers, "Error")), Number.From)),
+            moreOptions = options & [ManualStatusHandling = handledStatuses],
+            list = List.Generate(
+                () => [Iteration = 0, Url = url, Response = null, Complete = false, Return = false] & (startState ?? []),
+                (state) => not state[Return],
+                (state) => if state[Complete] then state & [Return = true] else
+                    let
+                        // The urls from the connector don't have PII data, so it is safe to log them.
+                        response = Web.Contents(url, moreOptions & [IsRetry = state[Iteration] > 0]),
+                        responseStatus = Value.Metadata(response)[Response.Status]? ?? 200,
+                        status = if errorHandler = null then responseStatus
+                                 else try responseStatus catch(e) => errorHandler(e, url, options[Headers]?),
+                        handler = Record.FieldOrDefault(handlers, Text.From(status, "")),
+                        partial = state & [Iteration = state[Iteration] + 1, Response = response, Complete = false, Status = status],
+                        nextState = if handler = null then partial & [Complete = true] else partial & handler(partial)
+                    in
+                        nextState),
+            result = List.Last(list)[Response]
+        in
+            result,
+
+    Web.JsonContents = (url as text, optional headers as record, optional additionalHandlers as record, optional jsonBody as any, optional startState as record, optional traceContext as record) =>
+        let
+            capacityId = Extension.CurrentApplication()[PBI_CapacityObjectId]?,
+            capacityHeaders = if capacityId <> null then
+                [
+                    #"x-ms-caller-capacity-id" = capacityId,
+                    #"x-ms-src-capacity-id" = capacityId
+                ] 
+            else
+                [],
+            allHeaders = PBICommonHeaders() 
+                & capacityHeaders 
+                & (headers ?? []) 
+                & (if jsonBody = null then [] else [#"Content-Type" = "application/json;charset=UTF-8"]),
+            content = if jsonBody = null then null else Json.FromValue(jsonBody)
+        in
+            Http.Request(
+                url,
+                [
+                    Headers = allHeaders,
+                    ExcludedFromCacheKey = PBICommonHeaderNames,
+                    Content=content,
+                    SafeRequestHeaders = {UniqueRequestHeader},
+                    SafeResponseHeaders = {"RequestId", "x-ms-public-api-error-code"}, // Trident responses seem to return a new unique value here
+                    TraceData = (traceContext ?? []) & [RequestUrl = NonPii(url)]
+                ],
+                DefaultHandlers & [200 = JsonHandler] & (additionalHandlers ?? []),
+                startState),
+
+    DefaultErrorHandler = (state as record) =>
+        let
+            url = state[Url],
+            status = state[Status],
+            result = try
+            let
+                jsonResponse = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
+                responseStatusCode = Record.FieldOrDefault(Value.Metadata(jsonResponse), "Response.Status", 0),
+                requestId = Value.Metadata(jsonResponse)[Headers]?[RequestId]? ?? Value.Metadata(jsonResponse)[Headers]?[requestid]? ?? "",
+                errorCode = jsonResponse[error]?[code]? ?? jsonResponse[errorCode]?,
+                errorMessage = jsonResponse[error]?[message]? ?? jsonResponse[error]?[pbi.error]?[parameters]?[ErrorMessage]? ?? jsonResponse[message]? ?? errorCode,
+                errorDetails = try if List.IsEmpty(jsonResponse[error][pbi.error][details]) then errorMessage
+                    else Text.Combine(jsonResponse[error][pbi.error][details], " ") otherwise Value.ToText(jsonResponse[error]? ?? jsonResponse),
+                errorRecord =
+                    Error.Record(
+                        NonPii("DataSource.Error"),
+                        NonPii(Extension.LoadString("DownstreamServiceCallFailure")),
+                        [
+                            Error = errorDetails,
+                            ErrorCode = NonPii(errorCode),
+                            RequestId = NonPii(requestId),
+                            RequestUrl = NonPii(url),
+                            HttpStatusCode = NonPii(status),
+                            ErrorMessage = errorMessage
+                        ],
+                        {NonPii(url), NonPii(status)}
+                    )
+            in
+                errorRecord,
+            jsonResponseText = try Text.FromBinary(state[Response]) otherwise "<encoding error>",
+            errorMessageToLog = if result[HasError] then Text.Format(Extension.LoadString("ErrorParsingJsonInHttpResponse"), {jsonResponseText})
+                else result[Value][Message],
+            finalResult = Diagnostics.Trace(TraceLevel.Warning, [
+                    Name = "Connector.WebError",
+                    Data = [ Error = errorMessageToLog ],
+                    SafeData = [ Url = url, StatusCode = status ]
+                ],
+                if result[HasError] then Error.Record(
+                    NonPii("DataSource.Error"),
+                    NonPii(Extension.LoadString("DownstreamServiceCallFailure")),
+                    [
+                        RequestUrl = NonPii(url),
+                        HttpStatusCode = NonPii(status),
+                        ErrorMessage = jsonResponseText
+                    ],
+                    {NonPii(url), NonPii(status)})
+                else result[Value])
+        in
+            error finalResult,
+
+    AuthHandler = (state) =>
+        if state[Refreshed]? = true or not Web.TryRefreshToken() then DefaultErrorHandler(state)
+        else state & [Refreshed = true],
+
+    RetryHandler = (count, optional delayFunction) =>
+        let delay = delayFunction ?? ((i) => i * 0.2) in
+        (state) =>
+            if state[Iteration] < count then Function.InvokeAfter(() => state, #duration(0, 0, 0, delay(state[Iteration])))
+            else DefaultErrorHandler(state),
+
+    RequestFailureHandler = (exception as record, url as text, headers as nullable record) =>
+        error Error.Record(
+            NonPii("DataSource.Error"),
+            NonPii(Extension.LoadString("DownstreamServiceCallError")),
+            [
+                ActualError = exception,
+                RequestHeaders = if headers = null then [] else NonPii(Record.SelectFields(headers, PBICommonHeaderNames))
+            ],
+            {
+                NonPii(url),
+                NonPii(exception[Reason]?),
+                NonPii(exception[Message]?)
+            }),
+
+    Web.TryRefreshToken = () as logical =>
+        let
+            forceRefreshOfTokens = true
+        in
+            Extension.CurrentCredential(forceRefreshOfTokens) <> null, // Force refresh of token.
+
+    Web.RefreshToken = () as logical =>
+        let
+            result = Record.HasFields(Extension.CurrentCredential(true), {"Doesn't exist"}) // Force refresh of token.
+        in
+            result,
+
+    // Caching Design
+
+    // Connector has a two caches:
+    //   * Time based cache, implemented in Web.JsonContentsWithCaching
+    //   * Web response caching, implmented in Web.Contents.
+
+    // Web.JsonContentsWithCaching ultimately calls Web.Contents. Each
+    // request should follow the following constraints:
+    //   * Cache responses in at most one cache.
+    //   * Don't cache certain types of requests, such as those which
+    //     might hold authentication tokens.
+
+    // Web.JsonContentsWithCaching avoids using the cache in Web.Contents
+    // by passing Iteration=1 in its state. This sets Web.Contents option
+    // IsRefresh=true which causes the request to be made without using
+    // a previously cached response. The result of the request may still
+    // be cached!
+
+    // All calls to Web.JsonContents can similarly bypass the cache by
+    // setting Iteration=1.
+    Web.JsonContentsWithCaching = (
+        url as text,
+        cacheKeyPrefix as text,
+        cacheHours as number,
+        optional headers as record,
+        optional additionalHandlers as record,
+        optional jsonBody as any,
+        optional startState as record,
+        optional traceContext as record
+    ) as any =>
+        let
+            now = DateTimeZone.RemoveZone(DateTimeZone.UtcNow()),
+            hoursForSuffix = Number.RoundDown(Duration.TotalHours(now - #datetime(2023, 1, 1, 0, 0, 0))),
+            cacheKeySuffix = Text.From(cacheHours * Number.IntegerDivide(hoursForSuffix, cacheHours)),
+            // Note: cacheKeyPrefix is sufficiently unique so that URL isn't required as part of cacheKey
+            cacheKey = cacheKeyPrefix & cacheKeySuffix,
+            // Note: Iteration > 0 forces no further caching on the web request
+            jsonContents = Web.JsonContents(url, headers, additionalHandlers, jsonBody, (startState ?? []) & [Iteration = 1], traceContext),
+            jsonBinary = Json.FromValue(jsonContents),
+            serializedJson = Extension.Cache()[Metadata][Serialized](cacheKey, () => try jsonBinary otherwise #binary({})),
+            contents = if serializedJson <> #binary({})
+                then Json.Document(serializedJson)
+                else jsonContents
+        in
+            contents,
+
+    GetCredential = (resource) =>
+        let
+            currentCredentials = Extension.CurrentCredential(),
+            trimmedResource = Text.TrimEnd(resource, "/"),
+            prop = "AccessToken:" & trimmedResource,
+            propWithSlash = "AccessToken:" & trimmedResource & "/",
+            tokenValue = Record.FieldOrDefault(currentCredentials[Properties], prop, Record.FieldOrDefault(currentCredentials[Properties], propWithSlash, "")),
+            finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,
+            credentialToReturn = currentCredentials & [access_token = finalTokenValue]
+        in
+            credentialToReturn
+    
+in
+    [        
+        // Common utilities
+        NonPii = NonPii,
+        
+        Value.ToText = Value.ToText,
+        Value.WaitFor = Value.WaitFor,
+        Text.IsNullOrEmpty = Text.IsNullOrEmpty,
+        Value.ConvertToLogical = Value.ConvertToLogical,
+        Connector.GenerateErrorRecord = Connector.GenerateErrorRecord,
+        
+        // Web and auth functions
+        Web.JsonContents = Web.JsonContents,
+        Web.JsonContentsWithCaching = Web.JsonContentsWithCaching,
+        Web.DefaultErrorHandler = DefaultErrorHandler,
+        RetryHandler = RetryHandler,
+        AuthHandler = AuthHandler,
+        JsonHandler = JsonHandler,
+        
+        // Credential functions
+        GetCredential = GetCredential,
+        
+        // Scope function
+        Utility.CreateScope = Utility.CreateScope
+    ]

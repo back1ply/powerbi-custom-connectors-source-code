@@ -1,0 +1,36 @@
+Value.ReplaceType(
+    (inputTable as table, prefixPivotCols as list, attributeName as text, valueName as text) as table =>
+        let
+            cols = Table.ColumnNames(inputTable),
+            CheckIfContainsPostfixVariant = (heading as text) as logical =>
+                List.Count(List.Select(prefixPivotCols, each Text.StartsWith(heading, _))) > 0,
+            pivotCols = List.Select(cols, CheckIfContainsPostfixVariant)
+        in
+            Table.UnpivotOtherColumns(inputTable, pivotCols, attributeName, valueName),
+    type function (inputTable as table, prefixPivotCols as list, attributeName as text, valueName as text) as table meta [
+        Documentation.Name = "Translates all columns other than a specified set into attribute-value pairs,"
+            & " combined with the rest of the values in each row.",
+        Documentation.LongDescription = "Leaves all columns pivoted that <i>start with</i> any of the given column names,"
+            & " unlike <code>Table.UnpivotOtherColumns</code> which exactly matches the given names.",
+        Documentation.Examples = {
+            [
+                Description = "An Example",
+                Code = "= UnpivotOtherColumns(#(lf)"
+                    & "    Table.FromRecords({#(lf)"
+                    & "        [ key1 = 1, key2 = 2, abc = 3, def = 4 ],#(lf)"
+                    & "        [ key1 = 5, key2 = 6, abc = 7, def = 8 ]#(lf)"
+                    & "    }),#(lf)"
+                    & "    {""key""},#(lf)"
+                    & "    ""attribute"",#(lf)"
+                    & "    ""value""#(lf)"
+                    & ")",
+                Result = "= Table.FromRecords({#(lf)"
+                    & "    [ key1 = 1, key2 = 2, attribute = ""abc"", value = 3 ],#(lf)"
+                    & "    [ key1 = 1, key2 = 2, attribute = ""def"", value = 4 ],#(lf)"
+                    & "    [ key1 = 5, key2 = 6, attribute = ""abc"", value = 7 ],#(lf)"
+                    & "    [ key1 = 5, key2 = 6, attribute = ""def"", value = 8 ]#(lf)"
+                    & "})"
+            ]
+        }
+    ]
+)

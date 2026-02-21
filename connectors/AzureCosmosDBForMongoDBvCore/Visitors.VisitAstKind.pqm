@@ -1,0 +1,793 @@
+// Implements the AST translator for M to MongoDB aggregate dialect.
+let
+    TimeZones = Expression.Evaluate( Text.FromBinary(Extension.Contents("DateTimeZones.pqm")), #shared),
+
+    // The dictionary of AST kind values
+    AstKind = [
+        Binary = "Binary",
+        Constant = "Constant",
+        FieldAccess = "FieldAccess",
+        If = "If",
+        Invocation = "Invocation",
+        Unary = "Unary"
+    ],
+    // Power Query M AST operators dictionary
+    // See: https://bengribaudo.com/blog/2023/06/02/7352/rowexpression-from-itemexpression-from
+    AstBinaryOperator = [
+        Equals = "Equals",
+        NotEquals = "NotEquals",
+        GreaterThan = "GreaterThan",
+        LessThan = "LessThan",
+        GreaterThanOrEquals = "GreaterThanOrEquals",
+        LessThanOrEquals = "LessThanOrEquals",
+        Add = "Add",
+        Subtract = "Subtract",
+        Multiply = "Multiply",
+        Divide = "Divide",
+        And = "And",
+        Or = "Or"
+    ],
+    // MongoDB operators dictionary
+    MongoBinaryOperator = [
+        Equals = "$eq",
+        NotEquals = "$ne",
+        GreaterThan = "$gt",
+        LessThan = "$lt",
+        GreaterThanOrEquals = "$gte",
+        LessThanOrEquals = "$lte",
+        Add = "$add",
+        Subtract = "$subtract",
+        Multiply = "$multiply",
+        Divide = "$divide",
+        And = "$and",
+        Or = "$or"
+    ],
+    // Power Query M AST unary operators dictionary
+    AstUnaryOperator = [
+        // Positive is not implemented in Power BI, results in error
+        Positive = "Positive",
+        Negative = "Negative",
+        Not = "Not"
+    ],
+    // MongoDB unary operators dictionary
+    MongoUnaryOperator = [
+        // Implemented negative as $multiply by -1
+        Negative = "$multiply",
+        Not = "$not"
+    ],
+    // Converts a Power Query M date time [zone] into a Unix Epoch date time in milliseconds
+    Value.ToMongoDatetime = (value as any) as record =>
+        [
+            #"$date" = [
+                #"$numberLong" = Number.ToText(
+                    Value.Multiply(
+                        Duration.TotalSeconds(
+                            DateTimeZone.ToUtc(DateTimeZone.From(value)) - #datetimezone(1970, 1, 1, 0, 0, 0, 0, 0)
+                        ),
+                        1000,
+                        Precision.Decimal
+                    )
+                )
+            ]
+        ],
+    Value.ToMongoNumber = (value as any) as any =>
+        let
+            _double = try Double.From(value),
+            isDouble =
+                if _double[HasError] then
+                    false
+                else
+                    (
+                        value = _double[Value]
+                        and (
+                            value <> Number.PositiveInfinity
+                            and value <> Number.PositiveInfinity
+                            and value <> Number.NaN
+                        )
+                    ),
+            _int32 = try Int32.From(value),
+            isInt32 = (if (_int32[HasError]) then false else (value = _int32[Value])),
+            _int64 = try Int64.From(value),
+            isInt64 = (if (_int64[HasError]) then false else (value = _int64[Value])),
+            literal =
+                if isInt32 then
+                    value
+                else if isInt64 then
+                    [#"$numberLong" = Number.ToText(value)]
+                else if isDouble then
+                    value
+                else
+                    [#"$numberDecimal" = Number.ToText(value)]
+        in
+            literal,
+    Value.ToMongoText = (value as any) as any =>
+        if
+            Text.StartsWith(value, "ObjectId('", Comparer.OrdinalIgnoreCase)
+            and Text.EndsWith(value, "')", Comparer.OrdinalIgnoreCase)
+        then
+            let
+                prefixLen = Text.Length("ObjectId('"),
+                suffixLen = Text.Length("')"),
+                totalLen = Text.Length(value),
+                newValue = Text.Middle(value, prefixLen, (totalLen - (prefixLen + suffixLen)))
+            in
+                [#"$oid" = newValue]
+        else if Comparer.OrdinalIgnoreCase(value, "#MINKEY#") = 0 then
+            [#"$minKey" = 1]
+        else if Comparer.OrdinalIgnoreCase(value, "#MAXKEY#") = 0 then
+            [#"$maxKey" = 1]
+        else
+            value,
+    // Converts a literal value into extended JSON object, when necessary.
+    Value.ToMongoLiteral = (value as any) =>
+        if value = null then
+            // Special case for null value of any type
+            value
+        else
+            let
+                mongoValue =
+                    if Value.Is(value, Logical.Type) then
+                        value
+                    else if Value.Is(value, DateTimeZone.Type) or Value.Is(value, DateTime.Type) or Value.Is(value, Date.Type)then
+                        Value.ToMongoDatetime(value)
+                    else if Value.Is(value, Number.Type) then
+                        Value.ToMongoNumber(value)
+                    else if Value.Is(value, Text.Type) then
+                        Value.ToMongoText(value)
+                    else if Value.Is(value, Binary.Type) then
+                        [
+                            #"$binary" = [#"base64" = Binary.ToText(value, BinaryEncoding.Base64), #"subType" = "00"]
+                        ]
+                    else if Value.Is(value, List.Type) then
+                        List.Transform(value, each @Value.ToMongoLiteral(_))
+                    else
+                        // TODO: Test that all supported data types are covered.
+                        error
+                        [
+                            Reason = Extension.LoadString("mongoValueErrorReason"),
+                            Message.Format = Extension.LoadString("mongoValueErrorFormat"),
+                            Message.Parameters = {value}
+                        ],
+                //need to handle a special case for when value is a list
+                //since literal handling is done for each value in the list itself
+                mongoliteral = 
+                    if Value.Is(value, List.Type) then 
+                        mongoValue
+                    else
+                        [
+                            #"$literal" = mongoValue
+                        ]
+            in
+                mongoliteral,
+    Text.ToMongoBinaryOperator = (operator as text) as text =>
+        if Record.HasFields(MongoBinaryOperator, operator) then
+            Record.Field(MongoBinaryOperator, operator)
+        else
+            error
+                [
+                    Reason = Extension.LoadString("unsupportedOperationError"),
+                    Message.Format = Extension.LoadString("unsupportedBinaryOperatorErrorFormat"),
+                    Message.Parameters = {operator}
+                ],
+    Text.ToMongoUnaryOperator = (operator as text) as text =>
+        if Record.HasFields(MongoUnaryOperator, operator) then
+            Record.Field(MongoUnaryOperator, operator)
+        else
+            error
+                [
+                    Reason = Extension.LoadString("unsupportedOperationError"),
+                    Message.Format = Extension.LoadString("unsupportedBinaryOperatorErrorFormat"),
+                    Message.Parameters = {operator}
+                ],
+    // Wraps the value into a $literal object to avoid confustion with a field identifier.
+    VisitConstantKind = (_ast as record) => Value.ToMongoLiteral(_ast[Value]),
+    // Using the $<identifier> syntax with the assumption that it will be embedded into the $expr chain.
+    // TODO: What happens if field name as a '$'?
+    // TODO: Check handling of embedded documents and arrays.
+    VisitFieldAccessKind = (_ast as record) as text => "$" & _ast[MemberName],
+    // Gets the Power Query function from the AST node.
+    GetFunctionValue = (functionNode as record) as function =>
+        if functionNode[Kind] <> AstKind[Constant] then
+            error
+                [
+                    Reason = Extension.LoadString("unsupportedOperationError"),
+                    Message.Format = Extension.LoadString("getFunctionValueNotConstantErrorFormat"),
+                    Message.Parameters = {functionNode[Kind]},
+                    Detail = Extension.LoadString("getFunctionValueNotConstantErrorDetail")
+                ]
+        else if not Value.Is(functionNode[Value], type function) then
+            error
+                [
+                    Reason = Extension.LoadString("unsupportedOperationError"),
+                    Message = Extension.LoadString("getFunctionValueNotFunctionErrorMessage"),
+                    Detail = Extension.LoadString("getFunctionValueNotFunctionErrorDetail")
+                ]
+        else
+            functionNode[Value],
+    // Supported function invocations
+    InvocationFunction = [
+        Int64.From = Int64.From,
+        List.Average = List.Average,
+        List.Contains = List.Contains,
+        List.Max = List.Max,
+        List.Min = List.Min,
+        List.Sum = List.Sum,
+        List.First = List.First,
+        List.Last = List.Last,
+        Logical.FromText = Logical.FromText,
+        Logical.From = Logical.From,
+        Logical.ToText = Logical.ToText,
+        Table.RowCount = Table.RowCount,
+        Number.Abs = Number.Abs,
+        Number.Mod = Number.Mod,
+        Number.Round = Number.Round,
+        Number.RoundDown = Number.RoundDown,
+        Number.RoundUp = Number.RoundUp,
+        Number.RoundAwayFromZero = Number.RoundAwayFromZero,
+        Number.RoundTowardZero = Number.RoundTowardZero,
+        Number.From = Number.From,
+        Date.From = Date.From,
+        DateTime.From = DateTime.From,
+        DateTimeZone.From = DateTimeZone.From,
+        Date.DayOfWeek = Date.DayOfWeek,
+        Date.Day = Date.Day,
+        Date.DayOfYear = Date.DayOfYear,
+        Date.Month = Date.Month,
+        Date.Year = Date.Year,
+        Date.WeekOfYear = Date.WeekOfYear,
+        Double.From = Double.From,
+        Time.Hour = Time.Hour,
+        Time.Minute = Time.Minute,
+        Time.Second = Time.Second,
+        Text.From = Text.From,
+        Value.NullableEquals = Value.NullableEquals,
+        Value.Equals = Value.Equals,
+        Value.Add = Value.Add,
+        Value.Divide = Value.Divide, 
+        Value.Multiply = Value.Multiply,
+        Value.Subtract = Value.Subtract,
+        Currency.From = Currency.From,
+        Percentage.From = Percentage.From
+    ],
+    // Helper function to calculate roundup stage when rounding a specific decimal place
+    CalculateRoundUpStage = (base as any, decimal as any, roundUp as logical) =>
+        let
+            //this is what we are trying to achieve:
+            //numberToRoundUp = VisitAstKind(_arguments{0}),
+            //digits = VisitAstKind(_arguments{1}),
+            //calcNumber = numberToRoundUp + (5*(10^-(digits + 1))) 
+            //or calcNumber = numberToRoundDown - (5*(10^-(digits + 1)))
+            powAddStage = [#"$add" = {VisitAstKind(decimal), VisitAstKind([Kind = AstKind[Constant], Value = 1])}],
+            powMultiplyStage = [#"$multiply" = {powAddStage, VisitAstKind([Kind = AstKind[Constant], Value = -1])}],
+            powStage = [#"$pow" = {VisitAstKind([Kind = AstKind[Constant], Value = 10]), powMultiplyStage}],
+            multiplyStage = [#"$multiply" = {VisitAstKind([Kind = AstKind[Constant], Value = 5]), powStage}],
+            finalCalculatedStage = 
+                if roundUp = true then
+                    [#"$add" = {VisitAstKind(base), multiplyStage}]
+                else
+                    [#"$subtract" = {VisitAstKind(base), multiplyStage}],
+            // add check to see if calculation is needed
+            // str = toString(NumberToRoundUp* 10^(decimal places))
+            // if str contains "." then finalCalcualtedStage else NumberToRoundUp
+            decimalPowStage = [#"$pow" = {VisitAstKind([Kind = AstKind[Constant], Value = 10]), VisitAstKind(decimal)}],
+            multiplyBaseAndDecimalPowStage = [#"$multiply" = {VisitAstKind(base), decimalPowStage}],
+            numToStr = [#"$convert" = [#"input" = multiplyBaseAndDecimalPowStage, #"to" = "string", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = multiplyBaseAndDecimalPowStage], Extension.LoadString("toTypeDouble")}]]]],
+            indexOfDecimal = [#"$indexOfCP" = {numToStr, VisitAstKind([Kind = AstKind[Constant], Value = "."])}],
+            checkifRoundCalculationIsNeeded = 
+                Record.AddField(
+                        [],
+                        "$cond",
+                        {
+                            [#"$lt" = {indexOfDecimal, VisitAstKind([Kind = AstKind[Constant], Value = 0])}], 
+                            VisitAstKind(base), //true case decimal point not found 
+                            finalCalculatedStage// false case calculate decimal to round up needed
+                        }
+                    )
+        in
+            checkifRoundCalculationIsNeeded,
+    //pushdown for round up
+    RoundUpPushdown = (_arguments as list) =>
+        let
+            pushdown = 
+                if List.Count(_arguments) >= 2 then
+                    Record.AddField(
+                        [],
+                        "$cond",
+                        {VisitAstKind(
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[LessThan],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = 0]
+                            ]
+                        ), 
+                            [#"$trunc" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}], //true case Power BI truncates a negative number for roundup
+                            [#"$round" = {CalculateRoundUpStage(_arguments{0}, _arguments{1}, true), VisitAstKind(_arguments{1})}] // false case calculate decimal to add and then round as normal
+                        }
+                    )
+                else
+                    [#"$ceil" = VisitAstKind(_arguments{0})]
+        in
+            pushdown,
+    //push down for round down
+    RoundDownPushdown = (_arguments as list) =>
+        let
+            pushdown = 
+                if List.Count(_arguments) >= 2 then
+                    Record.AddField(
+                            [],
+                            "$cond",
+                            {VisitAstKind(
+                                [
+                                    Kind = AstKind[Binary],
+                                    Operator = AstBinaryOperator[LessThan],
+                                    Left = _arguments{0},
+                                    Right = [Kind = AstKind[Constant], Value = 0]
+                                ]
+                            ),
+                                [#"$round" = {CalculateRoundUpStage(_arguments{0}, _arguments{1}, false), VisitAstKind(_arguments{1})}], //true case value is negative
+                                [#"$trunc" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]// false case value is positive
+                            }
+                    )
+                else
+                    Record.AddField(
+                            [],
+                            "$cond",
+                            {VisitAstKind(
+                                [
+                                    Kind = AstKind[Binary],
+                                    Operator = AstBinaryOperator[LessThan],
+                                    Left = _arguments{0},
+                                    Right = [Kind = AstKind[Constant], Value = 0]
+                                ]
+                            ),
+                                [#"$floor" = VisitAstKind(_arguments{0})], //true case value is negative
+                                [#"$trunc" = VisitAstKind(_arguments{0})]// false case value is positive
+                            }
+                    )
+        in
+            pushdown,
+    //pushdown for rounding away from zero
+    RoundAwayFromZeroPushdown = (_arguments as list) =>
+        let
+            pushdown = 
+                if List.Count(_arguments) >= 2 then
+                    Record.AddField(
+                        [],
+                        "$cond",
+                        {VisitAstKind(
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[LessThan],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = 0]
+                            ]
+                        ), 
+                            [#"$round" = {CalculateRoundUpStage(_arguments{0}, _arguments{1}, false), VisitAstKind(_arguments{1})}], //true case number is negative round down
+                            [#"$round" = {CalculateRoundUpStage(_arguments{0}, _arguments{1}, true), VisitAstKind(_arguments{1})}] //false case number is positive round up
+                        }
+                    )
+                else
+                    Record.AddField(
+                        [],
+                        "$cond",
+                        {VisitAstKind(
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[LessThan],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = 0]
+                            ]
+                        ), 
+                            [#"$floor" = VisitAstKind(_arguments{0})], //true case number is negative round down
+                            [#"$ceil" = VisitAstKind(_arguments{0})] //false case number is positive round up
+                        }
+                    )
+        in
+            pushdown,
+    //pushdown for rounding toward zero
+    RoundTowardZeroPushdown = (_arguments as list) =>
+        let
+            pushdown = 
+                if List.Count(_arguments) >= 2 then
+                    Record.AddField(
+                        [],
+                        "$cond",
+                        {VisitAstKind(
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[LessThan],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = 0]
+                            ]
+                        ), 
+                            [#"$round" = {CalculateRoundUpStage(_arguments{0}, _arguments{1}, true), VisitAstKind(_arguments{1})}], //true case number is negative round up
+                            [#"$trunc" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}] //false case number is positive round down
+                        }
+                    )
+                else
+                    Record.AddField(
+                        [],
+                        "$cond",
+                        {VisitAstKind(
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[LessThan],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = 0]
+                            ]
+                        ),
+                            [#"$ceil" = VisitAstKind(_arguments{0})], //true case number is negative round up
+                            [#"$trunc" = VisitAstKind(_arguments{0})] //false case number is positive round down
+                        }
+                    )
+        in 
+            pushdown,
+    LogicalFromPushdown = (_arguments as list) =>
+        let
+            pushdown = 
+            [
+                #"$switch" = 
+                [
+                    #"branches" =
+                    {
+                        [
+                            #"case" = 
+                            [
+                                #"$eq" = 
+                                {
+                                    [#"$strcasecmp" = {[#"$toString" = VisitAstKind(_arguments{0})], "true"}], 
+                                    0
+                                }
+                            ],
+                            #"then" = 
+                            [
+                                #"$toBool" = [#"$literal" = true]
+                            ]
+                        ],
+                        [
+                            #"case" = 
+                            [
+                                #"$eq" = 
+                                {
+                                    [#"$strcasecmp" = {[#"$toString" = VisitAstKind(_arguments{0})], "false"}], 
+                                    0
+                                }
+                            ],
+                            #"then" = 
+                            [
+                                #"$toBool" = [#"$literal" = false]
+                            ]
+                        ]
+                    },
+                    #"default" = [#"$toBool" = VisitAstKind(_arguments{0})]
+                ]
+            ]
+        in
+            pushdown,
+    //pushdown for value nullable equals function
+    ValueNullableEqualsPushdown = (_arguments as list) =>
+        let
+            //PowerBI documentation: Returns null if either argument value1, value2 is null, otherwise equivalent to Value.Equals
+            //this is equivalent to $cond($1 = null OR $2 = null) then null else ($1 = $2)
+            pushdown = 
+                Record.AddField(
+                    [],
+                    "$cond",
+                    {
+                        VisitAstKind(
+                        [
+                            Kind = AstKind[Binary],
+                            Operator = AstBinaryOperator[Or],
+                            Left = [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[Equals],
+                                Left = _arguments{0},
+                                Right = [Kind = AstKind[Constant], Value = null]
+                            ],
+                            Right = [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[Equals],
+                                Left = _arguments{1},
+                                Right = [Kind = AstKind[Constant], Value = null]
+                            ]
+                        ]
+                    ), 
+                        VisitAstKind([Kind = AstKind[Constant], Value = null]), //true case
+                        VisitAstKind( //false case
+                            [
+                                Kind = AstKind[Binary],
+                                Operator = AstBinaryOperator[Equals],
+                                Left = _arguments{0},
+                                Right = _arguments{1}
+                            ]
+                        )
+                    } 
+                )
+        in
+            pushdown,
+    dateTimeZoneFrom = (_arguments as list) =>
+        let
+            pushdown =
+            [
+                #"datetimezoneType" = 
+                [
+                    #"$switch" =
+                    [
+                        #"branches" =
+                        {
+                            [
+                                #"case" = [#"$isNumber" = VisitAstKind(_arguments{0})],
+                                #"then" = [#"$toDate" = [#"$toDouble" = {[#"$multiply" = {86400000, [#"$subtract" = { VisitAstKind(_arguments{0}), 25569}]}]}]]
+                            ]
+                        },
+                        #"default" =
+                        [
+                            #"$cond" = 
+                            {
+                                // If the datetime ends with Z, that means it's ZULU time 
+                                [#"$regexMatch" = [#"input" = VisitAstKind(_arguments{0}), #"regex" = "Z$"]],
+                                [#"$dateFromString" = [#"dateString" = VisitAstKind(_arguments{0}), #"timezone" = "UTC"]]
+                                ,
+                                [
+                                    #"$dateFromString" = 
+                                    [
+                                        #"dateString" = VisitAstKind(_arguments{0}),
+                                        #"timezone" = Record.Field(TimeZones, TimeZone.Current), 
+                                        // Errors when object has a timezone in the string, so re-runs $dateFromString without timezone field
+                                        #"onError" = 
+                                        [
+                                            #"$dateFromString" = 
+                                            [
+                                                #"dateString" = VisitAstKind(_arguments{0}),
+                                                #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeDateTimeZone")}]]
+                                            ]
+                                        ]
+                                        
+                                    ]
+                                ]
+                            }
+                        ]
+                    ]
+                ]
+            ]
+        in
+            pushdown,
+
+    //pushdown for Percentage.From
+    PercentageFromPushdown = (_arguments as list) =>
+        let
+            arg = VisitAstKind(_arguments{0}),
+            str = [#"$toString" = arg],
+            index = [#"$indexOfBytes" = {str, "%"}],
+            substr = [#"$substrBytes" = {str, 0, index}], 
+            numFromArg = [#"$convert" = [#"input" = substr, #"to" = "double", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = substr], Extension.LoadString("toTypeDouble")}]]]],
+            pushdown =
+                [
+                    #"$switch" = 
+                    [
+                        #"branches" =
+                        {
+                            [
+                                #"case" = [#"$gt" = {index, 0}],
+                                #"then" = [#"$round" = {[#"$divide" = {numFromArg, 100}], index}]
+                            ]
+                        },
+                        #"default" = [#"$convert" = [#"input" = arg, #"to" = "double", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = arg], Extension.LoadString("toTypeDouble")}]]]]
+                    ]
+                ]
+        in
+            pushdown,
+    // Converts a Power Query invocation function a suppored MongoDB operation.
+    Function.ToMongoOperator = (_function as function, _arguments as list) as nullable record =>
+        if _function = InvocationFunction[Number.Abs] then
+            [#"$abs" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Number.Mod] then
+            [#"$mod" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Number.Round] then
+            if List.Count(_arguments) >= 2 then
+                [#"$round" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+            else
+                [#"$round" = {VisitAstKind(_arguments{0})}]
+        else if _function = InvocationFunction[Number.RoundDown] then
+            RoundDownPushdown(_arguments)
+        else if _function = InvocationFunction[Number.RoundUp] then
+            RoundUpPushdown(_arguments)
+        else if _function = InvocationFunction[Number.RoundAwayFromZero] then
+            RoundAwayFromZeroPushdown(_arguments)
+        else if _function = InvocationFunction[Number.RoundTowardZero] then
+            RoundTowardZeroPushdown(_arguments)
+        else if _function = InvocationFunction[List.Max] then 
+            [#"$max" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[List.Min] then
+            [#"$min" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[List.Sum] then
+            [#"$sum" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[List.Average] then
+            [#"$avg" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[List.Contains] then
+            [#"$in" = {VisitAstKind(_arguments{1}), VisitAstKind(_arguments{0})}]
+        else if _function = InvocationFunction[List.First] then
+            [#"$first" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[List.Last] then
+            [#"$last" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Text.From] then
+            [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "string", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeString")}]]]]
+        else if _function = InvocationFunction[Table.RowCount] then
+            [#"$count" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Date.From] then
+            [
+                 #"dateType" =
+                [
+                    #"$switch" = 
+                    [
+                        #"branches" =
+                        {
+                            [
+                                #"case" = [#"$isNumber" = VisitAstKind(_arguments{0})],
+                                #"then" = [#"$toDate" = [#"$toDouble" = {[#"$multiply" = {86400000, [#"$subtract" = { VisitAstKind(_arguments{0}), 25569}]}]}]]
+                            ]
+                        },
+                        #"default" = [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "date", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeDate")}]]]]
+                    ]
+                ]
+            ]
+        else if _function = InvocationFunction[DateTime.From] then
+            [
+                 #"datetimeType" =
+                [
+                    #"$switch" = 
+                    [
+                        #"branches" =
+                        {
+                            [
+                                #"case" = [#"$isNumber" = VisitAstKind(_arguments{0})],
+                                #"then" = [#"$toDate" = [#"$toDouble" = {[#"$multiply" = {86400000, [#"$subtract" = { VisitAstKind(_arguments{0}), 25569}]}]}]]
+
+                            ]
+                        },
+                        #"default" = [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "date", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeDate")}]]]]
+                    ]
+                ]
+            ]
+        else if _function = InvocationFunction[DateTimeZone.From] then
+            dateTimeZoneFrom(_arguments)
+        else if _function = InvocationFunction[Date.DayOfWeek] then
+            if List.Count(_arguments) >= 2 then
+                // Power Query supports specifying any day of the week as the starting day. MongoDB does not support specifying so this changes the Azure Cosmos DB for MongoDB response to the correct, expected value for Power Query.
+                // Math operations are pushed down to Azure Cosmos DB for MongoDB to handle. Note that Sunday is day 0 in PowerQuery and day 1 in MongoDB.
+                [
+                    #"$mod" = 
+                    {
+                        [#"$add" = 
+                            {
+                                [#"$subtract" = 
+                                    {
+                                        [#"$dayOfWeek" = VisitAstKind(_arguments{0})],
+                                        VisitAstKind(_arguments{1})
+                                    }
+                                ],
+                            6}], // (subtract 1 to offset the result for PQ, then add 7 ensure the reuslt is positive. (In other words add 6).
+                        7 // Then take the modulo of 7 to force the result to be in [0, 6]. 
+                    }
+                ]
+            else
+                [#"$subtract" = {[#"$dayOfWeek" = VisitAstKind(_arguments{0})], 1}]
+        else if _function = InvocationFunction[Date.DayOfYear] then
+            [#"$dayOfYear" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Date.Day] then
+            [#"$dayOfMonth" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Date.Month] then
+            [#"$month" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Date.Year] then
+            [#"$year" = VisitAstKind(_arguments{0})]
+        else if _function = InvocationFunction[Date.WeekOfYear] then
+            let
+                // PowerQuery has the following semantics vs. MongoDB.
+                // - The first week is week 1 in PQ vs. week 0 in MongoDB.
+                // - If the start of the week is the same day as the input date, it is the start of a new week (so add 1). This
+                //   applies to both, however MongoDB always uses Sunday as the start of the week. So if it the start of the week
+                //   is _not_ Sunday, and the supplied date falls on the start of the week, add 1.
+                dayOfWeek = (if (List.Count(_arguments) >= 2) then VisitAstKind(_arguments{1}) else (Day.Sunday)),
+                result = [#"$cond" = {
+                    [#"$and" = {
+                            [#"$ne" = {dayOfWeek, Day.Sunday}],
+                            [#"$eq" = {
+                                dayOfWeek,
+                                [#"$subtract" = {[#"$dayOfWeek" = VisitAstKind(_arguments{0})], 1}] // Match PowerQuery range of [0, 6]
+                            }]
+                        }],
+                    [#"$add" = {[#"$week" = VisitAstKind(_arguments{0})], 2}],
+                    [#"$add" = {[#"$week" = VisitAstKind(_arguments{0})], 1}]}]
+            in
+                result
+        else if _function = InvocationFunction[Time.Hour] then
+            [#"$hour" = [#"date" = VisitAstKind(_arguments{0}), timezone = Record.Field(TimeZones, TimeZone.Current)]]
+        else if _function = InvocationFunction[Time.Minute] then
+            [#"$minute" = [#"date" = VisitAstKind(_arguments{0}), timezone = Record.Field(TimeZones, TimeZone.Current)]]
+        else if _function = InvocationFunction[Time.Second] then
+            [#"$second" = [#"date" = VisitAstKind(_arguments{0}), timezone = Record.Field(TimeZones, TimeZone.Current)]]
+        else if _function = InvocationFunction[Currency.From] then
+            [
+                #"$cond" = 
+                {
+                    [#"$isNumber" = VisitAstKind(_arguments{0})],
+                    [#"$round" = {[#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "double"]], 4}],
+                    [#"errorMessage" = [#"$concat" = {"Could not convert """, [#"$toString" = VisitAstKind(_arguments{0})], """ to type double"}]]
+                }
+            ]
+        else if _function = InvocationFunction[Double.From] then
+            [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "double", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeDouble")}]]]]
+        else if _function = InvocationFunction[Number.From] then
+            [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "double", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeDouble")}]]]]
+        else if _function = InvocationFunction[Value.NullableEquals] then
+            ValueNullableEqualsPushdown(_arguments)
+        else if _function = InvocationFunction[Value.Equals] then
+            [#"$eq" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Value.Add] then
+            [#"$add" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Value.Divide] then
+            [#"$divide" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Value.Multiply] then
+            [#"$multiply" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Value.Subtract] then
+            [#"$subtract" = {VisitAstKind(_arguments{0}), VisitAstKind(_arguments{1})}]
+        else if _function = InvocationFunction[Int64.From] then
+            [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "long", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeLong")}]]]]
+        else if _function = InvocationFunction[Logical.FromText] 
+                    or _function = InvocationFunction[Logical.From] then
+            LogicalFromPushdown(_arguments)
+        else if _function = InvocationFunction[Logical.ToText] then
+            [#"$convert" = [#"input" = VisitAstKind(_arguments{0}), #"to" = "string", #"onError" = [#"errorMessage" = [#"$concat" = {Extension.LoadString("couldNotConvert"), [#"$toString" = VisitAstKind(_arguments{0})], Extension.LoadString("toTypeString")}]]]]
+        else if _function = InvocationFunction[Percentage.From] then
+            PercentageFromPushdown(_arguments)
+        else
+            error
+                [
+                    Reason = Extension.LoadString("unsupportedOperationError"),
+                    Message.Format = Extension.LoadString("unsupportedFunctionInvocationErrorFormat"),
+                    Message.Parameters = {Value.Expression(Value.Optimize(_function))[Name]},
+                    Detail = Extension.LoadString("expectingOneOfError")
+                        & Text.Combine(List.Sort(Record.FieldNames(InvocationFunction)), ", ")
+                ],
+    // Handles the Invocation kind AST node.
+    VisitInvocationKind = (_ast as record) as nullable record =>
+        Function.ToMongoOperator(GetFunctionValue(_ast[Function]), _ast[Arguments]),
+    // Top level parse of the AST tree.
+    // See: https://bengribaudo.com/blog/2023/06/02/7352/rowexpression-from-itemexpression-from
+    VisitAstKind = (_ast as record) as any =>
+        if _ast[Kind] = AstKind[Binary] then
+            // Inline to take advantage of recursive call syntax
+            Record.AddField(
+                [], Text.ToMongoBinaryOperator(_ast[Operator]), {@VisitAstKind(_ast[Left]), @VisitAstKind(_ast[Right])}
+            )
+        else if _ast[Kind] = AstKind[Constant] then
+            VisitConstantKind(_ast)
+        else if _ast[Kind] = AstKind[FieldAccess] then
+            VisitFieldAccessKind(_ast)
+        else if _ast[Kind] = AstKind[If] then
+            // Inline to take advanatage of recursive call syntax
+            Record.AddField(
+                [],
+                "$cond",
+                {@VisitAstKind(_ast[Condition]), @VisitAstKind(_ast[TrueCase]), @VisitAstKind(_ast[FalseCase])}
+            )
+        else if _ast[Kind] = AstKind[Invocation] then
+            VisitInvocationKind(_ast)
+        else if _ast[Kind] = AstKind[Unary] then
+            // Inline to take advantage of recursive call syntax
+            if _ast[Operator] = AstUnaryOperator[Negative] then
+                @VisitAstKind(
+                    [
+                        Kind = AstKind[Binary],
+                        Operator = AstBinaryOperator[Multiply],
+                        Left = _ast[Expression],
+                        Right = [Kind = AstKind[Constant], Value = -1]
+                    ]
+                )
+            else
+                Record.AddField([], Text.ToMongoUnaryOperator(_ast[Operator]), {@VisitAstKind(_ast[Expression])})
+        else
+            ...
+in
+    VisitAstKind

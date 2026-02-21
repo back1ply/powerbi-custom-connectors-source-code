@@ -1,0 +1,7 @@
+{
+    "IAS": {
+        "Enabled": true,
+        "DataCoreURL": "https://industrialconnector.intelligentplant.com/data-api/",
+        "ClientId": "064fa04abe624c70a982e377a6c72850"
+    }
+}

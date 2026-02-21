@@ -1,0 +1,323 @@
+let
+    // Unlike Table.FromRecords, ListToFlatTable does not require all columns to be present in the first record.
+    ListToFlatTable = (records as list) =>
+        let
+            allFields = List.Transform(records, Record.FieldNames),
+            fields = List.Union(allFields),
+            convertedToTable = Table.FromList(records, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+            expandedColumns = Table.ExpandRecordColumn(convertedToTable, "Column1", fields)
+        in
+            expandedColumns,
+    StachV2RowOrganizedTable = Value.ReplaceType(
+        (Source as record, optional delimiter) as table =>
+            let
+                // columns is where the column header definitions are
+                headers = Source[tables][main][definition][columns],
+                mainColumnsTable = ListToFlatTable(headers),
+                tableHasHiddenRows = Table.HasColumns(mainColumnsTable, "isHidden"),
+                // gets the index of the row which is supposed to be hidden
+                indexListForHiddenRows =
+                    if tableHasHiddenRows then
+                        List.PositionOf(
+                            Table.Column(mainColumnsTable, "isHidden"),
+                            true,
+                            List.Count(Table.Column(mainColumnsTable, "isHidden"))
+                        )
+                    else
+                        {},
+                simplifiedHeaderTable = Table.AddIndexColumn(mainColumnsTable, "index"),
+                // select column names based on whether description/name is present
+                // if not use the ids as column headers
+                headerColumnName =
+                    if List.Contains(Table.ColumnNames(simplifiedHeaderTable), "description") then
+                        "description"
+                    else if List.Contains(Table.ColumnNames(simplifiedHeaderTable), "name") then
+                        "name"
+                    else
+                        "id",
+                // depending on map or array type the data would either be a list or record type.
+                // Hence, expanding it accordingly and assigning the columnNames as column headers.
+                arrayTypedData = List.Transform(
+                    Source[tables][main][data][rows],
+                    (rowRecord) =>
+                        if Record.HasFields(rowRecord, "values") then
+                            Record.AddField(rowRecord, "cells", Record.FieldValues(rowRecord[values]))
+                        else
+                            rowRecord
+                ),
+                headerRows = List.Select(arrayTypedData, each Record.FieldOrDefault(_, "rowType") = "Header"),
+                dataRows = List.Select(arrayTypedData, each Record.FieldOrDefault(_, "rowType") <> "Header"),
+                columnNames =
+                    if List.IsEmpty(headerRows) then
+                        Table.Column(simplifiedHeaderTable, headerColumnName)
+                    else
+                        let
+                            headerTableForNonSimplified = V2NonSimplifiedHeaderTable(
+                                List.Zip(V2RowOrganizedNonPrimaryHeaderList(headerRows){1}),
+                                simplifiedHeaderTable,
+                                headerColumnName,
+                                V2RowOrganizedNonPrimaryHeaderList(headerRows){0},
+                                delimiter ?? " | "
+                            )
+                        in
+                            Table.Column(headerTableForNonSimplified, headerColumnName),
+                // update the columnNames such as not to show the hidden column by updating it with null values
+                // and then removing those null values.
+                updatedColumnNames =
+                    if tableHasHiddenRows then
+                        List.RemoveNulls(
+                            List.Transform(
+                                columnNames,
+                                each
+                                    if List.Contains(indexListForHiddenRows, List.PositionOf(columnNames, _)) then
+                                        null
+                                    else
+                                        _
+                            )
+                        )
+                    else
+                        columnNames,
+                dataTable = Table.SelectColumns(
+                    Table.FromList(dataRows, each [cells], columnNames), updatedColumnNames
+                ),
+                finalTable = AddTableMetadataColumns(
+                    dataTable, Record.FieldOrDefault(Source[tables][main][data], "tableMetadata", [])
+                )
+            in
+                finalTable,
+        type function (Source as record, optional delimiter as text) as table meta [
+            Documentation.Name = "FactSetAnalytics.Utilities.Stach.V2.RowOrganizedTable",
+            Documentation.LongDescription = "Converts a record in Stach v2 Row-Organized format to a table.",
+            Documentation.Examples = {
+                [
+                    Description = "Convert an APIs response with the Stach data enclosed in another object: <code>{ ""data"": { ... Stach ... } }",
+                    Code = "apiResponse = FactSetAnalytics.Request(..., [ ResultFormat = ""record"" ]),#(lf)"
+                        & "stachData = apiResponse[data],#(lf)"
+                        & "resultTable = RowOrganizedTable(stachData)",
+                    Result = "(data as table)"
+                ]
+            }
+        ]
+    ),
+    StachV2ColumnOrganizedTable = Value.ReplaceType(
+        (Source as record, optional delimiter) as table =>
+            let
+                // if headers are given then they need to be handled while creating the header table.
+                primaryTableId = Source[primaryTableIds]{0},
+                headerTableId = Record.FieldOrDefault(
+                    Record.Field(Source[tables], primaryTableId)[definition], "headerTableId"
+                ),
+                isSimplified = if headerTableId = null then true else false,
+                headers = Record.Field(Source[tables], primaryTableId)[definition][columns],
+                // depending on if headers are present or not, the headerTable is created.
+                // the header column names are stitched together from the headers columns data using the | delimiter
+                // later the description is replaced for which isDimension is not true.
+                mainColumnsTable = ListToFlatTable(headers),
+                tableHasHiddenRows = Table.HasColumns(mainColumnsTable, "isHidden"),
+                indexListForHiddenRows =
+                    if tableHasHiddenRows then
+                        List.PositionOf(
+                            Table.Column(mainColumnsTable, "isHidden"),
+                            true,
+                            List.Count(Table.Column(mainColumnsTable, "isHidden"))
+                        )
+                    else
+                        {},
+                simplifiedHeaderTable = Table.AddIndexColumn(mainColumnsTable, "index"),
+                headerColumnName =
+                    if List.Contains(Table.ColumnNames(simplifiedHeaderTable), "description") then
+                        "description"
+                    else if List.Contains(Table.ColumnNames(simplifiedHeaderTable), "name") then
+                        "name"
+                    else
+                        "id",
+                headerTable =
+                    if isSimplified then
+                        simplifiedHeaderTable
+                    else
+                        let
+                            subHeaderList = Record.ToList(Record.Field(Source[tables], headerTableId)[data][columns]),
+                            listOfHeaderColumns = List.Zip(
+                                List.Transform(subHeaderList, (columnRecord) => columnRecord[values])
+                            ),
+                            headerTableForNonSimplified = V2NonSimplifiedHeaderTable(
+                                listOfHeaderColumns, simplifiedHeaderTable, headerColumnName, {}, delimiter ?? " | "
+                            )
+                        in
+                            headerTableForNonSimplified,
+                // column names are the description values
+                columnNames = Table.Column(headerTable, headerColumnName),
+                updatedColumnNames =
+                    if tableHasHiddenRows then
+                        List.RemoveNulls(
+                            List.Transform(
+                                columnNames,
+                                each
+                                    if List.Contains(indexListForHiddenRows, List.PositionOf(columnNames, _)) then
+                                        null
+                                    else
+                                        _
+                            )
+                        )
+                    else
+                        columnNames,
+                data = Record.ToList(Record.Field(Source[tables], primaryTableId)[data][columns]),
+                listOfColumns = List.Transform(data, (columnRecord) => columnRecord[values]),
+                dataTable = Table.SelectColumns(Table.FromColumns(listOfColumns, columnNames), updatedColumnNames)
+            in
+                dataTable,
+        type function (Source as record, optional delimiter as text) as table meta [
+            Documentation.Name = "FactSetAnalytics.Utilities.Stach.V2.ColumnOrganizedTable",
+            Documentation.LongDescription = "Converts a record in Stach v2 Column-Organized format to a table.",
+            Documentation.Examples = {
+                [
+                    Description = "Convert an APIs response with the Stach data enclosed in another object: <code>{ ""data"": { ... Stach ... } }",
+                    Code = "apiResponse = FactSetAnalytics.Request(..., [ ResultFormat = ""record"" ]),#(lf)"
+                        & "stachData = apiResponse[data],#(lf)"
+                        & "resultTable = ColumnOrganizedTable(stachData)",
+                    Result = "(data as table)"
+                ]
+            }
+        ]
+    ),
+    V2NonSimplifiedHeaderTable = (
+        nonDimensionHeaderColumns as list,
+        simplifiedHeaderTable as table,
+        headerColumnName as text,
+        dimensionHeaderColumns as list,
+        optional delimiter
+    ) as table =>
+        let
+            headerTableForNonSimplified =
+                if List.IsEmpty(nonDimensionHeaderColumns) then
+                    simplifiedHeaderTable
+                else
+                    let
+                        listOfJoinedHeaders = List.Transform(
+                            nonDimensionHeaderColumns,
+                            (inputList) => Text.Combine(List.Transform(inputList, each Text.From(_)), delimiter)
+                        ),
+                        nonDimensionHeadersList = Table.Column(
+                            Table.SelectRows(simplifiedHeaderTable, each not ([isDimension] = true)),
+                            headerColumnName
+                        ),
+                        headerMappingTable = Table.FromColumns(
+                            {listOfJoinedHeaders, nonDimensionHeadersList}, {"jointHeaders", "descriptionToChange"}
+                        ),
+                        headerTableForNonSimplified = Table.ReplaceValue(
+                            simplifiedHeaderTable,
+                            each if [isDimension] <> true then Record.Field(_, headerColumnName) else false,
+                            each
+                                Table.SelectRows(
+                                    headerMappingTable,
+                                    (row) => row[descriptionToChange] = Record.Field(_, headerColumnName)
+                                ){
+                                    0
+                                }[jointHeaders],
+                            Replacer.ReplaceValue,
+                            {headerColumnName}
+                        )
+                    in
+                        headerTableForNonSimplified,
+            finalHeaderTable =
+                if headerColumnName = "description" or List.IsEmpty(dimensionHeaderColumns) then
+                    headerTableForNonSimplified
+                else
+                    let
+                        mappedPrimaryHeaders = Record.FromList(
+                            List.Transform(dimensionHeaderColumns, each _{0}),
+                            List.Transform(dimensionHeaderColumns, each Text.From(_{1}))
+                        ),
+                        replacementHeaderTable = Table.ReplaceValue(
+                            headerTableForNonSimplified,
+                            each
+                                if Record.HasFields(mappedPrimaryHeaders, Text.From([index])) then
+                                    Record.Field(_, headerColumnName)
+                                else
+                                    false,
+                            (row) =>
+                                if Record.Field(mappedPrimaryHeaders, Text.From(row[index])) = null then
+                                    Record.Field(row, headerColumnName)
+                                else
+                                    Record.Field(mappedPrimaryHeaders, Text.From(row[index])),
+                            Replacer.ReplaceValue,
+                            {headerColumnName}
+                        )
+                    in
+                        replacementHeaderTable
+        in
+            finalHeaderTable,
+    V2RowOrganizedNonPrimaryHeaderList = (rows as list) =>
+        let
+            firstHeaderRow = List.First(rows),
+            primaryHeaderList = List.RemoveNulls(
+                List.Transform(
+                    List.Positions(firstHeaderRow[cells]),
+                    (i) =>
+                        let
+                            source = Record.Field(firstHeaderRow[headerCellDetails], Text.From(i))[source],
+                            colIndex = Record.FieldOrDefault(
+                                Record.Field(firstHeaderRow[headerCellDetails], Text.From(i)), "columnIndex", 0
+                            )
+                        in
+                            if source = "PRIMARY" then
+                                {firstHeaderRow[cells]{i}, colIndex}
+                            else
+                                null
+                )
+            ),
+            initialHeaderList = List.Combine(
+                List.Transform(
+                    List.Positions(firstHeaderRow[cells]),
+                    (i) =>
+                        let
+                            colspan = Record.FieldOrDefault(
+                                Record.Field(firstHeaderRow[headerCellDetails], Text.From(i)), "colspan", 1
+                            ),
+                            source = Record.Field(firstHeaderRow[headerCellDetails], Text.From(i))[source]
+                        in
+                            if source = "HEADERS" then
+                                List.Repeat({firstHeaderRow[cells]{i}}, colspan)
+                            else
+                                {}
+                )
+            ),
+            remainingHeaderRows = List.RemoveFirstN(rows),
+            remainingHeaderList = List.Transform(
+                remainingHeaderRows,
+                (row) =>
+                    List.Combine(
+                        List.Transform(
+                            List.Positions(row[cells]),
+                            (i) =>
+                                let
+                                    colspan = Record.FieldOrDefault(
+                                        Record.Field(row[headerCellDetails], Text.From(i)), "colspan", 1
+                                    ),
+                                    source = Record.Field(row[headerCellDetails], Text.From(i))[source]
+                                in
+                                    if source = "HEADERS" then
+                                        List.Repeat({row[cells]{i}}, colspan)
+                                    else
+                                        {}
+                        )
+                    )
+            )
+        in
+            {primaryHeaderList, List.Combine({{initialHeaderList}, remainingHeaderList})},
+    AddTableMetadataColumns = (inputTable as table, tableMetadata as record) as table =>
+        let
+            GetMetadataValue = (property as text) as any =>
+                Record.Field(Record.Field(tableMetadata, property), "value"),
+            finalTable = List.Accumulate(
+                Record.FieldNames(tableMetadata),
+                inputTable,
+                (t, metaProp) => Table.AddColumn(t, metaProp, each GetMetadataValue(metaProp))
+            )
+        in
+            finalTable
+in
+    [
+        StachV2RowOrganizedTable = StachV2RowOrganizedTable,
+        StachV2ColumnOrganizedTable = StachV2ColumnOrganizedTable
+    ]

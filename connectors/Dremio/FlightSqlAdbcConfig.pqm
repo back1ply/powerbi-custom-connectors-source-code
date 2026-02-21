@@ -1,0 +1,56 @@
+[
+    FlightSqlAdbcConfig = [
+        Name = "FlightSqlAdbcDremio",
+        Folder = "FlightSQL",
+        File = "libadbc_driver_flightsql.dll",
+        DriverType = "Unmanaged",
+        EntryPoint = "FlightSqlDriverInit",
+        IdentifierQuoteChar = """",
+        CatalogNameSeparator = ".",
+        TableTypes = "TABLE, VIEW, SYSTEM_TABLE",
+        SupportsCatalog = false,
+        SupportedConnectionOptions = [
+            adbc.connection.catalog = false,
+            adbc.connection.db_schema = false
+        ],
+        TypeInfo = #table (
+            {"Name", "SqlType", "Unsigned", "ColumnSize", "NumberPrecisionRadix", "LiteralPrefix", "LiteralSuffix"}, 
+            {
+                {"ANY", 12, false, 2147483647, null, "'", "'"},
+                {"ARRAY", 12, false, 2147483647, null, "'", "'"},
+                {"BIGINT", -5, false, 19, 2, null, null},
+                {"BINARY", -2, false, 2147483647, null, null, null},
+                {"BINARY VARYING", -3, false, 2147483647, null, null, null},
+                {"BIT", -7, false, 1, null, null, null},
+                {"BOOLEAN", -7, false, 1, null, null, null},
+                {"CHAR", 1, false, 2147483647, null, "'", "'"},
+                {"CHARACTER", 1, false, 2147483647, null, "'", "'"},
+                {"CHARACTER VARYING", 12, false, 2147483647, null, "'", "'"},
+                {"DATE", 91, false, 10, null, null, null},
+                {"DECIMAL", 3, false, 38, 10, null, null},
+                {"DOUBLE", 8, false, 53, 2, null, null},
+                {"FLOAT", 7, false, 24, 2, null, null},
+                {"INTEGER", 4, false, 10, 2, null, null},
+                {"INTERVAL", 110, false, 18, null, null, null},
+                {"INTERVAL DAY TO SECOND", 110, false, 18, null, null, null},
+                {"INTERVAL YEAR TO MONTH", 107, false, 5, null, null, null},
+                {"MAP", 12, false, 2147483647, null, "'", "'"},
+                {"NATIONAL CHARACTER", -8, false, 2147483647, null, "'", "'"},
+                {"NATIONAL CHARACTER VARYING", -9, false, 2147483647, null, "'", "'"},
+                {"NULL", 12, false, 2147483647, null, "'", "'"},
+                {"REAL", 7, false, 24, 2, null, null},
+                {"SMALLINT", 5, false, 5, 2, null, null},
+                {"TIME", 92, false, 12, null, null, null},
+                {"TIME WITH TIME ZONE", 93, false, 23, null, null, null},
+                {"TIMESTAMP", 93, false, 23, null, null, null},
+                {"TIMESTAMP WITH TIME ZONE", 93, false, 23, null, null, null},
+                {"TINYINT", -6, false, 3, 2, null, null},
+                {"UNION", 12, false, 2147483647, null, "'", "'"},
+                {"VARBINARY", -3, false, 2147483647, null, null, null},
+                {"VARCHAR", 12, false, 2147483647, null, "'", "'"},
+                {"WCHAR", -8, false, 2147483647, null, "'", "'"},
+                {"WVARCHAR", -9, false, 2147483647, null, "'", "'"}
+            }
+        )
+    ]
+]
