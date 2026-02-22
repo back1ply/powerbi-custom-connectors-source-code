@@ -48,7 +48,14 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)       # Using Value.WaitFor to handle Rate Limiting (429s)
 │       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md) # Enforcing types with Table.ChangeType
 │       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md) # Avoiding Scheduled Refresh errors using RelativePath
-│       └── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md) # Tracing errors with Diagnostics.pqm
+│       ├── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md) # Tracing errors with Diagnostics.pqm
+│       ├── [multiple_environments_pattern.md](docs/patterns/multiple_environments_pattern.md) # Sandbox/Prod dropdowns with AllowedValues
+│       ├── [test_connection_pattern.md](docs/patterns/test_connection_pattern.md)       # Enabling Scheduled Refresh on the Gateway
+│       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)     # Translating M to SQL for DirectQuery using AstVisitor
+│       ├── [cursor_pagination_pattern.md](docs/patterns/cursor_pagination_pattern.md)   # Paginating without URLs using Limit/Offset
+│       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)         # Global User-Agent and nested generic headers
+│       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)         # Catching HTTP 400s using ManualStatusHandling
+│       └── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
