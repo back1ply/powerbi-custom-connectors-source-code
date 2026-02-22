@@ -62,7 +62,13 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md) # Bypassing Formula.Firewall with RelativePath
 │       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)       # O(1) Schema Enforcement with Value.ReplaceType
 │       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)             # Structured Exception Handling with Error.Record
-│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md) # Building custom REST API Query Folding engines (Table.View)
+│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md) # Building custom REST API Query Folding engines
+│       ### 🔐 Authentication flows
+│       ├── [oauth2_authorization_code_pattern.md](docs/patterns/oauth2_authorization_code_pattern.md) # Standard OAuth2 3-legged flow
+│       ├── [oauth2_client_credentials_pattern.md](docs/patterns/oauth2_client_credentials_pattern.md) # System-to-system automated OAuth2 flow
+│       ├── [oauth2_token_refresh_pattern.md](docs/patterns/oauth2_token_refresh_pattern.md) # Automatic access_token regeneration natively in M
+│       ├── [api_key_auth_pattern.md](docs/patterns/api_key_auth_pattern.md)               # Key-based auth with Extension.CurrentCredential()
+│       ├── [basic_auth_pattern.md](docs/patterns/basic_auth_pattern.md)                   # Base64-encoded Username:Password
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
 │       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
 │       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)               # Handling POST GraphQL queries and variables
