@@ -60,6 +60,8 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
 │       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
 │       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md) # Bypassing Formula.Firewall with RelativePath
+│       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)       # O(1) Schema Enforcement with Value.ReplaceType
+│       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)             # Structured Exception Handling with Error.Record
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
 │       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
 │       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)               # Handling POST GraphQL queries and variables
