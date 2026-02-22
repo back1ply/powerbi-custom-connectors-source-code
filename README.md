@@ -55,7 +55,9 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [cursor_pagination_pattern.md](docs/patterns/cursor_pagination_pattern.md)   # Paginating without URLs using Limit/Offset
 │       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)         # Global User-Agent and nested generic headers
 │       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)         # Catching HTTP 400s using ManualStatusHandling
-│       └── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
+│       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
+│       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)         # Power Query Flighting A/B testing (Environment.FeatureSwitch)
+│       └── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
