@@ -72,8 +72,10 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md) # Generating API Headers with Crypto.CreateHmac
-│       ├── [binary_decompression_pattern.md](docs/patterns/binary_decompression_pattern.md) # Extracting GZIP/.gz files using Binary.Decompress
+│       ├── [table_navigation_metadata_pattern.md](docs/patterns/table_navigation_metadata_pattern.md) # Exposing data in the Get Data folder UI
+│       ├── [navigation_table_simple_pattern.md](docs/patterns/navigation_table_simple_pattern.md) # Building Navigation Tables using the Type.AddTableKey helper
 │       ├── [json_ndjson_parsing_pattern.md](docs/patterns/json_ndjson_parsing_pattern.md) # Parsing streaming payload lines with Lines.FromBinary
+│       ├── [json_xml_parsing_pattern.md](docs/patterns/json_xml_parsing_pattern.md)       # Parsing JSON and XML REST API responses
 │       └── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)     # Writing data to an API using Action.Sequence and Action.Return
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
