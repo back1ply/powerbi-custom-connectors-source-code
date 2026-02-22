@@ -60,6 +60,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
 │       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
 │       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md) # Bypassing Formula.Firewall with RelativePath
+│       ├── [embedded_static_assets_pattern.md](docs/patterns/embedded_static_assets_pattern.md) # Bundling Extension.Contents(.json) into .mez files
 │       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)       # O(1) Schema Enforcement with Value.ReplaceType
 │       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)             # Structured Exception Handling with Error.Record
 │       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md) # Building custom REST API Query Folding engines
@@ -73,9 +74,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
 │       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)               # Handling POST GraphQL queries and variables
 │       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
-│       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
 │       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md) # Passing raw SQL queries with Value.NativeQuery
-│       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md) # Generating API Headers with Crypto.CreateHmac
 │       ├── [table_navigation_metadata_pattern.md](docs/patterns/table_navigation_metadata_pattern.md) # Exposing data in the Get Data folder UI
