@@ -57,7 +57,10 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)         # Catching HTTP 400s using ManualStatusHandling
 │       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
 │       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)         # Power Query Flighting A/B testing (Environment.FeatureSwitch)
-│       └── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
+│       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
+│       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
+│       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
+│       └── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
