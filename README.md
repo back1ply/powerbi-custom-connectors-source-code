@@ -66,8 +66,11 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
 │       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md) # Passing raw SQL queries with Value.NativeQuery
 │       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
+│       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md) # Generating API Headers with Crypto.CreateHmac
-│       └── [binary_decompression_pattern.md](docs/patterns/binary_decompression_pattern.md) # Extracting GZIP/.gz files using Binary.Decompress
+│       ├── [binary_decompression_pattern.md](docs/patterns/binary_decompression_pattern.md) # Extracting GZIP/.gz files using Binary.Decompress
+│       ├── [json_ndjson_parsing_pattern.md](docs/patterns/json_ndjson_parsing_pattern.md) # Parsing streaming payload lines with Lines.FromBinary
+│       └── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)     # Writing data to an API using Action.Sequence and Action.Return
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
