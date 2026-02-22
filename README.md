@@ -62,7 +62,9 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
 │       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
 │       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)               # Handling POST GraphQL queries and variables
-│       └── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
+│       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
+│       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md) # Passing raw SQL queries with Value.NativeQuery
+│       └── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
