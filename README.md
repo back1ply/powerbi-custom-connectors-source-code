@@ -44,6 +44,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │   │
 │   └── patterns/
 │       ├── [pagination_pattern.md](docs/patterns/pagination_pattern.md)         # How to handle API pagination using List.Generate
+│       ├── [table_generatebypage_pattern.md](docs/patterns/table_generatebypage_pattern.md) # The ultimate pagination boilerplate (wrapping List.Generate)
 │       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md) # Building nested folder UIs in Get Data
 │       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)       # Using Value.WaitFor to handle Rate Limiting (429s)
 │       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md) # Enforcing types with Table.ChangeType
