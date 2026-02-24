@@ -66,6 +66,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)       # O(1) Schema Enforcement with Value.ReplaceType
 │       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)             # Structured Exception Handling with Error.Record
 │       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md) # Building custom REST API Query Folding engines
+│       ├── [table_view_folding_handlers_pattern.md](docs/patterns/table_view_folding_handlers_pattern.md) # Implementing OnSkip/OnTake handlers for Web.Contents
 │       ### 🔐 Authentication flows
 │       ├── [oauth2_authorization_code_pattern.md](docs/patterns/oauth2_authorization_code_pattern.md) # Standard OAuth2 3-legged flow
 │       ├── [oauth2_client_credentials_pattern.md](docs/patterns/oauth2_client_credentials_pattern.md) # System-to-system automated OAuth2 flow
