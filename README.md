@@ -57,6 +57,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)         # Global User-Agent and nested generic headers
 │       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)         # Catching HTTP 400s using ManualStatusHandling
 │       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
+│       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)             # Bundling .resx files to translate UI strings globally
 │       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)         # Power Query Flighting A/B testing (Environment.FeatureSwitch)
 │       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
 │       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
