@@ -70,6 +70,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [oauth2_authorization_code_pattern.md](docs/patterns/oauth2_authorization_code_pattern.md) # Standard OAuth2 3-legged flow
 │       ├── [oauth2_client_credentials_pattern.md](docs/patterns/oauth2_client_credentials_pattern.md) # System-to-system automated OAuth2 flow
 │       ├── [oauth2_token_refresh_pattern.md](docs/patterns/oauth2_token_refresh_pattern.md) # Automatic access_token regeneration natively in M
+│       ├── [oauth2_pkce_pattern.md](docs/patterns/oauth2_pkce_pattern.md)               # Proof Key for Code Exchange cryptography
 │       ├── [api_key_auth_pattern.md](docs/patterns/api_key_auth_pattern.md)               # Key-based auth with Extension.CurrentCredential()
 │       ├── [basic_auth_pattern.md](docs/patterns/basic_auth_pattern.md)                   # Base64-encoded Username:Password
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
