@@ -60,6 +60,7 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)             # Bundling .resx files to translate UI strings globally
 │       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)         # Power Query Flighting A/B testing (Environment.FeatureSwitch)
 │       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
+│       ├── [web_contents_isretry_pattern.md](docs/patterns/web_contents_isretry_pattern.md) # Bypassing the Web.Contents internal cache
 │       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
 │       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md) # Bypassing Formula.Firewall with RelativePath
 │       ├── [embedded_static_assets_pattern.md](docs/patterns/embedded_static_assets_pattern.md) # Bundling Extension.Contents(.json) into .mez files
