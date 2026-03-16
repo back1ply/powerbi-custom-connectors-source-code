@@ -23,7 +23,7 @@ MyDataSource = [
 
 ## How to use the extracted API Key
 
-Unlike OAuth2, the Power Query engine *does not always know* where to inject the API Key (since APIs differ wildly—some want it in the `Authorization` header, others want a custom header like `x-api-key`, and some want it as a URL query parameter `?api_key=XYZ`).
+Unlike OAuth2, the Power Query engine _does not always know_ where to inject the API Key (since APIs differ wildly—some want it in the `Authorization` header, others want a custom header like `x-api-key`, and some want it as a URL query parameter `?api_key=XYZ`).
 
 You must extract the key using `Extension.CurrentCredential()[Key]` and manually insert it into your `Web.Contents` call.
 
@@ -35,27 +35,27 @@ GetApiData = (url as text) =>
     let
         // Securely fetch the API key the user entered
         apiKey = Extension.CurrentCredential()[Key],
-        
+
         // Define your Headers. This example simulates a Bearer Token or Custom Header
         headers = [
             #"Authorization" = "Bearer " & apiKey,
             // OR if your API uses a custom header:
             // #"x-api-key" = apiKey,
-            
+
             #"Accept" = "application/json"
         ],
-        
+
         // Make the authenticated request
         Source = Web.Contents(url, [
             Headers = headers,
-            ManualStatusHandling = {401, 403}    
+            ManualStatusHandling = {401, 403}
         ]),
-        
+
         Json = Json.Document(Source)
     in
         Json;
-        
-// 2. Your actual connector entry point 
+
+// 2. Your actual connector entry point
 [DataSource.Kind="MyDataSource", Publish="MyDataSource.Publish"]
 shared MyDataSource.Contents = () =>
     let
@@ -76,4 +76,5 @@ MyDataSource = [
 ```
 
 ## Pro Tip from the Certified Connectors
+
 If your API expects the key exactly as a query string parameter (e.g., `https://api.yourservice.com/data?api_key=XYZ`), setting `KeyName = "api_key"` inside the Authentication record will automatically append it to the URL in some contexts, though manually injecting it provides safer error handling.

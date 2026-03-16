@@ -26,12 +26,12 @@ Value.WaitFor = (producer as function, interval as function, optional count as n
 
 // Returns the duration of time to wait before retrying a request.
 // It implements an exponential backoff formula: 2^iteration + Jitter
-ExponentialBackoff = (iteration as number) as duration => 
-    let 
+ExponentialBackoff = (iteration as number) as duration =>
+    let
         baseDelay = Number.Power(2, iteration),
-        delay = 
+        delay =
             // No delay for the first iteration (0th attempt)
-            if iteration = 0 then 0 
+            if iteration = 0 then 0
             else Number.RoundDown(baseDelay + 1 + Number.RandomBetween(-baseDelay/2, baseDelay/2))
     in
         #duration(0, 0, 0, delay);
@@ -39,7 +39,7 @@ ExponentialBackoff = (iteration as number) as duration =>
 
 ## Implementation
 
-To use this pattern, you must use the `ManualStatusHandling` feature of `Web.Contents`. 
+To use this pattern, you must use the `ManualStatusHandling` feature of `Web.Contents`.
 By passing a list of HTTP Error codes to `ManualStatusHandling`, you instruct the Power Query engine **not** to throw a hard error. Instead, it will gracefully return the raw HTTP Response object, allowing your M code to inspect the `Response.Status` metadata and decide whether to retry.
 
 In this example, we wrap our entire `Web.Contents` call inside `Value.WaitFor`.
@@ -50,37 +50,37 @@ shared MyConnector.SafeApiCall = (url as text) =>
         // 1. Define the maximum number of attempts and the status codes we want to intercept
         maxAttempts = 5,
         manuallyHandledStatusCodes = {408, 429, 500, 502, 503, 504, 509},
-        
+
         // 2. Wrap the API logic inside Value.WaitFor
-        result = 
+        result =
             Value.WaitFor(
                 (iteration) =>
                     let
                         // Execute the request. ManualStatusHandling prevents hard crashes on HTTP 500s.
                         response = Web.Contents(url, [ ManualStatusHandling = manuallyHandledStatusCodes ]),
-                        
+
                         // Extract the HTTP status code from the response metadata
                         status = Value.Metadata(response)[Response.Status],
-                        
+
                         // Evaluate the result
-                        actualResult = 
+                        actualResult =
                             if List.Contains(manuallyHandledStatusCodes, status) then
                                 // If we hit a handled error, check if we have attempts remaining
                                 if (iteration + 1) < maxAttempts then
-                                    // Log a warning and RETURN NULL. 
+                                    // Log a warning and RETURN NULL.
                                     // Returning null tells Value.WaitFor to trigger the ExponentialBackoff and loop again.
                                     Diagnostics.Trace(TraceLevel.Warning, "Attempt " & Text.From(iteration + 1) & " failed with " & Text.From(status) & ". Retrying...", null)
-                                else 
+                                else
                                     // We are out of attempts. Return completely null (or throw a hard error).
                                     Diagnostics.Trace(TraceLevel.Error, "All " & Text.From(maxAttempts) & " attempts failed for URL: " & url, null)
-                            else 
+                            else
                                 // Success! Return the JSON payload. Returning a non-null value breaks the Value.WaitFor loop immediately.
                                 Json.Document(response)
                     in
-                        actualResult, 
-                
+                        actualResult,
+
                 // 3. Pass the interval logic and maximum count to the Value.WaitFor wrapper
-                ExponentialBackoff, 
+                ExponentialBackoff,
                 maxAttempts
             )
     in

@@ -1,11 +1,12 @@
 # Power Query Patterns: Handling Multiple Environments
 
 Enterprise APIs frequently offer multiple environments:
+
 - US Data Center vs EU Data Center
 - Production vs Sandbox/Staging
 - V1 vs V2 APIs
 
-While you *could* ask the user to manually type "api.sandbox.com" into a free-text box, providing a locked dropdown menu provides a significantly better user experience and prevents typos from breaking the connection.
+While you _could_ ask the user to manually type "api.sandbox.com" into a free-text box, providing a locked dropdown menu provides a significantly better user experience and prevents typos from breaking the connection.
 
 ## The `Documentation.AllowedValues` Pattern
 
@@ -51,7 +52,7 @@ MyConnectorImpl = (Environment as text) =>
     let
         // 1. Look up the Base URL based on the drop-down selection
         baseUrl = Record.Field(EnvironmentMap, Environment),
-        
+
         // 2. Make the call using the selected Base URL
         source = Web.Contents(baseUrl, [RelativePath="users"]),
         json = Json.Document(source),
@@ -69,7 +70,7 @@ StartLogin = (resourceUrl, state, display) =>
     let
         // Access what the user selected in the dropdown
         selectedEnv = Extension.CurrentCredential()[Properties][Environment]?,
-        
+
         // Look up the matching Auth URL
         authUrl = if selectedEnv = "Sandbox" then "https://auth.sandbox.com" else "https://auth.production.com"
     in

@@ -4,11 +4,11 @@ While `OAuth` and `Key` are the most secure and modern methods, many enterprise 
 
 ## The Boilerplate Templates
 
-Below are the boilerplate structures used by Microsoft-certified connectors for these three authentication flows. 
+Below are the boilerplate structures used by Microsoft-certified connectors for these three authentication flows.
 
 ### 1. Basic Auth (`UsernamePassword`)
 
-When you define `UsernamePassword` in your Authentication record, Power BI will prompt the user for a username and password. 
+When you define `UsernamePassword` in your Authentication record, Power BI will prompt the user for a username and password.
 
 ```powerquery
 // How to define it:
@@ -30,19 +30,19 @@ GetApiData = (url as text) =>
         cred = Extension.CurrentCredential(),
         username = cred[Username],
         password = cred[Password],
-        
+
         // Basic auth requires the base64 encoding of "username:password"
         base64Auth = Binary.ToText(Text.ToBinary(username & ":" & password), BinaryEncoding.Base64),
-        
+
         // Define your Headers
         headers = [
             #"Authorization" = "Basic " & base64Auth,
             #"Accept" = "application/json"
         ],
-        
+
         // Make the authenticated request
         Source = Web.Contents(url, [
-            Headers = headers    
+            Headers = headers
         ])
     in
         Source;
@@ -73,7 +73,7 @@ GetApiData = (url as text) =>
         Source;
 ```
 
-### 3. Anonymous / Implicit 
+### 3. Anonymous / Implicit
 
 If the API requires no authentication at all (or if you are explicitly handling a custom web handshake that bypasses Power BI's built-in credential manager).
 

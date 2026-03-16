@@ -1,11 +1,11 @@
 # Power Query Patterns: Parsing NDJSON (Newline Delimited JSON)
 
-Most modern REST APIs return data as a single, well-formed JSON object or a JSON array. 
+Most modern REST APIs return data as a single, well-formed JSON object or a JSON array.
 For example: `[ {"id": 1, "name": "Apples"}, {"id": 2, "name": "Oranges"} ]`
 
 Power Query parses this effortlessly using `Json.Document(response)`.
 
-However, some high-volume streaming APIs, data lake export formats, and specialized protocols (like Databricks Delta Sharing) return data in **NDJSON (Newline Delimited JSON)** or **JSONL (JSON Lines)** format. 
+However, some high-volume streaming APIs, data lake export formats, and specialized protocols (like Databricks Delta Sharing) return data in **NDJSON (Newline Delimited JSON)** or **JSONL (JSON Lines)** format.
 
 In NDJSON, the data is not wrapped in a JSON array `[ ]`, and there are no commas `,` separating the objects. Instead, each individual JSON object is on its own line, separated only by a newline character `\n`:
 
@@ -19,7 +19,7 @@ If you pass an NDJSON payload into `Json.Document()`, Power Query will instantly
 
 ## The `Lines.FromBinary` NDJSON Pattern
 
-To parse NDJSON, you must first split the raw binary response into a List of text strings (one for each line), and *then* parse each string individually as its own JSON document.
+To parse NDJSON, you must first split the raw binary response into a List of text strings (one for each line), and _then_ parse each string individually as its own JSON document.
 
 ### Implementation
 
@@ -30,16 +30,16 @@ shared MyConnector.GetNDJSONData = () =>
     let
         // 1. Fetch the raw payload, but DO NOT call Json.Document yet
         rawBinary = Web.Contents("https://api.mycompany.com/v1/stream/orders"),
-        
+
         // 2. Split the binary stream by newline characters (\n or \r\n) into a List of Text strings
         listOfTextLines = Lines.FromBinary(rawBinary),
-        
+
         // 3. Remove any empty lines (common at the end of streaming responses)
         nonEmptyLines = List.Select(listOfTextLines, each _ <> ""),
-        
+
         // 4. Parse each individual line as its own JSON document
         listOfJsonRecords = List.Transform(nonEmptyLines, each Json.Document(_)),
-        
+
         // 5. Convert the resulting List of Records into an M Table
         finalTable = Table.FromRecords(listOfJsonRecords)
     in
@@ -54,7 +54,7 @@ shared MyConnector.GetNDJSONData = () =>
 ```powerquery
         // Resilient parsing: drops corrupt lines instead of crashing the query
         listOfJsonRecords = List.Transform(
-            nonEmptyLines, 
+            nonEmptyLines,
             each try Json.Document(_) otherwise null
         ),
         cleanRecords = List.RemoveNulls(listOfJsonRecords),

@@ -9,11 +9,12 @@ We still use `Table.GenerateByPage`, but instead of storing a URL in the previou
 ## The Offset Pagination Pattern
 
 ### 1. Requirements
+
 You still need the `Table.GenerateByPage.pqm` helper file (provided in the basic Pagination pattern).
 
 ### 2. Implementation
 
-Notice how the `nextOffset` is calculated based on the *previous* offset plus the fixed limit.
+Notice how the `nextOffset` is calculated based on the _previous_ offset plus the fixed limit.
 
 ```powerquery
 // Define your standard page size
@@ -25,7 +26,7 @@ GetAllPagesWithOffset = (baseUrl as text) as table =>
             let
                 // 1. Calculate the new offset based on the previous page's metadata
                 currentOffset = if (previous = null) then 0 else Value.Metadata(previous)[NextOffset]?,
-                
+
                 // 2. Fetch the data using RelativePath and Query (to avoid Dynamic Data Source errors)
                 source = Web.Contents(baseUrl, [
                     RelativePath = "api/v1/records",
@@ -36,10 +37,10 @@ GetAllPagesWithOffset = (baseUrl as text) as table =>
                 ]),
                 json = Json.Document(source),
                 data = json[data]?, // Assuming the array is inside a "data" property
-                
+
                 // 3. Convert the list of records to a table
-                table = if (data = null or List.IsEmpty(data)) 
-                        then Table.FromRows({}) 
+                table = if (data = null or List.IsEmpty(data))
+                        then Table.FromRows({})
                         else Table.FromRecords(data),
 
                 // 4. Determine if we need to fetch another page
@@ -68,6 +69,7 @@ shared MyConnector.Contents = () =>
 ```
 
 ### Cursor Pagination Alternative
+
 If the API uses a "Cursor" instead of an offset number (e.g., `?cursor=abc123xyz`), the logic is identical.
 
 Instead of math (`currentOffset + Limit`), you just extract the cursor from the JSON response and attach it to the metadata `table meta [ NextCursor = json[paging][cursor]? ]`. The next iteration reads it `Value.Metadata(previous)[NextCursor]` and passes it to `Web.Contents`.

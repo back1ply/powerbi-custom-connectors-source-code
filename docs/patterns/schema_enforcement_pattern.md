@@ -1,6 +1,6 @@
 # Power Query Patterns: Schema & Type Enforcement
 
-APIs return JSON, which has limited primitive types (mostly strings, booleans, and floats). When imported into Power BI, `Json.Document` usually leaves these columns typed as `Any`. 
+APIs return JSON, which has limited primitive types (mostly strings, booleans, and floats). When imported into Power BI, `Json.Document` usually leaves these columns typed as `Any`.
 
 If a user expects a column named `created_at` to behave as a `DateTime` type or `revenue` as `Currency`, leaving them as `Any` ruins the Power BI modeling experience. However, manually hardcoding `Table.TransformColumnTypes` for every single API endpoint is tedious and difficult to maintain.
 
@@ -31,7 +31,7 @@ InvoiceSchema = type table [
 
 ### 2. Include the `Table.ChangeType` Helper Function
 
-*Note: This is an exact extraction from Microsoft's Zendesk/WorkplaceAnalytics connectors.*
+_Note: This is an exact extraction from Microsoft's Zendesk/WorkplaceAnalytics connectors._
 
 ```powerquery
 // Save this at the bottom of your file or in a separate Utils.pqm file.
@@ -51,16 +51,16 @@ Table.ChangeType = (table, tableType as type) as nullable table =>
         reordered = Table.SelectColumns(_table, schema[Name], MissingField.UseNull),
 
         // Process primitive values
-        map = (t) => if Type.Is(t, type table) or Type.Is(t, type list) or Type.Is(t, type record) or t = type any then null else t,        
+        map = (t) => if Type.Is(t, type table) or Type.Is(t, type list) or Type.Is(t, type record) or t = type any then null else t,
         mapped = Table.TransformColumns(schema, {"Type", map}),
         omitted = Table.SelectRows(mapped, each [Type] <> null),
         existingColumns = Table.ColumnNames(reordered),
         removeMissing = Table.SelectRows(omitted, each List.Contains(existingColumns, [Name])),
         primitiveTransforms = Table.ToRows(removeMissing),
-        
+
         // This line dynamically applies the correct data type casting based on the schema
         changedPrimitives = Table.TransformColumnTypes(reordered, primitiveTransforms),
-    
+
         // Set the final table type signature
         withType = Value.ReplaceType(changedPrimitives, tableType)
     in
@@ -77,8 +77,8 @@ GetUserTable = () =>
         Source = Web.Contents("https://api.example.com/users"),
         Json = Json.Document(Source),
         // Json[data] is untyped
-        RawTable = Table.FromRecords(Json[data]), 
-        
+        RawTable = Table.FromRecords(Json[data]),
+
         // Magic happens here. All columns are instantly cast to Int64, DateTime, Currency, etc.
         TypedTable = Table.ChangeType(RawTable, UserSchema)
     in

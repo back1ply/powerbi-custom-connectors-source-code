@@ -17,14 +17,14 @@ Table.GenerateByPage = (getNextPage as function) as table =>
         listOfPages = List.Generate(
             // 1. Get the first page of data (pass null as the previous state)
             () => getNextPage(null),
-            
+
             // 2. Condition to keep looping (stop when the function returns null)
             (lastPage) => lastPage <> null,
-            
+
             // 3. Get the next page (pass the previous page's metadata to the next call)
             (lastPage) => getNextPage(lastPage)
         ),
-        
+
         // Concatenate the list of tables into a single table
         tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
         firstRow = tableOfPages{0}?
@@ -52,11 +52,11 @@ GetPage = (url as text) as table =>
     let
         response = Web.Contents(url),
         body = Json.Document(response),
-        
+
         // 1. Extract the data array
         dataArray = body[data],
         dataTable = Table.FromRecords(dataArray),
-        
+
         // 2. Extract the pagination cursors (Modify this based on your API's JSON structure)
         nextLink = try body[links][next] otherwise null,
         hasMore = if nextLink <> null then true else false
@@ -71,14 +71,14 @@ GetAllPages = (initialUrl as text) as table =>
             let
                 // If previous is null, this is the very first request
                 nextLink = if (previous = null) then initialUrl else Value.Metadata(previous)[NextLink]?,
-                
-                // If previous is null, we definitely have more data (first run). 
+
+                // If previous is null, we definitely have more data (first run).
                 hasMore = if (previous = null) then true else Value.Metadata(previous)[HasMore]?,
-                
+
                 // If we have more data, fetch the NextLink. Otherwise, return null to break the List.Generate loop.
-                page = if (hasMore = true and nextLink <> null) then 
-                           GetPage(nextLink) 
-                       else 
+                page = if (hasMore = true and nextLink <> null) then
+                           GetPage(nextLink)
+                       else
                            null
             in
                 page

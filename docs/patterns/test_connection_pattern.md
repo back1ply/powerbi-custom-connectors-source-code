@@ -7,10 +7,11 @@ If your connector does not implement the `TestConnection` property in the `[Data
 ## The `TestConnection` Property
 
 The `TestConnection` handler expects you to return a `list` containing:
+
 1. The name of the function to execute (as a text string)
 2. Any arguments to pass to that function
 
-The Gateway takes this list, executes the function with the arguments using the provided credentials, and if it returns *anything* without blowing up with an error, the connection is marked as "Successful".
+The Gateway takes this list, executes the function with the arguments using the provided credentials, and if it returns _anything_ without blowing up with an error, the connection is marked as "Successful".
 
 ### Standard Implementation
 
@@ -30,7 +31,7 @@ shared MyConnector.Contents = (url as text) =>
 MyConnector = [
     // This tells the Gateway: "Execute MyConnector.Contents(dataSourcePath) to test credentials"
     TestConnection = (dataSourcePath) => { "MyConnector.Contents", dataSourcePath },
-    
+
     Authentication = [
         Key = []
     ],
@@ -40,7 +41,7 @@ MyConnector = [
 
 ### Advanced Implementation (Fast Ping)
 
-If your main `MyConnector.Contents` function pulls down 10GB of data, you *do not* want the Gateway doing that just to test a password. In that case, you define a hidden "ping" function specifically for testing.
+If your main `MyConnector.Contents` function pulls down 10GB of data, you _do not_ want the Gateway doing that just to test a password. In that case, you define a hidden "ping" function specifically for testing.
 
 ```powerquery
 // A fast, lightweight function just to verify credentials (e.g. fetching user profile)
@@ -54,7 +55,7 @@ MyConnector.Ping = (url as text) =>
 MyConnector = [
     // The gateway now executes MyConnector.Ping instead of pulling down the whole database
     TestConnection = (dataSourcePath) => { "MyConnector.Ping", dataSourcePath },
-    
+
     Authentication = [
         Key = []
     ]
@@ -69,7 +70,7 @@ If your connector takes multiple arguments (e.g., `Server` and `Database`), Powe
 shared Sql.Database = (server as text, database as text) => ...
 
 Sql = [
-    TestConnection = (dataSourcePath) => 
+    TestConnection = (dataSourcePath) =>
         let
             json = Json.Document(dataSourcePath),
             server = json[server],

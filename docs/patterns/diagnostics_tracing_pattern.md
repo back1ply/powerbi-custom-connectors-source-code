@@ -10,11 +10,12 @@ The native M function signature looks like this:
 `Diagnostics.Trace(traceLevel as number, message as text, value as any, optional delayed as nullable logical) as any`
 
 ### Trace Levels
-*   `TraceLevel.Critical` (0)
-*   `TraceLevel.Error` (1)
-*   `TraceLevel.Warning` (2)
-*   `TraceLevel.Information` (3)
-*   `TraceLevel.Verbose` (4)
+
+- `TraceLevel.Critical` (0)
+- `TraceLevel.Error` (1)
+- `TraceLevel.Warning` (2)
+- `TraceLevel.Information` (3)
+- `TraceLevel.Verbose` (4)
 
 ## The Standard Helper Wrapper
 
@@ -22,15 +23,15 @@ Because `Diagnostics.Trace` only accepts a text string for the message, it will 
 
 ### 1. Include the Helper
 
-*Save this as `Diagnostics.pqm` in your project folder.*
+_Save this as `Diagnostics.pqm` in your project folder._
 
 ```powerquery
 let
     // Main logging function
-    Diagnostics.LogValue = (prefix as text, value as any) => 
+    Diagnostics.LogValue = (prefix as text, value as any) =>
         Diagnostics.Trace(
-            TraceLevel.Information, 
-            prefix & ": " & (try Diagnostics.ValueToText(value) otherwise "<error getting value>"), 
+            TraceLevel.Information,
+            prefix & ": " & (try Diagnostics.ValueToText(value) otherwise "<error getting value>"),
             value
         ),
 
@@ -40,15 +41,15 @@ let
             Serialize.List = (x) => "{" & List.Accumulate(x, "", (seed,item) => if seed="" then Serialize(item) else seed & ", " & Serialize(item)) & "} ",
             Serialize.Record = (x) => "[ " & List.Accumulate(Record.FieldNames(x), "", (seed,item) => (if seed="" then item else seed & ", " & item) & " = " & Serialize(Record.Field(x, item))) & " ] ",
             Serialize.Table = (x) => "#table(..., " & Serialize(Table.ToRows(x)) & ") ",
-            Serialize = (x) as text => 
+            Serialize = (x) as text =>
                    if x is list         then try Serialize.List(x) otherwise "null"
                    else if x is record  then try Serialize.Record(x) otherwise "null"
                    else if x is table   then try Serialize.Table(x) otherwise "null"
-                   else try Text.From(x) otherwise "null"                     
+                   else try Text.From(x) otherwise "null"
         in
             try Serialize(value) otherwise "<serialization failed>"
 in
-    [ 
+    [
         LogValue = Diagnostics.LogValue,
         ValueToText = Diagnostics.ValueToText
     ]
@@ -84,5 +85,6 @@ in
 ```
 
 ### Where to find the logs?
+
 If a user turns on Diagnostics in Power BI Desktop (File > Options and Settings > Options > Diagnostics > Enable tracing), these logs will appear deeply nested in the zip folder at:
 `%localappdata%\Microsoft\Power BI Desktop\Traces`

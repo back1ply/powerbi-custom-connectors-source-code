@@ -8,7 +8,7 @@ When you pass the `options` record of a `Web.Contents` call into `Diagnostics.Tr
 
 ## The `Diagnostics.ValueToText` Sanitization Pattern
 
-To prevent credentials from leaking into log files, certified connectors intercept the options record and explicitly scrub sensitive keys *before* turning the record into text.
+To prevent credentials from leaking into log files, certified connectors intercept the options record and explicitly scrub sensitive keys _before_ turning the record into text.
 
 ### Implementation
 
@@ -26,21 +26,21 @@ ScrubCredentials = (target as any) as any =>
             "refresh_token",
             "password"
         },
-        
-        ProcessRecord = (rec as record) => 
+
+        ProcessRecord = (rec as record) =>
             let
                 fieldNames = Record.FieldNames(rec),
                 // Iterate over every field in the record
-                transformOptions = List.Transform(fieldNames, (fieldName) => 
+                transformOptions = List.Transform(fieldNames, (fieldName) =>
                     let
                         fieldValue = Record.Field(rec, fieldName),
                         // If the field name is in our deny-list, overwrite it
-                        sanitizedValue = if List.Contains(SensitiveKeys, fieldName) then 
-                            "*** OBFUSCATED ***" 
+                        sanitizedValue = if List.Contains(SensitiveKeys, fieldName) then
+                            "*** OBFUSCATED ***"
                         // If the field value is another nested record (like the Headers record), recurse
                         else if Type.Is(Value.Type(fieldValue), type record) then
                             @ScrubCredentials(fieldValue)
-                        else 
+                        else
                             fieldValue
                     in
                         {fieldName, sanitizedValue}
@@ -65,12 +65,12 @@ shared MyConnector.Contents = () =>
                 #"Accept" = "application/json"
             ]
         ],
-        
+
         // 1. Scrub the options record
         safeOptions = ScrubCredentials(options),
-        
+
         // 2. Log it safely (SafeOptions will have "*** OBFUSCATED ***" instead of the token)
-        _ = Diagnostics.Trace(TraceLevel.Information, "Making API Call", safeOptions, () => 
+        _ = Diagnostics.Trace(TraceLevel.Information, "Making API Call", safeOptions, () =>
             // 3. Make the actual network call using the original UN-SCRUBBED options
             Web.Contents("https://api.mycompany.com", options)
         )

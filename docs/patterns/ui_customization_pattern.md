@@ -22,15 +22,15 @@ MyConnector.Publish = [
     // 1. Beta Tag
     // Set to true to display the yellow (Beta) warning when users connect
     Beta = true,
-    
+
     // 2. Category
     // Where does your connector live? "Online Services", "Database", "Azure", "Other"
     Category = "Online Services",
-    
+
     // 3. Button Text
     // The text shown in the Get Data dialog. Array of { "Title", "Subtitle/Help Text" }
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    
+
     // 4. Custom Icons
     // A record containing the Base64 images for the 16x16, 20x20, 24x24, and 32x32 UI elements
     SourceImage = MyConnector.Icons,
@@ -51,4 +51,4 @@ MyConnector.Icons = [
 ];
 ```
 
-*Note: The `Icon16` actually takes four files (1x, 1.25x, 1.5x, 2x scaling) just for the 16px slot to handle high-DPI monitors. The same applies to `Icon32` taking the larger variants.*
+_Note: The `Icon16` actually takes four files (1x, 1.25x, 1.5x, 2x scaling) just for the 16px slot to handle high-DPI monitors. The same applies to `Icon32` taking the larger variants._

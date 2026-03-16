@@ -2,7 +2,7 @@
 
 When building a custom connector meant for the broader public (or even just for a global enterprise), hardcoding English strings into your UI metadata prevents international users from understanding how to use your tool.
 
-Microsoft requires all Certified Connectors to be fully localized into dozens of languages. 
+Microsoft requires all Certified Connectors to be fully localized into dozens of languages.
 
 To achieve this, the Power Query SDK supports bundling standard `.resx` XML Resource files directly inside the compiled `.mez` archive. You can then dynamically load these localized strings into your M code at runtime using the undocumented `Extension.LoadString()` function.
 
@@ -12,11 +12,12 @@ If you scan the extracted source code of the Microsoft repository, you will find
 
 ### 1. Bundling the `.resx` Resource Files
 
-Inside your Visual Studio project structure, you must create a folder named `resources`. Inside that folder, you create an XML `.resx` file for each supported language. 
+Inside your Visual Studio project structure, you must create a folder named `resources`. Inside that folder, you create an XML `.resx` file for each supported language.
 
 The default fallback language must be named `resources.resx`. Other languages use their ISO language codes (e.g., `resources.fr.resx`, `resources.de.resx`, `resources.ja.resx`).
 
 **Directory Structure:**
+
 ```text
 MyConnector/
 ├── MyConnector.pq
@@ -28,6 +29,7 @@ MyConnector/
 ```
 
 **`resources.resx` (Default/English)**
+
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <root>
@@ -41,6 +43,7 @@ MyConnector/
 ```
 
 **`resources.es.resx` (Spanish)**
+
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <root>
@@ -63,14 +66,14 @@ You apply this localization directly to the `type` metadata that defines your fu
 
 ```powerquery
 // 1. Define the localized parameters
-QueryFunctionType = 
+QueryFunctionType =
     let
         endpoint = (type text) meta [
             // Pull the localized "API Server Address" string for the UI Label
             Documentation.FieldCaption = Extension.LoadString("EndpointCaption"),
             Documentation.SampleValues = {"https://api.mycompany.com/v1"}
         ],
-        
+
         t = type function (endpointUrl as endpoint) as table
     in
         t meta [
@@ -105,6 +108,7 @@ MyConnector.Publish = [
 ```
 
 ### Why Use `Extension.LoadString`?
+
 1. **Certification Requirement**: Microsoft enforces UI localization for all official standard connectors.
 2. **Clean code**: Abstracting massive blocks of instructional text into a separate XML file makes your `.pq` logic file much easier to read and maintain.
 3. **Dynamic Context**: You do not have to write custom M logic to check the user's local culture info (e.g., `Culture.Current`); the Power Query Engine natively resolves the correct `.resx` file based on the environment automatically.

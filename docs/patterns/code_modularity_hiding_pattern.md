@@ -1,6 +1,6 @@
 # Power Query Patterns: Code Modularity & Hiding Proprietary Logic
 
-In a standard custom connector, all M code is placed within a single file (usually `Connector.pq`). 
+In a standard custom connector, all M code is placed within a single file (usually `Connector.pq`).
 
 When a user installs your connector (`.mez` or `.pqx` file) and connects to it in Power BI Desktop, they could right-click the queries, open the **Advanced Editor**, and see the M code that generated the query.
 
@@ -17,6 +17,7 @@ Because these helper files are evaluated entirely within the engine's background
 Instead of writing `Table.GenerateByPage` directly into `MyConnector.pq`, create a new file named `Table.GenerateByPage.pqm` in your project folder:
 
 **`Table.GenerateByPage.pqm`**:
+
 ```powerquery
 // Notice we don't need a "shared" or "section" declaration here.
 // This file just evaluates to a single function expression.
@@ -29,9 +30,9 @@ Instead of writing `Table.GenerateByPage` directly into `MyConnector.pq`, create
         ),
         tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"})
     in
-        if Table.IsEmpty(tableOfPages) then 
-            #table({"Column1"}, {}) 
-        else 
+        if Table.IsEmpty(tableOfPages) then
+            #table({"Column1"}, {})
+        else
             Table.ExpandTableColumn(tableOfPages, "Column1", Table.ColumnNames(tableOfPages{0}[Column1]))
 ```
 
@@ -40,6 +41,7 @@ Instead of writing `Table.GenerateByPage` directly into `MyConnector.pq`, create
 In your main `MyConnector.pq` file, use `Extension.Contents` to read the raw bytes of the module file from the zip archive, convert it to text, and execute it using `Expression.Evaluate`.
 
 **`MyConnector.pq`**:
+
 ```powerquery
 section MyConnector;
 
@@ -48,10 +50,10 @@ LoadHelper = (fileName as text) as any =>
     let
         // Read the binary file from the .mez/.pqx zip archive
         fileBinary = Extension.Contents(fileName),
-        
+
         // Convert the binary to an M-readable text string
         fileText = Text.FromBinary(fileBinary),
-        
+
         // Dynamically compile and execute the string using the global #shared context
         evaluatedExpression = Expression.Evaluate(fileText, #shared)
     in

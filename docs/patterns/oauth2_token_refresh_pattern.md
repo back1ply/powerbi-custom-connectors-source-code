@@ -1,8 +1,9 @@
 # Power Query Patterns: OAuth2 Token Refresh
 
 When a custom connector implements OAuth2, the API typically returns two tokens:
+
 1. `access_token`: Used to authenticate API requests. Usually expires in 1 hour.
-2. `refresh_token`: Used to get a *new* `access_token` when the original one expires. Usually lasts for 90 days.
+2. `refresh_token`: Used to get a _new_ `access_token` when the original one expires. Usually lasts for 90 days.
 
 If a developer does not implement a Token Refresh mechanism, users will have to manually re-enter their credentials into the Power BI "Edit Credentials" prompt every single hour.
 
@@ -20,7 +21,7 @@ MyConnector = [
         OAuth = [
             StartLogin = StartLogin,
             FinishLogin = FinishLogin,
-            
+
             // This is the critical handler
             Refresh = Refresh
         ]
@@ -37,18 +38,18 @@ Your `Refresh` function must take that token, execute an HTTP POST to the API's 
 
 ```powerquery
 // The engine automatically passes the resourceUrl and the user's saved refresh_token
-Refresh = (resourceUrl, refresh_token) => 
+Refresh = (resourceUrl, refresh_token) =>
     let
         // 1. Define the POST payload according to the OAuth2 specification
         TokenUrl = "https://api.mycompany.com/oauth2/token",
-        
+
         body = [
             grant_type = "refresh_token",
             refresh_token = refresh_token,
             client_id = "YOUR_CLIENT_ID",
             client_secret = "YOUR_CLIENT_SECRET" // Note: See pattern on retrieving Secrets securely
         ],
-        
+
         // 2. Execute the POST request
         Response = Web.Contents(TokenUrl, [
             Content = Text.ToBinary(Uri.BuildQueryString(body)),
@@ -57,7 +58,7 @@ Refresh = (resourceUrl, refresh_token) =>
                 #"Accept" = "application/json"
             ]
         ]),
-        
+
         // 3. Parse the JSON response
         Parts = Json.Document(Response)
     in
@@ -71,6 +72,6 @@ Refresh = (resourceUrl, refresh_token) =>
 
 Once your `Refresh` function successfully returns the new `access_token`, the M Engine permanently saves it to the user's credential vault.
 
-It then **automatically retries** the original `Web.Contents` call that threw the initial 401 error, injecting the new Access Token into the Authorization header. 
+It then **automatically retries** the original `Web.Contents` call that threw the initial 401 error, injecting the new Access Token into the Authorization header.
 
 This entire process is invisible to the user. Their scheduled refresh will simply pause for half a second while the token is rotated, and then successfully complete.

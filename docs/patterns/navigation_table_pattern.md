@@ -2,11 +2,11 @@
 
 By default, if you return a simple record of tables from your Power Query connector, Power BI will try to generate a basic navigation UI. However, to get a clean, deeply nested folder structure (like the ones used by enterprise databases or services like Databricks and Zendesk), you must build a custom Navigation Table using `Table.ToNavigationTable`.
 
-## The `Table.ToNavigationTable` Helper
+While understanding the underlying metadata (`Value.ReplaceType`, `Type.AddTableKey`) is important for architecture, it requires a lot of verbose boilerplate code. To speed up development, Microsoft engineers utilize a standardized helper function. This single function abstracts all the metadata manipulation away.
 
-Across the certified connectors, almost all use the exact same helper function to attach the necessary `NavigationTable.*` metadata to a standard table.
+## 1. The `Table.ToNavigationTable` Helper
 
-### 1. Define the Helper function 
+Across the certified connectors, almost all use the exact same helper function to attach the necessary `NavigationTable.*` metadata to a standard table. Paste this into your connector.
 
 ```powerquery
 Table.ToNavigationTable = (
@@ -32,9 +32,9 @@ Table.ToNavigationTable = (
         navigationTable;
 ```
 
-### 2. Boilerplate: Simple Flat Table Structure
+## 2. Flat Base Navigation Structure
 
-If you just have 3 or 4 endpoints (e.g., Users, Invoices, Products), you can construct a flat navigation table directly.
+To use the helper function, you first generate a standard Power Query table with the required columns, and then you pass it into the helper function.
 
 ```powerquery
 MyConnector.NavTable = () as table =>
@@ -42,26 +42,35 @@ MyConnector.NavTable = () as table =>
         // 1. Define the rows of your Navigation Tree
         source = #table(
             // Column Definitions
-            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}, 
+            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"},
             // Row Data
             {
-                { "Users",     "users",    GetApiData("https://api.example.com/users"),    "Table", "Table", true },
-                { "Invoices",  "invoices", GetApiData("https://api.example.com/invoices"), "Table", "Table", true },
-                { "Products",  "products", GetApiData("https://api.example.com/products"), "Table", "Table", true }
+                { "Users",      "users",      GetApiData("https://api.example.com/users"),      "Table", "Table", true },
+                { "Invoices",   "invoices",   GetApiData("https://api.example.com/invoices"),   "Table", "Table", true },
+                { "Get UserId", "get_userid", GetUserById,                                      "Function", "Function", true }
             }
         ),
-        
+
         // 2. Wrap it with the helper function
-        navTable = Table.ToNavigationTable(source, {"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
+        navTable = Table.ToNavigationTable(
+            source,
+            {"Key"},       // The column to use as the unique identifier
+            "Name",        // The column containing the display name
+            "Data",        // The column containing the actual Table/Function/Folder data
+            "ItemKind",    // "Table", "Folder", "Function", "Database"
+            "ItemName",    // "Table", "Folder", "Function", "Database"
+            "IsLeaf"       // true if it contains data, false if it's a folder
+        )
     in
         navTable;
 ```
 
-### 3. Boilerplate: Nested Folder Structure
+## 3. Nested Folder Structures
 
 If you have a complex API, you want to group tables into "Folders" which the user can expand in the Power BI UI.
 
 A "Folder" in Power Query is simply a row in a Navigation Table where:
+
 - `ItemKind` = `"Folder"`
 - `IsLeaf` = `false`
 - `Data` = Another Navigation Table!
@@ -71,7 +80,7 @@ MyConnector.NestedNavTable = () as table =>
     let
         // The sub-table that goes inside the "HR Data" folder
         hrFolderTable = #table(
-            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}, 
+            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"},
             {
                 { "Employees", "emp", GetApiData(".../employees"), "Table", "Table", true },
                 { "Timeoff",   "pto", GetApiData(".../timeoff"),   "Table", "Table", true }
@@ -81,7 +90,7 @@ MyConnector.NestedNavTable = () as table =>
 
         // The sub-table that goes inside the "Finance Data" folder
         financeFolderTable = #table(
-            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}, 
+            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"},
             {
                 { "Invoices",  "inv", GetApiData(".../invoices"), "Table", "Table", true }
             }
@@ -90,23 +99,25 @@ MyConnector.NestedNavTable = () as table =>
 
         // The Root Table (what the user sees first)
         rootTable = #table(
-            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}, 
+            {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"},
             {
                 { "Human Resources", "hr",  hrNav,      "Folder", "Folder", false }, // Note IsLeaf = false
                 { "Finance",         "fin", financeNav, "Folder", "Folder", false }
             }
         ),
-        
+
         finalNavTable = Table.ToNavigationTable(rootTable, {"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
     in
         finalNavTable;
 ```
 
 ### Supported `ItemKind` Values
+
 When defining the `ItemKind` column, Power BI uses this to determine what icon to show in the UI:
-* `"Table"` (Standard data table)
-* `"Folder"` (Expandable folder icon)
-* `"Database"` (Database server icon)
-* `"Function"` (Fx icon, useful for parameterized calls)
-* `"View"` (Database view icon)
-* `"Schema"` (Schema icon)
+
+- `"Table"` (Standard data table)
+- `"Folder"` (Expandable folder icon)
+- `"Database"` (Database server icon)
+- `"Function"` (Fx icon, useful for parameterized calls)
+- `"View"` (Database view icon)
+- `"Schema"` (Schema icon)

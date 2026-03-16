@@ -20,14 +20,14 @@ shared MyConnector.GetCompressedData = (fileUrl as text) =>
     let
         // 1. Download the raw `.gz` file bytes
         compressedBytes = Web.Contents(fileUrl),
-        
+
         // 2. Safely attempt to decompress the bytes
         decompressedBytes = try Binary.Decompress(compressedBytes, Compression.GZip) otherwise error "File is not a valid GZIP archive",
-        
+
         // 3. Convert the decompressed bytes into a Text document (assuming UTF-8)
         // If the file is Windows-1252 encoded, use 1252 instead of TextEncoding.Utf8
         rawTextString = Text.FromBinary(decompressedBytes, TextEncoding.Utf8),
-        
+
         // 4. Parse the text as a CSV
         csvTable = Csv.Document(rawTextString, [Delimiter=",", Encoding=TextEncoding.Utf8, QuoteStyle=QuoteStyle.Csv])
     in
@@ -46,16 +46,16 @@ shared MyConnector.DecodeJsonPayload = () =>
     let
         // 1. Get the JSON response
         json = Json.Document(Web.Contents("https://api.mycompany.com/logs/today")),
-        
+
         // 2. Extract the Base64 string
         base64String = json[log_payload_base64_gz],
-        
+
         // 3. Decode Base64 string to raw Binary
         compressedBytes = Binary.FromText(base64String, BinaryEncoding.Base64),
-        
+
         // 4. Decompress the Binary using GZIP (or Compression.Deflate depending on the API)
         decompressedBytes = Binary.Decompress(compressedBytes, Compression.GZip),
-        
+
         // 5. Read the resulting bytes as the actual final JSON data
         finalJson = Json.Document(decompressedBytes)
     in
@@ -63,7 +63,8 @@ shared MyConnector.DecodeJsonPayload = () =>
 ```
 
 ### Supported Compression Algorithms
-* `Compression.GZip` (Used for `.gz` files and standard Unix compression)
-* `Compression.Deflate` (Used mostly in older Windows implementations / Zlib)
+
+- `Compression.GZip` (Used for `.gz` files and standard Unix compression)
+- `Compression.Deflate` (Used mostly in older Windows implementations / Zlib)
 
 If you attempt to decompress a file that is not actually compressed, `Binary.Decompress` will throw a hard error. Always wrap the decompression step in `try ... otherwise` if the API source is unpredictable.

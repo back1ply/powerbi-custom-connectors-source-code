@@ -33,7 +33,7 @@ shared MyConnector.Contents = () =>
     let
         // Get the dynamic token
         token = Extension.CurrentCredential()[Key],
-        
+
         // Combine our Global Headers with our Request-Specific Headers
         mergedHeaders = Record.Combine({
             DefaultRequestHeaders,
@@ -52,16 +52,16 @@ shared MyConnector.Contents = () =>
 
 ### 3. Overriding Global Headers
 
-What if one specific API endpoint requires `Accept: text/csv` instead of `application/json`? `Record.Combine` processes items from left to right. If there are duplicate field names, the *right-most* one wins.
+What if one specific API endpoint requires `Accept: text/csv` instead of `application/json`? `Record.Combine` processes items from left to right. If there are duplicate field names, the _right-most_ one wins.
 
 ```powerquery
 let
     // Global:    Accept = application/json
     // Specific:  Accept = text/csv
-    
+
     mergedHeaders = Record.Combine({
         DefaultRequestHeaders,
-        [ 
+        [
             #"Authorization" = "Bearer " & token,
             #"Accept" = "text/csv" // This overrides the JSON default!
         ]

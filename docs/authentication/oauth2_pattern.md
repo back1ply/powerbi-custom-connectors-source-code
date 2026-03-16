@@ -4,7 +4,7 @@ OAuth2 is one of the most common and complex authentication methods to implement
 
 ## How it works in `M`
 
-Power Query handles the secure storage of the `access_token` and `refresh_token` automatically behind the scenes. However, you must tell the engine *how* to negotiate those tokens by providing a few key functions: `StartLogin` and `FinishLogin`, and sometimes `Refresh`.
+Power Query handles the secure storage of the `access_token` and `refresh_token` automatically behind the scenes. However, you must tell the engine _how_ to negotiate those tokens by providing a few key functions: `StartLogin` and `FinishLogin`, and sometimes `Refresh`.
 
 ```powerquery
 // Usually at the bottom of the connector, where the Data Source Kind is defined
@@ -60,7 +60,7 @@ StartLogin = (resourceUrl, state, display) =>
 FinishLogin = (context, callbackUri, state) =>
     let
         parts = Uri.Parts(callbackUri)[Query],
-        result = if (Record.HasFields(parts, {"error", "error_description"})) then 
+        result = if (Record.HasFields(parts, {"error", "error_description"})) then
                     error Error.Record(parts[error], parts[error_description], parts)
                  else
                     TokenMethod(parts[code], "authorization_code")
@@ -76,15 +76,15 @@ TokenMethod = (codeOrToken, grantType) =>
         query = [
             client_id = client_id,
             // Depending on the API, you may or may not need a client_secret here (PKCE is preferred for native apps)
-            // client_secret = client_secret, 
+            // client_secret = client_secret,
             grant_type = grantType,
             redirect_uri = redirect_uri
         ],
-        
+
         // If it's a new login, we send 'code'. If it's a refresh, we send 'refresh_token'.
-        queryWithCode = if grantType = "refresh_token" then 
+        queryWithCode = if grantType = "refresh_token" then
             Record.AddField(query, "refresh_token", codeOrToken)
-        else 
+        else
             Record.AddField(query, "code", codeOrToken),
 
         Response = Web.Contents(token_uri, [
@@ -95,22 +95,23 @@ TokenMethod = (codeOrToken, grantType) =>
             ],
             ManualStatusHandling = {400}
         ]),
-        
+
         Parts = Json.Document(Response),
-        
-        Result = if (Record.HasFields(Parts, {"error", "error_description"})) then 
+
+        Result = if (Record.HasFields(Parts, {"error", "error_description"})) then
                     error Error.Record(Parts[error], Parts[error_description], Parts)
-                 else 
+                 else
                     Parts
     in
         Result;
 ```
 
 ### Using the Access Token
+
 When you actually make your calls to `Web.Contents` inside your connector, Power Query will seamlessly inject the `Authorization: Bearer <token>` header as long as the user authenticated successfully. Wait, no, sometimes you have to tell it, but usually, it handles it if `AuthenticationKind.OAuth` is defined correctly.
 Wait, let's verify how Asana does it.
-Asana explicitly fetches it: `Extension.CurrentCredential()[access_token]`. 
+Asana explicitly fetches it: `Extension.CurrentCredential()[access_token]`.
 
 If the Power Query engine natively handles it via `OAuth`, it applies it automatically, but some connectors force it manually if the API expects it in a non-standard way or requires manual credentials logic.
 
-*End of OAuth2 Guide.*
+_End of OAuth2 Guide._

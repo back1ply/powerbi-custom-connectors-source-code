@@ -22,7 +22,7 @@ CheckStatus = () =>
 
 If you pass this function into `Value.WaitFor`, the engine will execute the first HTTP GET and cache the `202 Accepted` response.
 
-Ten seconds later, when `Value.WaitFor` evaluates `CheckStatus()` again, the M Engine will intercept the call, see that the URL hasn't changed, and instantly return the locally cached `202 Accepted` response *without actually contacting the server.*
+Ten seconds later, when `Value.WaitFor` evaluates `CheckStatus()` again, the M Engine will intercept the call, see that the URL hasn't changed, and instantly return the locally cached `202 Accepted` response _without actually contacting the server._
 
 You will be stuck in an infinite loop forever, because Power Query refuses to ask the server for an updated status. Power query actively ignores `Cache-Control` response headers.
 
@@ -44,10 +44,10 @@ FetchWithRetry = (url as text) =>
             let
                 // If Iteration > 0, this is a retry attempt, so force cache invalidation
                 forceNetworkRefresh = (iteration > 0),
-                
+
                 Response = Web.Contents(url, [
                     ManualStatusHandling = {429, 500, 502, 503, 504},
-                    
+
                     // UNDOCUMENTED: Forces Power Query to ignore local Cache-Control
                     IsRetry = forceNetworkRefresh
                 ]),
@@ -62,9 +62,9 @@ FetchWithRetry = (url as text) =>
 
 Scraping the Microsoft Custom Connectors repository reveals just how heavily the developers rely on this undocumented injection:
 
-*   **WorkplaceAnalytics.pq**: `// IsRetry is needed, otherwise PowerBI will be stuck waiting without actually retrying the call`
-*   **Usercube.m**: `// Specify IsRetry to ignore cache (PowerBI ignore the Cache-Control header returned by the server)`
-*   **Samsara.Client.Retry.pqm**: `IsRetry = SkipCache // (IsRetry = true) causes PowerBI to skip its cache`
-*   **MicroStrategyDataset.m**: Hardcodes `IsRetry = true` on every REST API Logout action to ensure the session actually invalidates.
+- **WorkplaceAnalytics.pq**: `// IsRetry is needed, otherwise PowerBI will be stuck waiting without actually retrying the call`
+- **Usercube.m**: `// Specify IsRetry to ignore cache (PowerBI ignore the Cache-Control header returned by the server)`
+- **Samsara.Client.Retry.pqm**: `IsRetry = SkipCache // (IsRetry = true) causes PowerBI to skip its cache`
+- **MicroStrategyDataset.m**: Hardcodes `IsRetry = true` on every REST API Logout action to ensure the session actually invalidates.
 
 Whenever you find your custom connector "hanging" or loading infinitely without throwing a formal error, it is almost certainly trapped in a cached polling loop that requires `IsRetry`.

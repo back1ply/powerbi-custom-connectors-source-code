@@ -1,6 +1,6 @@
 # Power Query Patterns: ODBC & DirectQuery Mapping
 
-For enterprise databases and data warehouses (e.g., Snowflake, Databricks, BigQuery), pulling millions of rows into Power BI's memory (Import Mode) is often impossible or impractical. 
+For enterprise databases and data warehouses (e.g., Snowflake, Databricks, BigQuery), pulling millions of rows into Power BI's memory (Import Mode) is often impossible or impractical.
 
 These connectors instead rely on **DirectQuery**, which pushes the data processing back to the source server. When a Power BI user drags a column into a visual, Power BI generates a SQL query and sends it to the source.
 
@@ -24,7 +24,7 @@ shared MyDatabase.Contents = (server as text, database as text) =>
             Server = server,
             Database = database
         ],
-        
+
         // Pass it to the M Engine's native ODBC handler
         OdbcDatasource = Odbc.DataSource(ConnectionString)
     in
@@ -33,9 +33,9 @@ shared MyDatabase.Contents = (server as text, database as text) =>
 
 ### 2. SQL Capabilities (`SqlCapabilities`)
 
-Not all databases support every SQL feature. What if your database doesn't support the `LIMIT` or `TOP` clause, or uses different syntax for string concatenation? 
+Not all databases support every SQL feature. What if your database doesn't support the `LIMIT` or `TOP` clause, or uses different syntax for string concatenation?
 
-You must define a `SqlCapabilities` record to tell the Power Query M Engine *how* to write SQL for your specific database flavor.
+You must define a `SqlCapabilities` record to tell the Power Query M Engine _how_ to write SQL for your specific database flavor.
 
 ```powerquery
 OdbcOptions = [
@@ -44,7 +44,7 @@ OdbcOptions = [
         // Does your DB support "SELECT TOP 10"?
         SupportsTop = true,
         // Does your DB support filtering strings using LIKE?
-        SupportsStringLiterals = true, 
+        SupportsStringLiterals = true,
         // Can your DB do math natively?
         SupportsNumericLiterals = true,
         // E.g. Databricks might not support certain outer joins
@@ -57,7 +57,7 @@ OdbcDatasource = Odbc.DataSource(ConnectionString, OdbcOptions);
 
 ### 3. The `AstVisitor` (Advanced DirectQuery)
 
-The most advanced feature of `Odbc.DataSource` is the Abstract Syntax Tree (AST) Visitor. If a user writes an M formula like `Text.Upper([Name])`, Power Query needs to know what SQL function matches that. 
+The most advanced feature of `Odbc.DataSource` is the Abstract Syntax Tree (AST) Visitor. If a user writes an M formula like `Text.Upper([Name])`, Power Query needs to know what SQL function matches that.
 
 Is it `UCASE(Name)` or `UPPER(Name)`?
 
@@ -98,5 +98,6 @@ OdbcDatasource = Odbc.DataSource(ConnectionString, OdbcOptions);
 ```
 
 ### Summary
-If you are connecting to a REST API, you use `Web.Contents()` (Import Mode only). 
+
+If you are connecting to a REST API, you use `Web.Contents()` (Import Mode only).
 If you are connecting to a Database and want DirectQuery support, you must build an ODBC Driver (in C/C++) and then write a Power Query Connector that uses `Odbc.DataSource()` and the `AstVisitor` to map M code to your database's specific SQL dialect.
