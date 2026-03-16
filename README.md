@@ -38,58 +38,58 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │
 ├── docs/
 │   ├── authentication/
-│   │   ├── [oauth2_pattern.md](docs/authentication/oauth2_pattern.md)           # Boilerplate for OAuth2 StartLogin/FinishLogin
-│   │   ├── [api_key_pattern.md](docs/authentication/api_key_pattern.md)         # Implementing Personal Access Tokens & Custom Headers
-│   │   └── [basic_and_anonymous_pattern.md](docs/authentication/basic_and_anonymous_pattern.md) # Handling Username/Password, Windows, or Implicit APIs
+│   │   ├── [api_key_pattern.md](docs/authentication/api_key_pattern.md)                         # Extension.CurrentCredential() and header injection
+│   │   ├── [basic_and_anonymous_pattern.md](docs/authentication/basic_and_anonymous_pattern.md) # Handling Windows, Username/Password, and Implicit auth
+│   │   └── [oauth2_pattern.md](docs/authentication/oauth2_pattern.md)                           # StartLogin and FinishLogin authorization code flows
 │   │
 │   └── patterns/
-│       ├── [pagination_pattern.md](docs/patterns/pagination_pattern.md)         # How to handle API pagination using List.Generate
-│       ├── [table_generatebypage_pattern.md](docs/patterns/table_generatebypage_pattern.md) # The ultimate pagination boilerplate (wrapping List.Generate)
-│       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md) # Building nested folder UIs in Get Data
-│       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)       # Using Value.WaitFor to handle Rate Limiting (429s)
-│       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md) # Enforcing types with Table.ChangeType
-│       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md) # Avoiding Scheduled Refresh errors using RelativePath
-│       ├── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md) # Tracing errors with Diagnostics.pqm
-│       ├── [multiple_environments_pattern.md](docs/patterns/multiple_environments_pattern.md) # Sandbox/Prod dropdowns with AllowedValues
-│       ├── [test_connection_pattern.md](docs/patterns/test_connection_pattern.md)       # Enabling Scheduled Refresh on the Gateway
-│       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)     # Translating M to SQL for DirectQuery using AstVisitor
-│       ├── [cursor_pagination_pattern.md](docs/patterns/cursor_pagination_pattern.md)   # Paginating without URLs using Limit/Offset
-│       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)         # Global User-Agent and nested generic headers
-│       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)         # Catching HTTP 400s using ManualStatusHandling
-│       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)     # Customizing categories and icons via the Publish record
-│       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)             # Bundling .resx files to translate UI strings globally
-│       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)         # Power Query Flighting A/B testing (Environment.FeatureSwitch)
-│       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md) # Strict request throttling (Function.InvokeAfter)
-│       ├── [web_contents_isretry_pattern.md](docs/patterns/web_contents_isretry_pattern.md) # Bypassing the Web.Contents internal cache
-│       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md) # In-memory optimization (Table.Buffer)
-│       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md) # Bypassing Formula.Firewall with RelativePath
-│       ├── [embedded_static_assets_pattern.md](docs/patterns/embedded_static_assets_pattern.md) # Bundling Extension.Contents(.json) into .mez files
-│       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)       # O(1) Schema Enforcement with Value.ReplaceType
-│       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)             # Structured Exception Handling with Error.Record
-│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md) # Building custom REST API Query Folding engines
-│       ├── [table_view_folding_handlers_pattern.md](docs/patterns/table_view_folding_handlers_pattern.md) # Implementing OnSkip/OnTake handlers for Web.Contents
-│       ├── [table_action_mutations_pattern.md](docs/patterns/table_action_mutations_pattern.md) # Exposing Writeback (Insert/Update/Delete) to Power Apps
-│       ├── [binary_image_data_uri_pattern.md](docs/patterns/binary_image_data_uri_pattern.md) # Rendering authenticated API images via Base64
-│       ### 🔐 Authentication flows
-│       ├── [oauth2_authorization_code_pattern.md](docs/patterns/oauth2_authorization_code_pattern.md) # Standard OAuth2 3-legged flow
-│       ├── [oauth2_client_credentials_pattern.md](docs/patterns/oauth2_client_credentials_pattern.md) # System-to-system automated OAuth2 flow
-│       ├── [oauth2_token_refresh_pattern.md](docs/patterns/oauth2_token_refresh_pattern.md) # Automatic access_token regeneration natively in M
-│       ├── [oauth2_pkce_pattern.md](docs/patterns/oauth2_pkce_pattern.md)               # Proof Key for Code Exchange cryptography
-│       ├── [oauth2_token_expiration_pattern.md](docs/patterns/oauth2_token_expiration_pattern.md) # Manipulating expires_in payloads
-│       ├── [api_key_auth_pattern.md](docs/patterns/api_key_auth_pattern.md)               # Key-based auth with Extension.CurrentCredential()
-│       ├── [basic_auth_pattern.md](docs/patterns/basic_auth_pattern.md)                   # Base64-encoded Username:Password
-│       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Scrubbing secrets in Diagnostics
-│       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md) # Catching 502 Bad Gateway HTML pages
-│       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)               # Handling POST GraphQL queries and variables
-│       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)   # Customizing OData.Feed + Web.Page Anti-Pattern
-│       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md) # Passing raw SQL queries with Value.NativeQuery
-│       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Hiding code using Extension.Contents evaluation
-│       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md) # Generating API Headers with Crypto.CreateHmac
-│       ├── [table_navigation_metadata_pattern.md](docs/patterns/table_navigation_metadata_pattern.md) # Exposing data in the Get Data folder UI
-│       ├── [navigation_table_simple_pattern.md](docs/patterns/navigation_table_simple_pattern.md) # Building Navigation Tables using the Type.AddTableKey helper
-│       ├── [json_ndjson_parsing_pattern.md](docs/patterns/json_ndjson_parsing_pattern.md) # Parsing streaming payload lines with Lines.FromBinary
-│       ├── [json_xml_parsing_pattern.md](docs/patterns/json_xml_parsing_pattern.md)       # Parsing JSON and XML REST API responses
-│       └── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)     # Writing data to an API using Action.Sequence and Action.Return
+│       ### 🏗️ Data Retrieval & API Mechanics
+│       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)                       # Value.WaitFor rate limit handling (429s)
+│       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md)     # In-memory execution pinning (Table.Buffer)
+│       ├── [cursor_pagination_pattern.md](docs/patterns/cursor_pagination_pattern.md)           # Page token API limits/offsets
+│       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)                 # Global User-Agent and nested headers
+│       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md)         # Strict request throttling (Function.InvokeAfter)
+│       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)                       # Interacting with GraphQL POST queries
+│       ├── [json_ndjson_parsing_pattern.md](docs/patterns/json_ndjson_parsing_pattern.md)       # Parsing streaming JSON Lines (Lines.FromBinary)
+│       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)           # Extending Microsoft's native OData.Feed
+│       ├── [pagination_pattern.md](docs/patterns/pagination_pattern.md)                         # Core List.Generate offset navigation
+│       ├── [table_generatebypage_pattern.md](docs/patterns/table_generatebypage_pattern.md)     # Microsoft's "Table.GenerateByPage" boilerplate
+│       ├── [web_contents_isretry_pattern.md](docs/patterns/web_contents_isretry_pattern.md)     # Bypassing the Web.Contents internal cache
+│       ### 🛡️ Schema, Security & Infrastructure
+│       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md)       # HMAC header generation for Custom APIs
+│       ├── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md)       # Custom telemetry with Diagnostics.Trace
+│       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md)     # Resolving Formula.Firewall collisions
+│       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md)       # RelativePath caching rules for Gateway refresh
+│       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)                 # ManualStatusHandling HTTP overrides
+│       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)                     # Structured exceptions with Error.Record
+│       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md)     # Catching 502 Bad Gateway proxy responses
+│       ├── [multiple_environments_pattern.md](docs/patterns/multiple_environments_pattern.md)   # UI Dropdown configurations (AllowedValues)
+│       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Masking secrets in log output
+│       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md)         # Enforcing column types with Table.ChangeType
+│       ├── [test_connection_pattern.md](docs/patterns/test_connection_pattern.md)               # TestConnection handlers for Power BI Service
+│       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)               # Deep schema enforcement with Value.ReplaceType
+│       ### 🧩 UI, Navigation & Packaging
+│       ├── [binary_decompression_pattern.md](docs/patterns/binary_decompression_pattern.md)     # Native GZIP/Deflate extraction (Binary.Decompress)
+│       ├── [binary_image_data_uri_pattern.md](docs/patterns/binary_image_data_uri_pattern.md)   # Rendering authenticated API images via Base64
+│       ├── [code_modularity_hiding_pattern.md](docs/patterns/code_modularity_hiding_pattern.md) # Separating logic using Extension.Contents evaluation
+│       ├── [embedded_static_assets_pattern.md](docs/patterns/embedded_static_assets_pattern.md) # Bundling static JSON datasets inside .mez files
+│       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)                 # Environment.FeatureSwitch A/B testing
+│       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)                     # Global UI translation with resources.resx
+│       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md)             # Hierarchical folder structures in Get Data
+│       ├── [navigation_table_simple_pattern.md](docs/patterns/navigation_table_simple_pattern.md) # Flat folder mappings with Type.AddTableKey
+│       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)             # Customizing icons and branding variants
+│       ### 🚀 Action & Backend Delegation
+│       ├── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)             # Constructing PowerApps-compatible Action pipelines
+│       ├── [direct_query_support_pattern.md](docs/patterns/direct_query_support_pattern.md)     # Core DirectQuery flag activation
+│       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md)     # Injecting raw SQL via Value.NativeQuery
+│       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)             # AstVisitor parsing for ODBC command trees
+│       ├── [table_action_mutations_pattern.md](docs/patterns/table_action_mutations_pattern.md) # Overriding Table.View for Power Automate Writeback
+│       ├── [table_view_folding_handlers_pattern.md](docs/patterns/table_view_folding_handlers_pattern.md) # Implementing OnSkip/OnTake Server-Side
+│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md)         # General REST API Query Folding with Table.View
+│       ### 🔒 OAuth2 Advanced Enhancements
+│       ├── [oauth2_pkce_pattern.md](docs/patterns/oauth2_pkce_pattern.md)                       # PKCE Cryptographic code challenges
+│       ├── [oauth2_token_expiration_pattern.md](docs/patterns/oauth2_token_expiration_pattern.md) # Handling non-standard expires_in formats
+│       └── [oauth2_token_refresh_pattern.md](docs/patterns/oauth2_token_refresh_pattern.md)     # Token regeneration flow in Power Service
 │
 └── scripts/                      # PowerShell utilities used to generate this archive
     ├── extract_connectors.ps1    # Unpacks .pqx and .mez zip archives
