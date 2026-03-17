@@ -84,3 +84,45 @@ GetUserTable = () =>
     in
         TypedTable;
 ```
+
+## The `Value.ReplaceType` Fast Path
+
+`Table.ChangeType` (and `Table.TransformColumnTypes`) physically iterate every row to cast values — for 1,000,000 rows that is 1,000,000 parse operations. If the JSON payload already carries native types (JSON number → M number, JSON boolean → M logical), this work is unnecessary.
+
+`Value.ReplaceType` skips all data iteration. It mutates the **metadata** of the table only, telling the engine: _"trust me, these columns are already the right type."_ This runs in O(1) regardless of row count.
+
+```powerquery
+shared MyConnector.GetUsers = () =>
+    let
+        json = Json.Document(Web.Contents("https://api.mycompany.com/users")),
+        untypedTable = Table.FromRecords(json),  // all columns are `type any`
+
+        UserTableType = type table [
+            Id = Int64.Type,
+            Name = type text,
+            Email = type text,
+            IsActive = type logical
+        ],
+
+        // O(1) — no row scanning, pure metadata surgery
+        typedTable = Value.ReplaceType(untypedTable, UserTableType)
+    in
+        typedTable;
+```
+
+### When NOT to use `Value.ReplaceType`
+
+Because `Value.ReplaceType` performs no data conversion, **it will not parse text into dates or numbers**.
+
+If the API returns `{"Id": "123"}` (string) and you declare that column as `Int64.Type`, the Power Query UI will show a green "Number" indicator. The moment the user performs arithmetic, the engine crashes with a Type Mismatch — the underlying bytes are still text.
+
+**Rule of thumb:**
+- JSON property is natively the correct type (number, boolean, string) → use `Value.ReplaceType`.
+- JSON property requires parsing (`"2024-01-01"` → `Date`) → use `Table.ChangeType` or `Table.TransformColumnTypes`.
+
+---
+
+## See Also
+
+- [`type_imposition_pattern.md`](type_imposition_pattern.md) — _(merged into this file)_
+- [`navigation_table_pattern.md`](navigation_table_pattern.md) — `Value.ReplaceType` is also used internally by `Table.ToNavigationTable` to attach navigation metadata.

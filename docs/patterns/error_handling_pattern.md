@@ -82,3 +82,83 @@ shared MyConnector.SafeGet = (url as text) =>
 
 If you use the Safe JSON Parsing pattern on a load balancer outage, the user gets an explicit confirmation that the server crashed:
 ✅ _"The server returned a non-JSON response. Raw output: `<html><head><title>502 Bad Gateway</title>...`"_
+
+## 3. Structured Errors with `Error.Record`
+
+Using the bare `error "message"` keyword produces a generic `DataFormat.Error` that looks unprofessional and can't be programmatically caught by downstream queries. To throw a structured error that correctly populates the Power Query UI's yellow error bars and can be intercepted by `try ... otherwise`, use `Error.Record`.
+
+`Error.Record` accepts three arguments:
+1. **Reason** — short programmatic category string (e.g., `"DataSource.Error"`, `"DataSource.RateLimitExceeded"`).
+2. **Message** — human-readable explanation.
+3. **Detail** — (optional) record with debugging fields.
+
+```powerquery
+shared MyConnector.FetchData = () =>
+    let
+        response = Web.Contents("https://api.mycompany.com/v1/data", [
+            ManualStatusHandling = {400, 401, 403, 404, 429, 500}
+        ]),
+        metadata = Value.Metadata(response),
+        statusCode = metadata[Response.Status]?,
+
+        result = if statusCode = 200 then
+            Json.Document(response)
+
+        else if statusCode = 401 or statusCode = 403 then
+            error Error.Record(
+                "DataSource.Error",
+                "Access was denied. Please check your credentials.",
+                [ HTTPStatus = statusCode ]
+            )
+
+        else if statusCode = 429 then
+            error Error.Record(
+                "DataSource.RateLimitExceeded",
+                "The API rate limit was exceeded. Please wait and try again.",
+                [
+                    HTTPStatus = 429,
+                    RetryAfter = Value.Metadata(response)[Headers][#"Retry-After"]?
+                ]
+            )
+
+        else if statusCode = 500 then
+            error Error.Record(
+                "DataSource.Error",
+                "The remote server returned an internal error.",
+                [ HTTPStatus = 500, ServerMessage = Text.FromBinary(response) ]
+            )
+
+        else
+            error Error.Record(
+                "Expression.Error",
+                "An unexpected HTTP error occurred.",
+                [ HTTPStatus = statusCode ]
+            )
+    in
+        result;
+```
+
+### Programmatic error interception
+
+When you throw an `Error.Record`, downstream queries can branch on the `Reason` field:
+
+```powerquery
+let
+    attempt = try MyConnector.FetchData(),
+    finalResult =
+        if attempt[HasError] and attempt[Error][Reason] = "DataSource.RateLimitExceeded" then
+            MyConnector.FetchDataWithDelay()  // retry after delay
+        else if attempt[HasError] then
+            error attempt[Error]              // re-throw all other errors
+        else
+            attempt[Value]
+in
+    finalResult
+```
+
+---
+
+## See Also
+
+- [`api_retries_pattern.md`](api_retries_pattern.md) — `Value.WaitFor` + `ManualStatusHandling` for automatic retry on 429/5xx.
+- [`rate_limit_aware_retry_pattern.md`](rate_limit_aware_retry_pattern.md) — Reading the `Retry-After` header before backing off.

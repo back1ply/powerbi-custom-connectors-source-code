@@ -104,3 +104,74 @@ Advanced Microsoft connectors (like **OData**, **Databricks**, **Salesforce**) d
 - `OnSelectColumns` (select)
 - `OnSort` (order_by)
 - `OnSelectRows` (where/filter) -> _This is the most complex, as you must recursively parse the Abstract Syntax Tree (AST) of the M filter function to translate `each [Date] > #date(2024,1,1)` into `?date_gt=2024-01-01`._
+
+## Multi-Handler State Accumulator
+
+The single-handler example above shows the structure. In practice, every intercepted handler returns a new `Table.View` with updated state; `GetRows` builds the final HTTP request from the accumulated state at execution time.
+
+```powerquery
+InitialState = [
+    Url = "https://api.mycompany.com/v1/records",
+    Limit = null,
+    Offset = null,
+    SelectColumns = null
+];
+
+View = (state as record) as table => Table.View(null, [
+
+    GetType = () => type table [ ID = Int64.Type, Name = text, Department = text ],
+
+    // Intercepts Table.FirstN() / Table.Range()
+    OnTake = (count as number) => @View(state & [ Limit = count ]),
+
+    // Intercepts Table.Skip() / Table.Range()
+    OnSkip = (count as number) => @View(state & [ Offset = count ]),
+
+    // Intercepts Table.SelectColumns()
+    OnSelectColumns = (columns as list) => @View(state & [ SelectColumns = columns ]),
+
+    GetRows = () =>
+        let
+            QueryRecord = []
+                & (if state[Limit] <> null then [ limit = Text.From(state[Limit]) ] else [])
+                & (if state[Offset] <> null then [ offset = Text.From(state[Offset]) ] else [])
+                & (if state[SelectColumns] <> null then [ fields = Text.Combine(state[SelectColumns], ",") ] else []),
+
+            Response = Web.Contents(state[Url], [ Query = QueryRecord ]),
+            Json = Json.Document(Response),
+            Tabled = Table.FromRecords(Json[data])
+        in
+            if state[SelectColumns] <> null then
+                Table.SelectColumns(Tabled, state[SelectColumns])
+            else
+                Tabled
+]);
+```
+
+### How Power Query executes this
+
+If a user writes:
+```powerquery
+Source = MyConnector.Contents(),
+KeepSpecificColumns = Table.SelectColumns(Source, {"ID", "Name"}),
+KeepBottomRows = Table.Skip(KeepSpecificColumns, 500),
+KeepTopRows = Table.FirstN(KeepBottomRows, 100)
+```
+
+Without `Table.View`, Power Query downloads every record, then filters in memory. With the accumulator above:
+
+1. `Table.SelectColumns` triggers `OnSelectColumns({"ID", "Name"})`.
+2. `Table.Skip` triggers `OnSkip(500)`.
+3. `Table.FirstN` triggers `OnTake(100)`.
+4. `GetRows` fires once, generating exactly: `GET /v1/records?limit=100&offset=500&fields=ID,Name`
+
+The remote server does all the heavy lifting. This is the definition of **Query Folding**.
+
+In massive enterprise connectors (Databricks, Kusto), `OnSort` translates sorting instructions into `ORDER BY col ASC`, and `OnSelectRows` compiles the M filter AST recursively into OData `$filter` or SQL `WHERE` clauses.
+
+---
+
+## See Also
+
+- [`native_query_folding_pattern.md`](native_query_folding_pattern.md) — `Value.NativeQuery` for ODBC/SQL connectors where folding is automatic via the driver.
+- [`table_view_folding_handlers_pattern.md`](table_view_folding_handlers_pattern.md) — _(merged into this file)_

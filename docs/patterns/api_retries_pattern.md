@@ -95,3 +95,10 @@ shared MyConnector.SafeApiCall = (url as text) =>
 1. **Robust 429 Handling**: Many API providers explicitly ignore standard `Retry-After` HTTP headers, meaning Power BI's automatic retries fail. `Value.WaitFor` guarantees a hardcoded exponential backoff (e.g., wait 2s, wait 4s, wait 8s).
 2. **Jitter Protection**: The `ExponentialBackoff` function adds randomization (`Number.RandomBetween`). If a massive dashboard refresh triggers 100 simultaneous requests that all receive HTTP 429s, adding jitter ensures they don't all magically retry at the exact same millisecond and immediately break the rate limit again.
 3. **Async Polling**: This exact same `Value.WaitFor` pattern can be used to poll APIs that return `HTTP 202 Accepted` and require you to repeatedly check a `JobStatus` endpoint until it returns `HTTP 200 OK`. You simply modify the `if status = 202 then null else response` logic.
+
+---
+
+## See Also
+
+- [`long_polling_exponential_backoff_pattern.md`](long_polling_exponential_backoff_pattern.md) — Applies `Value.WaitFor` specifically to `HTTP 202 Accepted` async job polling, with interval strategy comparisons (linear, fixed-minute, exponential) and an alternative `Function.InvokeAfter` approach from the Anaplan connector.
+- [`rate_limit_aware_retry_pattern.md`](rate_limit_aware_retry_pattern.md) — Specializes this pattern for `HTTP 429` semantics: reading the `Retry-After` header, distinguishing 429 from 503, and preventing thundering herd with jitter.

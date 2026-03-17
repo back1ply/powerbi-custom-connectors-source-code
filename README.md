@@ -46,30 +46,33 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │   │
 │   └── patterns/
 │       ### 🏗️ Data Retrieval & API Mechanics
-│       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)                       # Value.WaitFor rate limit handling (429s)
-│       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md)     # In-memory execution pinning (Table.Buffer)
+│       ├── [api_retries_pattern.md](docs/patterns/api_retries_pattern.md)                       # Value.WaitFor transient error retries
+│       ├── [caching_table_buffer_pattern.md](docs/patterns/caching_table_buffer_pattern.md)     # In-memory execution pinning (Table.Buffer / Binary.Buffer)
 │       ├── [cursor_pagination_pattern.md](docs/patterns/cursor_pagination_pattern.md)           # Page token API limits/offsets
 │       ├── [custom_headers_pattern.md](docs/patterns/custom_headers_pattern.md)                 # Global User-Agent and nested headers
 │       ├── [enforced_api_delay_pattern.md](docs/patterns/enforced_api_delay_pattern.md)         # Strict request throttling (Function.InvokeAfter)
 │       ├── [graphql_api_pattern.md](docs/patterns/graphql_api_pattern.md)                       # Interacting with GraphQL POST queries
 │       ├── [json_ndjson_parsing_pattern.md](docs/patterns/json_ndjson_parsing_pattern.md)       # Parsing streaming JSON Lines (Lines.FromBinary)
+│       ├── [list_buffer_config_caching_pattern.md](docs/patterns/list_buffer_config_caching_pattern.md) # List.Buffer for eager evaluation of config scalars
+│       ├── [long_polling_exponential_backoff_pattern.md](docs/patterns/long_polling_exponential_backoff_pattern.md) # Value.WaitFor async job polling with interval strategies
 │       ├── [odata_integration_pattern.md](docs/patterns/odata_integration_pattern.md)           # Extending Microsoft's native OData.Feed
-│       ├── [pagination_pattern.md](docs/patterns/pagination_pattern.md)                         # Core List.Generate offset navigation
-│       ├── [table_generatebypage_pattern.md](docs/patterns/table_generatebypage_pattern.md)     # Microsoft's "Table.GenerateByPage" boilerplate
+│       ├── [rate_limit_aware_retry_pattern.md](docs/patterns/rate_limit_aware_retry_pattern.md) # 429-specific Retry-After header handling and backoff
+│       ├── [response_header_extraction_pattern.md](docs/patterns/response_header_extraction_pattern.md) # Reading Location/AsyncOperation headers from response metadata
+│       ├── [table_generatebypage_pattern.md](docs/patterns/table_generatebypage_pattern.md)     # Table.GenerateByPage boilerplate + offset/cursor pagination
 │       ├── [web_contents_isretry_pattern.md](docs/patterns/web_contents_isretry_pattern.md)     # Bypassing the Web.Contents internal cache
 │       ### 🛡️ Schema, Security & Infrastructure
 │       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md)       # HMAC header generation for Custom APIs
+│       ├── [datetime_zone_coercion_pattern.md](docs/patterns/datetime_zone_coercion_pattern.md) # Normalizing date/datetime/datetimezone inputs to DateTimeZone
 │       ├── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md)       # Custom telemetry with Diagnostics.Trace
 │       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md)     # Resolving Formula.Firewall collisions
 │       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md)       # RelativePath caching rules for Gateway refresh
-│       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)                 # ManualStatusHandling HTTP overrides
-│       ├── [error_record_pattern.md](docs/patterns/error_record_pattern.md)                     # Structured exceptions with Error.Record
+│       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)                 # ManualStatusHandling, Error.Record, and structured exceptions
 │       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md)     # Catching 502 Bad Gateway proxy responses
 │       ├── [multiple_environments_pattern.md](docs/patterns/multiple_environments_pattern.md)   # UI Dropdown configurations (AllowedValues)
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Masking secrets in log output
-│       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md)         # Enforcing column types with Table.ChangeType
+│       ├── [record_field_expansion_dynamic_pattern.md](docs/patterns/record_field_expansion_dynamic_pattern.md) # Runtime nested column discovery with Record.FieldNames
+│       ├── [schema_enforcement_pattern.md](docs/patterns/schema_enforcement_pattern.md)         # Column type enforcement (Table.ChangeType + Value.ReplaceType)
 │       ├── [test_connection_pattern.md](docs/patterns/test_connection_pattern.md)               # TestConnection handlers for Power BI Service
-│       ├── [type_imposition_pattern.md](docs/patterns/type_imposition_pattern.md)               # Deep schema enforcement with Value.ReplaceType
 │       ### 🧩 UI, Navigation & Packaging
 │       ├── [binary_decompression_pattern.md](docs/patterns/binary_decompression_pattern.md)     # Native GZIP/Deflate extraction (Binary.Decompress)
 │       ├── [binary_image_data_uri_pattern.md](docs/patterns/binary_image_data_uri_pattern.md)   # Rendering authenticated API images via Base64
@@ -77,18 +80,20 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [embedded_static_assets_pattern.md](docs/patterns/embedded_static_assets_pattern.md) # Bundling static JSON datasets inside .mez files
 │       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)                 # Environment.FeatureSwitch A/B testing
 │       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)                     # Global UI translation with resources.resx
-│       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md)             # Hierarchical folder structures in Get Data
+│       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md)             # Hierarchical nav tables with Type.AddTableKey primary keys
 │       ├── [navigation_table_simple_pattern.md](docs/patterns/navigation_table_simple_pattern.md) # Flat folder mappings with Type.AddTableKey
 │       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)             # Customizing icons and branding variants
 │       ### 🚀 Action & Backend Delegation
 │       ├── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)             # Constructing PowerApps-compatible Action pipelines
-│       ├── [direct_query_support_pattern.md](docs/patterns/direct_query_support_pattern.md)     # Core DirectQuery flag activation
 │       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md)     # Injecting raw SQL via Value.NativeQuery
-│       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)             # AstVisitor parsing for ODBC command trees
+│       ├── [odbc_bitwise_flag_composition_pattern.md](docs/patterns/odbc_bitwise_flag_composition_pattern.md) # Number.BitwiseOr loop to compose ODBC SQL conformance flags
+│       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)             # DirectQuery flag, AstVisitor, and Gateway TestConnection
 │       ├── [table_action_mutations_pattern.md](docs/patterns/table_action_mutations_pattern.md) # Overriding Table.View for Power Automate Writeback
-│       ├── [table_view_folding_handlers_pattern.md](docs/patterns/table_view_folding_handlers_pattern.md) # Implementing OnSkip/OnTake Server-Side
-│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md)         # General REST API Query Folding with Table.View
+│       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md)         # REST API Query Folding with Table.View and OnSkip/OnTake handlers
 │       ### 🔒 OAuth2 Advanced Enhancements
+│       ├── [base64url_encoding_pattern.md](docs/patterns/base64url_encoding_pattern.md)         # URL-safe Base64 encoding for PKCE and JWT parameters
+│       ├── [conditional_oauth_host_resolution_pattern.md](docs/patterns/conditional_oauth_host_resolution_pattern.md) # Runtime OAuth endpoint validation with production fallback
+│       ├── [multi_tenant_client_detection_pattern.md](docs/patterns/multi_tenant_client_detection_pattern.md) # Hostname-based client_id routing for multi-region OAuth
 │       ├── [oauth2_pkce_pattern.md](docs/patterns/oauth2_pkce_pattern.md)                       # PKCE Cryptographic code challenges
 │       ├── [oauth2_token_expiration_pattern.md](docs/patterns/oauth2_token_expiration_pattern.md) # Handling non-standard expires_in formats
 │       └── [oauth2_token_refresh_pattern.md](docs/patterns/oauth2_token_refresh_pattern.md)     # Token regeneration flow in Power Service
@@ -114,3 +119,4 @@ Our custom `extract_connectors.ps1` script unpacks the archives, and `cleanup_no
 - All extracted `.m`, `.pq`, and `.pqm` code, trademarks, and associated APIs remain the intellectual property (IP) of their respective copyright holders (Microsoft, Databricks, Asana, Zendesk, etc.).
 - The PowerShell scripts and documentation contained in `scripts/` and `docs/` are provided as-is under the MIT License by the repository owner.
 - Please do not blindly copy and paste API keys, client IDs, or proprietary queries into your own commercial applications.
+- **Embedded Credentials Notice:** Some connector source files in this archive contain hardcoded `client_id`, `client_secret`, and `api_key` values (e.g. in Funnel, ExactOnlinePremium, LEAP, PlanviewProjectplace, GoogleSheets, Windsor, and others). These credentials were embedded by the original connector vendors in their certified `.mez` packages and are reproduced here verbatim as part of the extraction. This repository does not own, generate, or maintain these credentials. If you are the vendor of an affected connector, please rotate your credentials and update your published package. Do not use these values in your own applications.

@@ -1,10 +1,10 @@
-# Power Query Patterns: The `Table.GenerateByPage` Helper
+# Power Query Patterns: API Pagination with `Table.GenerateByPage`
 
-In the [Pagination Pattern](pagination_pattern.md), we documented how to use `List.Generate` to recursively iterate over an API that returns multiple pages of data.
+REST APIs rarely return all data in a single request. They enforce pagination, requiring multiple calls (e.g., `page=2` parameters or `next_url` links).
 
-While `List.Generate` is incredibly powerful, it yields a single list of complex `Record` objects. The developer is then forced to manually convert that list into a table (`Table.FromList`) and manually expand the underlying columns (`Table.ExpandTableColumn`).
+Because Power Query M is a functional language without traditional `while` loops, iteration is done with `List.Generate`. However, `List.Generate` yields a list of `Record` objects — the developer must then manually convert it to a table (`Table.FromList`) and expand columns (`Table.ExpandTableColumn`).
 
-To abstract away all of that manual table manipulation, Microsoft engineers use an undocumented, standardized boilerplate script called `Table.GenerateByPage`. It wraps `List.Generate` and automatically spits out a perfectly typed, merged `Table`.
+To abstract away this boilerplate, Microsoft engineers use an undocumented, standardized helper called `Table.GenerateByPage`. It wraps `List.Generate` and automatically produces a perfectly typed, merged `Table`.
 
 ## The `Table.GenerateByPage` Boilerplate
 
@@ -98,4 +98,61 @@ shared MyConnector.GetUsers = () =>
 
 ### Why Use the Helper?
 
-The true genius of this helper is the `Value.ReplaceType` operation located at the very end of the script. Power Query's `Table.Combine()` operation is notoriously slow when joining thousands of distinct API tables. By stamping the exact Type Definition of the _first_ page onto the master concatenated table, `Table.GenerateByPage` avoids an expensive M Engine type-inference recalculation, drastically improving the performance of massive API downloads.
+The true genius of this helper is the `Value.ReplaceType` operation at the end. Power Query's `Table.Combine()` is notoriously slow when joining thousands of distinct API tables. By stamping the exact type definition of the _first_ page onto the master concatenated table, `Table.GenerateByPage` avoids an expensive M Engine type-inference recalculation, drastically improving performance on large API downloads.
+
+## Cursor & Offset Pagination
+
+The `NextLink` pattern above works when an API returns a ready-made next URL. Many APIs instead require you to manually increment an `offset` or `page` counter (e.g., `?limit=100&offset=0`, then `offset=100`). `Table.GenerateByPage` handles this too — store the counter in metadata instead of a URL.
+
+### Offset Pagination
+
+```powerquery
+Limit = 100;
+
+GetAllPagesWithOffset = (baseUrl as text) as table =>
+    Table.GenerateByPage(
+        (previous) =>
+            let
+                currentOffset = if (previous = null) then 0 else Value.Metadata(previous)[NextOffset]?,
+
+                source = Web.Contents(baseUrl, [
+                    RelativePath = "api/v1/records",
+                    Query = [
+                        limit = Number.ToText(Limit),
+                        offset = Number.ToText(currentOffset)
+                    ]
+                ]),
+                json = Json.Document(source),
+                data = json[data]?,
+
+                table = if (data = null or List.IsEmpty(data))
+                        then Table.FromRows({})
+                        else Table.FromRecords(data),
+
+                hasMore = not (table = null) and Table.RowCount(table) = Limit,
+                nextOffset = currentOffset + Limit
+            in
+                if (hasMore = true) then
+                    table meta [NextOffset = nextOffset]
+                else
+                    table
+    );
+```
+
+Usage: `GetAllPagesWithOffset("https://api.mycompany.com")` — the helper loops invisibly, incrementing `offset` by 100 each time until the API returns fewer than 100 records.
+
+### Cursor Pagination
+
+If the API uses a cursor string instead of a numeric offset (e.g., `?cursor=abc123xyz`), the logic is identical. Instead of arithmetic (`currentOffset + Limit`), extract the cursor from the JSON response and attach it to metadata:
+
+```powerquery
+dataTableWithMeta = dataTable meta [ NextCursor = json[paging][cursor]? ]
+// Next iteration reads: Value.Metadata(previous)[NextCursor]
+```
+
+---
+
+## See Also
+
+- [`cursor_pagination_pattern.md`](cursor_pagination_pattern.md) — Extended offset/cursor examples with full `Web.Contents` `RelativePath`/`Query` construction.
+- [`caching_table_buffer_pattern.md`](caching_table_buffer_pattern.md) — Buffer the paginated result list to prevent re-evaluation during navigation table construction.

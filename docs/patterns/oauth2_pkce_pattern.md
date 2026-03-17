@@ -105,3 +105,9 @@ FinishLogin = (context, callbackUri, state) =>
 ### Why Use Context Variables?
 
 The most important architectural aspect of this pattern is Power Query's `Context = [ CodeVerifier = codeVerifier ]` state management. Because `StartLogin` and `FinishLogin` are entirely separate evaluations within the M Engine (often spanning minutes while the user types in their password in the UI), standard M variables cannot span the gap. The `Context` record is the _only_ way to pass the PKCE secret securely from the start of the authentication flow to the end.
+
+---
+
+## See Also
+
+- [`base64url_encoding_pattern.md`](base64url_encoding_pattern.md) — Covers the `Base64UrlEncode` helper in depth: RFC rationale, ordering of replacements, padding rules, plain-verifier mode, and the Data URI counter-example where standard Base64 is correct.

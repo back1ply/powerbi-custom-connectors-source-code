@@ -121,3 +121,51 @@ When defining the `ItemKind` column, Power BI uses this to determine what icon t
 - `"Function"` (Fx icon, useful for parameterized calls)
 - `"View"` (Database view icon)
 - `"Schema"` (Schema icon)
+
+## How `Table.ToNavigationTable` Works Internally
+
+The helper relies on two undocumented M functions:
+
+| Step | What happens |
+|------|-------------|
+| `Value.Type(table)` | Extracts the structural M type of the already-populated table |
+| `Type.AddTableKey(..., keyColumns, true)` | Declares `keyColumns` as the primary key on that type |
+| `meta [NavigationTable.*]` | Attaches the metadata record the Power BI navigator reads to render folder/leaf icons |
+| `Value.ReplaceType(table, newTableType)` | Swaps the type annotation without touching the underlying data |
+
+The `keyColumns` list is intentionally a parameter — the same helper works for single-column keys (`{"Key"}`), composite keys (`{"WorkspaceID", "ModelID"}`), or any column set the caller needs.
+
+## `Type.AddTableKey` on Inline Type Literals
+
+`Type.AddTableKey` can also be called directly on a `type table` literal — useful for building lookup tables with a known schema where row-level access by key must be O(1) rather than a linear scan.
+
+```powerquery
+// From ADPAnalytics.m — a type-to-type mapping lookup table
+// with a declared key so {[#"Json Type" = jsontype]} lookups fold correctly.
+#"Types Map" = Table.FromRows(
+    {
+        {"number",     Int64.Type},
+        {"currency",   Currency.Type},
+        {"text",       Text.Type},
+        {"date",       Date.Type},
+        {"percentage", Decimal.Type}
+    },
+    Type.AddTableKey(
+        type table [#"Json Type" = text, #"Actual Type" = type],
+        {"Json Type"},
+        true   // isPrimary
+    )
+),
+
+// Row-level lookup is now O(1) rather than a linear scan
+TextToType = (jsontype as text) as type =>
+    try (#"Types Map"{[#"Json Type" = jsontype]}[Actual Type])
+    otherwise Any.Type,
+```
+
+---
+
+## See Also
+
+- [`caching_table_buffer_pattern.md`](caching_table_buffer_pattern.md) — Buffer the workspace/project list before building nav table folders to prevent repeated API calls.
+- [`schema_enforcement_pattern.md`](schema_enforcement_pattern.md) — `Value.ReplaceType` mechanics used internally by the nav table helper.

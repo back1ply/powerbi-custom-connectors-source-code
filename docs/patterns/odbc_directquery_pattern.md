@@ -101,3 +101,62 @@ OdbcDatasource = Odbc.DataSource(ConnectionString, OdbcOptions);
 
 If you are connecting to a REST API, you use `Web.Contents()` (Import Mode only).
 If you are connecting to a Database and want DirectQuery support, you must build an ODBC Driver (in C/C++) and then write a Power Query Connector that uses `Odbc.DataSource()` and the `AstVisitor` to map M code to your database's specific SQL dialect.
+
+## Enabling DirectQuery in the Publish Record
+
+Once your connector uses `Odbc.DataSource`, you must opt in to DirectQuery by setting `SupportsDirectQuery = true` in the connector's `Publish` record. Without this flag, the "DirectQuery" radio button is greyed out in the Get Data UI.
+
+```powerquery
+[DataSource.Kind="MyDatabase", Publish="MyDatabase.Publish"]
+shared MyDatabase.Contents = (server as text, database as text) =>
+    let
+        source = Odbc.DataSource("Driver={My SQL Driver};Server=" & server & ";Database=" & database, [
+            HierarchicalNavigation = true
+        ])
+    in
+        source;
+
+MyDatabase.Publish = [
+    Beta = true,
+    Category = "Database",
+    ButtonText = { "My Database", "Connect to My Database" },
+    LearnMoreUrl = "https://docs.mycompany.com",
+    SourceImage = MyDatabase.Icons,
+    SourceTypeImage = MyDatabase.Icons,
+    SupportsDirectQuery = true   // enables the DirectQuery radio button
+];
+```
+
+> **Note on REST APIs:** You generally **cannot** enable DirectQuery for REST API connectors (`Web.Contents`). REST APIs do not support dynamic SQL aggregation (`SELECT SUM(sales) GROUP BY region`). Forcing `SupportsDirectQuery = true` on a REST connector will fail certification.
+
+## Gateway `TestConnection` for DirectQuery
+
+When a connector is published to the Power BI Service in DirectQuery mode, an Enterprise Gateway proxies live SQL queries from the cloud to your on-premises database. To keep a persistent heartbeat, you **must** provide a `TestConnection` handler in your `DataSource.Kind` record.
+
+```powerquery
+MyDatabase = [
+    TestConnection = (dataSourcePath) =>
+        let
+            // dataSourcePath is a JSON string of the parameters passed to your entry point
+            json = Json.Document(dataSourcePath),
+            server = json[server],
+            database = json[database]
+        in
+            // Return the entry-point name + its parameters.
+            // Power BI periodically executes this to verify the database is online.
+            { "MyDatabase.Contents", server, database },
+
+    Authentication = [
+        UsernamePassword = []
+    ],
+    Label = "My Custom Database Connector"
+];
+```
+
+---
+
+## See Also
+
+- [`native_query_folding_pattern.md`](native_query_folding_pattern.md) — `Value.NativeQuery` for passing raw SQL through the ODBC layer while preserving folding.
+- [`test_connection_pattern.md`](test_connection_pattern.md) — Full `TestConnection` patterns for non-DirectQuery connectors.
+- [`table_view_folding_pattern.md`](table_view_folding_pattern.md) — Custom `Table.View` query folding for REST APIs that support filter/select/limit parameters.

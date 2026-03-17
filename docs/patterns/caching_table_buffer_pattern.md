@@ -81,3 +81,9 @@ in
 Never use `Table.Buffer` on the _final_ actual data table being loaded into the Power BI Data Model. Buffering millions of rows of data inside Power Query will crash the Power BI Desktop application due to Out Of Memory (OOM) errors.
 
 Only use `Table.Buffer` for small configuration tables, metadata lists, or Navigation Table hierarchies.
+
+---
+
+## See Also
+
+- [`list_buffer_config_caching_pattern.md`](list_buffer_config_caching_pattern.md) — Covers `List.Buffer` for caching small config values (tokens, base URLs) to prevent repeated HTTP calls for credentials. Different buffer type, same lazy-evaluation problem.

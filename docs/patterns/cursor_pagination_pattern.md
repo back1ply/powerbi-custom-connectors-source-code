@@ -1,6 +1,6 @@
 # Power Query Patterns: Cursor & Offset Pagination
 
-In the previous [Pagination Pattern](pagination_pattern.md), we used `Table.GenerateByPage` to handle APIs that return a clean `NextLink` (e.g., `"next": "https://api.com/users?page=2"`).
+In the [Table.GenerateByPage Pattern](table_generatebypage_pattern.md), we used `Table.GenerateByPage` to handle APIs that return a clean `NextLink` (e.g., `"next": "https://api.com/users?page=2"`).
 
 But what if the API doesn't provide a next link? What if it just expects you to manually increment an `offset` or `page` counter in your URL parameters? (e.g., `?limit=100&offset=0`, then `offset=100`, etc.)
 
