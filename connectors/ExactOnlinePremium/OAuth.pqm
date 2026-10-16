@@ -4,7 +4,7 @@ let
     oauthData = configJson[oauth],
 
     oauth_client_id     = "{{CLIENTID}}",
-    oauth_client_secret = "{{CLIENTSECRET}}",
+    oauth_client_secret = "<redacted>",
     oauth_auth_url      = oauthData[auth_url],
     oauth_token_url     = oauthData[token_url],
     oauth_redirect_uri  = oauthData[redirect_uri],

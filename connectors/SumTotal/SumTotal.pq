@@ -4,7 +4,7 @@ section SumTotal;
 
 //Constants
 client_id = "sumtotal_powerbi";
-client_secret = "secret_oidc"; 
+client_secret = "<redacted>"; 
 
 windowWidth = 800;
 windowHeight = 500;

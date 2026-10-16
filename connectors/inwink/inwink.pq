@@ -5,7 +5,7 @@ authSettings = [
     auth_uri = "https://auth.inwink.com",
     redirect_uri = "https://oauth.powerbi.com/views/oauthredirect.html",
     client_id = "inwink-powerbi-datasource",
-    client_secret = "818f54a1-6518-4c47-8fa7-aef5514e52c9"
+    client_secret = "<redacted>"
 ];
 
 apiSettings = [

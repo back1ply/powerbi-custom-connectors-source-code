@@ -15,12 +15,12 @@ windowHeight = 1000;
 client_id = "PCAJS3WMUUKEJBEZ";
 
 // ** X-API-KEY ** //
-au_api_key = "M02uJyCjGVH5E2XQdqVSaGKWzljehAD77rm1HPU8";
-au_liveb_api_key = "M02uJyCjGVH5E2XQdqVSaGKWzljehAD77rm1HPU8";
-uk_api_key = "c1gVAOo8a44RJ2lV0KGepag2M7mclnxu9pc8xkjo";
-us_api_key = "GFO1dj4cw55IO9oRAHac26dzK5Rj1e8nFCyLfon5";
-ca_api_key = "ItjSNwx5mg6f4YvTCEDm48tGumRcMzhg4UgbqBS5";
-nz_api_key = "J7N5Kb4RBpaLUetQQ5moB9te7x7i0m4Z5hx8ROoQ";
+au_api_key = "<redacted>";
+au_liveb_api_key = "<redacted>";
+uk_api_key = "<redacted>";
+us_api_key = "<redacted>";
+ca_api_key = "<redacted>";
+nz_api_key = "<redacted>";
 
 // ** REPORT PARSER URLS ** //
 au_report_parser_url = "https://reportparserservice.au.leapapp.io";

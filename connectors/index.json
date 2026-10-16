@@ -1,0 +1,1770 @@
+{
+  "connectors": [
+    {
+      "name": "Acterys",
+      "title": "Acterys : Model Automation & Planning",
+      "description": "Connect to Acterys",
+      "publisher": "Managility",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Acterys/1.0.0/Acterys_1.0.0.pqx",
+      "files": [
+        "Acterys.pq"
+      ]
+    },
+    {
+      "name": "Actian",
+      "title": "Actian",
+      "description": "Connect to Actian X Vector, Avalanche, or Ingres",
+      "publisher": "Actian",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Actian/1.0.1/Actian_1.0.1.pqx",
+      "files": [
+        "Actian.m",
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "ADPAnalytics",
+      "title": "ADPAnalytics",
+      "description": "Connect to ADPAnalytics",
+      "publisher": "ADP",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ADPAnalytics/1.0.3/ADPAnalytics_1.0.3.pqx",
+      "files": [
+        "ADPAnalytics.m"
+      ]
+    },
+    {
+      "name": "AmazonAthena",
+      "title": "AmazonAthena",
+      "description": "Connect to Athena",
+      "publisher": "Amazon",
+      "version": "1.2.8",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AmazonAthena/1.2.8/AmazonAthena_1.2.8.pqx",
+      "files": [
+        "AmazonAthena.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "AmazonOpenSearchService",
+      "title": "Amazon OpenSearch Service",
+      "description": "Connect to OpenSearch",
+      "publisher": "Amazon",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AmazonOpenSearchService/1.0.1/AmazonOpenSearchService_1.0.1.pqx",
+      "files": [
+        "AmazonOpenSearchService.m",
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "Anaplan",
+      "title": "AnaplanConnector",
+      "description": "Connect to AnaplanConnectorV2",
+      "publisher": "Anaplan",
+      "version": "2.9.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Anaplan/2.9.0/Anaplan_2.9.0.pqx",
+      "files": [
+        "Anaplan.pq",
+        "Diagnostics.pqm",
+        "TraceContext.pqm"
+      ]
+    },
+    {
+      "name": "AptixInsights",
+      "title": "Topcon Aptix Insights",
+      "description": "Get Help",
+      "publisher": "AptixInsights",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AptixInsights/1.0.2/AptixInsights_1.0.2.pqx",
+      "files": [
+        "AptixInsights.pq"
+      ]
+    },
+    {
+      "name": "Asana",
+      "title": "Asana",
+      "description": "Connect to Asana",
+      "publisher": "Asana",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Asana/1.0.2/Asana_1.0.2.pqx",
+      "files": [
+        "Asana.m",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "AssembleViews",
+      "title": "Assemble Views",
+      "description": "Connect to Assemble Views",
+      "publisher": "Autodesk",
+      "version": "4.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AssembleViews/4.1.0/AssembleViews_4.1.0.pqx",
+      "files": [
+        "AssembleViews.m"
+      ]
+    },
+    {
+      "name": "AtScale",
+      "title": "AtScale cubes",
+      "description": "Import/DirectQuery cube data from AtScale.",
+      "publisher": "Microsoft",
+      "version": "3.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AtScale/3.0.4/AtScale_3.0.4.pqx",
+      "files": [
+        "AtScale.pq"
+      ]
+    },
+    {
+      "name": "Attio",
+      "title": "Attio",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Attio/1.0.0/Attio_1.0.0.pqx",
+      "files": [
+        "Attio.pq"
+      ]
+    },
+    {
+      "name": "AutodeskConstructionCloud",
+      "title": "Autodesk Construction Cloud",
+      "description": "Connect to Autodesk Construction Cloud",
+      "publisher": "Autodesk",
+      "version": "1.8.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AutodeskConstructionCloud/1.8.1/AutodeskConstructionCloud_1.8.1.pqx",
+      "files": [
+        "AutodeskConstructionCloud.pq",
+        "Diagnostics.pqm"
+      ]
+    },
+    {
+      "name": "AutomationAnywhere",
+      "title": "AutomationAnywhere",
+      "description": "Connect to Automation Anywhere",
+      "publisher": "Automation Anywhere",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AutomationAnywhere/1.0.4/AutomationAnywhere_1.0.4.pqx",
+      "files": [
+        "AutomationAnywhere.m"
+      ]
+    },
+    {
+      "name": "AutomyDataAnalytics",
+      "title": "Automy Analytics",
+      "description": "Obtain information on a process through a direct connection with AUTOMY",
+      "publisher": "AceRoyalty",
+      "version": "1.2.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AutomyDataAnalytics/1.2.1/AutomyDataAnalytics_1.2.1.pqx",
+      "files": [
+        "AutomyDataAnalytics.pq"
+      ]
+    },
+    {
+      "name": "AzureCosmosDBForMongoDBvCore",
+      "title": "Azure Cosmos DB for MongoDB vCore",
+      "description": "Connect to Azure Cosmos DB for MongoDB vCore",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureCosmosDBForMongoDBvCore/1.0.2/AzureCosmosDBForMongoDBvCore_1.0.2.pqx",
+      "files": [
+        "AzureCosmosDBForMongoDBvCore.pq",
+        "DateTimeZones.pqm",
+        "Diagnostics.pqm",
+        "ExtendedJson.Extract.pqm",
+        "Table.ChangeType.pqm",
+        "Visitors.VisitAstKind.pqm"
+      ]
+    },
+    {
+      "name": "AzureCostManagement",
+      "title": "Azure Cost Management",
+      "description": "Connect to Azure Cost Management",
+      "publisher": "Microsoft",
+      "version": "1.0.42",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureCostManagement/1.0.42/AzureCostManagement_1.0.42.pqx",
+      "files": [
+        "AzureCostManagement.pq",
+        "Diagnostics.pqm",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "AzureDatabaseForMySQL",
+      "title": "Azure Database for MySQL",
+      "description": "Connect to Azure Database for MySQL",
+      "publisher": "Microsoft",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureDatabaseForMySQL/1.0.4/AzureDatabaseForMySQL_1.0.4.pqx",
+      "files": [
+        "AzureDatabaseForMySQL.pq"
+      ]
+    },
+    {
+      "name": "AzureDeviceRegistry",
+      "title": "Azure Device Registry (ADR)",
+      "description": "Connect to AzureDeviceRegistry",
+      "publisher": "Microsoft",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureDeviceRegistry/1.0.3/AzureDeviceRegistry_1.0.3.pqx",
+      "files": [
+        "AzureDeviceRegistry.pq",
+        "CommonFunctions.pqm",
+        "Diagnostics.pqm",
+        "QueryHelper.pqm"
+      ]
+    },
+    {
+      "name": "AzureHorizonDB",
+      "title": "Azure HorizonDB Database",
+      "description": "Import or connect to an Azure HorizonDB Database",
+      "publisher": "Microsoft",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureHorizonDB/1.0.3/AzureHorizonDB_1.0.3.pqx",
+      "files": [
+        "AzureHorizonDB.pq"
+      ]
+    },
+    {
+      "name": "AzurePostgreSQL",
+      "title": "Azure Database for PostgreSQL",
+      "description": "Connect to Azure Database for PostgreSQL",
+      "publisher": "Microsoft",
+      "version": "1.3.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzurePostgreSQL/1.3.2/AzurePostgreSQL_1.3.2.pqx",
+      "files": [
+        "AzurePostgreSQL.pq"
+      ]
+    },
+    {
+      "name": "AzureResourceGraph",
+      "title": "Azure Resource Graph",
+      "description": "Connect to Azure Resource Graph",
+      "publisher": "Microsoft",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/AzureResourceGraph/1.0.6/AzureResourceGraph_1.0.6.pqx",
+      "files": [
+        "AzureResourceGraph.pq"
+      ]
+    },
+    {
+      "name": "BI360",
+      "title": "Solver",
+      "description": "Connect to Solver",
+      "publisher": "Solver",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BI360/1.0.2/BI360_1.0.2.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Solver.m",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm"
+      ]
+    },
+    {
+      "name": "BIConnector",
+      "title": "BIConnector",
+      "description": "Import data from OBIEE Server.",
+      "publisher": "Microsoft",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BIConnector/1.1.0/BIConnector_1.1.0.pqx",
+      "files": [
+        "BIConnector.pq"
+      ]
+    },
+    {
+      "name": "Bitbucket",
+      "title": "Bitbucket",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitbucket/1.0.0/Bitbucket_1.0.0.pqx",
+      "files": [
+        "Bitbucket.pq"
+      ]
+    },
+    {
+      "name": "Bitly",
+      "title": "Bitly",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitly/1.0.0/Bitly_1.0.0.pqx",
+      "files": [
+        "Bitly.pq"
+      ]
+    },
+    {
+      "name": "BitSightSecurityRatings",
+      "title": "Bitsight Security Ratings",
+      "description": "",
+      "publisher": "BitSight",
+      "version": "4.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BitSightSecurityRatings/4.1.0/BitSightSecurityRatings_4.1.0.pqx",
+      "files": [
+        "BitSightSecurityRatings.pq"
+      ]
+    },
+    {
+      "name": "Bloomberg",
+      "title": "Bloomberg",
+      "description": "",
+      "publisher": "Bloomberg",
+      "version": "2.0.12",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bloomberg/2.0.12/Bloomberg_2.0.12.pqx",
+      "files": [
+        "Auth.pqm",
+        "Bloomberg.m",
+        "Configuration.pqm",
+        "Data-Handler.pqm",
+        "Diagnostics.pqm",
+        "Folding.pqm",
+        "JWT.pqm",
+        "Utils.pqm"
+      ]
+    },
+    {
+      "name": "BQECore",
+      "title": "BQE CORE",
+      "description": "Connect to BQE CORE",
+      "publisher": "BQE",
+      "version": "12.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BQECore/12.0.0/BQECore_12.0.0.pqx",
+      "files": [
+        "BQECore.pq"
+      ]
+    },
+    {
+      "name": "BuildingConnected",
+      "title": "BuildingConnected & TradeTapp",
+      "description": "Connect to BuildingConnected & TradeTapp",
+      "publisher": "Autodesk",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BuildingConnected/1.0.6/BuildingConnected_1.0.6.pqx",
+      "files": [
+        "BuildingConnected.pq",
+        "Diagnostics.pqm",
+        "Schemas.pqm",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "CCHTagetik",
+      "title": "Wolters Kluwer CCH Tagetik",
+      "description": "Connect to Wolters Kluwer CCH Tagetik",
+      "publisher": "CCHTagetik",
+      "version": "1.4.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CCHTagetik/1.4.2/CCHTagetik_1.4.2.pqx",
+      "files": [
+        "CCHTagetik.pq"
+      ]
+    },
+    {
+      "name": "CDataConnectCloud",
+      "title": "CData Connect Cloud",
+      "description": "Connect to CData Connect Cloud",
+      "publisher": "CData",
+      "version": "3.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CDataConnectCloud/3.1.0/CDataConnectCloud_3.1.0.pqx",
+      "files": [
+        "CDataConnectCloud.pq",
+        "CDataConnectCloudRest.pqm",
+        "CDataConnectCloudRestV2.pqm",
+        "CDataConnectCloudService.pqm",
+        "CDataConnectCloudServiceV2.pqm",
+        "Diagnostics.pqm",
+        "OAuth.pqm",
+        "Utilities.pqm"
+      ]
+    },
+    {
+      "name": "Celonis",
+      "title": "Celonis EMS",
+      "description": "Connect to Celonis EMS",
+      "publisher": "Celonis",
+      "version": "2.2.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Celonis/2.2.0/Celonis_2.2.0.pqx",
+      "files": [
+        "Celonis.m",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "Cherwell",
+      "title": "Cherwell",
+      "description": "Connect to Cherwell Service Management",
+      "publisher": "Cherwell",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Cherwell/1.0.0/Cherwell_1.0.0.pqx",
+      "files": [
+        "Auth.RequestToken.pqm",
+        "Cherwell.m",
+        "Table.ToNavigationTable.pqm",
+        "Uri.ValidateUrlScheme.pqm"
+      ]
+    },
+    {
+      "name": "ClickHouse",
+      "title": "ClickHouse",
+      "description": "Connect to ClickHouse",
+      "publisher": "ClickHouse",
+      "version": "1.1.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ClickHouse/1.1.6/ClickHouse_1.1.6.pqx",
+      "files": [
+        "ClickHouseConnector.pq",
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "CloudBluePSA",
+      "title": "CloudBluePSA",
+      "description": "",
+      "publisher": "CloudBluePSA",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CloudBluePSA/1.0.1/CloudBluePSA_1.0.1.pqx",
+      "files": [
+        "CloudBluePSAConnector.m"
+      ]
+    },
+    {
+      "name": "Cognite",
+      "title": "Cognite Data Fusion (OData)",
+      "description": "Connect to Cognite Data Fusion (CDF)",
+      "publisher": "Cognite",
+      "version": "1.0.9",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Cognite/1.0.9/Cognite_1.0.9.pqx",
+      "files": [
+        "Cognite.pq",
+        "Value.ToText.pqm"
+      ]
+    },
+    {
+      "name": "CogniteDataSource",
+      "title": "Cognite Data Fusion (REST API)",
+      "description": "Connect to Cognite Data Fusion (CDF)",
+      "publisher": "CogniteDataSource",
+      "version": "1.1.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CogniteDataSource/1.1.3/CogniteDataSource_1.1.3.pqx",
+      "files": [
+        "CogniteDataSource.pq",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Value.ToText.pqm"
+      ]
+    },
+    {
+      "name": "CommonDataService",
+      "title": "Dataverse",
+      "description": "Connect to Dataverse through its SQL endpoint",
+      "publisher": "Microsoft",
+      "version": "1.1.17",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CommonDataService/1.1.17/CommonDataService_1.1.17.pqx",
+      "files": [
+        "CommonDataService.pq"
+      ]
+    },
+    {
+      "name": "CosmosDB",
+      "title": "CosmosDB",
+      "description": "Connect to CosmosDB using ODBC",
+      "publisher": "Microsoft",
+      "version": "1.0.9",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CosmosDB/1.0.9/CosmosDB_1.0.9.pqx",
+      "files": [
+        "CosmosDB.m",
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "CustomerInsights",
+      "title": "Dynamics 365 Customer Insights",
+      "description": "Connect to Dynamics 365 Customer Insights",
+      "publisher": "Microsoft",
+      "version": "1.0.14",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/CustomerInsights/1.0.14/CustomerInsights_1.0.14.pqx",
+      "files": [
+        "CustomerInsights.m"
+      ]
+    },
+    {
+      "name": "Databricks",
+      "title": "Azure Databricks",
+      "description": "Import data from Azure Databricks",
+      "publisher": "Databricks",
+      "version": "2.0.34",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Databricks/2.0.34/Databricks_2.0.34.pqx",
+      "files": [
+        "AdvancedOptions.pqm",
+        "Databricks.pq",
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm",
+        "QueryHelpers.pqm",
+        "QueryTagsHelper.pqm"
+      ]
+    },
+    {
+      "name": "DataVirtuality",
+      "title": "Data Virtuality LDW",
+      "description": "Connect to Data Virtuality LDW",
+      "publisher": "Data Virtuality",
+      "version": "3.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DataVirtuality/3.0.1/DataVirtuality_3.0.1.pqx",
+      "files": [
+        "DataVirtuality.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "DCWInsights",
+      "title": "Digital Construction Works Insights",
+      "description": "Get Help",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DCWInsights/1.0.2/DCWInsights_1.0.2.pqx",
+      "files": [
+        "DCWInsights.m"
+      ]
+    },
+    {
+      "name": "DeltaSharing",
+      "title": "Delta Sharing",
+      "description": "Import Data from Delta Sharing Server",
+      "publisher": "Databricks",
+      "version": "1.1.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DeltaSharing/1.1.4/DeltaSharing_1.1.4.pqx",
+      "files": [
+        "DeltaSharing.pq",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "Denodo",
+      "title": "Denodo",
+      "description": "Connect to Denodo",
+      "publisher": "Denodo",
+      "version": "1.1.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Denodo/1.1.2/Denodo_1.1.2.pqx",
+      "files": [
+        "DenodoForPowerBI.m",
+        "Diagnostics.pqm",
+        "Validation.pqm"
+      ]
+    },
+    {
+      "name": "Dremio",
+      "title": "Dremio",
+      "description": "Import data from Dremio.",
+      "publisher": "Dremio",
+      "version": "3.16.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Dremio/3.16.1/Dremio_3.16.1.pqx",
+      "files": [
+        "CACerts.pqm",
+        "DataTransform.pqm",
+        "Diagnostics.pqm",
+        "Dremio.pq",
+        "DremioAdbcDataSource.pqm",
+        "DremioAdbcOptions.pqm",
+        "DremioOAuthDiscovery.pqm",
+        "FlightSqlAdbcConfig.pqm",
+        "SqlGenerator.pqm",
+        "SqlGeneratorCommon.pqm"
+      ]
+    },
+    {
+      "name": "DynatraceGrail",
+      "title": "Dynatrace_Grail_DQL",
+      "description": "Connect to Dynatrace_Grail_DQL",
+      "publisher": "Dynatrace",
+      "version": "1.0.7",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DynatraceGrail/1.0.7/DynatraceGrail_1.0.7.pqx",
+      "files": [
+        "DynatraceGrail.m"
+      ]
+    },
+    {
+      "name": "Eduframe",
+      "title": "Eduframe",
+      "description": "",
+      "publisher": "Eduframe",
+      "version": "2.3.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Eduframe/2.3.0/Eduframe_2.3.0.pqx",
+      "files": [
+        "EduFrame.pq",
+        "Requests.pqm"
+      ]
+    },
+    {
+      "name": "Emigo",
+      "title": "Emigo Data Source",
+      "description": "Connect with Emigo Data Source",
+      "publisher": "Sagra",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Emigo/1.0.6/Emigo_1.0.6.pqx",
+      "files": [
+        "Emigo.m"
+      ]
+    },
+    {
+      "name": "EntersoftBusinessSuite",
+      "title": "Entersoft Business Suite",
+      "description": "Connect to Entersoft Business Suite",
+      "publisher": "Entersoft",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/EntersoftBusinessSuite/1.0.0/EntersoftBusinessSuite_1.0.0.pqx",
+      "files": [
+        "Entersoft_Business_Suite.m"
+      ]
+    },
+    {
+      "name": "EQuIS",
+      "title": "EQuIS",
+      "description": "",
+      "publisher": "EarthSoft",
+      "version": "7.23.10067",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/EQuIS/7.23.10067/EQuIS_7.23.10067.pqx",
+      "files": [
+        "EQuIS.m"
+      ]
+    },
+    {
+      "name": "eWayCRM",
+      "title": "eWay-CRM",
+      "description": "Connect to eWay-CRM",
+      "publisher": "eWayCRM",
+      "version": "2.2.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/eWayCRM/2.2.0/eWayCRM_2.2.0.pqx",
+      "files": [
+        "eWay_CRM.m"
+      ]
+    },
+    {
+      "name": "ExactOnlinePremium",
+      "title": "Exact Online Premium",
+      "description": "Connect to Exact Online Premium",
+      "publisher": "ExactOnlinePremium",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ExactOnlinePremium/1.0.1/ExactOnlinePremium_1.0.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "ExactOnlinePremium.m",
+        "OAuth.pqm"
+      ]
+    },
+    {
+      "name": "Exasol",
+      "title": "Exasol",
+      "description": "Connect to Exasol",
+      "publisher": "Exasol",
+      "version": "1.1.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Exasol/1.1.1/Exasol_1.1.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Exasol.pq"
+      ]
+    },
+    {
+      "name": "FabricSql",
+      "title": "SQL database",
+      "description": "Import data from SQL database instances in Fabric",
+      "publisher": "Microsoft",
+      "version": "1.2.43",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FabricSql/1.2.43/FabricSql_1.2.43.pqx",
+      "files": [
+        "FabricEnvironment.pqm",
+        "FabricSql.pq",
+        "Table.NavigationTableView.pqm",
+        "Utils.pqm",
+        "Workspace.DLP.pqm",
+        "Workspace.PrivateLink.pqm",
+        "Workspace.pqm"
+      ]
+    },
+    {
+      "name": "FactSetAnalytics",
+      "title": "FactSetAnalytics",
+      "description": "",
+      "publisher": "FactSet",
+      "version": "2.6.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FactSetAnalytics/2.6.2/FactSetAnalytics_2.6.2.pqx",
+      "files": [
+        "FactSetAnalytics.pq",
+        "api-factset-analytics-calculations-deprecated.pqm",
+        "api-factset-analytics-calculations.pqm",
+        "api-factset-analytics-request.pqm",
+        "api-factset-analytics-util.pqm",
+        "api-factset-analytics.pqm",
+        "api-factset-irn.pqm",
+        "api-formula.pqm",
+        "convert-stach.pqm",
+        "request-long-running.pqm",
+        "request-pagination.pqm",
+        "request-request.pqm",
+        "util-api-loader.pqm",
+        "util-convert-to-table.pqm",
+        "util-deep-merge.pqm",
+        "util-oauth.pqm",
+        "util-throttled-function-iterator.pqm",
+        "util-unpivot-other-columns.pqm"
+      ]
+    },
+    {
+      "name": "FactSetRMS",
+      "title": "FactSet RMS",
+      "description": "Connect to FactSet RMS",
+      "publisher": "FactSet",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FactSetRMS/1.1.0/FactSetRMS_1.1.0.pqx",
+      "files": [
+        "FactSetRMS.m"
+      ]
+    },
+    {
+      "name": "Fhir",
+      "title": "FHIR",
+      "description": "Connect to FHIR server",
+      "publisher": "Microsoft",
+      "version": "1.0.5",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Fhir/1.0.5/Fhir_1.0.5.pqx",
+      "files": [
+        "DSTU2-ChoiceReshapers.pqm",
+        "DSTU2-ContainedReshapers.pqm",
+        "DSTU2-FhirTypes.pqm",
+        "DSTU2-SearchParameterFoldingPatterns.pqm",
+        "Diagnostics.pqm",
+        "DocumentationTestCases.pqm",
+        "Fhir.pq",
+        "Folding.pqm",
+        "R4-ChoiceReshapers.pqm",
+        "R4-ContainedReshapers.pqm",
+        "R4-FhirTypes.pqm",
+        "R4-SearchParameterFoldingPatterns.pqm",
+        "STU3-ChoiceReshapers.pqm",
+        "STU3-ContainedReshapers.pqm",
+        "STU3-FhirTypes.pqm",
+        "STU3-SearchParameterFoldingPatterns.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "Foundry",
+      "title": "Palantir Foundry Datasets",
+      "description": "Connect to Palantir Foundry datasets",
+      "publisher": "Palantir",
+      "version": "1.3.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Foundry/1.3.1/Foundry_1.3.1.pqx",
+      "files": [
+        "Foundry.m"
+      ]
+    },
+    {
+      "name": "Funnel",
+      "title": "Funnel",
+      "description": "",
+      "publisher": "Funnel",
+      "version": "5.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Funnel/5.0.1/Funnel_5.0.1.pqx",
+      "files": [
+        "DataLoading.pqm",
+        "Funnel.pq",
+        "NavigationTable.pqm",
+        "OAuth.pqm"
+      ]
+    },
+    {
+      "name": "GoogleSheets",
+      "title": "Google Sheets",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/GoogleSheets/1.0.6/GoogleSheets_1.0.6.pqx",
+      "files": [
+        "GoogleSheets.pq"
+      ]
+    },
+    {
+      "name": "HexagonSmartApi",
+      "title": "HexagonSmartApi",
+      "description": "",
+      "publisher": "Hexagon",
+      "version": "1.2.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/HexagonSmartApi/1.2.1/HexagonSmartApi_1.2.1.pqx",
+      "files": [
+        "HexagonSmartApi.m",
+        "OAuth.pqm",
+        "ParametricFilter.pqm",
+        "SelectList.pqm",
+        "Typecast.pqm",
+        "UoM.pqm"
+      ]
+    },
+    {
+      "name": "Indexima",
+      "title": "Indexima",
+      "description": "Connect to Indexima Data Hub",
+      "publisher": "Indexima",
+      "version": "1.7.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Indexima/1.7.6/Indexima_1.7.6.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Indexima.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "IndustrialAppStore",
+      "title": "IndustrialConnector",
+      "description": "Connect to IndustrialConnector",
+      "publisher": "IntelligentPlant",
+      "version": "3.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IndustrialAppStore/3.0.1/IndustrialAppStore_3.0.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "IndustrialAppStore.pq"
+      ]
+    },
+    {
+      "name": "InformationGrid",
+      "title": "InformationGrid",
+      "description": "Access BI services from InformationGrid",
+      "publisher": "Luminis",
+      "version": "1.0.5",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/InformationGrid/1.0.5/InformationGrid_1.0.5.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "InformationGrid.pq",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "IntersystemsHealthInsight",
+      "title": "InterSystems Health Insight",
+      "description": "Connect to InterSystems Health Insight",
+      "publisher": "IntersystemsHealthInsight",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IntersystemsHealthInsight/1.0.4/IntersystemsHealthInsight_1.0.4.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "IntersystemsHealthInsight.pq",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "IntuneDataWarehouse",
+      "title": "Intune Data Warehouse",
+      "description": "Connect to Intune Data Warehouse",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IntuneDataWarehouse/1.0.2/IntuneDataWarehouse_1.0.2.pqx",
+      "files": [
+        "Intune.m"
+      ]
+    },
+    {
+      "name": "IntuneV2",
+      "title": "Intune Data Warehouse",
+      "description": "Connect to Intune Data Warehouse",
+      "publisher": "Microsoft",
+      "version": "2.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IntuneV2/2.0.0/IntuneV2_2.0.0.pqx",
+      "files": [
+        "IntuneV2.pq"
+      ]
+    },
+    {
+      "name": "inwink",
+      "title": "inwink",
+      "description": "Connect to inwink",
+      "publisher": "inwink",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/inwink/1.0.0/inwink_1.0.0.pqx",
+      "files": [
+        "auth.startlogin.pqm",
+        "inwink.pq"
+      ]
+    },
+    {
+      "name": "IRIS",
+      "title": "InterSystems IRIS",
+      "description": "Connect to InterSystems IRIS",
+      "publisher": "InterSystems",
+      "version": "1.1.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IRIS/1.1.2/IRIS_1.1.2.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Iris_PowerBI_Connector.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "JamfPro",
+      "title": "Jamf Pro",
+      "description": "Import data from Jamf Pro",
+      "publisher": "Jamf",
+      "version": "2.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/JamfPro/2.0.0/JamfPro_2.0.0.pqx",
+      "files": [
+        "ComputerMappings.pqm",
+        "JamfPro.pq",
+        "MobileDeviceMappings.pqm"
+      ]
+    },
+    {
+      "name": "JethroData1.0.1",
+      "title": "JethroDataConnector",
+      "description": "Connect to JethroDataConnector",
+      "publisher": "Jethro",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/JethroData/1.0.2/JethroData_1.0.2.pqx",
+      "files": [
+        "JethroODBC.m"
+      ]
+    },
+    {
+      "name": "Kognitwin",
+      "title": "Kognitwin",
+      "description": "Connect to Kognitwin",
+      "publisher": "Kongsberg",
+      "version": "2.5.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kognitwin/2.5.0/Kognitwin_2.5.0.pqx",
+      "files": [
+        "Kognitwin.pq"
+      ]
+    },
+    {
+      "name": "kxkdbinsightsenterprise",
+      "title": "kxkdbinsightsenterprise",
+      "description": "",
+      "publisher": "KX",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/kxkdbinsightsenterprise/1.0.0/kxkdbinsightsenterprise_1.0.0.pqx",
+      "files": [
+        "AuthHelpers.pqm",
+        "CommonHelpers.pqm",
+        "Diagnostics.pqm",
+        "kxkdbinsightsenterprise.pq"
+      ]
+    },
+    {
+      "name": "Kyligence",
+      "title": "KylinDirectQuery",
+      "description": "Connect to KylinDirectQuery",
+      "publisher": "Kyligence",
+      "version": "1.0.5",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kyligence/1.0.5/Kyligence_1.0.5.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Kyligence.m"
+      ]
+    },
+    {
+      "name": "KyvosODBC",
+      "title": "Kyvos ODBC",
+      "description": "Kyvos ODBC",
+      "publisher": "Kyvos",
+      "version": "1.0.8",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/KyvosODBC/1.0.8/KyvosODBC_1.0.8.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "KyvosODBC.pq",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "LakeHouse",
+      "title": "Lakehouse",
+      "description": "Import data from a Lakehouse",
+      "publisher": "Microsoft",
+      "version": "1.0.264",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/LakeHouse/1.0.264/LakeHouse_1.0.264.pqx",
+      "files": [
+        "DeltaTableFastCopy.pqm",
+        "DualTable.View.pqm",
+        "FabricEnvironment.pqm",
+        "LakeHouse.pq",
+        "MDSync.pqm",
+        "SparkCompute.pqm",
+        "SparkComputeUtils.pqm",
+        "SqlGenerator.pqm",
+        "SqlGeneratorCommon.pqm",
+        "Table.NavigationTableView.pqm",
+        "Table.ToNavigationTable.pqm",
+        "TypeInfo.pqm",
+        "Utils.pqm",
+        "Workspace.DLP.pqm",
+        "Workspace.PrivateLink.pqm",
+        "Workspace.pqm"
+      ]
+    },
+    {
+      "name": "LEAP",
+      "title": "LEAP",
+      "description": "Connect to LEAP",
+      "publisher": "LEAP",
+      "version": "1.3.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/LEAP/1.3.0/LEAP_1.3.0.pqx",
+      "files": [
+        "LEAP.m"
+      ]
+    },
+    {
+      "name": "Linkar",
+      "title": "Linkar PICK Style / MultiValue Databases",
+      "description": "Connect to PICK Style / MultiValue Databases",
+      "publisher": "Kosday Solutions",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Linkar/1.0.1/Linkar_1.0.1.pqx",
+      "files": [
+        "LinkarConnector.pq"
+      ]
+    },
+    {
+      "name": "LinkedInLearning",
+      "title": "LinkedInLearning",
+      "description": "Connect to LinkedInLearning",
+      "publisher": "LinkedInLearning",
+      "version": "1.0.10",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/LinkedInLearning/1.0.10/LinkedInLearning_1.0.10.pqx",
+      "files": [
+        "LinkedInLearning.pq"
+      ]
+    },
+    {
+      "name": "MariaDB",
+      "title": "MariaDB",
+      "description": "Connect to MariaDB",
+      "publisher": "MariaDB",
+      "version": "1.0.7",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MariaDB/1.0.7/MariaDB_1.0.7.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "MariaDB.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "MarkLogicODBC",
+      "title": "MarkLogic",
+      "description": "MarkLogic",
+      "publisher": "MarkLogic",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MarkLogicODBC/1.0.6/MarkLogicODBC_1.0.6.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "MarkLogicODBC.m",
+        "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "MicrosoftAzureDataManagerForEnergy",
+      "title": "MicrosoftAzureDataManagerForEnergy",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MicrosoftAzureDataManagerForEnergy/1.0.1/MicrosoftAzureDataManagerForEnergy_1.0.1.pqx",
+      "files": [
+        "MicrosoftAzureDataManagerForEnergy.pq"
+      ]
+    },
+    {
+      "name": "MicrosoftGraphSecurity",
+      "title": "Microsoft Graph Security",
+      "description": "Connect to Microsoft Graph Security API",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MicrosoftGraphSecurity/1.0.2/MicrosoftGraphSecurity_1.0.2.pqx",
+      "files": [
+        "MicrosoftGraphSecurity.m",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "MicrostrategyDataset",
+      "title": "MicrostrategyDataset",
+      "description": "Import data from Strategy Dataset",
+      "publisher": "MicroStrategy",
+      "version": "2.5.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MicrostrategyDataset/2.5.0/MicrostrategyDataset_2.5.0.pqx",
+      "files": [
+        "MicroStrategyDataset.m"
+      ]
+    },
+    {
+      "name": "MongoDBAtlasODBC",
+      "title": "MongoDB Atlas SQL",
+      "description": "Connect to MongoDB Atlas SQL",
+      "publisher": "MongoDBAtlasODBC",
+      "version": "1.2.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/MongoDBAtlasODBC/1.2.4/MongoDBAtlasODBC_1.2.4.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "MongoDBAtlasODBC.pq"
+      ]
+    },
+    {
+      "name": "OneLakeFile",
+      "title": "OneLake Files",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.2.11",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeFile/1.2.11/OneLakeFile_1.2.11.pqx",
+      "files": [
+        "OneLakeFile.pq",
+        "Table.NavigationTableView.pqm",
+        "Utils.pqm",
+        "Workspace.PrivateLink.pqm",
+        "Workspace.pqm"
+      ]
+    },
+    {
+      "name": "OneLakeSql",
+      "title": "OneLakeSql",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.24",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeSql/1.0.24/OneLakeSql_1.0.24.pqx",
+      "files": [
+        "OneLakeSql.pq",
+        "Table.NavigationTableView.pqm",
+        "Utils.pqm",
+        "Workspace.DLP.pqm",
+        "Workspace.PrivateLink.pqm",
+        "Workspace.pqm"
+      ]
+    },
+    {
+      "name": "OneStream",
+      "title": "OneStream",
+      "description": "Connect to OneStream",
+      "publisher": "OneStream",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneStream/1.0.4/OneStream_1.0.4.pqx",
+      "files": [
+        "OneStream.pq"
+      ]
+    },
+    {
+      "name": "OpenSearchProject",
+      "title": "OpenSearch Project",
+      "description": "Connect to OpenSearch",
+      "publisher": "Amazon",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OpenSearchProject/1.0.1/OpenSearchProject_1.0.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm",
+        "OpenSearchProject.m"
+      ]
+    },
+    {
+      "name": "Paxata",
+      "title": "Paxata",
+      "description": "Connect to Paxata",
+      "publisher": "Paxata",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Paxata/1.0.3/Paxata_1.0.3.pqx",
+      "files": [
+        "Paxata.m"
+      ]
+    },
+    {
+      "name": "PlanviewOKR",
+      "title": "Planview OKR",
+      "description": "Connect to Planview OKR",
+      "publisher": "Planview",
+      "version": "2.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PlanviewOKR/2.0.2/PlanviewOKR_2.0.2.pqx",
+      "files": [
+        "PlanviewOKR.m"
+      ]
+    },
+    {
+      "name": "PlanviewProjectplace",
+      "title": "Planview ProjectPlace",
+      "description": "Connect to Planview ProjectPlace",
+      "publisher": "Planview",
+      "version": "3.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PlanviewProjectplace/3.0.0/PlanviewProjectplace_3.0.0.pqx",
+      "files": [
+        "PlanviewProjectplace.m"
+      ]
+    },
+    {
+      "name": "PowerBIDatamarts",
+      "title": "Datamarts",
+      "description": "Import Datamarts",
+      "publisher": "Microsoft",
+      "version": "1.0.12",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerBIDatamarts/1.0.12/PowerBIDatamarts_1.0.12.pqx",
+      "files": [
+        "PowerBIDatamarts.pq"
+      ]
+    },
+    {
+      "name": "PowerPlatformDataflows",
+      "title": "Dataflows",
+      "description": "Import data from a dataflow",
+      "publisher": "Microsoft",
+      "version": "3.1.33",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerPlatformDataflows/3.1.33/PowerPlatformDataflows_3.1.33.pqx",
+      "files": [
+        "Cdsa.Workspace.pqm",
+        "Fabric.GetClusterUrl.pqm",
+        "PowerPlatformDataflows.pq",
+        "Table.ChangeType.pqm",
+        "Table.NavigationTableView.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Utils.pqm",
+        "Workspace.DLP.pqm",
+        "Workspace.PrivateLink.pqm"
+      ]
+    },
+    {
+      "name": "ProductInsights",
+      "title": "ProductInsightsConnector",
+      "description": "Connect to ProductInsightsConnector",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ProductInsights/1.0.2/ProductInsights_1.0.2.pqx",
+      "files": [
+        "ProductInsightsConnector.m"
+      ]
+    },
+    {
+      "name": "Profisee",
+      "title": "Profisee",
+      "description": "Connect to Profisee, and get the data from Profisee data source",
+      "publisher": "Profisee",
+      "version": "2.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Profisee/2.0.0/Profisee_2.0.0.pqx",
+      "files": [
+        "Profisee.m",
+        "SchemaTransformTable.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "QubolePresto",
+      "title": "QubolePresto",
+      "description": "Connect to QubolePresto",
+      "publisher": "Qubole",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/QubolePresto/1.0.1/QubolePresto_1.0.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm",
+        "QubolePresto.m"
+      ]
+    },
+    {
+      "name": "QuickBase",
+      "title": "qbconnector",
+      "description": "Connect to qbconnector",
+      "publisher": "QuickBase",
+      "version": "1.4.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/QuickBase/1.4.0/QuickBase_1.4.0.pqx",
+      "files": [
+        "qbconnector.m"
+      ]
+    },
+    {
+      "name": "Roamler",
+      "title": "Roamler",
+      "description": "Roamler",
+      "publisher": "Roamler",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Roamler/1.0.0/Roamler_1.0.0.pqx",
+      "files": [
+        "Roamler.m"
+      ]
+    },
+    {
+      "name": "Samsara",
+      "title": "Samsara",
+      "description": "Connect to Samsara API",
+      "publisher": "Samsara",
+      "version": "2.2.8",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Samsara/2.2.8/Samsara_2.2.8.pqx",
+      "files": [
+        "DateTimeZone.FromSamsaraFormat.pqm",
+        "Diagnostics.pqm",
+        "Samsara.Client.Depage.pqm",
+        "Samsara.Client.ErrorTranslation.pqm",
+        "Samsara.Client.FetchTable.pqm",
+        "Samsara.Client.Headers.pqm",
+        "Samsara.Client.ListTables.pqm",
+        "Samsara.Client.ReportMetric.pqm",
+        "Samsara.Client.Retry.pqm",
+        "Samsara.Client.StartRun.pqm",
+        "Samsara.Configuration.Defaults.pqm",
+        "Samsara.Credentials.pqm",
+        "Samsara.DateTime.UtcNow.pqm",
+        "Samsara.Icons.pqm",
+        "Samsara.Input.Parameters.pqm",
+        "Samsara.Input.Validation.pqm",
+        "Samsara.Metrics.LogEvent.pqm",
+        "Samsara.Metrics.ReportCount.pqm",
+        "Samsara.Metrics.ReportError.pqm",
+        "Samsara.Metrics.ReportNumber.pqm",
+        "Samsara.Metrics.Timer.pqm",
+        "Samsara.Model.TableProperties.pqm",
+        "Samsara.Run.Start.Test.pqm",
+        "Samsara.Run.Start.pqm",
+        "Samsara.Table.Discover.pqm",
+        "Samsara.Table.Fetch.pqm",
+        "Samsara.Table.Navigate.pqm",
+        "Samsara.pq"
+      ]
+    },
+    {
+      "name": "SDMX",
+      "title": "SIS-CC SDMX",
+      "description": "Get data from an SDMX RESTful web service that supports the CSV format.",
+      "publisher": "SISCC",
+      "version": "1.0.5",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SDMX/1.0.5/SDMX_1.0.5.pqx",
+      "files": [
+        "SDMX.m"
+      ]
+    },
+    {
+      "name": "Sentinel",
+      "title": "Sentinel",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Sentinel/1.0.2/Sentinel_1.0.2.pqx",
+      "files": [
+        "Sentinel.pq"
+      ]
+    },
+    {
+      "name": "ShortcutsBI",
+      "title": "Shortcuts Business Insights",
+      "description": "Connect to Shortcuts Business Insights",
+      "publisher": "Shortcuts",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ShortcutsBI/1.0.0/ShortcutsBI_1.0.0.pqx",
+      "files": [
+        "Function.ExtractCommunityID.pqm",
+        "Function.GetAccessCode.pqm",
+        "Function.GetData.pqm",
+        "Function.OAuthSignatureGenerator.pqm",
+        "Function.RandomStringGenerator.pqm",
+        "Function.TimestampGenerator.pqm",
+        "ShortcutsBI.pq",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "SingleStoreODBC",
+      "title": "SingleStore Direct Query Connector",
+      "description": "SingleStoreDirectQueryConnector",
+      "publisher": "SingleStore",
+      "version": "1.1.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SingleStoreODBC/1.1.1/SingleStoreODBC_1.1.1.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "OdbcConstants.pqm",
+        "SingleStoreODBC.m"
+      ]
+    },
+    {
+      "name": "SiteImprove",
+      "title": "Siteimprove",
+      "description": "Connect to Siteimprove",
+      "publisher": "SiteImprove",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SiteImprove/1.1.0/SiteImprove_1.1.0.pqx",
+      "files": [
+        "Siteimprove.pq",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "SmartsheetGlobal",
+      "title": "SmartsheetGlobal",
+      "description": "",
+      "publisher": "Smartsheet",
+      "version": "1.1.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SmartsheetGlobal/1.1.1/SmartsheetGlobal_1.1.1.pqx",
+      "files": [
+        "SmartsheetGlobal.pq"
+      ]
+    },
+    {
+      "name": "SoftOneBI",
+      "title": "SoftOne BI",
+      "description": "Connect to Soft1 / Atlantis",
+      "publisher": "SoftOne",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SoftOneBI/1.0.0/SoftOneBI_1.0.0.pqx",
+      "files": [
+        "SoftOneBI.m"
+      ]
+    },
+    {
+      "name": "SolarwindsServiceDesk",
+      "title": "SolarwindsServiceDesk",
+      "description": "",
+      "publisher": "SolarwindsServiceDesk",
+      "version": "1.1.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SolarwindsServiceDesk/1.1.3/SolarwindsServiceDesk_1.1.3.pqx",
+      "files": [
+        "SolarWindsServiceDesk.pq"
+      ]
+    },
+    {
+      "name": "Spigit",
+      "title": "Planview IdeaPlace",
+      "description": "Connect to Planview IdeaPlace",
+      "publisher": "Planview",
+      "version": "2.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Spigit/2.0.0/Spigit_2.0.0.pqx",
+      "files": [
+        "Spigit.m"
+      ]
+    },
+    {
+      "name": "StarburstPresto",
+      "title": "StarburstPresto",
+      "description": "",
+      "publisher": "Starburst",
+      "version": "5.4.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/StarburstPresto/5.4.4/StarburstPresto_5.4.4.pqx",
+      "files": [
+        "OdbcConstants.pqm",
+        "StarburstEnterprise.pq"
+      ]
+    },
+    {
+      "name": "SumTotal",
+      "title": "SumTotal",
+      "description": "Connect to SumTotal",
+      "publisher": "SumTotal",
+      "version": "3.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SumTotal/3.0.0/SumTotal_3.0.0.pqx",
+      "files": [
+        "SumTotal.pq"
+      ]
+    },
+    {
+      "name": "Supermetrics",
+      "title": "Supermetrics",
+      "description": "",
+      "publisher": "Supermetrics",
+      "version": "3.3.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Supermetrics/3.3.0/Supermetrics_3.3.0.pqx",
+      "files": [
+        "Icons.pqm",
+        "Supermetrics.m"
+      ]
+    },
+    {
+      "name": "SurveyMonkey",
+      "title": "SurveyMonkey",
+      "description": "Connect to SurveyMonkey",
+      "publisher": "SurveyMonkey",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/SurveyMonkey/1.1.0/SurveyMonkey_1.1.0.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "FetchResource.pqm",
+        "SurveyMonkey.m"
+      ]
+    },
+    {
+      "name": "Synapse",
+      "title": "Azure Synapse Analytics workspace",
+      "description": "Import data from Azure Synapse Analytics workspace",
+      "publisher": "Microsoft",
+      "version": "1.0.5",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Synapse/1.0.5/Synapse_1.0.5.pqx",
+      "files": [
+        "Synapse.pq"
+      ]
+    },
+    {
+      "name": "TeamDesk.PowerBI.DataConnector",
+      "title": "TeamDesk.PowerBI.DataConnector",
+      "description": "",
+      "publisher": "ForeSoft",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TeamDesk/1.0.1/TeamDesk_1.0.1.pqx",
+      "files": [
+        "TeamDesk.m"
+      ]
+    },
+    {
+      "name": "TeamsAnalytics",
+      "title": "Microsoft Teams Personal Analytics",
+      "description": "Connect to Microsoft Teams Personal Analytics",
+      "publisher": "Microsoft",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TeamsAnalytics/1.1.0/TeamsAnalytics_1.1.0.pqx",
+      "files": [
+        "TeamsAnalytics.pq"
+      ]
+    },
+    {
+      "name": "Tenforce",
+      "title": "Tenforce (Smart)List",
+      "description": "Connect to Tenforce",
+      "publisher": "TenForce",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Tenforce/1.0.4/Tenforce_1.0.4.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Table.ChangeType.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Tenforce.m",
+        "TypeMappingTable.pqm"
+      ]
+    },
+    {
+      "name": "TIBCO",
+      "title": "TIBCO.ODBC.TDV",
+      "description": "Connect to TIBCO.ODBC.TDV",
+      "publisher": "TIBCO",
+      "version": "20.0.7806",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TIBCO/20.0.7806/TIBCO_20.0.7806.pqx",
+      "files": [
+        "TIBCO.ODBC.TDV.m"
+      ]
+    },
+    {
+      "name": "TimeSeriesInsights",
+      "title": "Azure Time Series Insights",
+      "description": "Connect to Azure Time Series Insights",
+      "publisher": "Microsoft",
+      "version": "1.0.11",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TimeSeriesInsights/1.0.11/TimeSeriesInsights_1.0.11.pqx",
+      "files": [
+        "TimeSeriesInsightsConnector.m"
+      ]
+    },
+    {
+      "name": "Usercube",
+      "title": "Usercube",
+      "description": "Connect to Usercube",
+      "publisher": "Usercube",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Usercube/1.0.0/Usercube_1.0.0.pqx",
+      "files": [
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Usercube.m"
+      ]
+    },
+    {
+      "name": "Vena",
+      "title": "Vena",
+      "description": "Connect to Vena",
+      "publisher": "Vena",
+      "version": "1.1.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Vena/1.1.1/Vena_1.1.1.pqx",
+      "files": [
+        "Main.pqm",
+        "Utils.pqm",
+        "Vena.pq"
+      ]
+    },
+    {
+      "name": "VesselInsight",
+      "title": "Vessel Insight",
+      "description": "Connect to Vessel Insight",
+      "publisher": "Kognitwin",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/VesselInsight/1.0.6/VesselInsight_1.0.6.pqx",
+      "files": [
+        "Documentation.galoreCustomDataQueryType.pqm",
+        "Documentation.galoreEdgeDataQueryType.pqm",
+        "Documentation.voyage.pqm",
+        "Documentation.voyageAis.pqm",
+        "Documentation.voyageHistory.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Table.createNavTableDataRow.pqm",
+        "Util.convertNumericTimestampToDateTime.pqm",
+        "VIAuth.pqm",
+        "VIServices.pqm",
+        "VesselInsight.m",
+        "VoyageServices.pqm"
+      ]
+    },
+    {
+      "name": "Warehouse",
+      "title": "Warehouse",
+      "description": "Import Warehouse",
+      "publisher": "Microsoft",
+      "version": "1.2.45",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Warehouse/1.2.45/Warehouse_1.2.45.pqx",
+      "files": [
+        "FabricEnvironment.pqm",
+        "OutputInterceptor.pqm",
+        "Table.NavigationTableView.pqm",
+        "Utils.pqm",
+        "Warehouse.pq",
+        "WarehouseOutputInterceptor.pqm",
+        "Workspace.DLP.pqm",
+        "Workspace.PrivateLink.pqm",
+        "Workspace.pqm"
+      ]
+    },
+    {
+      "name": "WebtrendsAnalytics",
+      "title": "WebtrendsAnalytics",
+      "description": "",
+      "publisher": "Webtrends",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/WebtrendsAnalytics/1.0.0/WebtrendsAnalytics_1.0.0.pqx",
+      "files": [
+        "WebtrendsAnalytics.pq"
+      ]
+    },
+    {
+      "name": "Windsor",
+      "title": "Windsor",
+      "description": "Connect to Windsor",
+      "publisher": "Windsor",
+      "version": "1.0.4",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Windsor/1.0.4/Windsor_1.0.4.pqx",
+      "files": [
+        "Icons.pqm",
+        "Windsor.pq"
+      ]
+    },
+    {
+      "name": "Witivio",
+      "title": "PQExtension1",
+      "description": "Connect to PQExtension1",
+      "publisher": "Witivio",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Witivio/1.0.0/Witivio_1.0.0.pqx",
+      "files": [
+        "Witivio.pq"
+      ]
+    },
+    {
+      "name": "WorkforceDimensions",
+      "title": "Workforce Dimensions",
+      "description": "Connect to Workforce Dimensions",
+      "publisher": "Kronos",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/WorkforceDimensions/1.0.3/WorkforceDimensions_1.0.3.pqx",
+      "files": [
+        "WorkforceDimensions.m"
+      ]
+    },
+    {
+      "name": "WorkplaceAnalytics",
+      "title": "Viva Insights",
+      "description": "Connect to Viva Insights Data",
+      "publisher": "Microsoft",
+      "version": "3.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/WorkplaceAnalytics/3.1.0/WorkplaceAnalytics_3.1.0.pqx",
+      "files": [
+        "Diagnostics.pqm",
+        "Table.ChangeType.pqm",
+        "WorkplaceAnalytics.pq"
+      ]
+    },
+    {
+      "name": "Wrike",
+      "title": "Wrike",
+      "description": "Connect to Wrike",
+      "publisher": "Microsoft",
+      "version": "1.1.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.0/Wrike_1.1.0.pqx",
+      "files": [
+        "Table.EmptyTable.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToAccessRolesTable.pqm",
+        "Table.ToAccountTable.pqm",
+        "Table.ToAllApprovalsTable.pqm",
+        "Table.ToAllAttachementsTable.pqm",
+        "Table.ToAllFoldersTable.pqm",
+        "Table.ToAllTasksTable.pqm",
+        "Table.ToBookingTable.pqm",
+        "Table.ToContactTable.pqm",
+        "Table.ToContactWithFinanceTable.pqm",
+        "Table.ToCustomFieldsExpandTable.pqm",
+        "Table.ToCustomFieldsTable.pqm",
+        "Table.ToCustomItemTypesTable.pqm",
+        "Table.ToExpandSubTasks.pqm",
+        "Table.ToFolderDetailTable.pqm",
+        "Table.ToFolderFinanceDetailTable.pqm",
+        "Table.ToFolderTable.pqm",
+        "Table.ToFolderTimelogFinanceTable.pqm",
+        "Table.ToFoldersUnderFolderTable.pqm",
+        "Table.ToGroupTable.pqm",
+        "Table.ToInvitationsTable.pqm",
+        "Table.ToJobRolesTable.pqm",
+        "Table.ToNavigationTable.pqm",
+        "Table.ToPlaceholderTable.pqm",
+        "Table.ToSpaceByIdTable.pqm",
+        "Table.ToSpaceExpandTable.pqm",
+        "Table.ToSpaceTable.pqm",
+        "Table.ToTaskDependencies.pqm",
+        "Table.ToTaskDetailTable.pqm",
+        "Table.ToTasksTable.pqm",
+        "Table.ToTasksWithFinanceTable.pqm",
+        "Table.ToTimelogCategoriesTable.pqm",
+        "Table.ToTimelogsTable.pqm",
+        "Table.ToWorkSchedulesTable.pqm",
+        "Table.ToWorkflowsTable.pqm",
+        "wrike.m"
+      ]
+    },
+    {
+      "name": "ZendeskData",
+      "title": "ZendeskData",
+      "description": "",
+      "publisher": "Zendesk",
+      "version": "2.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ZendeskData/2.0.1/ZendeskData_2.0.1.pqx",
+      "files": [
+        "GetSchemaForEntity.pqm",
+        "Table.ChangeType.pqm",
+        "Table.GenerateByPage.pqm",
+        "Table.ToNavigationTable.pqm",
+        "zendesk.pq"
+      ]
+    },
+    {
+      "name": "ZohoCreator",
+      "title": "Zoho Creator",
+      "description": "Connect to Zoho Creator",
+      "publisher": "Zoho",
+      "version": "2.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ZohoCreator/2.0.0/ZohoCreator_2.0.0.pqx",
+      "files": [
+        "ZohoCreator.m"
+      ]
+    },
+    {
+      "name": "Zucchetti",
+      "title": "Zucchetti",
+      "description": "",
+      "publisher": "Zuchetti",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Zucchetti/1.0.1/Zucchetti_1.0.1.pqx",
+      "files": [
+        "Zucchetti.m"
+      ]
+    }
+  ]
+}
