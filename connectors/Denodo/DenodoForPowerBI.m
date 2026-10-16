@@ -19,7 +19,7 @@
  *
  * =============================================================================
  */
-[Version = "1.1.0"]
+[Version = "1.1.2", Traits = [GatewayRequired = true]]
 section DenodoForPowerBI;
 
 [DataSource.Kind="DenodoForPowerBI", Publish="DenodoForPowerBI.Publish"]
@@ -610,22 +610,21 @@ DenodoForPowerBI.Publish = [
     SourceTypeImage = DenodoForPowerBI.Icons,
 
     NativeQueryProperties = [
-			navigationSteps = {
-				[
-					indices = {
-                        [
-                            displayName = "Database",
-                            indexName = "Kind"
-                        ]
-					},
-					access = "Data"
-				]
-			},
-		
-			nativeQueryOptions = [
-					EnableFolding = true
-				]
-			]
+        NavigationSteps = {
+            [
+                Indices = {
+                    [
+                        ConstantValue = "Database",
+                        IndexName = "Kind"
+                    ]
+                },
+                FieldAccess = "Data"
+            ]
+        },
+        DefaultOptions = [
+            EnableFolding = true
+        ]
+    ]
 ];
 
 

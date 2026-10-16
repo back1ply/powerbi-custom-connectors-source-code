@@ -7,13 +7,16 @@
  * @param Context Global parameters and constants.
  * @param StatusCode The HTTP status code of the request.
  * @param Response The raw network response.
+ * @param IsCustomMaxRetries Whether a custom max retry count was used from X-Max-Retries header.
+ * @param MaxRetries The effective max retry count used (for error messaging).
  * @raises The modeled error for each failure scenario.
  */
-(Context as record, StatusCode as number, Response as any) =>
+(Context as record, StatusCode as number, Response as any, optional IsCustomMaxRetries as nullable logical, optional MaxRetries as nullable number) =>
     let
         Status.BadRequest = 400,
         Status.Unauthorized = 401,
         Status.Forbidden = 403,
+        Status.ReportRunFailed = 418,
         Status.TooManyRequests = 429,
 
         ErrorMessage.BadToken = "invalid token",
@@ -72,6 +75,25 @@
                 Cause = ErrorMessage
             ]
         ),
+        TooManyRequestsCustomMax = Error.Record(
+            Extension.LoadString("ErrorTooManyRequests"),
+            Extension.LoadString("ErrorTooManyRequestsCustomMaxMessage"),
+            [
+                ResponseCode = Status.TooManyRequests,
+                Tag = "throttle_custom_max",
+                Cause = ErrorMessage
+            ],
+            { MaxRetries }
+        ),
+        ReportRunFailed = Error.Record(
+            Extension.LoadString("ErrorReportRunFailed"),
+            Extension.LoadString("ErrorReportRunFailedMessage"),
+            [
+                ResponseCode = Status.ReportRunFailed,
+                Tag = "report_run_failed",
+                Cause = ErrorMessage
+            ]
+        ),
         Fatal = Error.Record(
             Extension.LoadString("ErrorFatal"),
             Extension.LoadString("ErrorServerUnknown"),
@@ -83,10 +105,12 @@
             { StatusCode }
         ),
 
-        Translated.Error = if StatusCode = Status.Unauthorized and Text.Contains(ErrorMessage, ErrorMessage.BadToken) then BadToken
+        Translated.Error = if StatusCode = Status.ReportRunFailed then ReportRunFailed
+            else if StatusCode = Status.Unauthorized and Text.Contains(ErrorMessage, ErrorMessage.BadToken) then BadToken
             else if StatusCode = Status.Unauthorized then MissingScope
             else if StatusCode = Status.Forbidden then Forbidden
             else if StatusCode = Status.BadRequest and Text.Contains(ErrorMessage, ErrorMessage.BadVersion) then BadVersion 
+            else if StatusCode = Status.TooManyRequests and (IsCustomMaxRetries ?? false) then TooManyRequestsCustomMax
             else if StatusCode = Status.TooManyRequests then TooManyRequests
             else Fatal
     in

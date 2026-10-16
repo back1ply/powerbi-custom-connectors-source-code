@@ -1,5 +1,5 @@
-﻿// Data Connector logic for Cognite Data Fusion.
-[Version = "1.0.2"]
+// Data Connector logic for Cognite Data Fusion.
+[Version = "1.1.3"]
 section CogniteDataSource;
 
 CogniteDefaults = [
@@ -16,8 +16,18 @@ CogniteDefaults = [
     DMApiVersion = "20230821",
     // To avoid Power BI giving Invalid URI: The Uri scheme is too long.
     MaxUriSize = 800,
+    // Retry configuration for different error types
+    // 429 (rate limiting), 502/503/504 (gateway errors), 409 (conflict with cdf-is-auto-retryable header)
+    MaxRetries = 10,
+    BaseRetryDelayMs = 1000,
+    MaxRetryDelayMs = 60000,
+    // 408 (request timeout) - fewer retries, longer base delay
+    MaxRetries408 = 2,
+    BaseRetryDelayMs408 = 2000,
+    // Delay between page fetches for /streams/ endpoints to avoid triggering rate limits
+    StreamsPageDelayMs = 200,
     // Is it possible to read this value from the section above?
-    Version = "1.0.2"
+    Version = "1.1.3"
 ];
 
 // Construct service Url from the project and organization
@@ -644,8 +654,9 @@ GetEnvironmentFromOrganization = (org as text, proj as text) as record =>
                 "https://auth.cognite.com/api/v1/orgs/" & org & "/projects"
             else
                 error Error.Record("DataSource.Error", "Organization not set. Re-login and specify organization."),
-        responseCodes = {200, 401},
-        endpointResponse = Web.Contents(url, [ManualStatusHandling = responseCodes])
+        responseCodes = {200, 401, 408, 409, 429, 502, 503, 504},
+        request = [ManualStatusHandling = responseCodes],
+        endpointResponse = RetryWithExponentialBackoff(url, request, 0)
     in
         if (List.Contains({200}, Value.Metadata(endpointResponse)[Response.Status]?)) then
             let
@@ -666,14 +677,21 @@ GetEnvironmentFromOrganization = (org as text, proj as text) as record =>
                                 #"Project" = proj
                             ]
                         )
+        else if Value.Metadata(endpointResponse)[Response.Status]? = 401 then
+            null
         else
-            null;
+            error Error.Record("CogniteAPIError",
+                "Unexpected response from organization endpoint: " & Text.From(Value.Metadata(endpointResponse)[Response.Status]?));
 
 // Read all pages of data.
 // After every page, we check the "Cursor" record on the metadata of the previous request.
 // Table.GenerateByPage will keep asking for more pages until we return null.
 GetAllPagesByCursor = (url as text, optional payload as text) as table =>
     let
+        // Pace requests for /streams/ endpoints to stay under CDF rate limits
+        shouldPace = Text.Contains(url, "/streams/"),
+        pageDelay = #duration(0, 0, 0, CogniteDefaults[StreamsPageDelayMs] / 1000),
+
         RawPages =
             Table.GenerateByPage(
                 (previous) =>
@@ -689,13 +707,20 @@ GetAllPagesByCursor = (url as text, optional payload as text) as table =>
                         // if previous = null it's the first page
                         page =
                             if previous = null then
-                                // first page
                                 GetPage(url, null, payload)
                             else if nextCursor <> null then
-                                // pages
-                                GetPage(url, nextCursor, payload)
+                                let
+                                    nextPage =
+                                        if shouldPace then
+                                            Function.InvokeAfter(
+                                                () => GetPage(url, nextCursor, payload),
+                                                pageDelay
+                                            )
+                                        else
+                                            GetPage(url, nextCursor, payload)
+                                in
+                                    if Table.RowCount(nextPage) = 0 then null else nextPage
                             else
-                                // last page
                                 null
                     in
                         page
@@ -742,6 +767,69 @@ GetAllGraphQLPagesByCursor = (url as text, payload as text, variables as record)
                 page
     );
 
+// Retry helper for transient errors (429, 408, 502, 503, 504, and 409 with cdf-is-auto-retryable header).
+// Returns the Web.Contents binary response for success or non-retryable status codes.
+// Throws CogniteAPIError if a retryable error persists after max retries.
+// Callers must still handle non-retryable error codes (e.g., 400, 403, 500) from the returned response.
+RetryWithExponentialBackoff = (url as text, request as record, retryCount as number) as any =>
+    let
+        // On retries, set IsRetry = true so Power Query bypasses its HTTP response cache
+        // and actually makes a fresh request instead of returning the cached error response.
+        requestWithRetry = if retryCount > 0 then request & [IsRetry = true] else request,
+        response = Web.Contents(url, requestWithRetry),
+        responseMetadata = Value.Metadata(response),
+        responseHeaders = Record.FieldOrDefault(responseMetadata, "Headers", []),
+        code = responseMetadata[Response.Status],
+
+        isAutoretryable409 = code = 409 and Record.FieldOrDefault(responseHeaders, "cdf-is-auto-retryable", "false") = "true",
+
+        // For query endpoints, don't retry 408 - let external PowerQuery handle page size reduction
+        isQueryEndpoint = Text.EndsWith(Uri.Parts(url)[Path], "/models/instances/query"),
+        retryableErrors = {429, 502, 503, 504},
+        isRetryable = List.Contains(retryableErrors, code) or isAutoretryable409 or (code = 408 and not isQueryEndpoint),
+
+        maxRetries = if code = 408 then CogniteDefaults[MaxRetries408] else CogniteDefaults[MaxRetries],
+        baseDelay = if code = 408 then CogniteDefaults[BaseRetryDelayMs408] else CogniteDefaults[BaseRetryDelayMs],
+
+        result =
+            if isRetryable and retryCount < maxRetries then
+                let
+                    delayFactor = Number.Power(2, retryCount),
+                    baseDelayMs = List.Min({baseDelay * delayFactor, CogniteDefaults[MaxRetryDelayMs]}),
+                    delayMs = Number.Random() * baseDelayMs,
+                    delayDuration = #duration(0, 0, 0, delayMs / 1000),
+
+                    retryResult = Function.InvokeAfter(
+                        () => @RetryWithExponentialBackoff(url, request, retryCount + 1),
+                        delayDuration
+                    )
+                in
+                    retryResult
+            else if isRetryable then
+                let
+                    responseJson = try Json.Document(response) otherwise null,
+                    errorDetails = if responseJson <> null then Record.FieldOrDefault(responseJson, "error") else null,
+                    requestId = Record.FieldOrDefault(responseHeaders, "x-request-id", "unknown"),
+                    cluster = try Text.BeforeDelimiter(Uri.Parts(url)[Host], ".") otherwise "unknown",
+                    originalMessage = if Value.Is(errorDetails, type record) then Record.FieldOrDefault(errorDetails, "message", "Request failed") else if Value.Is(errorDetails, type text) then errorDetails else "Request failed",
+                    errorType = if code = 429 then "Rate limit" 
+                                else if code = 408 then "Request timeout"
+                                else if code = 409 then "Conflict (autoretryable)"
+                                else "Gateway error",
+                    errorMessage = errorType & " exceeded after " & Text.From(maxRetries) & " retries. Please try again later.",
+                    errorDetail = [
+                        code = code,
+                        requestId = requestId,
+                        cluster = cluster,
+                        originalError = originalMessage
+                    ]
+                in
+                    error Error.Record("CogniteAPIError", errorMessage, errorDetail)
+            else
+                response
+    in
+        result;
+
 GetPage = (url as text, optional cursor as text, optional payload as text) as table =>
     let
         headers = [
@@ -757,7 +845,7 @@ GetPage = (url as text, optional cursor as text, optional payload as text) as ta
             else
                 url,
         // Extract cluster from URL
-        cluster = Text.BeforeDelimiter(Text.AfterDelimiter(url, "https://"), "."),
+        cluster = Text.BeforeDelimiter(Uri.Parts(url)[Host], "."),
 
         // validate if the payload is valid JSON
         validatePayload = if payload <> null then
@@ -769,7 +857,7 @@ GetPage = (url as text, optional cursor as text, optional payload as text) as ta
             null,
 
         // Status codes that won't raise an error automatically, so we can fetch the error message from the response
-        statusToRaise = {400, 403, 429, 500},
+        statusToRaise = {400, 403, 408, 409, 429, 500, 502, 503, 504},
         // build the request for the different cases
 
         request = [
@@ -787,7 +875,7 @@ GetPage = (url as text, optional cursor as text, optional payload as text) as ta
                 else
                     []
             ),
-        response = Web.Contents(url_with_cursor, request),
+        response = RetryWithExponentialBackoff(url_with_cursor, request, 0),
         // Parse the response
         responseMetadata = Value.Metadata(response),
         responseHeaders = Record.FieldOrDefault(responseMetadata, "Headers", []),
@@ -896,14 +984,16 @@ GetPage = (url as text, optional cursor as text, optional payload as text) as ta
     in
         result;
 
-GetGraphQLPage = (url as text, payload as text, variables as record, optional cursor as text) as table =>
+GetGraphQLPage = (url as text, payload as text, variables as record, optional cursor as text, optional retryAttempt as number) as table =>
     let
+        // GraphQL-level retry counter for transient execution errors (see isTransientGraphQLError)
+        attempt = if retryAttempt = null then 0 else retryAttempt,
         headers = [
             #"Content-Type" = "application/json",
             #"x-cdp-app" = "CogniteDataSourcePowerBIConnector:" & CogniteDefaults[Version]
         ],
         // Extract cluster from URL
-        cluster = Text.BeforeDelimiter(Text.AfterDelimiter(url, "https://"), "."),
+        cluster = Text.BeforeDelimiter(Uri.Parts(url)[Host], "."),
         // cursor is a special variable and should not be included in the variables record
         validateVariables =
             if Record.HasFields(variables, "cursor") then
@@ -916,12 +1006,17 @@ GetGraphQLPage = (url as text, payload as text, variables as record, optional cu
                 variables,
         variablesUpdated = validateVariables & (if cursor <> null then [cursor = cursor] else []),
         // Status codes that won't raise an error automatically, so we can fetch the error message from the response
-        statusToRaise = {400, 403, 429, 500},
+        statusToRaise = {400, 403, 408, 409, 429, 500, 502, 503, 504},
         postData = Json.FromValue([query = payload, variables = variablesUpdated]),
-        response = Web.Contents(url, [
+        request = [
             Headers = headers,
-            Content = postData
-        ]),
+            Content = postData,
+            ManualStatusHandling = statusToRaise
+        ]
+            // On GraphQL-level retries, bypass Power Query's HTTP response cache so the
+            // request is actually re-issued instead of replaying the cached error response.
+            & (if attempt > 0 then [IsRetry = true] else []),
+        response = RetryWithExponentialBackoff(url, request, 0),
         // Parse the response
         responseMetadata = Value.Metadata(response),
         responseHeaders = Record.FieldOrDefault(responseMetadata, "Headers", []),
@@ -941,19 +1036,38 @@ GetGraphQLPage = (url as text, payload as text, variables as record, optional cu
                 errorMessage & " | code: " & Text.From(code) & " | X-Request-ID: " & requestId & " | cluster: " & cluster
             else
                 null,
+        // A GraphQL endpoint can return HTTP 200 with a top-level "errors" array. When a
+        // "data" payload is still present the query passed validation and failed during
+        // execution (typically a transient backend timeout), so it is worth retrying with
+        // backoff. Validation errors (no "data") are permanent and surfaced immediately.
+        // The condition deliberately does not inspect the "data" payload: the "errors"
+        // branch of the "data" binding below already fails any response carrying an
+        // "errors" array, so a partially-resolved result is never returned to the caller
+        // either way. Retrying it therefore costs nothing and may recover the page.
+        isTransientGraphQLError =
+            code = 200
+            and Record.HasFields(responseJson, "errors")
+            and Record.HasFields(responseJson, "data"),
+        // Transient GraphQL errors are timeout-like, so reuse the shorter 408 retry budget.
+        maxGraphQLRetries = CogniteDefaults[MaxRetries408],
         data =
             if errorDetails <> null and List.Contains(statusToRaise, code) then
                 error Error.Record("CogniteAPIError", raiseMessage, errorDetails)
             else if List.Contains(statusToRaise, code) then
                 error Error.Record("CogniteAPIError", "HTTP error " & Text.From(code), responseJson)
-            else if Record.HasFields(responseJson, "data") then
-                responseJson[data]
             else if Record.HasFields(responseJson, "errors") then
+                // A GraphQL endpoint can return HTTP 200 with a top-level "errors" array,
+                // often alongside a partially-resolved "data" whose queried field is null
+                // (e.g. on a backend timeout or a query-complexity/size limit). Surface these
+                // errors BEFORE reading "data" so the real backend message is reported instead
+                // of a downstream "We cannot apply field access to the type Null" failure.
                 // passing a string works best for the error messages
                 error
                     Error.Record(
                         "CogniteAPIError", "GraphQL error", Text.FromBinary(Json.FromValue(responseJson[errors]))
                     )
+            else if Record.HasFields(responseJson, "data") then
+                responseJson[data]
             else
                 error
                     Error.Record(
@@ -962,9 +1076,36 @@ GetGraphQLPage = (url as text, payload as text, variables as record, optional cu
                         // passing a string works best for the error messages
                         Text.FromBinary(Json.FromValue(responseJson))
                     ),
-        listName = Record.FieldNames(data){0},
-        listItems = Record.Field(data, listName),
-        items = listItems[items],
+        // Defensive guard: even without a top-level "errors" array, "data" (or the queried
+        // field within it) can still be null when the backend fails to fully resolve a query.
+        // Fail with an actionable message instead of a cryptic null field-access error.
+        dataRecord =
+            if data is record then
+                data
+            else
+                error
+                    Error.Record(
+                        "CogniteConnectorError",
+                        "GraphQL response contained no data to parse.",
+                        Text.FromBinary(Json.FromValue(responseJson))
+                    ),
+        listName = Record.FieldNames(dataRecord){0},
+        listItems = Record.Field(dataRecord, listName),
+        listItemsRecord =
+            if listItems is record then
+                listItems
+            else
+                error
+                    Error.Record(
+                        "CogniteConnectorError",
+                        "GraphQL query field '"
+                            & listName
+                            & "' returned null. This usually means the backend could not fully resolve the"
+                            & " query (for example a timeout or a query-complexity/size limit). Try reducing"
+                            & " the page size ('first:') or simplifying the query.",
+                        Text.FromBinary(Json.FromValue(responseJson))
+                    ),
+        items = listItemsRecord[items],
         result =
             if List.Count(items) = 0 then
                 Table.FromList(items, Splitter.SplitByNothing(), {listName}, null, ExtraValues.Error)
@@ -977,11 +1118,35 @@ GetGraphQLPage = (url as text, payload as text, variables as record, optional cu
                     resulttable = Table.ExpandRecordColumn(converted_to_table, listName, fieldNames)
                 in
                     resulttable,
-        nextCursor = GetCursorGraphQL(listItems)
+        nextCursor = GetCursorGraphQL(listItemsRecord),
+        // Retry transient GraphQL execution errors (HTTP 200 with both "errors" and "data")
+        // with exponential backoff and jitter. Once the retries are exhausted, the parse
+        // bindings above run and surface the real GraphQL error message. Thanks to M's lazy
+        // evaluation, those bindings are not evaluated while we are still retrying.
+        pageResult =
+            if isTransientGraphQLError and attempt < maxGraphQLRetries then
+                let
+                    delayFactor = Number.Power(2, attempt),
+                    baseDelayMs = List.Min(
+                        {CogniteDefaults[BaseRetryDelayMs408] * delayFactor, CogniteDefaults[MaxRetryDelayMs]}
+                    ),
+                    delayMs = Number.Random() * baseDelayMs,
+                    delayDuration = #duration(0, 0, 0, delayMs / 1000)
+                in
+                    Function.InvokeAfter(
+                        () => @GetGraphQLPage(url, payload, variables, cursor, attempt + 1), delayDuration
+                    )
+            else
+                result meta [Cursor = nextCursor]
     in
-        result meta [Cursor = nextCursor];
+        pageResult;
 
-GetCursor = (response) as nullable text => Record.FieldOrDefault(response, "nextCursor", null);
+GetCursor = (response) as nullable text =>
+    let
+        nextCursor = Record.FieldOrDefault(response, "nextCursor", null),
+        hasNext = Record.FieldOrDefault(response, "hasNext", null)
+    in
+        if hasNext = false then null else nextCursor;
 GetCursorGraphQL = (response) as nullable text =>
     let
         pageInfo = Record.FieldOrDefault(response, "pageInfo", null),

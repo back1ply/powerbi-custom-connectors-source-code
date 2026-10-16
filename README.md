@@ -3,7 +3,7 @@
 [![Power Query](<https://img.shields.io/badge/Language-Power%20Query%20(M)-blue.svg>)](https://learn.microsoft.com/en-us/powerquery-m/)
 [![Power BI](https://img.shields.io/badge/Platform-Power%20BI-yellow.svg)](https://powerbi.microsoft.com/)
 
-A comprehensive reference archive containing the extracted source code (`.m`, `.pq`, `.pqm`) for **124+ Microsoft-Certified Power BI Custom Connectors**.
+A reference archive containing the extracted source code (`.m`, `.pq`, `.pqm`) for **133 Microsoft-certified Power BI custom connectors**. Browse the [generated connector index](connectors/README.md).
 
 This repository is designed to be the ultimate GEO/SEO optimized reference guide for developers building their own Power Query / Power BI custom extensions. By analyzing the production-ready code in this repository, you can understand how major software companies handle complex data retrieval and authentication patterns.
 
@@ -104,13 +104,24 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
     └── list_extensions.ps1       # Tallies up file extension counts
 ```
 
+## Refresh the archive
+
+Run from the repository root with PowerShell:
+
+```powershell
+./scripts/refresh_connectors.ps1
+```
+
+The command downloads the highest package version listed for each connector in [Microsoft's certified connector manifest](https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/manifest.json), replaces `connectors/`, removes UI and packaging files, and generates `connectors/README.md` with links and M source counts. Git history retains previous copies; no separate version archive is maintained. Downloaded packages remain in a temporary folder printed by the downloader. Selection follows package versions, without filtering for compatibility with a particular Power BI engine version.
+
+To use local packages instead, pass `-SourceDir 'C:\path\to\CertifiedExtensions'`. Supply the full set you want to retain, with one `.mez` or `.pqx` per connector; connectors absent from that folder are removed. Missing or empty folders, duplicate connector names, extraction failures, and packages without M source stop the refresh before replacement. Download failures also stop the default workflow before replacement.
+
 ## 🛠️ How this repo was generated
 
-This repository relies on the Microsoft Power BI Desktop Store App installation wrapper, which locally caches the certified extensions.
-The files were sourced from:
+The original archive was extracted from the Power BI Desktop Store App's local cache:
 `%LOCALAPPDATA%\Microsoft\Power BI Desktop Store App\CertifiedExtensions`
 
-Our custom `extract_connectors.ps1` script unpacks the archives, and `cleanup_noise.ps1` removes over 2,700 localized `.resx` and UI `.png` files, leaving only 500+ `.pqm` and `.m` files comprising the core extension logic.
+Current refreshes download packages directly from Microsoft's certified connector feed using `download_connectors.ps1`, then extract and clean them using `refresh_connectors.ps1`. The older `extract_connectors.ps1` and `cleanup_noise.ps1` remain available for manual extraction and cleanup.
 
 ## ⚖️ License & Disclaimer
 

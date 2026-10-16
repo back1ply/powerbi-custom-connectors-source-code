@@ -1,0 +1,52 @@
+// FabricEnvironment.pqm - Centralized OAuth resource handling for Fabric connectors
+// This module provides environment-aware OAuth resource URLs for sovereign clouds.
+// Resolution strategy: env lookup table > global default
+// Scope construction is left to each connector via Utils[Utility.CreateOrderedScope].
+let
+    // Environment detection
+    env = Environment.FeatureSwitch("Cloud", "global"),
+
+    // Sovereign cloud resource lookup tables
+    AadSqlResourceEnv = [
+        china       = "https://database.chinacloudapi.cn/",
+        gcc         = "https://database.usgovcloudapi.net/",
+        gcc_dod     = "https://database.usgovcloudapi.net/",
+        gcc_high    = "https://database.usgovcloudapi.net/",
+        global      = "https://database.windows.net/",
+        usnat       = "https://database.usgovcloudapi.net/",
+        ussec       = "https://database.usgovcloudapi.net/"
+    ],
+
+    // Resource getters
+    // TODO: Once hosts start setting "AzureSqlAadResource" feature switch,
+    // add a feature switch override here (check switch first, fall back to env lookup).
+    GetSqlResource = () as text =>
+        Record.FieldOrDefault(AadSqlResourceEnv, env, AadSqlResourceEnv[global]),
+
+    GetPowerBiResource = () as text =>
+        Environment.FeatureSwitch("PowerBiAadResource", "https://analysis.windows.net/powerbi/api"),
+
+    GetStorageResource = () as text =>
+        Environment.FeatureSwitch("AzureStorageAadResource", "https://storage.azure.com"),
+
+    GetAuthorizationUri = () as text =>
+        Uri.Combine(
+            Environment.FeatureSwitch("AzureActiveDirectoryUri", "https://login.microsoftonline.com"),
+            "/common/oauth2/authorize"),
+
+    // Pre-resolved values for convenience
+    SqlResource = GetSqlResource(),
+    PowerBiResource = GetPowerBiResource(),
+    StorageResource = GetStorageResource(),
+    AuthorizationUri = GetAuthorizationUri()
+in
+    [
+        // Environment
+        Environment = env,
+
+        // Pre-resolved values
+        SqlResource = SqlResource,
+        PowerBiResource = PowerBiResource,
+        StorageResource = StorageResource,
+        AuthorizationUri = AuthorizationUri
+    ]

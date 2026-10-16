@@ -1,12 +1,12 @@
 // x-release-please-start-version
-[Version = "2.6.0"]
+[Version = "2.6.2"]
 section FactSetAnalytics;
 
 Settings = [
     // Constants
     ApiHost = "https://api.factset.com",
     LongRunningDefaultDelay = 5,
-    XFactSetConnectorVersion = "powerbi/enterprise/2.6.0",
+    XFactSetConnectorVersion = "powerbi/enterprise/2.6.2",
     OAuth = [
         DialogLabel = "Using FactSet Login",
         ClientId = "power-bi-pkce",

@@ -2,7 +2,7 @@
 
 
 
-[Version = "20.0.7805"]
+[Version = "20.0.7806", Traits = [GatewayRequired = true]]
 section TibcoTdv;
 
 [DataSource.Kind="TibcoTdv", Publish="TibcoTdv.Publish"]

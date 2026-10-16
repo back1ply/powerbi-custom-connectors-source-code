@@ -1,5 +1,5 @@
 // This connector provides a SingleStore Direct Query enabled connector for use with the PowerBI Desktop Application
-[Version = "1.1.0"]
+[Version = "1.1.1", Traits = [GatewayRequired = true]]
 section SingleStoreODBC;
 
 // When set to true, additional trace information will be written out to the User log. 

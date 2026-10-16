@@ -1,10 +1,38 @@
-﻿[Version = "1.0.4"]
+﻿[Version = "1.0.5"]
 section Synapse;
 
-AzureResourceManagerUri = "https://management.azure.com";
-AzureResourceManagerResource = "https://management.azure.com";
+EnvironmentConfiguration = [
+    AzureActiveDirectory = Environment.FeatureSwitch("AzureActiveDirectoryUri", GlobalCloudConfiguration[AzureActiveDirectory]),
+    AzureResourceManager = Environment.FeatureSwitch("AzureResourceManagerUri", GlobalCloudConfiguration[AzureResourceManager]),
+    AzureResourceManagerResource = Environment.FeatureSwitch("AzureResourceManagerAadResource", GlobalCloudConfiguration[AzureResourceManagerResource])
+];
+
+GlobalCloudConfiguration = [
+    AzureActiveDirectory = "https://login.microsoftonline.com",
+    AzureResourceManager = "https://management.azure.com",
+    AzureResourceManagerResource = "https://management.core.windows.net"
+];
+
+GetEndpointConfig = () as record =>
+    if (Text.StartsWith(EnvironmentConfiguration[AzureActiveDirectory], GlobalCloudConfiguration[AzureActiveDirectory])) then
+        GlobalCloudConfiguration
+    else
+        EnvironmentConfiguration;
+
+AzureResourceManagerUri = GetEndpointConfig()[AzureResourceManager];
+AzureResourceManagerResource = GetEndpointConfig()[AzureResourceManagerResource];
 SynapseGatewayResource = "https://dev.azuresynapse.net";
 SynapseSQLDatabaseResource = "https://sql.azuresynapse.net";
+
+Utility.CreateOrderedScope = (resourceUrls as list) as text =>
+    let
+        appendix = "user_impersonation",
+        scopes = List.Transform(
+            resourceUrls,
+            (resourceUrl) => Text.Format("#{0}/#{1}", {Text.TrimEnd(resourceUrl, "/"), appendix})),
+        result = Text.Combine(scopes, " ")
+    in
+        result;
 
 [DataSource.Kind="Synapse", Publish="Synapse.Publish"]
 shared Synapse.Contents = Value.ReplaceType((optional options as record) as table =>
@@ -258,7 +286,9 @@ AddRelationshipMetadata = (fromEntity as record, currentRelationship as record, 
 GetWorkspaces = () as list =>
     let
         content = "{""query"": ""resources |where type =~ 'microsoft.synapse/workspaces'| project id, name""}",
-        url = AzureResourceManagerUri & "/providers/Microsoft.ResourceGraph/resources?api-version=2020-04-01-preview",
+        url = Uri.Combine(
+            AzureResourceManagerUri,
+            "/providers/Microsoft.ResourceGraph/resources?api-version=2020-04-01-preview"),
         workspaces = GetARMContents(url, [Headers = [#"Content-Type"="application/json"], Content=Text.ToBinary(content)])[data][rows],
         toRecords = List.Transform(workspaces, each [id=_{0}, name=_{1}])
     in
@@ -368,9 +398,41 @@ GetSynapseDatabase = (server as text, databaseName as text) =>
 GetResourceCredential = (resource as text) as record =>
     let
         currentCredentials = Extension.CurrentCredential(),
-        prop = "AccessToken:" & resource
+        trimmedResource = Text.TrimEnd(resource, "/"),
+        prop = "AccessToken:" & trimmedResource,
+        propWithSlash = "AccessToken:" & trimmedResource & "/",
+        tokenValue = Record.FieldOrDefault(currentCredentials[Properties], prop),
+        tokenValueWithSlash = Record.FieldOrDefault(currentCredentials[Properties], propWithSlash),
+        selectedCredential =
+            if tokenValue is text and tokenValue <> "" then
+                [Property = prop, Token = tokenValue]
+            else if tokenValueWithSlash is text and tokenValueWithSlash <> "" then
+                [Property = propWithSlash, Token = tokenValueWithSlash]
+            else
+                null,
+        finalTokenValue =
+            if selectedCredential = null then
+                Diagnostics.Trace(
+                    TraceLevel.Error,
+                    [
+                        Name = "Synapse/GetResourceCredential/CredentialPropertyNotFound",
+                        Data = [],
+                        SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]
+                    ],
+                    currentCredentials[access_token])
+            else if trimmedResource = Text.TrimEnd(AzureResourceManagerResource, "/") then
+                Diagnostics.Trace(
+                    TraceLevel.Information,
+                    [
+                        Name = "Synapse/GetResourceCredential/CredentialPropertyFound",
+                        Data = [],
+                        SafeData = [CredentialProperty = selectedCredential[Property]]
+                    ],
+                    selectedCredential[Token])
+            else
+                selectedCredential[Token]
     in
-        currentCredentials & [access_token = Record.FieldOrDefault(currentCredentials[Properties], prop, currentCredentials[access_token])];
+        currentCredentials & [access_token = finalTokenValue];
 
 Utility.JoinTables = (fromEntity as table, toEntity as table, fromAttribute, toAttribute, nestedColumnName as text) as table =>
     let
@@ -393,9 +455,15 @@ Synapse = [
     TestConnection = (resource) => {"Synapse.Contents"},
     Authentication = [
         Aad = [
-            AuthorizationUri = "https://login.microsoftonline.com/common/oauth2/authorize",
+            AuthorizationUri = Uri.Combine(
+                GetEndpointConfig()[AzureActiveDirectory],
+                "/common/oauth2/authorize"),
             Resource = "",
-            Scope = "https://management.azure.com/user_impersonation https://sql.azuresynapse.net/user_impersonation https://dev.azuresynapse.net/user_impersonation",
+            Scope = Utility.CreateOrderedScope({
+                AzureResourceManagerResource,
+                SynapseSQLDatabaseResource,
+                SynapseGatewayResource
+            }),
             DefaultClientApplication = [
                 ClientId = "a672d62c-fc7b-4e81-a576-e60dc46e951d",
                 ClientSecret = "",

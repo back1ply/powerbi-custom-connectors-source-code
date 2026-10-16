@@ -1,5 +1,5 @@
 ﻿// This file contains the Power BI Data Connector logic for Actian Vector and Ingres databases
-[Version = "1.0.0"]
+[Version = "1.0.1", Traits = [GatewayRequired = true]]
 section Actian;
 
 // When set to true, additional trace information will be written out to the User log. 

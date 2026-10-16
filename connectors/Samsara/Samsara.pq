@@ -1,9 +1,9 @@
-[Version = "2.2.4"]
+[Version = "2.2.8"]
 section Samsara;
 
 // There doesn't appear to be a way to read the Version field from the literal attributes
 // of this section, so we need to repeat it here.
-Samsara.Client.Version = "2.2.4";
+Samsara.Client.Version = "2.2.8";
 
 // Includes. Please keep alphabetized!
 Samsara.Credentials = Extension.LoadFunction(Extension.ImportContext, "Samsara.Credentials.pqm");
@@ -81,7 +81,7 @@ Samsara.Publish = [
         Extension.LoadString("ButtonTitle"), 
         Extension.LoadString("ButtonHelp") 
     },
-    LearnMoreUrl = "https://kb.samsara.com/hc/en-us/articles/19262879010189-Integrate-with-Power-BI",
+    LearnMoreUrl = "https://kb.samsara.com/hc/en-us/articles/192.2.89010189-Integrate-with-Power-BI",
     SourceImage = Samsara.Icons,
     SourceTypeImage = Samsara.Icons
 ];

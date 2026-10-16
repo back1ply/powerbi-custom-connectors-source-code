@@ -1,5 +1,5 @@
 [
-    Version = "3.1.13",
+    Version = "3.1.33",
     Requires = [
         Legacy = "[0.0,)",
         DataSource = "[0.0,)",
@@ -83,6 +83,15 @@ BapBaseUrlEnv = [
     usnat       = "https://api.bap.eaglex.ic.gov",
     ussec       = "https://api.bap.microsoft.scloud"
 ];
+AadSqlResourceEnv = [
+    china       = "https://database.chinacloudapi.cn/",
+    gcc         = "https://database.usgovcloudapi.net/",
+    gcc_dod     = "https://database.usgovcloudapi.net/",
+    gcc_high    = "https://database.usgovcloudapi.net/",
+    global      = "https://database.windows.net/",
+    usnat       = "https://database.usgovcloudapi.net/",
+    ussec       = "https://database.usgovcloudapi.net/"
+];
 
 AadGroupApiOAuthResource = Utility.GetUrlWithEnv(AadGroupApiOAuthResourceEnv, env, AadGroupApiOAuthResourceEnv[global]);
 AadPowerAppsServiceResource = Utility.GetUrlWithEnv(AadPowerAppsResourceEnv, env, AadPowerAppsResourceEnv[global]);
@@ -92,8 +101,11 @@ PBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com");
 AadWorkspaceApiOAuthResource = Environment.FeatureSwitch("PowerBiAadResource", "https://analysis.windows.net/powerbi/api");
 AadAuthorizationUri =  Uri.Combine(Environment.FeatureSwitch("AzureActiveDirectoryUri", "https://login.microsoftonline.com"), "/common/oauth2/authorize");
 AadAdlsStorageResource = Environment.FeatureSwitch("AzureStorageAadResource", "https://storage.azure.com");
+AadSqlResource = Utility.GetUrlWithEnv(AadSqlResourceEnv, env, AadSqlResourceEnv[global]);
 UseNewClusterAPI = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseNewClusterAPI", false));
-EnableDataflowCatalogCaching = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_EnableDataflowCatalogCaching", true));
+UseContentAndCacheNativeForWorkspacePL = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseContentAndCacheNativeForWSPL", false));
+SendUserTokensToContentAndCache = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_SendUserTokensToContentAndCache", false));
+UseHardcodedWorkspaceType = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseHardcodedWorkspaceType", false));
 
 PowerQueryWebRootLocal = "https://onebox.pq-df.microsoft.com:9543";
 AadRedirectUrl = "https://preview.powerbi.com/views/oauthredirect.html";
@@ -666,6 +678,18 @@ Workspace.GetNavTableForDataflow = (baseUrl as text, workspaceId as text, worksp
         nav = Table.ToNavigationTable(reordered, {"entity", "version"}, "entityName", "Data", "ItemKind", "ItemName", "IsLeaf", "Tags")
     in
         nav;
+
+ErrorOrRefreshTokenHandler = (state) =>
+    let
+        result = try Utils[Web.DefaultErrorHandler](state),
+        errorCode = result[Error]?[Detail]?[ErrorCode]? ?? ""
+    in
+        Diagnostics.Trace(TraceLevel.Information,
+            [Name = "ErrorOrRefreshTokenHandler", Data = [ErrorCode = NonPii(errorCode), Status = NonPii(state[Status]?)]],
+            if errorCode = "DeniedByPolicy"
+                then Utils[Web.DefaultErrorHandler](state)
+                else Utils[AuthHandler](state)
+        );
         
 Workspace.GetDataflow = (baseUrl as text, workspaceId as text, workspaceType as text, dataflowId as text, options as nullable record) as nullable table =>
     let
@@ -681,22 +705,98 @@ Workspace.GetDataflow = (baseUrl as text, workspaceId as text, workspaceType as 
             transactionUrl = if options[TransactionId]? <> null
                 then Text.Combine({ contentUrl, "?", Uri.BuildQueryString([transactionId = options[TransactionId]?])})
                 else contentUrl,
-            headers = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId, operationUserPuid),
+            baseHeaders = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId, operationUserPuid),
+            // When enabled, include user tokens for Fabric scenarios so the service can use them
+            // instead of generating tokens with the confidential client app id
+            fabricTokenHeaders = if SendUserTokensToContentAndCache then GetFabricTokenHeaders() else [],
+            headers = baseHeaders & fabricTokenHeaders,
             originContext = [ Origin = NonPii("Workspace/GetDataflow/contentCatalog") ] & context,
+            additionalHandlerOrNull = if UseContentAndCacheNativeForWorkspacePL then [403 = ErrorOrRefreshTokenHandler] else null,
             // Note: Cached explicitly because PBI Desktop issues multiple requests that trigger this expensive call.
-            contentResult = if EnableDataflowCatalogCaching
-                then Workspace.GetJsonContents(transactionUrl, headers, originContext, null, null, transactionUrl, DataflowContentMetadataCacheHours)
-                else Workspace.GetJsonContents(transactionUrl, headers, originContext, null, null, null, null, true)
+            contentResult = Workspace.GetJsonContents(
+                transactionUrl,
+                /* headers */ headers,
+                /* context */ originContext,
+                /* body */ null,
+                /* additionalHandlers */ additionalHandlerOrNull,
+                /* cacheKey */ transactionUrl,
+                /* cacheHours */ DataflowContentMetadataCacheHours,
+                /* disableCaching */ null),
+
+            // Handle Private Link scenario: try contentandcache first, fallback to contentandcachenative if denied
+            finalResult = try contentResult
+                catch (e) => let
+                    // Extract error code from error detail
+                    // DefaultErrorHandler in Utils.pqm extracts top-level "code" field
+                    errorCode = e[Detail]?[ErrorCode]?,
+                    isDeniedByPolicy = errorCode = "DeniedByPolicy",
+
+                    // If DeniedByPolicy and feature flag enabled, retry with contentandcachenative
+                    nativeResult = if UseContentAndCacheNativeForWorkspacePL and isDeniedByPolicy then
+                        let
+                            // Generate workspace-specific Private Link URL directly
+                            // No need to call GetWorkspaceBaseUrl since we already know PL is required from the DeniedByPolicy error
+                            workspacePLUrl = WorkspacePrivateLink[GenerateWorkspacePLUrl](baseUrl, workspaceId),
+
+                            // Trace to debug URL generation
+                            tracedWorkspaceUrl = Diagnostics.Trace(TraceLevel.Information,
+                                [
+                                    Name="Workspace/ContentCatalogNative/UrlGeneration",
+                                    Data=[
+                                        OriginalBaseUrl = NonPii(baseUrl),
+                                        GeneratedPLUrl = NonPii(workspacePLUrl)
+                                    ] & context
+                                ],
+                                workspacePLUrl),
+
+                            // Build contentandcachenative URL with workspace in path
+                            nativeUrl = Uri.Combine(
+                                tracedWorkspaceUrl,
+                                Text.Format("/metadata/v201606/cdsa/workspaces/#{0}/dataflows/#{1}/contentandcachenative", {workspaceId, dataflowId})
+                            ),
+
+                            // Add transaction ID if present
+                            nativeTransactionUrl = if options[TransactionId]? <> null
+                                then Text.Combine({ nativeUrl, "?", Uri.BuildQueryString([transactionId = options[TransactionId]?])})
+                                else nativeUrl,
+
+                            // Call contentandcachenative with same headers (no S2S headers needed)
+                            nativeOriginContext = [ Origin = NonPii("Workspace/GetDataflow/contentCatalogNative") ] & context,
+                            nativeContentResult = Workspace.GetJsonContents(
+                                nativeTransactionUrl,
+                                /* headers */ headers,
+                                /* context */ nativeOriginContext,
+                                /* body */ null,
+                                /* additionalHandlers */ null,
+                                /* cacheKey */ nativeTransactionUrl,
+                                /* cacheHours */ DataflowContentMetadataCacheHours,
+                                /* disableCaching */ null)
+                        in
+                            Diagnostics.Trace(TraceLevel.Information,
+                                [
+                                    Name="Workspace/ContentCatalogNative/Retry",
+                                    Data=[
+                                        OriginalError = NonPii("DeniedByPolicy"),
+                                        UsedPrivateLink = NonPii(true)
+                                    ] & context
+                                ],
+                                nativeContentResult)
+                    else
+                        // Not DeniedByPolicy or feature flag disabled, trace and return empty
+                        Diagnostics.Trace(TraceLevel.Information,
+                            [
+                                Name="Workspace/ContentCatalog/Error",
+                                Data=[
+                                    Error=try Text.FromBinary(Json.FromValue(e)) otherwise "Unknown error.",
+                                    ErrorCode = NonPii(errorCode),
+                                    FeatureFlagEnabled = NonPii(UseContentAndCacheNativeForWorkspacePL)
+                                ] & context
+                            ],
+                            [])
+                in
+                    nativeResult
          in
-            try contentResult
-                catch (e) =>
-                    Diagnostics.Trace(TraceLevel.Information,
-                        [
-                            Name="Workspace/ContentCatalog/Error",
-                            Data=[Error=try Text.FromBinary(Json.FromValue(e)) otherwise "Unknown error."],
-                            SafeData=context
-                        ],
-                        []),
+            finalResult,
 
         entityAccessorType = contentCatalog[entityAccessorType]? ?? "ReadContent",
         pbiClusterUrl = if entityAccessorType = "MashupExpression" or entityAccessorType = "MashupExpressionReadContentOnFailure"
@@ -709,7 +809,8 @@ Workspace.GetDataflow = (baseUrl as text, workspaceId as text, workspaceType as 
             dataflowEntities = Table.FromRecords({ Record.TransformFields(renameFields, {{"dataflowCulture", each _ ?? ""}}) }),
             getEntityMashupJson = (entityName) => let
                 url = Uri.Combine(baseUrl, Text.Format("/metadata/v201606/cdsa/dataflows/#{0}/storageAccess/#{1}", {dataflowId, entityName})),
-                headers = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId),
+                fabricTokenHeaders = if SendUserTokensToContentAndCache then GetFabricTokenHeaders() else [],
+                headers = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId) & fabricTokenHeaders,
                 originContext = [Origin = NonPii("Workspace/GetDataflow/dataflowEntities")] & context,
                 storageJson = Workspace.GetJsonContents(url, headers, originContext, null, null, url, SasTokenCacheHours),
                 accessorSettings = [ PBI_ClusterUrl = pbiClusterUrl ]
@@ -869,7 +970,8 @@ Workspace.GetStorageAccess = (baseUrl as text, workspaceId as text, workspaceTyp
             EntityName = name,
             PartitionUri = location
         ],
-        headers = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId),
+        fabricTokenHeaders = if SendUserTokensToContentAndCache then GetFabricTokenHeaders() else [],
+        headers = Workspace[Cdsa.GetServiceRequestHeaders](workspaceId, workspaceType, tenantId) & fabricTokenHeaders,
         cacheKey = if location <> "" then (name & "|" & location & "|" & dataflowId) else null,
         context = [Origin = NonPii("Workspace/GetStorageAccess"), WorkspaceId = NonPii(workspaceId), DataflowId = NonPii(dataflowId)],
         response = Workspace.GetJsonContents(url, headers, context, body, null, cacheKey, SasTokenCacheHours),
@@ -1334,6 +1436,73 @@ DataLake.GetAzureDataLakeStorageCredentials = () =>
     in
         currentCredentials & [access_token = Record.FieldOrDefault(currentCredentials[Properties], prop, currentCredentials[access_token])];
 
+// Get SQL token from credentials if available
+// Used for Fabric scenarios where user tokens can access SQL endpoints directly
+GetSqlToken = () =>
+    let
+        currentCredentials = Extension.CurrentCredential(),
+        resource = Text.TrimEnd(AadSqlResource, "/"),
+        prop = "AccessToken:" & resource,
+        token = Record.FieldOrDefault(currentCredentials[Properties], prop, null)
+    in
+        Diagnostics.Trace(TraceLevel.Information,
+            [
+                Name = "GetSqlToken",
+                Data = [Resource = NonPii(resource), HasToken = NonPii(token <> null)]
+            ],
+            token);
+
+// Get Storage token from credentials if available
+// Used for Fabric scenarios where user tokens can access storage endpoints directly
+GetStorageToken = () =>
+    let
+        currentCredentials = Extension.CurrentCredential(),
+        resource = Text.TrimEnd(AadAdlsStorageResource, "/"),
+        prop = "AccessToken:" & resource,
+        token = Record.FieldOrDefault(currentCredentials[Properties], prop, null)
+    in
+        Diagnostics.Trace(TraceLevel.Information,
+            [
+                Name = "GetStorageToken",
+                Data = [Resource = NonPii(resource), HasToken = NonPii(token <> null)]
+            ],
+            token);
+
+// Get Power BI API token from credentials if available
+// Used for Fabric scenarios where the service needs the user's PBI token for calling PBI APIs
+GetPbiToken = () =>
+    let
+        currentCredentials = Extension.CurrentCredential(),
+        resource = Text.TrimEnd(AadWorkspaceApiOAuthResource, "/"),
+        prop = "AccessToken:" & resource,
+        token = Record.FieldOrDefault(currentCredentials[Properties], prop, null)
+    in
+        Diagnostics.Trace(TraceLevel.Information,
+            [
+                Name = "GetPbiToken",
+                Data = [Resource = NonPii(resource), HasToken = NonPii(token <> null)]
+            ],
+            token);
+
+// Build headers for Fabric user tokens to be sent with contentandcache requests
+// When enabled, these headers allow the service to use user tokens instead of confidential client tokens
+GetFabricTokenHeaders = () =>
+    let
+        pbiToken = GetPbiToken(),
+        sqlToken = GetSqlToken(),
+        storageToken = GetStorageToken(),
+        pbiHeader = if pbiToken <> null then [#"X-Fabric-PBI-Token" = pbiToken] else [],
+        sqlHeader = if sqlToken <> null then [#"X-Fabric-SQL-Token" = sqlToken] else [],
+        storageHeader = if storageToken <> null then [#"X-Fabric-Storage-Token" = storageToken] else [],
+        headers = pbiHeader & sqlHeader & storageHeader
+    in
+        Diagnostics.Trace(TraceLevel.Information,
+            [
+                Name = "GetFabricTokenHeaders",
+                Data = [HasPbiToken = NonPii(pbiToken <> null), HasSqlToken = NonPii(sqlToken <> null), HasStorageToken = NonPii(storageToken <> null)]
+            ],
+            headers);
+
 // Blob storage configuration can be controlled by the host
 // - BlockSize: passthrough option for AzureStorage.BlobContents
 // - RequestSize: passthrough option for AzureStorage.BlobContents
@@ -1365,14 +1534,17 @@ Utility.JoinTables = (fromEntity as table, toEntity as table, fromAttribute, toA
 Utility.CreateScope = (env as text) as text =>
     let
         appendix = "user_impersonation",
-        scopeForStorage = Text.Format("#{1}/#{0}", {appendix, AadAdlsStorageResource}),
+        scopeForStorage = Utils[Utility.CreateOrderedScope]({AadAdlsStorageResource}),
+        scopeForSql = Utils[Utility.CreateOrderedScope]({AadSqlResource}),
         scopeForEnvironments = if env <> environments[ppe] and env <> environments[PpeCloud]
-            then Text.Format("#{1}/#{0} #{2}//#{0}", {appendix, AadGroupApiOAuthResource, AadPowerAppsServiceResource})
+            then Text.Format("#{0}/#{2} #{1}//#{2}", {AadGroupApiOAuthResource, AadPowerAppsServiceResource, appendix})
             else null,
         scopeForWorkspaces = if env <> environments[local]
-            then Text.Format("#{1}/#{0}", {appendix, AadWorkspaceApiOAuthResource})
+            then Utils[Utility.CreateOrderedScope]({AadWorkspaceApiOAuthResource})
             else null,
-        result = Text.Combine({scopeForWorkspaces, scopeForEnvironments, scopeForStorage}, " ")
+        result = if SendUserTokensToContentAndCache
+            then Text.Combine({scopeForWorkspaces, scopeForEnvironments, scopeForStorage, scopeForSql}, " ")
+            else Text.Combine({scopeForWorkspaces, scopeForEnvironments, scopeForStorage}, " ")
     in
         result;
 
@@ -1635,12 +1807,15 @@ Table.NavigationTableView = Extension.LoadFunction("Table.NavigationTableView.pq
 Utils = Extension.LoadFunction("Utils.pqm");
 Fabric.GetClusterUrl = Extension.LoadFunction("Fabric.GetClusterUrl.pqm", [Utils = Utils]);
 WorkspaceDlp = Extension.LoadFunction("Workspace.DLP.pqm");
+WorkspacePrivateLink = Extension.LoadFunction("Workspace.PrivateLink.pqm", [Utils = Utils]);
 Workspace = Extension.LoadFunction("Cdsa.Workspace.pqm", [
     Fabric.GetClusterUrl = Fabric.GetClusterUrl,
     Table.NavigationTableView = Table.NavigationTableView,
     Table.ToNavigationTable = Table.ToNavigationTable,
     Utils = Utils,
-    WorkspaceDlp = WorkspaceDlp
+    WorkspaceDlp = WorkspaceDlp,
+    WorkspacePrivateLink = WorkspacePrivateLink,
+    UseHardcodedWorkspaceType = UseHardcodedWorkspaceType
 ]);
 
 Extension.LoadString = try #shared[Extension.LoadString] otherwise error "Extensibility module not loaded";

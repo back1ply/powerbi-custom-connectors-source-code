@@ -1,5 +1,5 @@
 // This file contains CCH Tagetik Connector logic
-[Version = "1.3.0"] //Version
+[Version = "1.4.2"] //Version
 section CCHTagetik;
 
 // Data Source Kind description
@@ -76,7 +76,7 @@ CCHTagetikType =  type function (
     ];
 
 
-[DataSource.Kind="CCHTagetik", Publish="CCHTagetik.Publish"]
+[DataSource.Kind="CCHTagetik"]
 shared CCHTagetik.Contents2 = Value.ReplaceType(CCHTagetikNavTable2, CCHTagetikType2);
 
 
@@ -114,6 +114,110 @@ CCHTagetikType2 =  type function (
         Documentation.LongDescription = "Wolters Kluwer CCH Tagetik"
     ];
 
+[DataSource.Kind="CCHTagetik"]
+shared CCHTagetik.Contents3 = Value.ReplaceType(CCHTagetikNavTable3, CCHTagetikType3);
+ 
+
+CCHTagetikType3 =  type function (
+        URL as (type text meta [
+            Documentation.FieldCaption = "URL",
+            Documentation.FieldDescription = "Wolters Kluwer CCH Tagetik URL environment",
+            Documentation.SampleValues = {"https:// tcpmabc.api.tagetik.com/ basic"}
+        ]
+        ),
+        Database as (type text meta [
+            Documentation.FieldCaption = "Database",
+            Documentation.FieldDescription = "Wolters Kluwer CCH Tagetik Database environment",
+            Documentation.SampleValues = {"TCPM_ABC_001"}
+        ]),
+        optional FinancialOptions as (
+            type nullable [
+                    optional FinancialModel = (type text meta [
+                    Documentation.FieldCaption = "Financial Model",
+                    Documentation.FieldDescription = "Enter the financial model code (1 or 2)",
+                    Documentation.AllowedValues  = { "1","2" }
+                    ])
+            ] meta [
+                Documentation.FieldCaption = "Financial Options"
+            ]
+        ),
+        optional AnalyticalOptions as (
+                type nullable [
+                    optional AWDatasets = (type text meta [
+                        Documentation.FieldCaption = "Analytical Workspace Datasets",
+                        Documentation.FieldDescription = "Enter one or more analytical workspace dataset codes. Each code must follow the structure: workspace code + ‘_’ + dataset code. If you need to enter multiple codes, separate them with a comma.",
+                        Documentation.SampleValues = { "AW1_DS0001,AW1_DS0002,AW2_DS0001,AW2_DS0002"}
+                    ])
+                ] meta [
+                    Documentation.FieldCaption = "Analytical Options"
+                ]
+        ),
+        optional AdvancedOptions as (
+                type nullable [
+                    optional StartDate = (type datetime meta [
+                        Documentation.FieldCaption = "Range Start",
+                        Documentation.FieldDescription = "Refer to the documentation for configuration details"
+                    ]), 
+                    optional EndDate = (type datetime meta [
+                        Documentation.FieldCaption = "Range End",
+                        Documentation.FieldDescription = "Refer to the documentation for configuration details"
+                    ])
+                ] meta [
+                    Documentation.FieldCaption = "Advanced Options"
+                ]
+        )
+    )
+    as table meta [
+        Documentation.Name = "Wolters Kluwer CCH Tagetik",
+        Documentation.LongDescription = "Wolters Kluwer CCH Tagetik"
+    ];
+
+[DataSource.Kind="CCHTagetik", Publish="CCHTagetik.Publish"]
+shared CCHTagetik.Contents4 = Value.ReplaceType(CCHTagetikNavTable4, CCHTagetikType4);
+ 
+
+CCHTagetikType4 =  type function (
+        URL as (type text meta [
+            Documentation.FieldCaption = "URL",
+            Documentation.FieldDescription = "Wolters Kluwer CCH Tagetik URL environment",
+            Documentation.SampleValues = {"https:// tcpmabc.api.tagetik.com/ basic"}
+        ]
+        ),
+        Database as (type text meta [
+            Documentation.FieldCaption = "Database",
+            Documentation.FieldDescription = "Wolters Kluwer CCH Tagetik Database environment",
+            Documentation.SampleValues = {"TCPM_ABC_001"}
+        ]),
+        optional options as (
+            type nullable [
+                    optional FinancialModel = (type text meta [
+                    Documentation.FieldCaption = "Financial Model",
+                    Documentation.FieldDescription = "Enter the financial model code (1 or 2)",
+                    Documentation.AllowedValues  = { "1","2" }
+                    ]),
+                    optional AWDatasets = (type text meta [
+                        Documentation.FieldCaption = "Analytical Workspace Datasets",
+                        Documentation.FieldDescription = "Enter one or more analytical workspace dataset codes. Each code must follow the structure: workspace code + ‘_’ + dataset code. If you need to enter multiple codes, separate them with a comma.",
+                        Documentation.SampleValues = { "AW1_DS0001,AW1_DS0002,AW2_DS0001,AW2_DS0002"}
+                    ]),
+                    optional StartDate = (type datetime meta [
+                        Documentation.FieldCaption = "Range Start",
+                        Documentation.FieldDescription = "Refer to the documentation for configuration details"
+                    ]), 
+                    optional EndDate = (type datetime meta [
+                        Documentation.FieldCaption = "Range End",
+                        Documentation.FieldDescription = "Refer to the documentation for configuration details"
+                    ])
+            ] meta [
+                Documentation.FieldCaption = "Advanced Options"
+            ]
+        )
+    )
+    as table meta [
+        Documentation.Name = "Wolters Kluwer CCH Tagetik",
+        Documentation.LongDescription = "Wolters Kluwer CCH Tagetik"
+    ];
+
 //2) Create Nav Table: 2 options (Financial, AW)
 CCHTagetikNavTable = (URL as text, Database as text,optional AW as text,optional Dataset as text) as table=> 
     let
@@ -129,6 +233,43 @@ CCHTagetikNavTable2 = (URL as text, Database as text,optional AW as text,optiona
         Model = if (AW ="" or AW is null) and Dataset <> null 
                             then Dataset else "1",
         output = if AW is null then CCHTagetikNavTableFinancial(URL,Database,Model,StartDate,EndDate) else CCHTagetikNavTableAIH(URL,Database,AW,Dataset)   
+    in
+        output;
+
+
+//2) Create Nav Table 3
+CCHTagetikNavTable3 = (URL as text, Database as text,optional FinancialOptions as record,optional AnalyticalOptions as record,optional AdvancedOptions as record) as table=>
+    let
+
+        _Finoptions = FinancialOptions ?? [ FinancialModel = null],
+        _AnalyticalOptions = AnalyticalOptions ?? [ AWDatasets = null],
+        _AdvancedOptions = AdvancedOptions ?? [ StartDate = null,EndDate=null],
+        
+        FinModel = _Finoptions[FinancialModel],
+        AWDatasets = _AnalyticalOptions[AWDatasets],
+        StartDate = _AdvancedOptions[StartDate],
+        EndDate = _AdvancedOptions[EndDate],
+
+        Model = if (FinModel ="" or FinModel is null) then "1" else FinModel,
+        output = if AWDatasets is null then CCHTagetikNavTableFinancial(URL,Database,Model,StartDate,EndDate) else CCHTagetikNavTableAIH(URL,Database,null,null,AWDatasets,StartDate,EndDate)
+         
+    in
+        output;
+
+//2) Create Nav Table 3
+CCHTagetikNavTable4 = (URL as text, Database as text,optional AdvancedOptions as record) as table=>
+    let
+
+        _AdvancedOptions = AdvancedOptions ?? [ FinancialModel = null, AWDatasets = null, StartDate = null, EndDate = null ],
+        
+        FinModel = _AdvancedOptions[FinancialModel],
+        AWDatasets = _AdvancedOptions[AWDatasets],
+        StartDate = _AdvancedOptions[StartDate],
+        EndDate = _AdvancedOptions[EndDate],
+
+        Model = if (FinModel ="" or FinModel is null) then "1" else FinModel,
+        output = if AWDatasets is null then CCHTagetikNavTableFinancial(URL,Database,Model,StartDate,EndDate) else CCHTagetikNavTableAIH(URL,Database,null,null,AWDatasets,StartDate,EndDate)
+         
     in
         output;
 
@@ -347,7 +488,8 @@ CCHTagetikNavTableFinancial = (URL as text, Database as text, optional Model as 
         {"1.0.0", FactTableNrPages_0},
         {"1.1.0", FactTableNrPages_1},
         {"1.2.0", FactTableNrPages_1},
-        {"1.3.0", FactTableNrPages_1}
+        {"1.3.0", FactTableNrPages_1},
+        {"1.4.0", FactTableNrPages_1}
     }
     ,
     //Version 1.3.0 e 1.2.0
@@ -388,7 +530,8 @@ CCHTagetikNavTableFinancial = (URL as text, Database as text, optional Model as 
         {"1.0.0", FactTable_0},
         {"1.1.0", FactTable_1},
         {"1.2.0", FactTable_2},
-        {"1.3.0", FactTable_3}
+        {"1.3.0", FactTable_3},
+        {"1.4.0", FactTable_3}
     }
     ,
 //Version 1.3.0
@@ -748,7 +891,8 @@ CCHTagetikNavTableFinancial = (URL as text, Database as text, optional Model as 
                 {"1.0.0",base_1},
                 {"1.1.0",base_1},    
                 {"1.2.0",base_2},
-                {"1.3.0",base_3}
+                {"1.3.0",base_3},
+                {"1.4.0",base_3}
             }
         ,
     //Create base table for Nav Table
@@ -943,7 +1087,7 @@ CCHTagetikNavTableFinancial = (URL as text, Database as text, optional Model as 
        output;
 
 //4) Create AW Nav Table
-CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optional Dataset as text) as table=> 
+CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW_input as text,optional Dataset_input as text,optional AWDatasets as text,optional startDate as datetime,optional endDate as datetime) as table=> 
     let
 //Get Authentication Type
     CCHTagetik_AuthenticationType = if Text.Contains(URL,"/oauth2") then "OAUTH" else if  Text.Contains(URL,"/basic")  then "BASIC_API_GATEWAY" else "BASIC",
@@ -980,46 +1124,94 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
     Credentials_Header = if CCHTagetik_AuthenticationType =  "OAUTH" then [#"Authorization" = OAuth2_FullAccessToken] else []
     ,
     //Get Version
-        Output_Source_PBIConnectorVersion = 
-            Table.View(null,
-                [
-                    GetType = () =>
-                        type table [
-                            V = Text.Type
-                        ],
-                    GetRows = () =>
-                        let 
-                            // Attempt to get data from the web source
-                            Source_PBIConnectorVersion = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Datasource_AWT009()", Timeout=#duration(0,0,30,0)]))
-                        in
-                            // Handle potential errors from Web.Contents
-                            if Source_PBIConnectorVersion[HasError] then 
-                                #table(type table [V = Text.Type], {})
-                            else 
-                                let
-                                    // Convert to table and expand record column
-                                    #"PBIConnectorVersion Converted to Table" = Table.FromList(Source_PBIConnectorVersion[Value][value], Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-                                    Output_Source_PBIConnectorVersion = Table.ExpandRecordColumn(#"PBIConnectorVersion Converted to Table", "Column1", {"V"})
-                                in
-                                    Output_Source_PBIConnectorVersion
-                ]
-            ),
-        Version = if Table.RowCount(Output_Source_PBIConnectorVersion) > 0 then Output_Source_PBIConnectorVersion{0}[V] else "1.0.0"
-        ,
+    Output_Source_PBIConnectorVersion = 
+        Table.View(null,
+            [
+                GetType = () =>
+                    type table [
+                        V = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        // Attempt to get data from the web source
+                        Source_PBIConnectorVersion = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Datasource_AWT009()", Timeout=#duration(0,0,30,0)]))
+                    in
+                        // Handle potential errors from Web.Contents
+                        if Source_PBIConnectorVersion[HasError] then 
+                            #table(type table [V = Text.Type], {})
+                        else 
+                            let
+                                // Convert to table and expand record column
+                                #"PBIConnectorVersion Converted to Table" = Table.FromList(Source_PBIConnectorVersion[Value][value], Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+                                Output_Source_PBIConnectorVersion = Table.ExpandRecordColumn(#"PBIConnectorVersion Converted to Table", "Column1", {"V"})
+                            in
+                                Output_Source_PBIConnectorVersion
+            ]
+        ),
+    //1.4.0 Added version 1.3.5 to manage the old parameters settings (AW <> null and Dataset null), when updating the Tagetik PBI Integration AW
+    Version = if AWDatasets is null and AW_input <> null and Dataset_input is null then "1.3.5" else if Table.RowCount(Output_Source_PBIConnectorVersion) > 0 then Output_Source_PBIConnectorVersion{0}[V] else "1.0.0"
+    ,
+    
+    //For previous Tagetik AW versions uses the oldest connector parameters (AW and Dataset)
+    IsVersion_Before_CCHTagetikContents4 = List.Contains({"1.0.0", "1.1.0", "1.2.0", "1.3.0"}, Version),
+    AW = if IsVersion_Before_CCHTagetikContents4 and AWDatasets <> null and Text.Contains(AWDatasets, "_") and AW_input is null then Text.BeforeDelimiter(AWDatasets, "_")else AW_input,
+    Dataset = if IsVersion_Before_CCHTagetikContents4 and AWDatasets <> null and Text.Contains(AWDatasets, "_") and Dataset_input is null then Text.AfterDelimiter(AWDatasets, "_")else Dataset_input,
 
     //Output Depending on PBI Connector Version
     VersionCases = 
     {
         //Version, 
-        {"1.0.0",Output_Source_ListDataset_0,withDataDataset_0,accessAWURL_0,accessAWDatasetURL_0},
-        {"1.1.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1},
-        {"1.2.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1},
-        {"1.3.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1}
-
+        {"1.0.0",Output_Source_ListDataset_0,withDataDataset_0,accessAWURL_0,accessAWDatasetURL_0,Output_Source_ListFields_0,errorTable_0,output_0,FST_KPI_Account_Ref_0},
+        {"1.1.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1,Output_Source_ListFields_0,errorTable_0,output_0,FST_KPI_Account_Ref_0},
+        {"1.2.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1,Output_Source_ListFields_0,errorTable_0,output_0,FST_KPI_Account_Ref_0},
+        {"1.3.0",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1,Output_Source_ListFields_0,errorTable_0,output_0,FST_KPI_Account_Ref_0},
+        //1.3.5 Previous version with ony AW parameter provided and new versio of Tagetik Power BI Integration AW
+        {"1.3.5",Output_Source_ListDataset_1,withDataDataset_1,accessAWURL_1,accessAWDatasetURL_1,Output_Source_ListFields_0,errorTable_0,output_0,FST_KPI_Account_Ref_0},
+        {"1.4.0",Output_Source_ListDataset_4,withDataDataset_4,accessAWURL_1,accessAWDatasetURL_1,Output_Source_ListFields_4,errorTable_4,output_4,FST_KPI_Account_Ref_4}
     }
     ,
-    //1) Get List DATASET Fields 
-        Output_Source_ListFields =
+//Version 1.4.0
+    AWDatasets_value =  if AWDatasets is null and Dataset <>null then AW & "_" & Dataset else if AWDatasets is null then "" else AWDatasets,
+    AWDataset_SplitValues = Text.Split(AWDatasets_value, ","),
+    AWDataset_QuotedValues = List.Transform(AWDataset_SplitValues, each "'" & _ & "'"),
+    AWDatasetList = "(" & Text.Combine(AWDataset_QuotedValues, ",") & ")",
+    #"AWDataset_SplitValues Converted to Table" = Table.FromList( AWDataset_SplitValues, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    AWDatasetListTable = Table.RenameColumns(#"AWDataset_SplitValues Converted to Table",{{"Column1", "AWDataset"}})
+    ,
+
+    //0) Get DATASET Fields & Other Dimensions List
+//Version 1.4.0
+        Output_Source_ListFields_4 =
+         Table.View(null,
+            [
+                GetType = () =>
+                  type table [
+                    AW = Text.Type,
+                    DATASET = Text.Type,
+                    DATASET_NAME = Text.Type,
+                    FIELD = Text.Type,
+                    FIELD_NAME = Text.Type,
+                    FIELD_TYPE = Text.Type,
+                    FIELD_ORDER = Int64.Type,
+                    DIMENSION = Text.Type,
+                    DIMENSION_NAME = Text.Type,
+                    DIMENSION_TYPE = Text.Type,
+                    DIMENSION_HIERARCHY_GROUPING = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_ListFields = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AWT021()?$filter=AW_DATASET in "& AWDatasetList , Timeout=#duration(0,0,30,0)])),
+                        #"ListFields Converted to Table" = Table.FromRecords({Source_ListFields}),
+                        #"ListFields Removed Columns" = Table.RemoveColumns(#"ListFields Converted to Table",{"@odata.context"}),
+                        #"ListFields Expanded value" = Table.ExpandListColumn(#"ListFields Removed Columns", "value"),
+                        #"ListFields Expanded colums" = Table.ExpandRecordColumn(#"ListFields Expanded value", "value", {"AW_DATASET", "DATASET_NAME", "FIELD", "FIELD_NAME", "FIELD_TYPE", "FIELD_ORDER", "DIMENSION", "DIMENSION_NAME", "DIMENSION_TYPE","DIMENSION_HIERARCHY_GROUPING"}, {"AW_DATASET", "DATASET_NAME", "FIELD", "FIELD_NAME", "FIELD_TYPE", "FIELD_ORDER", "DIMENSION", "DIMENSION_NAME", "DIMENSION_TYPE","DIMENSION_HIERARCHY_GROUPING"}),
+                        Output_Source_ListFields = Table.SplitColumn(#"ListFields Expanded colums", "AW_DATASET", Splitter.SplitTextByDelimiter("_", QuoteStyle.Csv), {"AW", "DATASET"})
+                    in 
+                        Output_Source_ListFields
+            ]
+        ),
+//Version 1.0.0
+        Output_Source_ListFields_0 =
          Table.View(null,
             [
                 GetType = () =>
@@ -1048,6 +1240,9 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
                         Output_Source_ListFields
             ]
         ),
+
+        Output_Source_ListFields =  List.First(List.Select(VersionCases, each _{0} = Version), null){5},
+    //Get List DATASET Fields 
         FieldTypeMapping = #table({"FIELD_TYPE", "TARGET_TYPE"}, {
                     {"type logical" , type logical},
                     {"type number" , type number},
@@ -1065,20 +1260,23 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         #"ListFields Changed Type" = Table.TransformColumnTypes(#"ListFields Mapping Type Column",{{"FIELD_ORDER", Int64.Type}}),
         ListFieldsDataset = Table.Sort(#"ListFields Changed Type",{{"FIELD_ORDER", Order.Ascending}}),
 
-    //2) Get List Dimensions linked to the dataset
+    //Get List Dimensions linked to the dataset
         Source_ListLinkedDimensions = Table.SelectRows(ListFieldsDataset, each ([DIMENSION_TYPE] <> null)),
         #"ListLinkedDimensions Added Custom" = Table.AddColumn(Source_ListLinkedDimensions, "HAS_DIMENSION_NAME", each if [FIELD] = [DIMENSION] then 1 else 0),
         #"ListLinkedDimensions Changed Type" = Table.TransformColumnTypes(#"ListLinkedDimensions Added Custom",{{"HAS_DIMENSION_NAME", Int64.Type}}),
         ListLinkedDimensions = Table.Sort(#"ListLinkedDimensions Changed Type",{{"DIMENSION", Order.Ascending}, {"HAS_DIMENSION_NAME", Order.Descending}}),
         ListDistinctLinkedDimensions = Table.Distinct(ListLinkedDimensions, {"DIMENSION"}),
 
-    //3) Get List Hierarchies and Groupings Data
+    //Get List Hierarchies and Groupings Data
         ListHierarchyGrouping_Source = Table.SelectRows(ListDistinctLinkedDimensions, each ([DIMENSION_HIERARCHY_GROUPING] <> null)),
         ListHierarchyGrouping_AddDimension_H = Table.AddColumn(ListHierarchyGrouping_Source, "DIMENSION_H", each [DIMENSION] & "_" & [DIMENSION_HIERARCHY_GROUPING]),
         ListHierarchyGrouping_AddDimension_H_Name = Table.AddColumn(ListHierarchyGrouping_AddDimension_H, "DIMENSION_H_NAME", each if [DIMENSION_HIERARCHY_GROUPING] = "H" then [DIMENSION_NAME] & " Hierarchy" else [DIMENSION_NAME] & " Grouping"),
         ListHierarchyGrouping = Table.TransformColumnTypes(ListHierarchyGrouping_AddDimension_H_Name,{{"DIMENSION_H", type text}, {"DIMENSION_H_NAME", type text}}),
-        
-    //4) FW: Get Hierarchies and Groupings  
+    
+    //Get List Other Financial Dimensions  
+         ListOtherFinDimensions = Table.Distinct(Table.SelectRows(Output_Source_ListFields, each ((([DIMENSION_TYPE] = "F" and ([FIELD] = null )) or ([DIMENSION] = "SCENARIO_PERIOD")))), {"DIMENSION"}),
+
+    //FW: Get Hierarchies and Groupings  
         ListFinancialHierarchies = CreateFinancialDimensionsAIH(outputURL,Table.SelectRows(ListHierarchyGrouping, each [DIMENSION_TYPE]="F")[DIMENSION_H_NAME],APIFilterListDatasets,Version,Credentials_Header),
         ListFinancialHierarchyGrouping =Table.SelectRows(ListHierarchyGrouping, each [DIMENSION_TYPE]="F"),
         FW_withDataDimensionJoinH = Table.NestedJoin(ListFinancialHierarchyGrouping,{"DIMENSION_H_NAME"},ListFinancialHierarchies,{"DimensionName"},"ListFinancialDimensionsH",JoinKind.LeftOuter),
@@ -1092,7 +1290,7 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         FW_output_dimensions_h = Table.RenameColumns(FW_withIsLeafDimensionH,{{"DIMENSION_H_NAME", "Name"}})
         ,
 
-    //5) AW: Get Hierarchies 
+    //AW: Get Hierarchies 
         ListAnalyticalHierarchies = Table.SelectRows(ListHierarchyGrouping, each [DIMENSION_TYPE] = "A"),
         AW_withDataDimensionH = Table.AddColumn(ListAnalyticalHierarchies, "Data", each CreateAnalyticalDimensionHierarchy(outputURL, [DIMENSION_H],[DIMENSION_H_NAME],Credentials_Header), Uri.Type),
         //AW_withDataDimensionHNotEmpty = Table.SelectRows(AW_withDataDimensionH, each [Data] <> null),
@@ -1103,13 +1301,13 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         AW_withIsLeafDimensionH = Table.AddColumn(AW_withItemNameDimensionH, "IsLeaf", each true, type logical),
         AW_output_dimensions_h = Table.RenameColumns(AW_withIsLeafDimensionH,{{"DIMENSION_H_NAME", "Name"}}),
 
-    //6) Union Hierarchies FW & AW
+    //Union Hierarchies FW & AW
         output_dimensions_h = Table.Combine({AW_output_dimensions_h, FW_output_dimensions_h}),
 
-    //7) FW: Get Dimensions
+    //FW: Get Dimensions
         ListDistinctLinkedDimensionsFinancial = Table.SelectRows(Table.Distinct(ListLinkedDimensions, {"DIMENSION"}), each ([DIMENSION_TYPE] = "F")),
         ListFinancialDimensions = CreateFinancialDimensionsAIH(outputURL,ListDistinctLinkedDimensionsFinancial[DIMENSION_NAME],APIFilterListDatasets,Version,Credentials_Header),
-        FW_withDataDimensionJoin = Table.NestedJoin(ListDistinctLinkedDimensionsFinancial,{"DIMENSION_NAME"},ListFinancialDimensions,{"DimensionName"},"ListFinancialDimensions",JoinKind.LeftOuter),
+        FW_withDataDimensionJoin = Table.NestedJoin(ListDistinctLinkedDimensionsFinancial,{"DIMENSION_NAME"},ListFinancialDimensions,{"DimensionName"},"ListFinancialDimensions",JoinKind.Inner),
         FW_withDataDimension = Table.ExpandTableColumn(FW_withDataDimensionJoin, "ListFinancialDimensions", {"DimensionTable"}, {"Data"}),
         // Add ItemKind and ItemName as fixed text values
         FW_withItemKindDimension = Table.AddColumn(FW_withDataDimension, "ItemKind", each "Table", type text),
@@ -1118,7 +1316,7 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         FW_withIsLeafDimension = Table.AddColumn(FW_withItemNameDimension, "IsLeaf", each true, type logical),
         FW_output_dimensions = Table.RenameColumns(FW_withIsLeafDimension,{{"DIMENSION_NAME", "Name"}}),
 
-    //8) AW: Get Dimensions
+    //AW: Get Dimensions
         ListAnalyticalDimensions = Table.SelectRows(ListDistinctLinkedDimensions, each ([DIMENSION_TYPE] = "A")),
         AW_withDataDimension = Table.AddColumn(ListAnalyticalDimensions, "Data", each CreateAnalyticalDimension(outputURL,[DIMENSION],[DIMENSION_NAME],Credentials_Header), Uri.Type),
         // Add ItemKind and ItemName as fixed text values
@@ -1128,35 +1326,97 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         AW_withIsLeafDimension = Table.AddColumn(AW_withItemNameDimension, "IsLeaf", each true, type logical),
         AW_output_dimensions = Table.RenameColumns(AW_withIsLeafDimension,{{"DIMENSION_NAME", "Name"}}),
 
-    //9) Union Dimensions FW & AW
+    //Union Dimensions FW & AW
         output_dimensions = Table.Combine({AW_output_dimensions, FW_output_dimensions}),
 
-//10) Get Dataset List
+    //FST AIH: Get List
+        FST_KPI_Account_Ref_0 = Table.FirstN(FST_KPI_Account_Ref_4, 0),
+        FST_KPI_Account_Ref_4 = Table.SelectRows(Table.Distinct(ListLinkedDimensions, {"DIMENSION"}), each [DIMENSION] = "ACCOUNT"),
+        FST_KPI_Account_Ref = List.First(List.Select(VersionCases, each _{0} = Version), null){8},
+        FST_KPI_Account_Ref_rename = Table.ReplaceValue(FST_KPI_Account_Ref,"Account","FST & KPI Account",Replacer.ReplaceText,{"DIMENSION_NAME"}),
+        ListFST = Table.Combine({Table.SelectRows(Table.Distinct(ListLinkedDimensions, {"DIMENSION"}), each [DIMENSION_TYPE] = "FST"),FST_KPI_Account_Ref_rename}),
+    //FST AIH Account Custom Dimensions
+        //FST  Account Custom Dimensions Link
+        FW_withDataDimension_FSTLink = Table.SelectRows(CreateFinancialDimensionsFW(outputURL, Version, null, Credentials_Header), each List.Contains(ListFST[DIMENSION_NAME], [DimensionName])),
+        //FST Account Custom Dimensions
+        FW_withDataDimension_FST = Table.SelectRows(CreateFinancialDimensionsFW(outputURL, Version, null, Credentials_Header), each List.Contains(List.Transform(ListFST[DIMENSION_NAME], each "FST & KPI " & _), [DimensionName])),
+        FW_withDataDimension_FST_union = Table.Combine({FW_withDataDimension_FST,FW_withDataDimension_FSTLink}),
+        FW_output_FST = Table.RenameColumns(FW_withDataDimension_FST_union,{{"DimensionName", "Name"},{"DimensionTable", "Data"}}),
+    //FST AIH Analytical Dimension
+        ListFSTAccountAnalyticalDimension =Table.SelectRows(ListFST,each not List.Contains(FW_output_FST[Name], [DIMENSION_NAME])),
+        ListFSTAccountAnalyticalDimensionAddFSTName = Table.AddColumn(ListFSTAccountAnalyticalDimension, "Name", each "FST & KPI " & [DIMENSION_NAME] ),
+        //FST Analytical Dimension Link
+        AW_withDataDimension_FSTLink = Table.AddColumn(ListFSTAccountAnalyticalDimension, "Data", each CreateFSTAccountAnalyticalDimensionLink(outputURL,[DIMENSION],Text.Replace([DIMENSION_NAME],"Account-",""),Credentials_Header), Uri.Type),
+        AW_withDataDimension_FSTLink_output = Table.RenameColumns(AW_withDataDimension_FSTLink,{{"DIMENSION_NAME", "Name"}}),
+        //FST Analytical Dimension
+        AW_withDataDimension_FST = Table.AddColumn(ListFSTAccountAnalyticalDimensionAddFSTName, "Data", each CreateFSTAccountAnalyticalDimension(outputURL,[DIMENSION],Text.Replace([DIMENSION_NAME],"Account-",""),Credentials_Header), Uri.Type),
+        AW_output_FST = Table.Combine({AW_withDataDimension_FSTLink_output,AW_withDataDimension_FST}),
+    //FST AIH FST&KPI Dimension
+        AW_output_FST_KPI = if Table.IsEmpty(ListFST) then Table.SelectRows(AW_output_FST, each false) else CreateFSTDimension(outputURL, APIFilterListDatasets, Version,Credentials_Header),
+    //FST AIH union output dimensions
+        withDataDimension_FST_union = Table.Combine({AW_output_FST,FW_output_FST}),
+        withItemKindDimension_FST_union = Table.AddColumn(withDataDimension_FST_union, "ItemKind", each "Table", type text),
+        withItemNameDimension_FST_union = Table.AddColumn(withItemKindDimension_FST_union, "ItemName", each "Table", type text),
+        // Indicate that the node should not be expandable
+        withIsLeafDimension_FST_union = Table.AddColumn(withItemNameDimension_FST_union, "IsLeaf", each true, type logical),
+        output_dimensions_FST = Table.Combine({withIsLeafDimension_FST_union,AW_output_FST_KPI}),
+
+    //Get Fin Features Dimensions
+        output_finfeaturesdimensions_dimensions = CreateFinFeaturesDimensions(outputURL,ListOtherFinDimensions[DIMENSION_NAME],FW_output_dimensions,APIFilterListDatasets,Version,Credentials_Header,AW),
+    //Union Fin Features Dim & FST
+        output_finfeaturesdimensions = Table.Combine({output_finfeaturesdimensions_dimensions,output_dimensions_FST})
+        ,
+    //Get Dataset List
+    //Version 1.4.0
+    Output_Source_ListDataset_4 =
+    Table.View(null,
+            [
+                GetType = () =>
+                    type table [
+                        AW = Text.Type,
+                        DATASET = Text.Type,
+                        DATASET_NAME = Text.Type,
+                        DATASET_COD = Text.Type,
+                        DATASOURCE_COD = Text.Type,
+                        N_PAGINATION= Int64.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_ListDataset = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=DATASET_COD in " & AWDatasetList,Timeout=#duration(0,0,30,0)])),
+                        #"ListDataset Converted to Table" = Table.FromRecords({Source_ListDataset}),
+                        #"ListDataset Removed Columns" = Table.RemoveColumns(#"ListDataset Converted to Table",{"@odata.context"}),
+                        #"ListDataset Expanded value" = Table.ExpandListColumn(#"ListDataset Removed Columns", "value"),
+                        #"ListDataset Filtered Rows" = Table.SelectRows(#"ListDataset Expanded value", each [value] <> null and [value] <> ""),
+                        Output_Source_ListDataset = Table.ExpandRecordColumn(#"ListDataset Filtered Rows", "value", {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"}, {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"})
+                    in 
+                        Output_Source_ListDataset
+            ]
+        ),
     //Version 1.1.0
-        Output_Source_ListDataset_1 =
-        Table.View(null,
-                [
-                    GetType = () =>
-                      type table [
-                            AW = Text.Type,
-                            DATASET = Text.Type,
-                            DATASET_NAME = Text.Type,
-                            DATASET_COD = Text.Type,
-                            DATASOURCE_COD = Text.Type,
-                            N_PAGINATION= Int64.Type
-                        ],
-                    GetRows = () =>
-                        let 
-                            Source_ListDataset = if Dataset is null then Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=AW eq '"& AW &"'",Timeout=#duration(0,0,30,0)])) else Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath ="Dataset_AWT002()?$filter=DATASET_COD eq '"&AW & "_" & Dataset & "'",Timeout=#duration(0,0,30,0)])),
-                            #"ListDataset Converted to Table" = Table.FromRecords({Source_ListDataset}),
-                            #"ListDataset Removed Columns" = Table.RemoveColumns(#"ListDataset Converted to Table",{"@odata.context"}),
-                            #"ListDataset Expanded value" = Table.ExpandListColumn(#"ListDataset Removed Columns", "value"),
-                            #"ListDataset Filtered Rows" = Table.SelectRows(#"ListDataset Expanded value", each [value] <> null and [value] <> ""),
-                            Source_ListDataset_1 = Table.ExpandRecordColumn(#"ListDataset Filtered Rows", "value", {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"}, {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"})
-                        in 
-                           Source_ListDataset_1
-                ]
-            ),
+    Output_Source_ListDataset_1 =
+    Table.View(null,
+            [
+                GetType = () =>
+                    type table [
+                        AW = Text.Type,
+                        DATASET = Text.Type,
+                        DATASET_NAME = Text.Type,
+                        DATASET_COD = Text.Type,
+                        DATASOURCE_COD = Text.Type,
+                        N_PAGINATION= Int64.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_ListDataset = if Dataset is null then Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=AW eq '"& AW &"'",Timeout=#duration(0,0,30,0)])) else Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=DATASET_COD eq '"&AW & "_" & Dataset & "'",Timeout=#duration(0,0,30,0)])),
+                        #"ListDataset Converted to Table" = Table.FromRecords({Source_ListDataset}),
+                        #"ListDataset Removed Columns" = Table.RemoveColumns(#"ListDataset Converted to Table",{"@odata.context"}),
+                        #"ListDataset Expanded value" = Table.ExpandListColumn(#"ListDataset Removed Columns", "value"),
+                        #"ListDataset Filtered Rows" = Table.SelectRows(#"ListDataset Expanded value", each [value] <> null and [value] <> ""),
+                        Output_Source_ListDataset = Table.ExpandRecordColumn(#"ListDataset Filtered Rows", "value", {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"}, {"AW","DATASET","DATASET_NAME","DATASET_COD", "DATASOURCE_COD", "N_PAGINATION"})
+                    in 
+                        Output_Source_ListDataset
+            ]
+        ),
     //Version 1.0.0
         Output_Source_ListDataset_0 =
         Table.View(null,
@@ -1182,12 +1442,12 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
                 ]
             ),
 
-
         Output_Source_ListDataset =  List.First(List.Select(VersionCases, each _{0} = Version), null){1},
         #"ListDataset Added Custom" = Table.AddColumn(Output_Source_ListDataset, "DATASET_API_URL", each outputURL & "Datasource_"& [DATASOURCE_COD] &"()"),
         ListDatasets = Table.TransformColumnTypes(#"ListDataset Added Custom",{{"DATASET_API_URL", type text}}),
         ListDistinctDatasets = Table.Distinct(ListDatasets, {"DATASET_COD"}),
-    //11) Get Dataset Data
+    
+    //Get Dataset Data
 
         //Get separator
         Output_Source_TechnicalSeparator =
@@ -1214,7 +1474,8 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         APIFilterListDatasets_Source = ListDistinctDatasets[DATASET_COD],
         APIFilterListDatasets = "(" & Text.Combine(List.Transform(APIFilterListDatasets_Source, each "'" & _ & "'"), ",") & ")",
     
-//11) OutputDataset
+    //Version 1.4.0
+        withDataDataset_4 = Table.AddColumn(ListDistinctDatasets, "Data", each CreateDataset([AW],[DATASET],[DATASET_API_URL],ListFieldsDataset,ListLinkedDimensions,TechnicalSeparator, [N_PAGINATION],Version, Credentials_Header,startDate,endDate), Uri.Type),
     //Version 1.1.0
         withDataDataset_1 = Table.AddColumn(ListDistinctDatasets, "Data", each CreateDataset([AW],[DATASET],[DATASET_API_URL],ListFieldsDataset,ListLinkedDimensions,TechnicalSeparator, [N_PAGINATION],Version, Credentials_Header), Uri.Type),
     //Version 1.0.0
@@ -1226,15 +1487,15 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         withItemNameDataset = Table.AddColumn(withItemKindDataset, "ItemName", each "Table", type text),
         // Indicate that the node should not be expandable
         withIsLeafDataset = Table.AddColumn(withItemNameDataset, "IsLeaf", each true, type logical),
-        output_datasets = Table.RenameColumns(withIsLeafDataset,{{"DATASET_NAME", "Name"}}),
+        output_datasets = Table.DuplicateColumn(Table.RenameColumns(withIsLeafDataset,{{"DATASET_NAME", "Name"}}), "DATASET_COD", "Key"),
 
 
-    //12) Get List User Rights
+    //Get List User Rights
 
         ListUserRights_Source = Table.AddColumn(ListDistinctLinkedDimensions, "DIMENSION_UR_NAME", each "User Rights " & Text.Replace([DIMENSION_NAME], " CTP", ""),type text),
         ListUserRights = Table.Distinct(ListUserRights_Source, {"DIMENSION_UR_NAME"}),
-    //13) AW: Get User Rights AW 
 
+    //AW: Get User Rights AW 
         ListAnalyticalUserRights = Table.SelectRows(ListUserRights, each ([DIMENSION_TYPE] = "A")),
         AWUR_withDataDimension = Table.AddColumn(ListAnalyticalUserRights, "Data", each CreateUserRightsAnalyticalDimension(outputURL,[DIMENSION],Version,Credentials_Header), Uri.Type),
         // Add ItemKind and ItemName as fixed text values
@@ -1244,7 +1505,7 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         AWUR_withIsLeafDimension = Table.AddColumn(AWUR_withItemNameDimension, "IsLeaf", each true, type logical),
         AW_output_dimensions_ur = Table.RenameColumns(AWUR_withIsLeafDimension,{{"DIMENSION_UR_NAME", "Name"}}),
 
-    //14) AW: Get User Rights FW 
+    //AW: Get User Rights FW 
         ListFinancialUserRights = Table.SelectRows(Table.Distinct(ListUserRights, {"DIMENSION"}), each ([DIMENSION_TYPE] = "F")),
         FWUR_Dimensions = CreateUserRightsFinancialDimensionsAIH(outputURL,Version,ListFinancialUserRights[DIMENSION_UR_NAME],Credentials_Header),
         FWUR_withDataDimensionJoin = Table.NestedJoin(ListFinancialUserRights,{"DIMENSION_UR_NAME"},FWUR_Dimensions,{"DimensionName"},"FWUR_Dimensions",JoinKind.Inner),
@@ -1256,7 +1517,7 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         FWUR_withIsLeafDimension = Table.AddColumn(FWUR_withItemNameDimension, "IsLeaf", each true, type logical),
         FW_output_dimensions_ur = Table.RenameColumns(FWUR_withIsLeafDimension,{{"DIMENSION_UR_NAME", "Name"}}),
 
-    //15) Union List User Rights
+    //Union List User Rights
 
         output_dimensions_ur = Table.Combine({AW_output_dimensions_ur, FW_output_dimensions_ur}),
         
@@ -1264,20 +1525,52 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         {"Dimensions", CreateNavTable(output_dimensions), "Folder","Folder",false},
         {"Hierarchies", CreateNavTable(output_dimensions_h), "Folder","Folder",false}, 
         {"Datasets", CreateNavTable(output_datasets), "Folder","Folder",false}, 
+        {"Financial Features", CreateNavTable(output_finfeaturesdimensions), "Folder","Folder",false}, 
         {"User Rights", CreateNavTable(output_dimensions_ur), "Folder","Folder",false}   
         }),
 
-        navTable = Table.ToNavigationTable(objects,  {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf"),
-        
+        navTable =
+        if AW ="PBI" then
+            Table.ToNavigationTable(Table.SelectColumns(Table.Combine({CreateNavTable(output_datasets), CreateNavTable(output_finfeaturesdimensions)}),{"Key","Name", "Data", "ItemKind", "ItemName", "IsLeaf"}), {"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf") 
+        else
+            Table.ToNavigationTable(objects,  {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
+        ,
 
-    //16) Check Configuration     
+    //Check Configuration     
         //Trace error during configuration 
         checkConfigurationAW = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Dataset_AW0000()?$filter=AW_COD eq '" & AW & "'  and INCLUDE_DATASET eq 'Y'",Timeout=#duration(0,0,30,0)]))[value]{0} otherwise null,
         checkConfigurationDataset = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Dataset_AW0000()?$filter=AW_COD eq '" & AW & "' and AW_DATASET eq '" &Dataset & "'  and INCLUDE_DATASET eq 'Y'",Timeout=#duration(0,0,30,0)]))[value]{0} otherwise null,
         checkConfigurationAWMapping = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=AW eq '" & AW & "'",Timeout=#duration(0,0,30,0)]))[value]{0} otherwise null,
         checkConfigurationDatasetMapping = try Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=AW eq '" & AW & "' and DATASET eq '" &Dataset & "'",Timeout=#duration(0,0,30,0)]))[value]{0} otherwise null,
    
-        errorTable = 
+    //Version 1.4.0
+
+        checkConfigurationDataset_source_4 = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Datasource_AWT022()?$filter=AW_DATASET in "& AWDatasetList ,Timeout=#duration(0,0,30,0)])),
+        #"4 checkConfigurationDataset FromRecords" =Table.FromRecords({checkConfigurationDataset_source_4}),
+        #"4 checkConfigurationDataset Removed Columns" = Table.RemoveColumns(#"4 checkConfigurationDataset FromRecords", {"@odata.context"}),
+        #"4 checkConfigurationDataset Expanded value" = Table.ExpandListColumn(#"4 checkConfigurationDataset Removed Columns", "value"),
+        #"4 checkConfigurationDataset Expanded value1" = Table.ExpandRecordColumn(#"4 checkConfigurationDataset Expanded value" , "value", {"AW_DATASET"}),
+        #"4 checkConfigurationDataset Merged Queries" = Table.NestedJoin(#"4 checkConfigurationDataset Expanded value1", {"AW_DATASET"}, AWDatasetListTable, {"AWDataset"}, "AWDatasetListTable", JoinKind.RightOuter),
+        #"4 checkConfigurationDataset Expanded AWDatasetListTable" = Table.ExpandTableColumn(#"4 checkConfigurationDataset Merged Queries", "AWDatasetListTable", {"AWDataset"}, {"AWDataset"}),
+        #"4 checkConfigurationDataset Filtered Rows" = Table.SelectRows(#"4 checkConfigurationDataset Expanded AWDatasetListTable", each ([AW_DATASET] = null)),
+        #"4 checkConfigurationDataset AddColumn" = Table.AddColumn(#"4 checkConfigurationDataset Filtered Rows", "Parameters", each "AW_Dataset: " & [AWDataset]),
+        checkConfigurationDataset_4 = Table.SelectColumns(Table.AddColumn(#"4 checkConfigurationDataset AddColumn", "Message", each "The dataset entered is not configured."),{"Parameters","Message"})
+        ,
+        checkConfigurationDatasetMapping_source_4 = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Dataset_AWT002()?$filter=DATASET_COD in "& AWDatasetList ,Timeout=#duration(0,0,30,0)])),
+        #"4 checkConfigurationDatasetMapping FromRecords" =Table.FromRecords({checkConfigurationDatasetMapping_source_4}),
+        #"4 checkConfigurationDatasetMapping Removed Columns" = Table.RemoveColumns(#"4 checkConfigurationDatasetMapping FromRecords", {"@odata.context"}),
+        #"4 checkConfigurationDatasetMapping Expanded value" = Table.ExpandListColumn(#"4 checkConfigurationDatasetMapping Removed Columns", "value"),
+        #"4 checkConfigurationDatasetMapping Expanded value1" = Table.ExpandRecordColumn(#"4 checkConfigurationDatasetMapping Expanded value" , "value", {"DATASET_COD"}),
+        #"4 checkConfigurationDatasetMapping Merged Queries" = Table.NestedJoin(#"4 checkConfigurationDatasetMapping Expanded value1", {"DATASET_COD"}, AWDatasetListTable, {"AWDataset"}, "AWDatasetListTable", JoinKind.RightOuter),
+        #"4 checkConfigurationDatasetMapping Expanded AWDatasetListTable" = Table.ExpandTableColumn(#"4 checkConfigurationDatasetMapping Merged Queries", "AWDatasetListTable", {"AWDataset"}, {"AWDataset"}),
+        #"4 checkConfigurationDatasetMapping Filtered Rows" = Table.SelectRows(#"4 checkConfigurationDatasetMapping Expanded AWDatasetListTable", each ([DATASET_COD] = null)),
+        #"4 checkConfigurationDatasetMapping AddColumn" = Table.AddColumn(#"4 checkConfigurationDatasetMapping Filtered Rows", "Parameters", each "AW_Dataset: " & [AWDataset]),
+        checkConfigurationDatasetMapping_4 = Table.SelectColumns(Table.AddColumn(#"4 checkConfigurationDatasetMapping AddColumn", "Message", each "Please configure the dataset in the system."),{"Parameters","Message"})
+        ,
+        //Version 1.4.0
+        errorTable_4 = if Table.RowCount(checkConfigurationDatasetMapping_4)>0 then checkConfigurationDatasetMapping_4 else if Table.RowCount(checkConfigurationDataset_4)>0 then checkConfigurationDataset_4 else #table(type table [Parameters = text, Message = text], {}),
+        //Version 1.0.0
+        errorTable_0 = 
         if (Dataset is null and (checkConfigurationAW is null or checkConfigurationAWMapping is null)) then
             let 
                 errorTable = #table(
@@ -1304,27 +1597,37 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
                 )
             in 
                 errorTable
-        else null,
-        
+        else #table(type table [Parameters = text, Message = text], {}),
+        errorTable = List.First(List.Select(VersionCases, each _{0} = Version), null){6},
         objectsErrorTable = 
         #table({"Name",  "Data", "ItemKind", "ItemName", "IsLeaf"},{
         {"Errors", errorTable, "Table","Table",true}
         }),
         navTableErrorTable = Table.ToNavigationTable(objectsErrorTable,  {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf"),
-        
-    
-//17) Check API Endpoint  
-        accessPBIURL = Table.FromRecords({Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,IsRetry = true]))}),
 
+        accessPBIURL = Table.FromRecords({Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,IsRetry = true]))}),
         
 //18) Check API ndpoint to AW 
     //Version 1.1.0
         accessAWURL_1 = Table.FromRecords({Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath = "Datasource_AWT008()?$top=1&$filter=A eq '"& AW &"'"]))}),
     //Version 1.0.0 
-        accessAWURL_0 = Table.FromRecords({Json.Document(Web.Contents(Text.RemoveRange(outputURL, Text.Length(outputURL) - 5, 5) & "/" & AW & "/", [Headers = Credentials_Header]))}),
+        accessAWURL_0 =  Table.FromRecords({Json.Document(Web.Contents(Text.RemoveRange(outputURL, Text.Length(outputURL) - 5, 5) & "/" & AW & "/", [Headers = Credentials_Header]))}),
         accessAWURL = List.First(List.Select(VersionCases, each _{0} = Version), null){3},
 
 //19) Check API Endpoint to AW Dataset
+    
+    //Version 1.4.0
+        accessAWDatasetURL_source_4 = Table.FromRecords({Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AWT008()?$filter=AD in " & AWDatasetList]))}),
+        #"4 accessAWDatasetURL Removed Columns" = Table.RemoveColumns(accessAWDatasetURL_source_4,{"@odata.context"}),
+        #"4 accessAWDatasetURL Expanded value" = Table.ExpandListColumn(#"4 accessAWDatasetURL Removed Columns", "value"),
+        #"4 accessAWDatasetURL Expanded value1" = Table.ExpandRecordColumn(#"4 accessAWDatasetURL Expanded value", "value", {"A", "D", "AD"}),
+        #"4 accessAWDatasetURL Merged Queries" = Table.NestedJoin(#"4 accessAWDatasetURL Expanded value1", {"AD"}, AWDatasetListTable, {"AWDataset"}, "AWDatasetListTable", JoinKind.RightOuter),
+        #"4 accessAWDatasetURL ExpandTableColumn" = Table.ExpandTableColumn(#"4 accessAWDatasetURL Merged Queries", "AWDatasetListTable", {"AWDataset"}, {"AWDataset"}),
+        #"4 accessAWDatasetURL Filtered Rows" = Table.SelectRows(#"4 accessAWDatasetURL ExpandTableColumn", each ([AD] = null)),
+        #"4 accessAWDatasetURL AddColumn" = Table.AddColumn(#"4 accessAWDatasetURL Filtered Rows", "Parameters", each "AW_Dataset: " & [AWDataset]),
+        accessAWDatasetURL_4 = Table.SelectColumns(Table.AddColumn(#"4 accessAWDatasetURL AddColumn", "Message", each "Analytical Dataset not found. Please verify the input parameters provided."),{"Parameters","Message"}),
+        navTableaccessAWDatasetURL_4 = Table.ToNavigationTable(#table({"Name",  "Data", "ItemKind", "ItemName", "IsLeaf"},{{"Errors", accessAWDatasetURL_4, "Table","Table",true}}),  {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
+        ,
     //Version 1.1.0
         accessAWDatasetURL_1 = Table.FromRecords({Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AWT008()?$top=1&$filter=A eq '"& AW &"' and D eq '"&Dataset &"'"]))}),
     //Version 1.0.0
@@ -1345,7 +1648,22 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
         accessAWDatasetURL = List.First(List.Select(VersionCases, each _{0} = Version), null){4},
 
 //20) Error Output
-        output = if  List.IsEmpty(accessPBIURL{0}[value])  //Try PBI endpoint
+        output_4 =  
+            if List.IsEmpty(accessPBIURL{0}[value]) then
+                Diagnostics.Trace(
+                    TraceLevel.Error,
+                    "Environment not found. Please verify the input parameters provided.",
+                    () => error"Environment not found. Please verify the input parameters provided.",
+                    true
+                )
+            else if Table.RowCount(accessAWDatasetURL_4) > 0 then
+                navTableaccessAWDatasetURL_4
+            else if Table.RowCount(errorTable) > 0 then
+                navTableErrorTable
+            else
+                navTable
+        ,
+        output_0 = if  List.IsEmpty(accessPBIURL{0}[value])  //Try PBI endpoint
                     then Diagnostics.Trace(TraceLevel.Error, "Environment not found. Please verify the input parameters provided.", () => error "Environment not found. Please verify the input parameters provided.", true)  
                  else 
                     if List.IsEmpty(accessAWURL{0}[value]) //Try AW endpoint
@@ -1356,30 +1674,97 @@ CCHTagetikNavTableAIH = (URL as text, Database as text,optional AW as text,optio
                         else 
                             //Check Configuration AW and Datataset 
                             if ((Dataset is null and (checkConfigurationAW is null or checkConfigurationAWMapping is null)) or (Dataset <> null and (checkConfigurationDataset is null or checkConfigurationDatasetMapping is null))) then navTableErrorTable
-                    else navTable 
+                    else navTable
+        ,
+        output = List.First(List.Select(VersionCases, each _{0} = Version), null){7}
     in
         output;
 
     
 
 
-CreateDataset=(AW as text,DATASET as text, Dataset_URL as text,ListFieldsDataset as table,ListLinkedDimensions as table,TechnicalSeparator as text, DatasetNrPages as text, Version as text, Credentials_Header as record)=>
+CreateDataset=(AW as text,DATASET as text, Dataset_URL as text,ListFieldsDataset as table,ListLinkedDimensions as table,TechnicalSeparator as text, DatasetNrPages as text, Version as text, Credentials_Header as record,optional startDate as datetime,optional endDate as datetime)=>
 let     
-    ListFieldsCurrentDataset = Table.SelectRows(ListFieldsDataset, each ([DATASET] = DATASET)),
-//ListDataTypes = Table.SelectRows(ListFieldsCurrentDataset, each [DATASET] = DATASET),
-ListLinkedDimensionsCurrentDataset = Table.SelectRows(ListLinkedDimensions, each [DATASET] = DATASET),
+ListFieldsCurrentDataset = Table.SelectRows(ListFieldsDataset, each [AW] = AW and [DATASET] = DATASET),
+//ListDataTypes = Table.SelectRows(ListFieldsCurrentDataset, each [AW] = AW and [DATASET] = DATASET),
+ListLinkedDimensionsCurrentDataset = Table.SelectRows(ListLinkedDimensions, each [AW] = AW and [DATASET] = DATASET),
 
 VersionDataset =
 {
     {"1.0.0", Output_Dataset_0},
     {"1.1.0", Output_Dataset_1},
     {"1.2.0", Output_Dataset_2},
-    {"1.3.0", Output_Dataset_2}
+    {"1.3.0", Output_Dataset_2},
+    {"1.3.5", Output_Dataset_2},
+    {"1.4.0", Output_Dataset_4}
 
 }
 ,
 //Source Dataset
-    
+//Version 1.4.0
+startDateStr = if startDate is null then "1900" else Date.ToText(Date.From(startDate), "yyyy"),
+endDateStr = if endDate is null then "2050" else Date.ToText(Date.From(endDate), "yyyy"),
+DatasetAPIFilter = "?$select=D&$filter=G ge '" & startDateStr & "' and G lt '" & endDateStr & "' and P eq '" ,
+
+_hasScenario  = if ListLinkedDimensionsCurrentDataset[DIMENSION_NAME] = null then false else List.Contains(ListLinkedDimensionsCurrentDataset[DIMENSION_NAME], "Scenario", Comparer.OrdinalIgnoreCase),
+_hasPeriod    = if ListLinkedDimensionsCurrentDataset[DIMENSION_NAME] = null then false else List.Contains(ListLinkedDimensionsCurrentDataset[DIMENSION_NAME], "Period",   Comparer.OrdinalIgnoreCase),
+_addScenarioPeriod = _hasScenario and _hasPeriod,
+
+GetDatasetPages_4 =(Index) =>
+        let    
+            Output_Source_Dataset_1=  Table.View(null,
+            [
+                GetType = () =>
+                    type table [
+                        D.1 = Text.Type, D.2 = Text.Type, D.3 = Text.Type, D.4 = Text.Type, D.5 = Text.Type,
+                        D.6 = Text.Type, D.7 = Text.Type, D.8 = Text.Type, D.9 = Text.Type, D.10 = Text.Type,
+                        D.11 = Text.Type, D.12 = Text.Type, D.13 = Text.Type, D.14 = Text.Type, D.15 = Text.Type,
+                        D.16 = Text.Type, D.17 = Text.Type, D.18 = Text.Type, D.19 = Text.Type, D.20 = Text.Type,
+                        D.21 = Text.Type, D.22 = Text.Type, D.23 = Text.Type, D.24 = Text.Type, D.25 = Text.Type,
+                        D.26 = Text.Type, D.27 = Text.Type, D.28 = Text.Type, D.29 = Text.Type, D.30 = Text.Type,
+                        D.31 = Text.Type, D.32 = Text.Type, D.33 = Text.Type, D.34 = Text.Type, D.35 = Text.Type,
+                        D.36 = Text.Type, D.37 = Text.Type, D.38 = Text.Type, D.39 = Text.Type, D.40 = Text.Type,
+                        D.41 = Text.Type, D.42 = Text.Type, D.43 = Text.Type, D.44 = Text.Type, D.45 = Text.Type,
+                        D.46 = Text.Type, D.47 = Text.Type, D.48 = Text.Type, D.49 = Text.Type, D.50 = Text.Type,
+                        D.51 = Text.Type, D.52 = Text.Type, D.53 = Text.Type, D.54 = Text.Type, D.55 = Text.Type,
+                        D.56 = Text.Type, D.57 = Text.Type, D.58 = Text.Type, D.59 = Text.Type, D.60 = Text.Type,
+                        D.61 = Text.Type, D.62 = Text.Type, D.63 = Text.Type, D.64 = Text.Type, D.65 = Text.Type,
+                        D.66 = Text.Type, D.67 = Text.Type, D.68 = Text.Type, D.69 = Text.Type, D.70 = Text.Type,
+                        D.71 = Text.Type, D.72 = Text.Type, D.73 = Text.Type, D.74 = Text.Type, D.75 = Text.Type,
+                        D.76 = Text.Type, D.77 = Text.Type, D.78 = Text.Type, D.79 = Text.Type, D.80 = Text.Type,
+                        D.81 = Text.Type, D.82 = Text.Type, D.83 = Text.Type, D.84 = Text.Type, D.85 = Text.Type,
+                        D.86 = Text.Type, D.87 = Text.Type, D.88 = Text.Type, D.89 = Text.Type, D.90 = Text.Type,
+                        D.91 = Text.Type, D.92 = Text.Type, D.93 = Text.Type, D.94 = Text.Type, D.95 = Text.Type,
+                        D.96 = Text.Type, D.97 = Text.Type, D.98 = Text.Type, D.99 = Text.Type, D.100 = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_Dataset = Json.Document(Web.Contents(Dataset_URL & DatasetAPIFilter & Text.From(Index) &"'",[Headers = Credentials_Header,Timeout=#duration(0,0,30,0)])),
+                        #"Dataset Converted to Table" = Table.FromRecords({Source_Dataset}),
+                        #"Dataset Removed Columns" = Table.RemoveColumns(#"Dataset Converted to Table",{"@odata.context"}),
+                        #"Dataset Expanded value" = Table.ExpandListColumn(#"Dataset Removed Columns", "value"),
+                        #"Dataset Expanded Columns" = Table.ExpandRecordColumn(#"Dataset Expanded value", "value", {"D"}),
+                        Output_Source_Dataset  = Table.SplitColumn(
+                            #"Dataset Expanded Columns", 
+                            "D", 
+                            Splitter.SplitTextByDelimiter(TechnicalSeparator, QuoteStyle.None), 
+                            100
+                        )
+                    in 
+                        Output_Source_Dataset
+            ]
+        ) 
+        in Output_Source_Dataset_1,
+
+//Number of Pages when Version 1.4.0
+    DatasetPageIndices_4= { 1 .. Number.From(DatasetNrPages)},
+    DatasetListPages_4 = List.Transform(DatasetPageIndices_4, each GetDatasetPages_4(_)),
+    DatasetPages_4 = Table.FromList(DatasetListPages_4, Splitter.SplitByNothing(), {"Column1"}),
+    DatasetFirstRow_4 = DatasetPages_4{0}?,
+    DatasetExpandTableColumn_4 = Table.ExpandTableColumn(DatasetPages_4, "Column1", Table.ColumnNames(DatasetFirstRow_4[Column1])) , 
+    Dataset_4_AddScenarioPeriod = if _addScenarioPeriod then Table.AddColumn(DatasetExpandTableColumn_4, "TGK_SCENARIO_PERIOD_KEY",each [TGK_SCENARIO_KEY] & "|" & [TGK_PERIOD_KEY], Text.Type) else DatasetExpandTableColumn_4,
+    Output_Dataset_4 = Dataset_4_AddScenarioPeriod,
+      
 //Version 1.2.0
     GetDatasetPages_2 =(Index) =>
         let    
@@ -1560,10 +1945,11 @@ let
     //Dimension Output based on PBI Connector Version
     VersionCases = 
     {
-        {"1.0.0",ExchangeRate_0,Calendar_0,Category_0,Category_G_0,Dest2_Segment_0,Entity_Segment_0,Dest2_Segment_H_0,Entity_Segment_H_0,Scenario_0,Scenario_G_0,ScenarioPeriod_0,UserRightsAccount_0,UserRightsCategory_0,UserRightsDest1_0,UserRightsDest2_0,UserRightsDest3_0,UserRightsDest4_0,UserRightsDest5_0,UserRightsEntity_0,UserRightsScenario_0,Notes_0,Account_0,Account_H_0,""},
-        {"1.1.0",ExchangeRate_1,Calendar_1,Category_1,Category_G_1,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_1,Scenario_G_1,ScenarioPeriod_1,UserRightsAccount_1,UserRightsCategory_1,UserRightsDest1_1,UserRightsDest2_1,UserRightsDest3_1,UserRightsDest4_1,UserRightsDest5_1,UserRightsEntity_1,UserRightsScenario_1,Notes_1,Account_0,Account_H_0,""},
-        {"1.2.0",ExchangeRate_1,Calendar_1,Category_1,Category_G_1,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_2,Scenario_G_1,ScenarioPeriod_2,UserRightsAccount_1,UserRightsCategory_1,UserRightsDest1_1,UserRightsDest2_1,UserRightsDest3_1,UserRightsDest4_1,UserRightsDest5_1,UserRightsEntity_1,UserRightsScenario_1,Notes_2,Account_0,Account_H_0,FST_KPI_Account_2},
-        {"1.3.0",ExchangeRate_1,Calendar_1,Category_3,Category_G_3,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_2,Scenario_G_1,ScenarioPeriod_2,UserRightsAccount_3,UserRightsCategory_3,UserRightsDest1_3,UserRightsDest2_3,UserRightsDest3_3,UserRightsDest4_3,UserRightsDest5_3,UserRightsEntity_3,UserRightsScenario_3,Notes_3,Account_3,Account_H_3,FST_KPI_Account_3}
+        {"1.0.0",ExchangeRate_0,Calendar_0,Category_0,Category_G_0,Dest2_Segment_0,Entity_Segment_0,Dest2_Segment_H_0,Entity_Segment_H_0,Scenario_0,Scenario_G_0,ScenarioPeriod_0,UserRightsAccount_0,UserRightsCategory_0,UserRightsDest1_0,UserRightsDest2_0,UserRightsDest3_0,UserRightsDest4_0,UserRightsDest5_0,UserRightsEntity_0,UserRightsScenario_0,Notes_0,Account_0,Account_H_0,"",TargetCurrency_0,""},
+        {"1.1.0",ExchangeRate_1,Calendar_1,Category_1,Category_G_1,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_1,Scenario_G_1,ScenarioPeriod_1,UserRightsAccount_1,UserRightsCategory_1,UserRightsDest1_1,UserRightsDest2_1,UserRightsDest3_1,UserRightsDest4_1,UserRightsDest5_1,UserRightsEntity_1,UserRightsScenario_1,Notes_1,Account_0,Account_H_0,"",TargetCurrency_0,""},
+        {"1.2.0",ExchangeRate_1,Calendar_1,Category_1,Category_G_1,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_2,Scenario_G_1,ScenarioPeriod_2,UserRightsAccount_1,UserRightsCategory_1,UserRightsDest1_1,UserRightsDest2_1,UserRightsDest3_1,UserRightsDest4_1,UserRightsDest5_1,UserRightsEntity_1,UserRightsScenario_1,Notes_2,Account_0,Account_H_0,FST_KPI_Account_2,TargetCurrency_0,FST_KPI_2},
+        {"1.3.0",ExchangeRate_1,Calendar_1,Category_3,Category_G_3,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_2,Scenario_G_1,ScenarioPeriod_2,UserRightsAccount_3,UserRightsCategory_3,UserRightsDest1_3,UserRightsDest2_3,UserRightsDest3_3,UserRightsDest4_3,UserRightsDest5_3,UserRightsEntity_3,UserRightsScenario_3,Notes_3,Account_3,Account_H_3,FST_KPI_Account_3,TargetCurrency_0,FST_KPI_2},
+        {"1.4.0",ExchangeRate_1,Calendar_1,Category_3,Category_G_3,Dest2_Segment_1,Entity_Segment_1,Dest2_Segment_H_1,Entity_Segment_H_1,Scenario_2,Scenario_G_1,ScenarioPeriod_2,UserRightsAccount_3,UserRightsCategory_3,UserRightsDest1_3,UserRightsDest2_3,UserRightsDest3_3,UserRightsDest4_3,UserRightsDest5_3,UserRightsEntity_3,UserRightsScenario_3,Notes_3,Account_3,Account_H_3,FST_KPI_Account_3,TargetCurrency_4,FST_KPI_4}
     }
     ,
     Dimensions_ModelSwitch = 
@@ -3204,8 +3590,67 @@ let
     FST = Table.RenameColumns(#"FST Changed Type",{{"COD_SCHEMA", "FST Schema Code"}, {"COD_CONTO", "FST Account Code"}, {"COD_VOCE", "FST Item Code"}, {"COD_TIPO_CONTROLLO", "FST Control Type Code"}, {"DESC_VOCE0", "FST Item Short Description"}, {"FORMAT", "FST Format"}, {"TIPO_VOCE", "FST Item Type"}, {"ORDINAMENTO", "FST Sorting"}, {"FORMULA_VOCE", "FST Item Formula"}, {"FLAG_NOREPORT", "FST Exclude from Reporting"}, {"COD_DEST1", "FST Custom Dimension 1 Code"}, {"COD_DEST2", "FST Custom Dimension 2 Code"}, {"COD_DEST3", "FST Custom Dimension 3 Code"}, {"COD_DEST4", "FST Custom Dimension 4 Code"}, {"COD_DEST5", "FST Custom Dimension 5 Code"}, {"CLASSE", "FST Class"}, {"FLAG_CAMBIA_SEGNO", "FST Override Sign"}, {"DESC_SCHEMA0", "FST Schema Short Description"}, {"DESC_SCHEMA1", "FST Schema Description 1"}, {"DESC_SCHEMA2", "FST Schema Description 2"}, {"DESC_SCHEMA3", "FST Schema Description 3"}, {"ORDINAMENTO_SCHEMA_VOCE", "FST Sorting by Schema Item"}, {"TIPO_VOCE_XBRL", "FST XBRL Item Type"}, {"NAME_XBRL", "FST XBRL Name"}, {"COD_CONTO_KEY", "TGK_ACCOUNT_FST_KEY"}})
     ,
 //FST & KPI
+//Version 1.4.0
+	Output_Source_FST_KPI_4 = 
+        Table.View(null,
+            [
+                GetType = () =>
+                       type table [
+						COD_SCHEMA = Text.Type,
+						COD_VOCE = Text.Type,
+						COD_SCHEMA_VOCE = Text.Type,
+						TIPO_VOCE = Text.Type,
+						FORMAT = Text.Type,
+						DESC_SCHEMA0 = Text.Type,
+						DESC_SCHEMA1 = Text.Type,
+						DESC_SCHEMA2 = Text.Type,
+						DESC_SCHEMA3 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA0 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA1 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA2 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA3 = Text.Type,
+						DESC_VOCE0 = Text.Type,
+						DESC_VOCE1 = Text.Type,
+						DESC_VOCE2 = Text.Type,
+						DESC_VOCE3 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE0 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE1 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE2 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE3 = Text.Type,
+						COD_SCHEMA_DESC_VOCE0 = Text.Type,
+						COD_SCHEMA_DESC_VOCE1 = Text.Type,
+						COD_SCHEMA_DESC_VOCE2 = Text.Type,
+						COD_SCHEMA_DESC_VOCE3 = Text.Type,
+						COD_VOCE_DESC_VOCE0 = Text.Type,
+						COD_VOCE_DESC_VOCE1 = Text.Type,
+						COD_VOCE_DESC_VOCE2 = Text.Type,
+						COD_VOCE_DESC_VOCE3 = Text.Type,
+                        FLAG_BALANCE_SHEET = Text.Type,
+                        FLAG_INCOME_STATEMENT = Text.Type,
+                        FLAG_INITIAL_BALANCE = Text.Type,
+						FORMATO_SEGNO = Text.Type,
+						FLAG_EREDITA_CLASSE = Text.Type,
+						ORDINAMENTO = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_FST_KPI = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header, RelativePath ="Datasource_000043()" ,Timeout=#duration(0,0,30,0)])),
+                        #"FST_KPI Converted to Table" = Table.FromRecords({Source_FST_KPI}),
+                        #"FST_KPI Removed Columns" = Table.RemoveColumns(#"FST_KPI Converted to Table",{"@odata.context"}),
+                        #"FST_KPI value list" = #"FST_KPI Removed Columns"[value]{0},
+                        #"FST_KPI isEmpty value" = List.IsEmpty(#"FST_KPI value list"),
+                        #"FST_KPI Expanded value" = Table.ExpandListColumn(#"FST_KPI Removed Columns", "value"),
+                        #"FST_KPI ColumnNames" = {"COD_SCHEMA","COD_VOCE","COD_SCHEMA_VOCE","TIPO_VOCE","FORMAT","DESC_SCHEMA0","DESC_SCHEMA1","DESC_SCHEMA2","DESC_SCHEMA3","COD_SCHEMA_DESC_SCHEMA0","COD_SCHEMA_DESC_SCHEMA1","COD_SCHEMA_DESC_SCHEMA2","COD_SCHEMA_DESC_SCHEMA3","DESC_VOCE0","DESC_VOCE1","DESC_VOCE2","DESC_VOCE3","COD_SCHEMA_COD_VOCE_DESC_VOCE0","COD_SCHEMA_COD_VOCE_DESC_VOCE1","COD_SCHEMA_COD_VOCE_DESC_VOCE2","COD_SCHEMA_COD_VOCE_DESC_VOCE3","COD_SCHEMA_DESC_VOCE0","COD_SCHEMA_DESC_VOCE1","COD_SCHEMA_DESC_VOCE2","COD_SCHEMA_DESC_VOCE3","COD_VOCE_DESC_VOCE0","COD_VOCE_DESC_VOCE1","COD_VOCE_DESC_VOCE2","COD_VOCE_DESC_VOCE3","FLAG_BALANCE_SHEET","FLAG_INCOME_STATEMENT","FLAG_INITIAL_BALANCE","FORMATO_SEGNO","FLAG_EREDITA_CLASSE","ORDINAMENTO"},
+						#"FST_KPI Expanded value empty" = Table.FromColumns(List.Transform(#"FST_KPI ColumnNames", each {}), #"FST_KPI ColumnNames"),
+                        Output_Source_FST_KPI = if #"FST_KPI isEmpty value" then #"FST_KPI Expanded value empty" else Table.ExpandRecordColumn(#"FST_KPI Expanded value", "value", #"FST_KPI ColumnNames")
+                    in 
+                        Output_Source_FST_KPI
+            ]
+        ),
+	FST_KPI_4 = Table.RenameColumns(Output_Source_FST_KPI_4, {{"COD_SCHEMA","FST Schema Code"},{"DESC_SCHEMA0","FST Schema Description"},{"DESC_SCHEMA1","FST Schema Description 1"},{"DESC_SCHEMA2","FST Schema Description 2"},{"DESC_SCHEMA3","FST Schema Description 3"},{"COD_VOCE","FST Item Code"},{"DESC_VOCE0","FST Item Description"},{"DESC_VOCE1","FST Item Description 1"},{"DESC_VOCE2","FST Item Description 2"},{"DESC_VOCE3","FST Item Description 3"},{"TIPO_VOCE","FST Item Type"},{"COD_SCHEMA_VOCE","FST Schema Code Item Code"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE0","FST Schema Code Item Code and Description"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE1","FST Schema Code Item Code and Description 1"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE2","FST Schema Code Item Code and Description 2"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE3","FST Schema Code Item Code and Description 3"},{"COD_SCHEMA_DESC_VOCE0","FST Schema Code Item Description"},{"COD_SCHEMA_DESC_VOCE1","FST Schema Code Item Description 1"},{"COD_SCHEMA_DESC_VOCE2","FST Schema Code Item Description 2"},{"COD_SCHEMA_DESC_VOCE3","FST Schema Code Item Description 3"},{"COD_SCHEMA_DESC_SCHEMA0","FST Schema Code and Description"},{"COD_SCHEMA_DESC_SCHEMA1","FST Schema Code and Description 1"},{"COD_SCHEMA_DESC_SCHEMA2","FST Schema Code and Description 2"},{"COD_SCHEMA_DESC_SCHEMA3","FST Schema Code and Description 3"},{"COD_VOCE_DESC_VOCE0","FST Item Code and Description"},{"COD_VOCE_DESC_VOCE1","FST Item Code and Description 1"},{"COD_VOCE_DESC_VOCE2","FST Item Code and Description 2"},{"COD_VOCE_DESC_VOCE3","FST Item Code and Description 3"},{"FLAG_BALANCE_SHEET","FST Balance Sheet Flag"},{"FLAG_INCOME_STATEMENT","FST Income Statement Flag"},{"FLAG_INITIAL_BALANCE","FST Initial Balance Flag"},{"FORMATO_SEGNO","FST Format Sign"},{"FLAG_EREDITA_CLASSE","FST Override Sign"},{"FORMAT","FST Format"},{"ORDINAMENTO","FST Sorting"}})
+	,
     //Available From Version 1.2.0
-	Output_Source_FST_KPI = 
+	Output_Source_FST_KPI_2 = 
         Table.View(null,
             [
                 GetType = () =>
@@ -3250,7 +3695,9 @@ let
                         Output_Source_FST_KPI
             ]
         ),
-	FST_KPI = Table.RenameColumns(Output_Source_FST_KPI,{{"COD_SCHEMA","FST Schema Code"},{"DESC_SCHEMA0","FST Schema Description"},{"DESC_SCHEMA1","FST Schema Description 1"},{"DESC_SCHEMA2","FST Schema Description 2"},{"DESC_SCHEMA3","FST Schema Description 3"},{"COD_VOCE","FST Item Code"},{"DESC_VOCE0","FST Item Description"},{"DESC_VOCE1","FST Item Description 1"},{"DESC_VOCE2","FST Item Description 2"},{"DESC_VOCE3","FST Item Description 3"},{"TIPO_VOCE","FST Item Type"},{"COD_SCHEMA_VOCE","FST Schema Code Item Code"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE0","FST Schema Code Item Code and Description"},{"COD_SCHEMA_DESC_VOCE0","FST Schema Code Item Description"},{"COD_SCHEMA_DESC_VOCE1","FST Schema Code Item Description 1"},{"COD_SCHEMA_DESC_VOCE2","FST Schema Code Item Description 2"},{"COD_SCHEMA_DESC_VOCE3","FST Schema Code Item Description 3"},{"FLAG_BALANCE_SHEET","FST Balance Sheet Flag"},{"FLAG_INCOME_STATEMENT","FST Income Statement Flag"},{"FLAG_INITIAL_BALANCE","FST Initial Balance Flag"},{"FLAG_EREDITA_CLASSE","FST Override Sign"},{"FORMATO_SEGNO","FST Format Sign"},{"FORMAT","FST Format"},{"ORDINAMENTO","FST Sorting"}})
+	FST_KPI_2 = Table.RenameColumns(Output_Source_FST_KPI_2,{{"COD_SCHEMA","FST Schema Code"},{"DESC_SCHEMA0","FST Schema Description"},{"DESC_SCHEMA1","FST Schema Description 1"},{"DESC_SCHEMA2","FST Schema Description 2"},{"DESC_SCHEMA3","FST Schema Description 3"},{"COD_VOCE","FST Item Code"},{"DESC_VOCE0","FST Item Description"},{"DESC_VOCE1","FST Item Description 1"},{"DESC_VOCE2","FST Item Description 2"},{"DESC_VOCE3","FST Item Description 3"},{"TIPO_VOCE","FST Item Type"},{"COD_SCHEMA_VOCE","FST Schema Code Item Code"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE0","FST Schema Code Item Code and Description"},{"COD_SCHEMA_DESC_VOCE0","FST Schema Code Item Description"},{"COD_SCHEMA_DESC_VOCE1","FST Schema Code Item Description 1"},{"COD_SCHEMA_DESC_VOCE2","FST Schema Code Item Description 2"},{"COD_SCHEMA_DESC_VOCE3","FST Schema Code Item Description 3"},{"FLAG_BALANCE_SHEET","FST Balance Sheet Flag"},{"FLAG_INCOME_STATEMENT","FST Income Statement Flag"},{"FLAG_INITIAL_BALANCE","FST Initial Balance Flag"},{"FLAG_EREDITA_CLASSE","FST Override Sign"},{"FORMATO_SEGNO","FST Format Sign"},{"FORMAT","FST Format"},{"ORDINAMENTO","FST Sorting"}})
+    ,
+	FST_KPI = List.First(List.Select(VersionCases, each _{0} = Version), null){26}
     ,
 //FST & KPI Account Available From Version 1.2.0
     //Version 1.3.0
@@ -4306,8 +4753,15 @@ JournalDSCode = List.Accumulate(Dimensions_ModelSwitch, "000048()", (state, curr
     TransactionCurrency = Table.RenameColumns(#"Transaction Currency Duplicated Index",{{"COD_VALUTA", "Transaction Currency Code"}, {"DESC_VALUTA", "Transaction Currency Description"}, {"PERC_SCOSTAMENTO", "Transaction Currency Variance Perc"}, {"COD_VALUTA1", "Transaction Currency Code 1"}, {"COD_VALUTA2", "Transaction Currency Code 2"}, {"NUM_DECIMALI", "Transaction Currency Decimal Numbers"}, {"COD_VALUTA_RIF", "Transaction Currency Ref Code"}, {"COEFFICIENTE_RIF", "Transaction Currency Ref Coefficient"}, {"MEASURE_XBRL", "Transaction Currency XBRL Measure"}, {"COD_VALUTA_KEY", "TGK_TRANSACTION_CURRENCY_KEY"}, {"ID_VALUTA", "TGK_TRANSACTION_CURRENCY_ID"}, {"TGK_SOURCE_CURRENCY_ER_ID", "TGK_TRANSACTION_CURRENCY_ER_ID"}})
     ,
 //Target Currency
-    Source_TargetCurrency = Table.SelectColumns(TransactionCurrency, {"Transaction Currency Code", "TGK_TRANSACTION_CURRENCY_KEY", "TGK_TRANSACTION_CURRENCY_ID"}),
-    TargetCurrency = Table.RenameColumns(Source_TargetCurrency,{{"TGK_TRANSACTION_CURRENCY_KEY", "TGK_TARGET_CURRENCY_KEY"}, {"TGK_TRANSACTION_CURRENCY_ID", "TGK_TARGET_CURRENCY_ID"}, {"Transaction Currency Code", "Target Currency Code"}})
+//Version 1.4.0
+    Source_TargetCurrency_4 = Table.SelectColumns(TransactionCurrency, {"Transaction Currency Code", "TGK_TRANSACTION_CURRENCY_KEY", "TGK_TRANSACTION_CURRENCY_ID","Transaction Currency Description"}),
+    TargetCurrency_4 = Table.RenameColumns(Source_TargetCurrency_4,{{"TGK_TRANSACTION_CURRENCY_KEY", "TGK_TARGET_CURRENCY_KEY"}, {"TGK_TRANSACTION_CURRENCY_ID", "TGK_TARGET_CURRENCY_ID"}, {"Transaction Currency Code", "Target Currency Code"}, {"Transaction Currency Description", "Target Currency Description"}})
+    ,
+    Source_TargetCurrency_0 = Table.SelectColumns(TransactionCurrency, {"Transaction Currency Code", "TGK_TRANSACTION_CURRENCY_KEY", "TGK_TRANSACTION_CURRENCY_ID"}),
+    TargetCurrency_0 = Table.RenameColumns(Source_TargetCurrency_0,{{"TGK_TRANSACTION_CURRENCY_KEY", "TGK_TARGET_CURRENCY_KEY"}, {"TGK_TRANSACTION_CURRENCY_ID", "TGK_TARGET_CURRENCY_ID"}, {"Transaction Currency Code", "Target Currency Code"}})
+    ,
+//Previous Versions
+    TargetCurrency = List.First(List.Select(VersionCases, each _{0} = Version), null){25}
     ,
 //User Rights
 
@@ -5093,10 +5547,13 @@ let
     VersionCases = 
     {
         //Version, 
-        {"1.0.0",AW_Scenario_0,AW_Account_0,AW_Category_0},
-        {"1.1.0",AW_Scenario_0,AW_Account_0,AW_Category_0},
-        {"1.2.0",AW_Scenario_2,AW_Account_0,AW_Category_0},
-        {"1.3.0",AW_Scenario_2,AW_Account_3,AW_Category_3}
+        {"1.0.0",AW_Scenario_0,AW_Account_0,AW_Category_0,AW_CustomDimension1_H_DS_0,AW_CustomDimension2_H_DS_0,AW_CustomDimension3_H_DS_0,AW_CustomDimension4_H_DS_0,AW_CustomDimension5_H_DS_0},
+        {"1.1.0",AW_Scenario_0,AW_Account_0,AW_Category_0,AW_CustomDimension1_H_DS_0,AW_CustomDimension2_H_DS_0,AW_CustomDimension3_H_DS_0,AW_CustomDimension4_H_DS_0,AW_CustomDimension5_H_DS_0},
+        {"1.2.0",AW_Scenario_2,AW_Account_0,AW_Category_0,AW_CustomDimension1_H_DS_0,AW_CustomDimension2_H_DS_0,AW_CustomDimension3_H_DS_0,AW_CustomDimension4_H_DS_0,AW_CustomDimension5_H_DS_0},
+        {"1.3.0",AW_Scenario_2,AW_Account_3,AW_Category_3,AW_CustomDimension1_H_DS_0,AW_CustomDimension2_H_DS_0,AW_CustomDimension3_H_DS_0,AW_CustomDimension4_H_DS_0,AW_CustomDimension5_H_DS_0},
+         //1.3.5 Previous version with ony AW parameter provided and new version of Tagetik Power BI Integration AW. The Custom Dim Hierarchies datasource read from financial datasources
+        {"1.3.5",AW_Scenario_2,AW_Account_3,AW_Category_3,AW_CustomDimension1_H_DS_4,AW_CustomDimension2_H_DS_4,AW_CustomDimension3_H_DS_4,AW_CustomDimension4_H_DS_4,AW_CustomDimension5_H_DS_4},
+        {"1.4.0",AW_Scenario_2,AW_Account_3,AW_Category_3,AW_CustomDimension1_H_DS_4,AW_CustomDimension2_H_DS_4,AW_CustomDimension3_H_DS_4,AW_CustomDimension4_H_DS_4,AW_CustomDimension5_H_DS_4}
     },
     //AIH Connector Financial Dimensions
     //AIH Account
@@ -5231,7 +5688,6 @@ let
     AW_Account_H = Table.RenameColumns(AW_Output_Source_Account_H,{{"COD_CONTO_GERARCHIA", "Account Hierarchy Code"}, {"DESC_CONTO_GERARCHIA", "Account Hierarchy Description"}, {"COD_CONTO_ELEGER1", "Account Hierarchy Code Level 1"}, {"COD_CONTO_ELEGER2", "Account Hierarchy Code Level 2"}, {"COD_CONTO_ELEGER3", "Account Hierarchy Code Level 3"}, {"COD_CONTO_ELEGER4", "Account Hierarchy Code Level 4"}, {"COD_CONTO_ELEGER5", "Account Hierarchy Code Level 5"}, {"COD_CONTO_ELEGER6", "Account Hierarchy Code Level 6"}, {"COD_CONTO_ELEGER7", "Account Hierarchy Code Level 7"}, {"COD_CONTO_ELEGER8", "Account Hierarchy Code Level 8"}, {"DESC_CONTO_ELEGER1", "Account Hierarchy Description Level 1"}, {"DESC_CONTO_ELEGER2", "Account Hierarchy Description Level 2"}, {"DESC_CONTO_ELEGER3", "Account Hierarchy Description Level 3"}, {"DESC_CONTO_ELEGER4", "Account Hierarchy Description Level 4"}, {"DESC_CONTO_ELEGER5", "Account Hierarchy Description Level 5"}, {"DESC_CONTO_ELEGER6", "Account Hierarchy Description Level 6"}, {"DESC_CONTO_ELEGER7", "Account Hierarchy Description Level 7"}, {"DESC_CONTO_ELEGER8", "Account Hierarchy Description Level 8"}, {"COD_CONTO_KEY", "TGK_ACCOUNT_H_KEY"}})
 	,
     //AIH Category
-       //AIH Category
     //Version 1.3.0 
     AW_Source_Category_3 = Table.View(null,
             [
@@ -5497,6 +5953,12 @@ let
     AW_CustomDimension5 = Table.RenameColumns(#"AW_CustomDimension5 Duplicated Column1",{{"COD_DEST5", "Custom Dimension 5 Code"}, {"DESC_DEST50", "Custom Dimension 5 Description"}, {"DESC_DEST51", "Custom Dimension 5 Description 1"}, {"DESC_DEST52", "Custom Dimension 5 Description 2"}, {"DESC_DEST53", "Custom Dimension 5 Description 3"}, {"ATTRIBUTO1", "Custom Dimension 5 Attribute 1"}, {"ATTRIBUTO2", "Custom Dimension 5 Attribute 2"}, {"ATTRIBUTO3", "Custom Dimension 5 Attribute 3"}, {"ATTRIBUTO4", "Custom Dimension 5 Attribute 4"}, {"ATTRIBUTO5", "Custom Dimension 5 Attribute 5"}})
 	,
     //AIH Custom Dimension 1 Hierarchy
+    //Version 1.4.0
+    AW_CustomDimension1_H_DS_4 = "000015()",
+
+    //Previous Version
+    AW_CustomDimension1_H_DS_0 = "AW9990()",
+    AW_CustomDimension1_H_DS =List.First(List.Select(VersionCases, each _{0} = Version), null){4},
     AW_Output_Source_CustomDimension1_H =
     Table.View(null,
         [
@@ -5524,7 +5986,7 @@ let
             ],
             GetRows = () =>
                 let 
-                    Source_CustomDimension1_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_AW9990()" ,Timeout=#duration(0,0,30,0)])),
+                    Source_CustomDimension1_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_"& AW_CustomDimension1_H_DS ,Timeout=#duration(0,0,30,0)])),
                     #"CustomDimension1_H Converted to Table" = Table.FromRecords({Source_CustomDimension1_H}),
                     #"CustomDimension1_H Removed Columns" = Table.RemoveColumns(#"CustomDimension1_H Converted to Table",{"@odata.context"}),
                     #"CustomDimension1_H Expanded value" = Table.ExpandListColumn(#"CustomDimension1_H Removed Columns", "value"),
@@ -5536,7 +5998,13 @@ let
     AW_CustomDimension1_H = Table.RenameColumns(AW_Output_Source_CustomDimension1_H,{{"COD_DEST1_GERARCHIA", "Custom Dimension 1 Hierarchy Code"}, {"DESC_DEST1_GERARCHIA", "Custom Dimension 1 Hierarchy Description"}, {"COD_DEST1_ELEGER1", "Custom Dimension 1 Hierarchy Code Level 1"}, {"COD_DEST1_ELEGER2", "Custom Dimension 1 Hierarchy Code Level 2"}, {"COD_DEST1_ELEGER3", "Custom Dimension 1 Hierarchy Code Level 3"}, {"COD_DEST1_ELEGER4", "Custom Dimension 1 Hierarchy Code Level 4"}, {"COD_DEST1_ELEGER5", "Custom Dimension 1 Hierarchy Code Level 5"}, {"COD_DEST1_ELEGER6", "Custom Dimension 1 Hierarchy Code Level 6"}, {"COD_DEST1_ELEGER7", "Custom Dimension 1 Hierarchy Code Level 7"}, {"COD_DEST1_ELEGER8", "Custom Dimension 1 Hierarchy Code Level 8"}, {"DESC_DEST1_ELEGER1", "Custom Dimension 1 Hierarchy Description Level 1"}, {"DESC_DEST1_ELEGER2", "Custom Dimension 1 Hierarchy Description Level 2"}, {"DESC_DEST1_ELEGER3", "Custom Dimension 1 Hierarchy Description Level 3"}, {"DESC_DEST1_ELEGER4", "Custom Dimension 1 Hierarchy Description Level 4"}, {"DESC_DEST1_ELEGER5", "Custom Dimension 1 Hierarchy Description Level 5"}, {"DESC_DEST1_ELEGER6", "Custom Dimension 1 Hierarchy Description Level 6"}, {"DESC_DEST1_ELEGER7", "Custom Dimension 1 Hierarchy Description Level 7"}, {"DESC_DEST1_ELEGER8", "Custom Dimension 1 Hierarchy Description Level 8"}, {"COD_DEST1_KEY", "TGK_DEST1_H_KEY"}})
     ,	
     //AIH Custom Dimension 2 Hierarchy
-	AW_Output_Source_CustomDimension2_H=
+	    //Version 1.4.0
+    AW_CustomDimension2_H_DS_4 = "000016()",
+
+    //Previous Version
+    AW_CustomDimension2_H_DS_0 = "AW9989()",
+    AW_CustomDimension2_H_DS =List.First(List.Select(VersionCases, each _{0} = Version), null){5},
+    AW_Output_Source_CustomDimension2_H=
     Table.View(null,
         [
             GetType = () =>
@@ -5563,7 +6031,7 @@ let
             ],
             GetRows = () =>
                 let 
-                    Source_CustomDimension2_H = Json.Document(Web.Contents(outputURL ,[Headers = Credentials_Header,RelativePath = "Datasource_AW9989()" ,Timeout=#duration(0,0,30,0)])),
+                    Source_CustomDimension2_H = Json.Document(Web.Contents(outputURL ,[Headers = Credentials_Header,RelativePath = "Datasource_"& AW_CustomDimension2_H_DS,Timeout=#duration(0,0,30,0)])),
                     #"CustomDimension2_H Converted to Table" = Table.FromRecords({Source_CustomDimension2_H}),
                     #"CustomDimension2_H Removed Columns" = Table.RemoveColumns(#"CustomDimension2_H Converted to Table",{"@odata.context"}),
                     #"CustomDimension2_H Expanded value" = Table.ExpandListColumn(#"CustomDimension2_H Removed Columns", "value"),
@@ -5586,6 +6054,12 @@ let
     AW_CustomDimension2_CTP_H =  Table.TransformColumnTypes(  #"AW_Custom Dimension 2 CTP H RenameColumns"  ,{{"TGK_DEST2_CTP_H_KEY", type text}, {"Custom Dimension 2 CTP Hierarchy Description Level 8", type text}, {"Custom Dimension 2 CTP Hierarchy Description Level 7", type text}, {"Custom Dimension 2 CTP Hierarchy Code Level 7", type text}, {"Custom Dimension 2 CTP Hierarchy Description", type text}})
     ,
     //AIH Custom Dimension 3 Hierarchy
+        //Version 1.4.0
+    AW_CustomDimension3_H_DS_4 = "000017()",
+
+    //Previous Version
+    AW_CustomDimension3_H_DS_0 = "AW9988()",
+    AW_CustomDimension3_H_DS =List.First(List.Select(VersionCases, each _{0} = Version), null){6},
     AW_Output_Source_CustomDimension3_H =
     Table.View(null,
         [
@@ -5613,7 +6087,7 @@ let
             ],
             GetRows = () =>
                 let 
-                    Source_CustomDimension3_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_AW9988()" ,Timeout=#duration(0,0,30,0)])),
+                    Source_CustomDimension3_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_"& AW_CustomDimension3_H_DS,Timeout=#duration(0,0,30,0)])),
                     #"CustomDimension3_H Converted to Table" = Table.FromRecords({Source_CustomDimension3_H}),
                     #"CustomDimension3_H Removed Columns" = Table.RemoveColumns(#"CustomDimension3_H Converted to Table",{"@odata.context"}),
                     #"CustomDimension3_H Expanded value" = Table.ExpandListColumn(#"CustomDimension3_H Removed Columns", "value"),
@@ -5626,6 +6100,12 @@ let
     AW_CustomDimension3_H = Table.RenameColumns(AW_Output_Source_CustomDimension3_H,{{"COD_DEST3_GERARCHIA", "Custom Dimension 3 Hierarchy Code"}, {"DESC_DEST3_GERARCHIA", "Custom Dimension 3 Hierarchy Description"}, {"COD_DEST3_ELEGER1", "Custom Dimension 3 Hierarchy Code Level 1"}, {"COD_DEST3_ELEGER2", "Custom Dimension 3 Hierarchy Code Level 2"}, {"COD_DEST3_ELEGER3", "Custom Dimension 3 Hierarchy Code Level 3"}, {"COD_DEST3_ELEGER4", "Custom Dimension 3 Hierarchy Code Level 4"}, {"COD_DEST3_ELEGER5", "Custom Dimension 3 Hierarchy Code Level 5"}, {"COD_DEST3_ELEGER6", "Custom Dimension 3 Hierarchy Code Level 6"}, {"COD_DEST3_ELEGER7", "Custom Dimension 3 Hierarchy Code Level 7"}, {"COD_DEST3_ELEGER8", "Custom Dimension 3 Hierarchy Code Level 8"}, {"DESC_DEST3_ELEGER1", "Custom Dimension 3 Hierarchy Description Level 1"}, {"DESC_DEST3_ELEGER2", "Custom Dimension 3 Hierarchy Description Level 2"}, {"DESC_DEST3_ELEGER3", "Custom Dimension 3 Hierarchy Description Level 3"}, {"DESC_DEST3_ELEGER4", "Custom Dimension 3 Hierarchy Description Level 4"}, {"DESC_DEST3_ELEGER5", "Custom Dimension 3 Hierarchy Description Level 5"}, {"DESC_DEST3_ELEGER6", "Custom Dimension 3 Hierarchy Description Level 6"}, {"DESC_DEST3_ELEGER7", "Custom Dimension 3 Hierarchy Description Level 7"}, {"DESC_DEST3_ELEGER8", "Custom Dimension 3 Hierarchy Description Level 8"}, {"COD_DEST3_KEY", "TGK_DEST3_H_KEY"}})
     ,
     //AIH Custom Dimension 4 Hierarchy
+    //Version 1.4.0
+    AW_CustomDimension4_H_DS_4 = "000018()",
+
+    //Previous Version
+    AW_CustomDimension4_H_DS_0 = "AW9987()",
+    AW_CustomDimension4_H_DS =List.First(List.Select(VersionCases, each _{0} = Version), null){7},
     AW_Output_Source_CustomDimension4_H =
     Table.View(null,
         [
@@ -5653,7 +6133,7 @@ let
             ],
             GetRows = () =>
                 let 
-                    Source_CustomDimension4_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_AW9987()" ,Timeout=#duration(0,0,30,0)])),
+                    Source_CustomDimension4_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath =  "Datasource_"& AW_CustomDimension4_H_DS,Timeout=#duration(0,0,30,0)])),
                     #"CustomDimension4_H Converted to Table" = Table.FromRecords({Source_CustomDimension4_H}),
                     #"CustomDimension4_H Removed Columns" = Table.RemoveColumns(#"CustomDimension4_H Converted to Table",{"@odata.context"}),
                     #"CustomDimension4_H Expanded value" = Table.ExpandListColumn(#"CustomDimension4_H Removed Columns", "value"),
@@ -5666,6 +6146,12 @@ let
     AW_CustomDimension4_H = Table.RenameColumns(AW_Output_Source_CustomDimension4_H,{{"COD_DEST4_GERARCHIA", "Custom Dimension 4 Hierarchy Code"}, {"DESC_DEST4_GERARCHIA", "Custom Dimension 4 Hierarchy Description"}, {"COD_DEST4_ELEGER1", "Custom Dimension 4 Hierarchy Code Level 1"}, {"COD_DEST4_ELEGER2", "Custom Dimension 4 Hierarchy Code Level 2"}, {"COD_DEST4_ELEGER3", "Custom Dimension 4 Hierarchy Code Level 3"}, {"COD_DEST4_ELEGER4", "Custom Dimension 4 Hierarchy Code Level 4"}, {"COD_DEST4_ELEGER5", "Custom Dimension 4 Hierarchy Code Level 5"}, {"COD_DEST4_ELEGER6", "Custom Dimension 4 Hierarchy Code Level 6"}, {"COD_DEST4_ELEGER7", "Custom Dimension 4 Hierarchy Code Level 7"}, {"COD_DEST4_ELEGER8", "Custom Dimension 4 Hierarchy Code Level 8"}, {"DESC_DEST4_ELEGER1", "Custom Dimension 4 Hierarchy Description Level 1"}, {"DESC_DEST4_ELEGER2", "Custom Dimension 4 Hierarchy Description Level 2"}, {"DESC_DEST4_ELEGER3", "Custom Dimension 4 Hierarchy Description Level 3"}, {"DESC_DEST4_ELEGER4", "Custom Dimension 4 Hierarchy Description Level 4"}, {"DESC_DEST4_ELEGER5", "Custom Dimension 4 Hierarchy Description Level 5"}, {"DESC_DEST4_ELEGER6", "Custom Dimension 4 Hierarchy Description Level 6"}, {"DESC_DEST4_ELEGER7", "Custom Dimension 4 Hierarchy Description Level 7"}, {"DESC_DEST4_ELEGER8", "Custom Dimension 4 Hierarchy Description Level 8"}, {"COD_DEST4_KEY", "TGK_DEST4_H_KEY"}})
     ,
     //AIH Custom Dimension 5 Hierarchy
+    //Version 1.4.0
+    AW_CustomDimension5_H_DS_4 = "000019()",
+
+    //Previous Version
+    AW_CustomDimension5_H_DS_0 = "AW9986()",
+    AW_CustomDimension5_H_DS =List.First(List.Select(VersionCases, each _{0} = Version), null){8},
     AW_Output_Source_CustomDimension5_H =
     Table.View(null,
         [
@@ -5693,7 +6179,7 @@ let
             ],
             GetRows = () =>
                 let 
-                    Source_CustomDimension5_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath = "Datasource_AW9986()" ,Timeout=#duration(0,0,30,0)])),
+                    Source_CustomDimension5_H = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header,RelativePath ="Datasource_"& AW_CustomDimension5_H_DS ,Timeout=#duration(0,0,30,0)])),
                     #"CustomDimension5_H Converted to Table" = Table.FromRecords({Source_CustomDimension5_H}),
                     #"CustomDimension5_H Removed Columns" = Table.RemoveColumns(#"CustomDimension5_H Converted to Table",{"@odata.context"}),
                     #"CustomDimension5_H Expanded value" = Table.ExpandListColumn(#"CustomDimension5_H Removed Columns", "value"),
@@ -5743,7 +6229,7 @@ let
     AW_Entity = Table.RenameColumns(#"AW_Entity Distinct",{{"COD_AZIENDA", "Entity Code"}, {"RAGIONE_SOCIALE", "Entity Business Name"}, {"SEDE_LEGALE", "Entity Legal Site"}, {"SEDE_AMMINISTRATIVA", "Entity Administrative Headquarters"}, {"COD_VALUTA", "Entity Currency Code"}, {"ATTRIBUTO1", "Entity Attribute 1"}, {"ATTRIBUTO2", "Entity Attribute 2"}, {"ATTRIBUTO3", "Entity Attribute 3"}, {"ATTRIBUTO4", "Entity Attribute 4"}, {"ATTRIBUTO5", "Entity Attribute 5"}, {"DESC_AZIENDA0", "Entity Description"}, {"DESC_AZIENDA1", "Entity Description 1"}, {"DESC_AZIENDA2", "Entity Description 2"}, {"DESC_AZIENDA3", "Entity Description 3"}, {"SEDE_PRINCIPALE", "Entity Headquarter"}})
     ,
     //AIH Entity Hierarchy
-     AW_Output_Source_Entity_H =
+    AW_Output_Source_Entity_H =
     Table.View(null,
         [
             GetType = () =>
@@ -6041,7 +6527,7 @@ let
     #"AW_Transaction Currency Duplicated Column" = Table.DuplicateColumn(AW_Output_Source_TransactionCurrency, "COD_VALUTA", "TGK_TRANSACTION_CURRENCY_KEY"),
     AW_TransactionCurrency = Table.RenameColumns(#"AW_Transaction Currency Duplicated Column" ,{{"COD_VALUTA", "Transaction Currency Code"}, {"DESC_VALUTA", "Transaction Currency Description"}, {"PERC_SCOSTAMENTO", "Transaction Currency Variance Perc"}, {"COD_VALUTA1", "Transaction Currency Code 1"}, {"COD_VALUTA2", "Transaction Currency Code 2"}, {"NUM_DECIMALI", "Transaction Currency Decimal Numbers"}, {"COD_VALUTA_RIF", "Transaction Currency Ref Code"}, {"COEFFICIENTE_RIF", "Transaction Currency Ref Coefficient"}, {"MEASURE_XBRL", "Transaction Currency XBRL Measure"}})
     ,
-    
+
     AW_ListDimFinancial = Table.FromRecords({
         [DimensionName = "Account", DimensionTable = AW_Account],
         [DimensionName = "Account Hierarchy", DimensionTable = AW_Account_H],
@@ -6050,8 +6536,6 @@ let
         [DimensionName = "Custom Dimension 1", DimensionTable = AW_CustomDimension1],
         [DimensionName = "Custom Dimension 2 CTP", DimensionTable = AW_CustomDimension2_CTP],
         [DimensionName = "Custom Dimension 2 CTP Hierarchy", DimensionTable = AW_CustomDimension2_CTP_H],
-//         [DimensionName = "Custom Dimension 2 Segment", DimensionTable = CustomDimension2_Segment],
-//         [DimensionName = "Custom Dimension 2 Segment Hierarchy", DimensionTable = CustomDimension2_Segment_H],
         [DimensionName = "Custom Dimension 2", DimensionTable = AW_CustomDimension2],
         [DimensionName = "Custom Dimension 3", DimensionTable = AW_CustomDimension3],
         [DimensionName = "Custom Dimension 4", DimensionTable = AW_CustomDimension4],
@@ -6066,12 +6550,8 @@ let
         [DimensionName = "Entity CTP", DimensionTable = AW_Entity_CTP],
         [DimensionName = "Entity CTP Hierarchy", DimensionTable = AW_Entity_CTP_H],
         [DimensionName = "Period", DimensionTable = AW_Period],
-//         [DimensionName = "Period Length", DimensionTable = PeriodLength],
-//         [DimensionName = "Periodic Value Calculation", DimensionTable = PeriodicValueCalculation],
         [DimensionName = "Scenario", DimensionTable = AW_Scenario],
         [DimensionName = "Scenario Grouping", DimensionTable = AW_Scenario_G],
-//         [DimensionName = "Scenario Period", DimensionTable = ScenarioPeriod],
-//         [DimensionName = "Target Currency", DimensionTable = TargetCurrency],
         [DimensionName = "Transaction Currency", DimensionTable = AW_TransactionCurrency]
     }),
 
@@ -6132,9 +6612,11 @@ let
         {"1.0.0",AWUR_0},
         {"1.1.0",AWUR_1},
         {"1.2.0",AWUR_1},
-        {"1.3.0",AWUR_1}
+        {"1.3.0",AWUR_1},
+        {"1.3.5",AWUR_1},
+        {"1.4.0",AWUR_1}
     },
-        //Version 1.1.0   
+    //Version 1.1.0   
     Output_SourceAWURDimension_1 =
     Table.View(null,
         [
@@ -6193,7 +6675,9 @@ let
         {"1.0.0",AW_UserRightsAccount_0,AW_UserRightsCategory_0,AW_UserRightsDest1_0,AW_UserRightsDest2_0,AW_UserRightsDest3_0,AW_UserRightsDest4_0,AW_UserRightsDest5_0,AW_UserRightsEntity_0,AW_UserRightsScenario_0},
         {"1.1.0",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1},
         {"1.2.0",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1},    
-        {"1.3.0",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1}    
+        {"1.3.0",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1},    
+        {"1.3.5",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1},    
+        {"1.4.0",AW_UserRightsAccount_1,AW_UserRightsCategory_1,AW_UserRightsDest1_1,AW_UserRightsDest2_1,AW_UserRightsDest3_1,AW_UserRightsDest4_1,AW_UserRightsDest5_1,AW_UserRightsEntity_1,AW_UserRightsScenario_1}    
     }
     ,
     //AIH User Rights Account
@@ -6636,12 +7120,385 @@ in
     OutputFinancialDimensionsUR
     ;
 
+CreateFinFeaturesDimensions = (outputURL as text,optional dimensionList as list,optional fw_dimensions as table,optional filterDatasetList as text, optional Version as text,optional Credentials_Header as record,optional CaseType as text) as table => 
+let
+    //Fn from 1.4.0
+    //AIH Connector Other Dimensions
+    
+    //AIH Connector Selection Tables always visible
+    //AIH PeriodLength
+    AW_Output_Source_PeriodLength =Table.View(null,
+        [
+            GetType = () =>
+                   type table [
+                    P_LENGTH_DESC = Text.Type,
+                    P_LENGTH_CODE = Text.Type
+                ],
+            GetRows = () =>
+                let 
+                    Source_PeriodLength = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9977()",Timeout=#duration(0,0,30,0)])),
+                    #"PeriodLength Converted to Table" = Table.FromRecords({Source_PeriodLength}),
+                    #"PeriodLength Removed Columns" = Table.RemoveColumns(#"PeriodLength Converted to Table",{"@odata.context"}),
+                    #"PeriodLength Expanded value" = Table.ExpandListColumn(#"PeriodLength Removed Columns", "value"),
+                    Output_Source_PeriodLength = Table.ExpandRecordColumn(#"PeriodLength Expanded value", "value",{"P_LENGTH_DESC","P_LENGTH_CODE"})
+                in 
+                    Output_Source_PeriodLength
+        ]
+    ),
+    AW_PeriodLength = Table.RenameColumns(AW_Output_Source_PeriodLength,{{"P_LENGTH_DESC", "Period Length Description"},{"P_LENGTH_CODE", "Period Length Code"}})
+    ,
+    //AIH Change Sign
+    AW_Output_Source_ChangeSign =Table.View(null,
+        [
+            GetType = () =>
+                   type table [
+                    CHANGE_SIGN = Text.Type
+                ],
+            GetRows = () =>
+                let 
+                    Source_ChangeSign = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9974()",Timeout=#duration(0,0,30,0)])),
+                    #"ChangeSign Converted to Table" = Table.FromRecords({Source_ChangeSign}),
+                    #"ChangeSign Removed Columns" = Table.RemoveColumns(#"ChangeSign Converted to Table",{"@odata.context"}),
+                    #"ChangeSign Expanded value" = Table.ExpandListColumn(#"ChangeSign Removed Columns", "value"),
+                    Output_Source_ChangeSign = Table.ExpandRecordColumn(#"ChangeSign Expanded value", "value",{"CHANGE_SIGN"})
+                in 
+                    Output_Source_ChangeSign
+        ]
+    ),
+    AW_ChangeSign = Table.RenameColumns(AW_Output_Source_ChangeSign,{{"CHANGE_SIGN", "Change Sign Description"}})
+    ,
+    //AIH Conversion
+    AW_Output_Source_ConversionType =Table.View(null,
+        [
+            GetType = () =>
+                   type table [
+                    CONVERSION_DESC = Text.Type
+                ],
+            GetRows = () =>
+                let 
+                    Source_ConversionType = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9976()",Timeout=#duration(0,0,30,0)])),
+                    #"ConversionType Converted to Table" = Table.FromRecords({Source_ConversionType}),
+                    #"ConversionType Removed Columns" = Table.RemoveColumns(#"ConversionType Converted to Table",{"@odata.context"}),
+                    #"ConversionType Expanded value" = Table.ExpandListColumn(#"ConversionType Removed Columns", "value"),
+                    Output_Source_ConversionType = Table.ExpandRecordColumn(#"ConversionType Expanded value", "value",{"CONVERSION_DESC"})
+                in 
+                    Output_Source_ConversionType
+        ]
+    ),
+    AW_ConversionType = Table.RenameColumns(AW_Output_Source_ConversionType,{{"CONVERSION_DESC", "Conversion Type Description"}})
+    ,
+    output_selectiondimensions = 
+    if Version ="1.4.0" then
+    Table.FromRecords({
+            //AIH Connector Selection Tables always visible
+            [Name = "Period Length", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_PeriodLength],
+            [Name = "Conversion Type",  ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_ConversionType],
+            [Name = "Change Sign",  ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_ChangeSign]
+        }) 
+    else #table(type table [Name = text, ItemKind = text, ItemName = text, IsLeaf = logical, Data = table], {})
+    ,
+
+    //AIH Connector Additional Dimensions for Financial Features 
+    //AIH Exchange Rate
+    AW_Output_Source_ExchangeRate =
+        Table.View(
+            null,
+            [
+                GetType = () =>
+                    type table [
+                        E = Text.Type
+                    ],
+                GetRows = () =>
+                    let
+                        Source_ExchangeRate = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header, RelativePath = "Datasource_AW9978()?$filter=D in "& filterDatasetList, Timeout = #duration(0,0,30,0)])),
+                        #"ExchangeRate Converted to Table" = Table.FromRecords({Source_ExchangeRate}),
+						#"ExchangeRate Removed Columns" = Table.RemoveColumns(#"ExchangeRate Converted to Table",{"@odata.context"}),
+						#"ExchangeRate value list" = #"ExchangeRate Removed Columns"[value]{0},
+						#"ExchangeRate isEmpty value" = List.IsEmpty(#"ExchangeRate value list"),
+						#"ExchangeRate Expanded value" = Table.ExpandListColumn(#"ExchangeRate Removed Columns", "value"),
+						#"ExchangeRate ColumnNames" = {"E"},
+						#"ExchangeRate Expanded value empty" = Table.FromColumns(List.Transform(#"ExchangeRate ColumnNames", each {}), #"ExchangeRate ColumnNames"),
+						Output_Source_ExchangeRate = if #"ExchangeRate isEmpty value" then #"ExchangeRate Expanded value empty" else Table.ExpandRecordColumn(#"ExchangeRate Expanded value", "value", #"ExchangeRate ColumnNames")
+                    in
+                        Output_Source_ExchangeRate
+            ]
+        ),
+    #"AW_ExchangeRate Split Column by Delimiter" = Table.SplitColumn(AW_Output_Source_ExchangeRate, "E", Splitter.SplitTextByDelimiter("|", QuoteStyle.None), {"TGK_SCENARIO_ER_KEY","TGK_PERIOD_ER_KEY","ER Transaction Currency Code","ER Target Currency Code","Average Exchange Rate","Period Exchange Rate","Final Exchange Rate","Initial Exchange Rate"}),
+    #"AW_ExchangeRate Added Scenario Period" = Table.AddColumn(#"AW_ExchangeRate Split Column by Delimiter", "TGK_SCENARIO_PERIOD_ER_KEY", each [TGK_SCENARIO_ER_KEY] & "|" & [TGK_PERIOD_ER_KEY],type text),
+    #"AW_ExchangeRate Added Transaction Currency" = Table.DuplicateColumn(#"AW_ExchangeRate Added Scenario Period", "ER Transaction Currency Code", "TGK_TRANSACTION_CURRENCY_ER_KEY"),
+    #"AW_ExchangeRate Added Target Currency" = Table.DuplicateColumn(#"AW_ExchangeRate Added Transaction Currency", "ER Target Currency Code", "TGK_TARGET_CURRENCY_ER_KEY"),
+    #"AW_ExchangeRate Distinct" = Table.Distinct(#"AW_ExchangeRate Added Target Currency",{"TGK_SCENARIO_PERIOD_ER_KEY","TGK_TRANSACTION_CURRENCY_ER_KEY","TGK_TARGET_CURRENCY_ER_KEY"}),
+    AW_ExchangeRate = Table.TransformColumnTypes(#"AW_ExchangeRate Distinct",{{"Average Exchange Rate", type number}, {"Period Exchange Rate", type number}, {"Final Exchange Rate", type number}, {"Initial Exchange Rate", type number}},"en-US")
+    ,
+    //AIH Scenario Period 
+    AW_Output_Source_ScenarioPeriod =
+        Table.View(
+            null,
+            [
+                GetType = () =>
+                    type table [
+                        COD_SCENARIO_PERIODO_KEY = Text.Type,
+						DATA_INIZIO = Text.Type,
+						DATA_INIZIO_MENSILE  = Text.Type,
+						DATA_FINE  = Text.Type,
+						PROG_GIORNI  = Number.Type,
+						LUNGHEZZA_PERIODO  = Number.Type,
+						FLAG_POPOLATO = Number.Type,
+						FLAG_BLOCCATO = Number.Type,
+						DESC_SCENARIO_PERIODO0 = Text.Type,
+						DESC_SCENARIO_PERIODO1 = Text.Type,
+						DESC_SCENARIO_PERIODO2 = Text.Type,
+						DESC_SCENARIO_PERIODO3 = Text.Type,
+						PERIOD_NUMBER  = Number.Type,
+                        COD_SCENARIO = Text.Type,
+						COD_PERIODO = Text.Type,
+                        ANNO = Number.Type
+                    ],
+                GetRows = () =>
+                    let
+                        Source_ScenarioPeriod =  Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9979()?$filter=D in "& filterDatasetList,Timeout=#duration(0,0,30,0)])),
+                        #"ScenarioPeriod To Table"     = Table.FromRecords({Source_ScenarioPeriod}),
+                        #"ScenarioPeriod Remove Ctx"   = Table.RemoveColumns(#"ScenarioPeriod To Table", {"@odata.context"}),
+                        #"ScenarioPeriod Expand value" = Table.ExpandListColumn(#"ScenarioPeriod Remove Ctx", "value"),
+                        Output_Source_ScenarioPeriod  = Table.ExpandRecordColumn(#"ScenarioPeriod Expand value","value",{"COD_SCENARIO_PERIODO_KEY","DATA_INIZIO","DATA_INIZIO_MENSILE","DATA_FINE","PROG_GIORNI","LUNGHEZZA_PERIODO","FLAG_POPOLATO","FLAG_BLOCCATO","DESC_SCENARIO_PERIODO0","DESC_SCENARIO_PERIODO1","DESC_SCENARIO_PERIODO2","DESC_SCENARIO_PERIODO3","PERIOD_NUMBER","COD_SCENARIO","COD_PERIODO","ANNO"})
+                    in
+                        Output_Source_ScenarioPeriod
+            ]
+        ),
+    #"AW_ScenarioPeriod Changed Type" = Table.TransformColumnTypes(AW_Output_Source_ScenarioPeriod,{{"DATA_INIZIO_MENSILE", type date}, {"DATA_FINE", type date}, {"DATA_INIZIO", type date}}), 
+    #"AW_ScenarioPeriod Distinct" = Table.Distinct(#"AW_ScenarioPeriod Changed Type","COD_SCENARIO_PERIODO_KEY"),
+    AW_ScenarioPeriod = Table.RenameColumns(#"AW_ScenarioPeriod Distinct",{{"DATA_INIZIO", "Scenario Start Date"}, {"DATA_INIZIO_MENSILE", "Scenario Period Start Date"}, {"DATA_FINE", "Scenario Period End Date"}, {"PROG_GIORNI", "Scenario Period Number of Cumulated Days"}, {"LUNGHEZZA_PERIODO", "Scenario Period Length"}, {"FLAG_POPOLATO", "Scenario Period Populated Flag"}, {"FLAG_BLOCCATO", "Scenario Period Locked Flag"}, {"DESC_SCENARIO_PERIODO0", "Scenario Period Description"}, {"DESC_SCENARIO_PERIODO1", "Scenario Period Description 1"}, {"DESC_SCENARIO_PERIODO2", "Scenario Period Description 2"}, {"DESC_SCENARIO_PERIODO3", "Scenario Period Description 3"}, {"PERIOD_NUMBER", "TGK_PERIOD_NM"}, {"COD_SCENARIO_PERIODO_KEY", "TGK_SCENARIO_PERIOD_KEY"}, {"COD_PERIODO", "TGK_PERIOD_KEY"}, {"COD_SCENARIO", "TGK_SCENARIO_KEY"},{"ANNO","Scenario Period Year"}})
+    ,
+    //AIH Target Currency
+    AW_TransactinCurrency_Data= Table.SelectRows(fw_dimensions, each [DIMENSION] = "TRANSACTION_CURRENCY"),
+    AW_Source_TargetCurrency = Table.SelectColumns(AW_TransactinCurrency_Data{0}[Data], {"Transaction Currency Code", "TGK_TRANSACTION_CURRENCY_KEY","Transaction Currency Description"}),
+    AW_TargetCurrency = Table.RenameColumns(AW_Source_TargetCurrency,{{"TGK_TRANSACTION_CURRENCY_KEY", "TGK_TARGET_CURRENCY_KEY"}, {"Transaction Currency Code", "Target Currency Code"},{"Transaction Currency Description", "Target Currency Description"}})
+    ,
+    AW_ListOtherDimFinancial = Table.FromRecords({
+        [Name = "Exchange Rate", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_ExchangeRate],
+        [Name = "Scenario Period", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_ScenarioPeriod],
+        [Name = "Target Currency", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_TargetCurrency] 
+    }),
+
+    output_otherfindimensions =  Table.SelectRows(AW_ListOtherDimFinancial, each List.Contains(dimensionList, [Name]))
+    ,
+        //AIH Configuration Tables from 1.4.0
+    AW_Output_Source_AIHConfig =
+        Table.View(
+            null,
+            [
+                GetType = () =>
+                    type table [
+                        OBJECT_TYPE               = Text.Type,
+                        RELATION_NAME             = Text.Type,
+                        FROM_COLUMN               = Text.Type,
+                        TO_COLUMN                 = Text.Type,
+                        CROSS_FILTERING_BEHAVIOR  = Text.Type,
+                        FROM_CARDINALITY          = Text.Type,
+                        TO_CARDINALITY            = Text.Type,
+                        FROM_TABLE                = Text.Type,
+                        TO_TABLE                  = Text.Type,
+                        H_TABLE                   = Text.Type,
+                        H_NAME                    = Text.Type,
+                        H_LEVEL                   = Text.Type,
+                        H_LEVEL_NAME              = Text.Type,
+                        M_DAX_MEASURE             = Text.Type,
+                        M_MEASURE_NAME            = Text.Type,
+                        F_FOLDER_NAME             = Text.Type
+                    ],
+                GetRows = () =>
+                    let
+                        Source_AIHConfig = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header, RelativePath = "Datasource_AW9981()?$filter=D in " & filterDatasetList, Timeout = #duration(0,0,30,0)])),
+                        #"AIHConfig To Table" = Table.FromRecords({Source_AIHConfig}),
+                        #"AIHConfig Remove Ctx" = Table.RemoveColumns(#"AIHConfig To Table", {"@odata.context"}),
+                        #"AIHConfig Expand List" = Table.ExpandListColumn(#"AIHConfig Remove Ctx", "value"),
+                        Output_Source_AIHConfig = Table.ExpandRecordColumn(#"AIHConfig Expand List", "value", {"OBJECT_TYPE","RELATION_NAME","FROM_COLUMN","TO_COLUMN","CROSS_FILTERING_BEHAVIOR","FROM_CARDINALITY","TO_CARDINALITY","FROM_TABLE","TO_TABLE","H_TABLE","H_NAME","H_LEVEL","H_LEVEL_NAME","M_DAX_MEASURE","M_MEASURE_NAME","F_FOLDER_NAME"})
+                    in
+                        Output_Source_AIHConfig
+            ]
+        ),
+    #"AW_AIHConfig Distinct" = Table.Distinct(AW_Output_Source_AIHConfig, {"RELATION_NAME","H_LEVEL_NAME","M_MEASURE_NAME","F_FOLDER_NAME"}),
+    AW_AIHConfig = Table.RenameColumns(#"AW_AIHConfig Distinct", {{"OBJECT_TYPE","AIH Conf. Object Type"},{"RELATION_NAME","AIH Conf. Relationships Relation Name"},{"FROM_COLUMN","AIH Conf. Relationships From Column"},{"TO_COLUMN","AIH Conf. Relationships To Column"},{"CROSS_FILTERING_BEHAVIOR","AIH Conf. Relationships Cross Filtering Behavior"},{"FROM_CARDINALITY","AIH Conf. Relationships From Cardinality"},{"TO_CARDINALITY","AIH Conf. Relationships To Cardinality"},{"FROM_TABLE","AIH Conf. Relationships From Table"},{"TO_TABLE","AIH Conf. Relationships To Table"},{"H_TABLE","AIH Conf. Hierarchies Table"},{"H_NAME","AIH Conf. Hierarchies Name"},{"H_LEVEL","AIH Conf. Hierarchies Level"},{"H_LEVEL_NAME","AIH Conf. Hierarchies Level Name"},{"M_DAX_MEASURE","AIH Conf. Measures DAX Measure"},{"M_MEASURE_NAME","AIH Conf. Measures Measure Name"},{"F_FOLDER_NAME","AIH Conf. Measures Measure Folder"}})
+    ,
+      
+    output_configurationtables =
+    if Version = "1.4.0" then
+        Table.FromRecords({
+            [Name = "AIH Configuration", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_AIHConfig]
+        })
+    else
+        #table(type table [Name = text, ItemKind = text, ItemName = text, IsLeaf = logical, Data = table], {})
+    ,
+    output_finfeaturesdimensions = if CaseType ="PBI" then Table.SelectRows(output_configurationtables, each [Name] = "AIH Configuration") else Table.Combine({output_selectiondimensions, output_otherfindimensions,output_configurationtables})
+in
+    output_finfeaturesdimensions
+;
+CreateFSTAccountAnalyticalDimensionLink = (outputURL as text, Dimension as text,DimensionName as text,Credentials_Header as record) =>
+let
+    Output_Source_AccountAnalytical = 
+            Table.View(null,
+                [
+                    GetType = () =>
+                           type table [
+                            COD_CONTO = Text.Type,
+                            COD_DIM_ANA = Text.Type,
+                            CONTO_ANA = Text.Type
+                        ],
+                    GetRows = () =>
+                        let 
+                            Source_Account_Analytical = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9971()?$filter=D eq '"& Dimension &"'",Timeout=#duration(0,0,30,0)])),
+                            #"Account_Analytical Converted to Table" = Table.FromRecords({Source_Account_Analytical}),
+                            #"Account_Analytical Removed Columns" = Table.RemoveColumns(#"Account_Analytical Converted to Table",{"@odata.context"}),
+                            #"Account_Analytical value list" = #"Account_Analytical Removed Columns"[value]{0},
+                            #"Account_Analytical isEmpty value" = List.IsEmpty(#"Account_Analytical value list"),
+                            #"Account_Analytical Expanded value" = Table.ExpandListColumn(#"Account_Analytical Removed Columns", "value"),
+                            #"Account_Analytical ColumnNames" = {"COD_CONTO","COD_DIM_ANA","CONTO_ANA"},
+                           #"Account_Analytical Expanded value empty" = Table.FromColumns(List.Transform(#"Account_Analytical ColumnNames", each {}), #"Account_Analytical ColumnNames"),
+                           Output_Source_Account_Analytical = if #"Account_Analytical isEmpty value" then #"Account_Analytical Expanded value empty" else Table.ExpandRecordColumn(#"Account_Analytical Expanded value", "value", #"Account_Analytical ColumnNames")
+                        in 
+                            Output_Source_Account_Analytical
+                ]
+            ),
+    AccountAnalytical= Table.RenameColumns(Output_Source_AccountAnalytical,{{"COD_CONTO","Acct -" & Text.Start(DimensionName, 1) & " Account Code"},{"COD_DIM_ANA","Acct -" & Text.Start(DimensionName, 1) & " " & DimensionName & " Code"},{"CONTO_ANA","TGK_"& Dimension & "_KEY"}})
+in
+    AccountAnalytical
+;
+
+CreateFSTAccountAnalyticalDimension = (outputURL as text, Dimension as text,DimensionName as text,Credentials_Header as record) =>
+let
+    Output_Source_FSTAccountAnalytical = 
+            Table.View(null,
+                [
+                    GetType = () =>
+                           type table [
+							COD_SCHEMA = Text.Type,
+							COD_VOCE = Text.Type,
+							COD_CONTO = Text.Type,
+							COD_DIM_ANA = Text.Type,
+							CONTO_ANA = Text.Type,
+							VOCE_MULTI = Number.Type
+                        ],
+                    GetRows = () =>
+                        let 
+                            Source_FST_Account_Analytical = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9970()?$filter=D eq '"& Dimension &"'",Timeout=#duration(0,0,30,0)])),
+                            #"FST_Account_Analytical Converted to Table" = Table.FromRecords({Source_FST_Account_Analytical}),
+                            #"FST_Account_Analytical Removed Columns" = Table.RemoveColumns(#"FST_Account_Analytical Converted to Table",{"@odata.context"}),
+                            #"FST_Account_Analytical value list" = #"FST_Account_Analytical Removed Columns"[value]{0},
+                            #"FST_Account_Analytical isEmpty value" = List.IsEmpty(#"FST_Account_Analytical value list"),
+                            #"FST_Account_Analytical Expanded value" = Table.ExpandListColumn(#"FST_Account_Analytical Removed Columns", "value"),
+                            #"FST_Account_Analytical ColumnNames" = {"COD_SCHEMA","COD_VOCE","COD_CONTO","COD_DIM_ANA","CONTO_ANA","VOCE_MULTI"},
+                            #"FST_Account_Analytical Expanded value empty" = Table.FromColumns(List.Transform(#"FST_Account_Analytical ColumnNames", each {}), #"FST_Account_Analytical ColumnNames"),
+                            Output_Source_FST_Account_Analytical = if #"FST_Account_Analytical isEmpty value" then #"FST_Account_Analytical Expanded value empty" else Table.ExpandRecordColumn(#"FST_Account_Analytical Expanded value", "value", #"FST_Account_Analytical ColumnNames")
+                        in 
+                            Output_Source_FST_Account_Analytical
+                ]
+            ),
+    FSTAccountAnalytical = Table.RenameColumns(Output_Source_FSTAccountAnalytical,{{"COD_SCHEMA", "FST Acct-" & DimensionName & " Schema Code"}, {"COD_VOCE", "FST Acct-" & DimensionName & " Item Code"}, {"COD_CONTO", "FST Acct-" & DimensionName & " Account Code"}, {"COD_DIM_ANA", "FST Acct-" & Text.Start(DimensionName, 1) &  " " & DimensionName & " Code"}, {"VOCE_MULTI", "FST Acct-" & DimensionName & " Multiple Item Instances"}, {"CONTO_ANA", "TGK_"& Dimension & "_FST_KEY"}})
+in
+    FSTAccountAnalytical
+;
+
+CreateFSTDimension = (outputURL as text,optional filterDatasetList as text,optional Version as text,optional Credentials_Header as record) as table => 
+let
+    Output_Source_FST_KPI_AIH = 
+        Table.View(null,
+            [
+                GetType = () =>
+                       type table [
+                        COD_SCHEMA = Text.Type,
+						COD_VOCE = Text.Type,
+						COD_SCHEMA_VOCE = Text.Type,
+						TIPO_VOCE = Text.Type,
+						FORMAT = Text.Type,
+						DESC_SCHEMA0 = Text.Type,
+						DESC_SCHEMA1 = Text.Type,
+						DESC_SCHEMA2 = Text.Type,
+						DESC_SCHEMA3 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA0 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA1 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA2 = Text.Type,
+						COD_SCHEMA_DESC_SCHEMA3 = Text.Type,
+						DESC_VOCE0 = Text.Type,
+						DESC_VOCE1 = Text.Type,
+						DESC_VOCE2 = Text.Type,
+						DESC_VOCE3 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE0 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE1 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE2 = Text.Type,
+						COD_SCHEMA_COD_VOCE_DESC_VOCE3 = Text.Type,
+						COD_SCHEMA_DESC_VOCE0 = Text.Type,
+						COD_SCHEMA_DESC_VOCE1 = Text.Type,
+						COD_SCHEMA_DESC_VOCE2 = Text.Type,
+						COD_SCHEMA_DESC_VOCE3 = Text.Type,
+						COD_VOCE_DESC_VOCE0 = Text.Type,
+						COD_VOCE_DESC_VOCE1 = Text.Type,
+						COD_VOCE_DESC_VOCE2 = Text.Type,
+						COD_VOCE_DESC_VOCE3 = Text.Type,
+						FORMATO_SEGNO = Text.Type,
+						FLAG_EREDITA_CLASSE = Text.Type,
+						ORDINAMENTO = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_FST_KPI = Json.Document(Web.Contents(outputURL,[Headers = Credentials_Header, RelativePath ="Datasource_AW9973()?$filter=D in "& filterDatasetList ,Timeout=#duration(0,0,30,0)])),
+                        #"FST_KPI Converted to Table" = Table.FromRecords({Source_FST_KPI}),
+                        #"FST_KPI Removed Columns" = Table.RemoveColumns(#"FST_KPI Converted to Table",{"@odata.context"}),
+                        #"FST_KPI value list" = #"FST_KPI Removed Columns"[value]{0},
+                        #"FST_KPI isEmpty value" = List.IsEmpty(#"FST_KPI value list"),
+                        #"FST_KPI Expanded value" = Table.ExpandListColumn(#"FST_KPI Removed Columns", "value"),
+                        #"FST_KPI ColumnNames" = {"COD_SCHEMA","COD_VOCE","COD_SCHEMA_VOCE","TIPO_VOCE","FORMAT","DESC_SCHEMA0","DESC_SCHEMA1","DESC_SCHEMA2","DESC_SCHEMA3","COD_SCHEMA_DESC_SCHEMA0","COD_SCHEMA_DESC_SCHEMA1","COD_SCHEMA_DESC_SCHEMA2","COD_SCHEMA_DESC_SCHEMA3","DESC_VOCE0","DESC_VOCE1","DESC_VOCE2","DESC_VOCE3","COD_SCHEMA_COD_VOCE_DESC_VOCE0","COD_SCHEMA_COD_VOCE_DESC_VOCE1","COD_SCHEMA_COD_VOCE_DESC_VOCE2","COD_SCHEMA_COD_VOCE_DESC_VOCE3","COD_SCHEMA_DESC_VOCE0","COD_SCHEMA_DESC_VOCE1","COD_SCHEMA_DESC_VOCE2","COD_SCHEMA_DESC_VOCE3","COD_VOCE_DESC_VOCE0","COD_VOCE_DESC_VOCE1","COD_VOCE_DESC_VOCE2","COD_VOCE_DESC_VOCE3","FORMATO_SEGNO","FLAG_EREDITA_CLASSE","ORDINAMENTO"},
+						#"FST_KPI Expanded value empty" = Table.FromColumns(List.Transform(#"FST_KPI ColumnNames", each {}), #"FST_KPI ColumnNames"),
+                        Output_Source_FST_KPI = if #"FST_KPI isEmpty value" then #"FST_KPI Expanded value empty" else Table.ExpandRecordColumn(#"FST_KPI Expanded value", "value", #"FST_KPI ColumnNames")
+                    in 
+                        Output_Source_FST_KPI
+            ]
+        ),
+	AW_FST_KPI = Table.RenameColumns(Output_Source_FST_KPI_AIH, {{"COD_SCHEMA","FST Schema Code"},{"DESC_SCHEMA0","FST Schema Description"},{"DESC_SCHEMA1","FST Schema Description 1"},{"DESC_SCHEMA2","FST Schema Description 2"},{"DESC_SCHEMA3","FST Schema Description 3"},{"COD_VOCE","FST Item Code"},{"DESC_VOCE0","FST Item Description"},{"DESC_VOCE1","FST Item Description 1"},{"DESC_VOCE2","FST Item Description 2"},{"DESC_VOCE3","FST Item Description 3"},{"TIPO_VOCE","FST Item Type"},{"COD_SCHEMA_VOCE","FST Schema Code Item Code"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE0","FST Schema Code Item Code and Description"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE1","FST Schema Code Item Code and Description 1"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE2","FST Schema Code Item Code and Description 2"},{"COD_SCHEMA_COD_VOCE_DESC_VOCE3","FST Schema Code Item Code and Description 3"},{"COD_SCHEMA_DESC_VOCE0","FST Schema Code Item Description"},{"COD_SCHEMA_DESC_VOCE1","FST Schema Code Item Description 1"},{"COD_SCHEMA_DESC_VOCE2","FST Schema Code Item Description 2"},{"COD_SCHEMA_DESC_VOCE3","FST Schema Code Item Description 3"},{"COD_SCHEMA_DESC_SCHEMA0","FST Schema Code and Description"},{"COD_SCHEMA_DESC_SCHEMA1","FST Schema Code and Description 1"},{"COD_SCHEMA_DESC_SCHEMA2","FST Schema Code and Description 2"},{"COD_SCHEMA_DESC_SCHEMA3","FST Schema Code and Description 3"},{"COD_VOCE_DESC_VOCE0","FST Item Code and Description"},{"COD_VOCE_DESC_VOCE1","FST Item Code and Description 1"},{"COD_VOCE_DESC_VOCE2","FST Item Code and Description 2"},{"COD_VOCE_DESC_VOCE3","FST Item Code and Description 3"},{"FORMATO_SEGNO","FST Format Sign"},{"FLAG_EREDITA_CLASSE","FST Override Sign"},{"FORMAT","FST Format"},{"ORDINAMENTO","FST Sorting"}})
+	,
+    Output_Source_FST_KPI_Configuration_AIH = 
+        Table.View(null,
+            [
+                GetType = () =>
+                       type table [
+						COD_SCHEMA = Text.Type,
+						COD_VOCE = Text.Type,
+						ADDITIONAL_CONFIG = Text.Type,
+						FORMULA_VOCE_DAX = Text.Type,
+						DESC_ERRORE = Text.Type
+                    ],
+                GetRows = () =>
+                    let 
+                        Source_FST_KPI_Configuration = Json.Document(Web.Contents(outputURL, [Headers = Credentials_Header,RelativePath ="Datasource_AW9972()?$filter=D in "& filterDatasetList ,Timeout=#duration(0,0,30,0)])),
+                        #"FST_KPI_Configuration Converted to Table" = Table.FromRecords({Source_FST_KPI_Configuration}),
+                        #"FST_KPI_Configuration Removed Columns" = Table.RemoveColumns(#"FST_KPI_Configuration Converted to Table",{"@odata.context"}),
+                        #"FST_KPI_Configuration value list" = #"FST_KPI_Configuration Removed Columns"[value]{0},
+                        #"FST_KPI_Configuration isEmpty value" = List.IsEmpty(#"FST_KPI_Configuration value list"),
+                        #"FST_KPI_Configuration Expanded value" = Table.ExpandListColumn(#"FST_KPI_Configuration Removed Columns", "value"),
+                        #"FST_KPI_Configuration ColumnNames" = {"COD_SCHEMA","COD_VOCE","ADDITIONAL_CONFIG","FORMULA_VOCE_DAX","DESC_ERRORE"},
+                        #"FST_KPI_Configuration Expanded value empty" = Table.FromColumns(List.Transform(#"FST_KPI_Configuration ColumnNames", each {}), #"FST_KPI_Configuration ColumnNames"),
+                        Output_Source_FST_KPI_Configuration = if #"FST_KPI_Configuration isEmpty value" then #"FST_KPI_Configuration Expanded value empty" else Table.ExpandRecordColumn(#"FST_KPI_Configuration Expanded value", "value", #"FST_KPI_Configuration ColumnNames")
+                    in 
+                        Output_Source_FST_KPI_Configuration
+            ]
+        ),
+	AW_FST_KPI_Configuration = Table.RenameColumns(Output_Source_FST_KPI_Configuration_AIH,{{"COD_SCHEMA","FST Configuration Schema Code"},{"COD_VOCE","FST Configuration Item Code"},{"ADDITIONAL_CONFIG","FST Additional Configuration"},{"FORMULA_VOCE_DAX","FST DAX Formula"},{"DESC_ERRORE","FST Error Description"}})
+    ,
+    output_FST = 
+    Table.FromRecords({
+            //AIH Connector Selection Tables always visible
+            [Name = "FST & KPI", ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_FST_KPI],
+            [Name = "FST & KPI Configuration",  ItemKind = "Table", ItemName = "Table", IsLeaf = true, Data = AW_FST_KPI_Configuration]
+        }) 
+    
+in
+    output_FST
+;
 CreateNavTable = (base as table) as table =>
     let
         withItemKind = Table.AddColumn(base, "ItemKind", each "Table", type text),
         withItemName = Table.AddColumn(withItemKind, "ItemName", each "Table", type text),
         withIsLeaf = Table.AddColumn(withItemName, "IsLeaf", each true, type logical),
-        navTable = Table.ToNavigationTable(base,{"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
+        navTable = if Table.HasColumns(base, "Key") then Table.ToNavigationTable(base,{"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf") else Table.ToNavigationTable(Table.AddColumn(base,"Key",each [Name],type text),{"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
     in
         navTable;
 

@@ -51,7 +51,20 @@ let
             StatusCode = Value.Metadata(Response)[Response.Status],
             ResponseHeaders = Value.Metadata(Response)[Headers],
 
-            CanRetry = RetryCount < Context[Retry.Max.Count] and (StatusCode >= 500 or StatusCode = 429),
+            // Parse X-Max-Retries header for dynamic retry limit
+            MaxRetries.Header = ResponseHeaders[#"X-Max-Retries"]?,
+            MaxRetries.FromHeader = try Number.FromText(MaxRetries.Header) otherwise null,
+            MaxRetries.Clamped = if MaxRetries.FromHeader <> null 
+                then List.Min({ MaxRetries.FromHeader, 100 }) 
+                else null,
+            MaxRetries.Effective = if MaxRetries.Clamped <> null 
+                then List.Max({ MaxRetries.Clamped, Context[Retry.Max.Count] })
+                else Context[Retry.Max.Count],
+            MaxRetries.IsCustom = MaxRetries.Clamped <> null and MaxRetries.Clamped > Context[Retry.Max.Count],
+
+            // X-Max-Retries applies to all retryable status codes
+            IsRetryableStatus = StatusCode >= 500 or StatusCode = 429,
+            CanRetry = RetryCount < MaxRetries.Effective and IsRetryableStatus,
             RetryAfter.Text = ResponseHeaders[#"Retry-After"]?,
             RetryAfter.Number = try Number.FromText(RetryAfter.Text) otherwise null,
             ExponentialBackoff = Backoff(Context, RetryCount),
@@ -59,6 +72,6 @@ let
         in
             if StatusCode = 200 then Response
             else if CanRetry then @Retry(Context, Request, NextDelay, RetryCount + 1)
-            else Samsara.Client.ErrorTranslation(Context, StatusCode, Response)
+            else Samsara.Client.ErrorTranslation(Context, StatusCode, Response, MaxRetries.IsCustom, MaxRetries.Effective)
 in
     Retry

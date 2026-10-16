@@ -1,5 +1,5 @@
 ﻿// This file contains your Data Connector logic
-[Version = "1.0.2"]
+[Version = "1.0.3"]
 section ADPAnalytics;
 
 EnvType = Extension.LoadString("EnvType");
@@ -117,8 +117,8 @@ let
     #"Removed Top Rows" = Table.Skip(#"Removed Columns",1),
     Value = #"Removed Top Rows"{0}[Value],
     #"Converted to Table2" = Table.FromList(Value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    #"Extracted Values" = Table.TransformColumns(#"Converted to Table2", {"Column1", each Text.Combine(List.Transform(_, Text.From), ","), type text}),
-    #"Split Column by Delimiter" = Table.SplitColumn(#"Extracted Values", "Column1", Splitter.SplitTextByDelimiter(",", QuoteStyle.Csv)),
+    #"Extracted Values" = Table.TransformColumns(#"Converted to Table2", {"Column1", each Text.Combine(List.Transform(_, Text.From), "11:-:-11:-:11"), type text}),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Extracted Values", "Column1", Splitter.SplitTextByDelimiter("11:-:-11:-:11", QuoteStyle.Csv)),
     #"Changed Type" = Table.TransformColumnTypes(#"Split Column by Delimiter",{}),
     #"Transposed Table1" = Table.Transpose(#"Changed Type"),
     #"Added Index" = Table.AddIndexColumn(#"Transposed Table1", "Index1", 0, 1),

@@ -1,4 +1,4 @@
-﻿[Version = "2.4.1"] section Kognitwin;
+﻿[Version = "2.5.0"] section Kognitwin;
 
 redirect_uri = "https://oauth.powerbi.com/views/oauthredirect.html";
 
@@ -6,7 +6,7 @@ authPath = "/configuration/auth-settings?client=powerbi";
 assetsPath = "/assets"; 
 projectPath = "/projects/powerBIConnector"; // the path to the config in the twin environment. R
 defaultLimit = 1000; // the limit used for each pagination request. This default is used when the limit is not specified in the config
-
+MIN_OBJECT_ID = "000000000000000000000000";  // Sentinel value: forces _id field inclusion in API response
 
 
 /*
@@ -52,7 +52,7 @@ CreateNavTable =
                             [
                                 id = [id],
                                 Name = [name],
-                                Data = CreateQueryNavTable(baseUrl, [name], [query]),
+                                Data = CreateQueryNavTable(baseUrl, [query]),
                                 ItemKind = "Folder",
                                 ItemName = "Folder",
                                 IsLeaf = false
@@ -240,7 +240,6 @@ GetAuthParams =
             authParams = GetData(url & "/api" & authPath)
         in
             authParams;
-
 // Assets for connector icon and link
 Kognitwin.Publish = [
     Category = "Other",
@@ -291,7 +290,7 @@ GetApiUrlType =
         )) as table
     meta
     [
-        Documentation.Name = "Kognitwin v1.1"
+        Documentation.Name = "Kognitwin v2.5.0"
     ];
 
 // get pagination limit from twin admin. Defaults to specified limit
@@ -485,21 +484,27 @@ CreateTypesNavTable =
                                                 limit
                                             ),
 
-                                        transformed = Table.TransformRows(
-                                            dataTable,
-                                            each [
-                                               Id = Record.FieldOrDefault([Column1], "id", null),
-                                               Source = Record.FieldOrDefault([Column1], "source", null),
-                                               Type = Record.FieldOrDefault([Column1], "type", null),
-                                               Name = Record.FieldOrDefault([Column1], "name", null),
-                                               Asset = [Column1]
-                                            ]
-                                        ),
-                                        tableTransformed = Table.FromRecords(transformed)
+                                        // Add a copy of Column1 as Asset before expanding
+                                        withAssetColumn = Table.AddColumn(dataTable, "Asset", each [Column1], type any),
+                                        expandedCols = expandRecordColumn(withAssetColumn, "Column1"),
+                                        selectedColumns = Table.SelectColumns(
+                                                expandedCols,
+                                                {"id", "source", "type", "name", "Asset"},
+                                                MissingField.UseNull
+                                            ), 
+                                        renamedColumns = Table.RenameColumns(
+                                        selectedColumns,
+                                            {
+                                                {"id", "Id"},
+                                                {"source", "Source"},
+                                                {"type", "Type"},
+                                                {"name", "Name"}
+                                            }
+                                        )
                                     in
-                                        tableTransformed,
-                                ItemKind = "Function",
-                                ItemName = "Function",
+                                        renamedColumns,
+                                ItemKind = "Table",
+                                ItemName = "Table",
                                 IsLeaf = true
                             ]
                     ),
@@ -522,26 +527,6 @@ CreateTypesNavTable =
         in
             NavTable;
 
-
-// Transforms an object of url par
-ConvertRecordToQueryParams = (params as record) => 
-    let
-        recordTable = Record.ToTable(params),
-
-        // list of records
-        transformed =  Table.TransformRows(
-                recordTable,
-                each [
-                    param = [Name] & "=" & [Value]
-                ]
-        ),
-
-        queryString = List.Accumulate(transformed, "", (state, current) => state & List.First(Record.FieldValues(current)) & "&"),
-
-        trimmed = Text.TrimEnd(queryString, "&")
-    in
-        trimmed;
-
 /*
 
 Creates the navigation table that can support any api path
@@ -555,34 +540,30 @@ If distinct is activated then each leafnode is a distinct variable.
 */
 
 CreateQueryNavTable = 
-    (baseUrl as text, name as text, query as record) =>
+    (baseUrl as text, queryRecord as record) =>
         let
-            params = Record.Field(query, "urlParams"),
-            urlParamsCount = Record.FieldCount(params),
-
-            useDistinctParam = Record.HasFields(params, "distinct"),
-            distinctColumn = Record.Field(params, "distinct"),
+            apiPath = queryRecord[apiPath],
+            urlParams = queryRecord[urlParams],
             
-            apiPath = Record.Field(query, "apiPath"),            
-            paramsString = ConvertRecordToQueryParams(params),
-
-            paramsWithoutDistinct = if useDistinctParam then
-                    Record.RemoveFields(params, "distinct")
-                else 
-                    params,
+            // Checking if 'distinct' exists in the urlParams; if not, adding it with default value 'type'
+            finalParams = if Record.HasFields(urlParams, "distinct") then 
+                urlParams 
+            else 
+                Record.AddField(urlParams, "distinct", "type"),
             
-            paramsStringWithoutDistinct = ConvertRecordToQueryParams(paramsWithoutDistinct),
+            // Get the distinct field name for use in data query
+            distinctField = if Record.HasFields(urlParams, "distinct") then 
+                urlParams[distinct]
+            else 
+                "type",
 
-            // if distinct: create leafnodes for each distinct variable. If not: have 1 leafnode equal to column name
-            leafTable = if useDistinctParam then
-                    GetDataTable(baseUrl, assetsPath & "?" & paramsString)
-                  else
-                      Table.FromRecords({[Column1 = name]}),
-
+            queryString = Uri.BuildQueryString(finalParams),
+            typesTable = GetDataTable(baseUrl, apiPath & "?" & queryString),
+            
             addedNavTableRecords =
                 try
                     Table.TransformRows(
-                        leafTable,
+                        typesTable,
                         each
                             [
                                 Type = [Column1],
@@ -590,36 +571,60 @@ CreateQueryNavTable =
                                 Data =
                                     let
                                         limit = GetLimit(baseUrl),
-
-                                        queryString = if useDistinctParam then
-                                                paramsStringWithoutDistinct & "&" & distinctColumn & "=" & [Column1]
-                                            else
-                                                paramsStringWithoutDistinct,
-                                        separator = if urlParamsCount = 0 then "" else "&",
-                                        combinedQueryString = apiPath & "?" & queryString & separator & "externalData=1",
                                         
-                                        dataTable =
-                                            PagedTable(
-                                                baseUrl,
-                                                combinedQueryString,
-                                                limit
-                                            ),
-
-                                        transformed = Table.TransformRows(
-                                            dataTable,
-                                            each [
-                                               Id = Record.FieldOrDefault([Column1], "id", null),
-                                               Source = Record.FieldOrDefault([Column1], "source", null),
-                                               Type = Record.FieldOrDefault([Column1], "type", null),
-                                               Name = Record.FieldOrDefault([Column1], "name", null),
-                                               Asset = [Column1]
-                                            ]
+                                        fieldsParams =
+                                            if
+                                                Record.HasFields(urlParams, "fields")
+                                                and urlParams[fields] <> null
+                                                and urlParams[fields] <> ""
+                                            then
+                                                "&fields=" & urlParams[fields] & ",_id"
+                                            else
+                                                "&fields=_id",
+                                        
+                                        // Exclude the "distinct", "fields", and "sort" parameters from the query string
+                                        // Removed Distinct: we now need the actual records, distinct is only for getting the types for side menu
+                                        // Removed Sort: it interferes with cursor-based pagination, we need sort by '_id' for that
+                                        // Removed Fields: we handle that separately above to add '_id' as it is required for cursor-based pagination
+                                        keysToRemove = {"distinct", "fields", "sort"},
+                                        urlParamsFiltered = Record.RemoveFields(urlParams, keysToRemove, MissingField.Ignore),
+                                        queryString = Uri.BuildQueryString(urlParamsFiltered),
+                                        
+                                        // Build the distinct field filter dynamically (e.g., &type=X or &source=Y)
+                                        distinctFilter = "&" & distinctField & "=" & [Column1],
+                                        
+                                        dataTable = PagedTable(
+                                            baseUrl,
+                                            apiPath
+                                                & "?"
+                                                & queryString
+                                                & distinctFilter
+                                                & "&externalData=1"
+                                                & fieldsParams,
+                                            limit
                                         ),
-                                        tableTransformed = Table.FromRecords(transformed)
+                                        
+                                        // Add a copy of Column1 as Asset before expanding
+                                        withAssetColumn = Table.AddColumn(dataTable, "Asset", each [Column1], type any),
+                                        expandedCols = expandRecordColumn(withAssetColumn, "Column1"),
+                                        selectedColumns = Table.SelectColumns(
+                                                expandedCols,
+                                                {"id", "source", "type", "name", "Asset"},
+                                                MissingField.UseNull
+                                            ), 
+                                        renamedColumns = Table.RenameColumns(
+                                        selectedColumns,
+                                            {
+                                                {"id", "Id"},
+                                                {"source", "Source"},
+                                                {"type", "Type"},
+                                                {"name", "Name"}
+                                            }
+                                        )
                                     in
-                                        tableTransformed,
-                                ItemKind = "Function",
-                                ItemName = "Function",
+                                        renamedColumns,
+                                ItemKind = "Table",
+                                ItemName = "Table",
                                 IsLeaf = true
                             ]
                     ),
@@ -798,38 +803,46 @@ Table.ForceToNavigationTable = (
 /*
 Method that handles the fetching of data. 
 
-Combines limit and offset params to paginate
+Uses cursor-based pagination with _id field
 */
 PagedTable = (baseUrl as text, urlPath as text, limit as number) =>
     Table.GenerateByPage(
         (previous) =>
             let
-                next =
-                    if (previous <> null) then
-                        Value.Metadata(previous)[Next]
-                    else
-                        0,
-
+                // Get the cursor (last _id) from previous page
+                cursor = if (previous <> null) then Value.Metadata(previous)[NextCursor] else null,
+                
+                // Build URL with cursor-based pagination
                 urlPathDone =
-                    if (next <> 0) then
-                        urlPath & "&offset=" & Number.ToText(next) & "&limit="& Number.ToText(limit)
+                    if (cursor <> null) then
+                        urlPath & "&sort=_id&_id=$gt:" & cursor & "&limit=" & Number.ToText(limit)
                     else
-                        urlPath & "&limit="& Number.ToText(limit),
-                current =
-                    if (previous <> null and next = null) then
-                        null
-                    else
-                        GetDataTable(baseUrl, urlPathDone),
-                link =
-                    if  (current <> null) then
-                        next + limit
+                        // Use a sentinel (min-value) cursor for the first page. 
+                        // This forces the API to return the '_id' field (needed for the next cursor)
+                        urlPath & "&sort=_id&_id=$gt:" & MIN_OBJECT_ID & "&limit=" & Number.ToText(limit),
+                
+                current = if (previous <> null and cursor = null) then null else GetDataTable(baseUrl, urlPathDone),
+                
+                // Extract the last _id from current page for next cursor
+                nextCursor =
+                    if (current <> null) then
+                        let
+                            // Expand the Column1 to get the records
+                            expandedTable = Table.ExpandRecordColumn(current, "Column1", {"_id"}, {"_id"}),
+                            rowCount = Table.RowCount(expandedTable),
+                            // Return null if no rows (end of data) or if rows < expected limit
+                            lastId = if rowCount > 0 then expandedTable{rowCount - 1}[_id] else null
+                        in
+                            // Stop pagination if we got fewer rows than expected or no rows
+                            if rowCount = 0 or (limit <> null and rowCount < limit) then
+                                null
+                            else
+                                lastId
                     else
                         null
             in
-                current
-                meta
-                [
-                    Next = link
+                current meta [
+                    NextCursor = nextCursor
                 ]
 );
 

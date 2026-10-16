@@ -1,0 +1,142 @@
+// DremioOAuthDiscovery.pqm
+// OAuth 2.0 Protected Resource Metadata discovery helpers for ADBC Flight SQL.
+
+let
+    ProtectedResourceMetadataPath = ".well-known/oauth-protected-resource",
+    AuthorizationServerMetadataPath = ".well-known/oauth-authorization-server",
+
+    TrimTrailingSlash = (value as text) as text =>
+        if Text.EndsWith(value, "/") then
+            @TrimTrailingSlash(Text.Start(value, Text.Length(value) - 1))
+        else
+            value,
+
+    TrimLeadingSlash = (value as text) as text =>
+        if Text.StartsWith(value, "/") then
+            @TrimLeadingSlash(Text.Range(value, 1))
+        else
+            value,
+
+    CombineUrl = (baseUrl as text, relativePath as text) as text =>
+        TrimTrailingSlash(baseUrl) & "/" & TrimLeadingSlash(relativePath),
+
+    BuildEndpointUrl = (host as text, port as number, encryption as logical) as text =>
+        (if encryption then "https://" else "http://") & host & ":" & Number.ToText(port),
+
+    BuildProtectedResourceMetadataUrl = (resourceEndpoint as text) as text =>
+        CombineUrl(resourceEndpoint, ProtectedResourceMetadataPath),
+
+    BuildAuthorizationServerMetadataUrl = (authorizationServer as text) as text =>
+        let
+            Parts = Uri.Parts(authorizationServer),
+            Scheme = Parts[Scheme],
+            Host = Parts[Host],
+            Port = if Record.HasFields(Parts, "Port") then Parts[Port] else null,
+            Path = if Record.HasFields(Parts, "Path") then Parts[Path] else "",
+            SchemePrefix = Scheme & "://",
+            AfterScheme = Text.AfterDelimiter(authorizationServer, SchemePrefix),
+            PathIndex = Text.PositionOf(AfterScheme, "/"),
+            AuthorityText = if PathIndex = -1 then AfterScheme else Text.Start(AfterScheme, PathIndex),
+            HasExplicitPort = Port <> null and Text.EndsWith(AuthorityText, ":" & Number.ToText(Port)),
+            Authority = SchemePrefix & Host & (if HasExplicitPort then ":" & Number.ToText(Port) else ""),
+            IssuerPath = if Path = null or Path = "" or Path = "/" then "" else TrimTrailingSlash(Path),
+            MetadataPath =
+                if IssuerPath = "" then
+                    AuthorizationServerMetadataPath
+                else
+                    CombineUrl(AuthorizationServerMetadataPath, IssuerPath)
+        in
+            CombineUrl(Authority, MetadataPath),
+
+    WebContentsOptions = [
+        Headers = [Accept = "application/json"],
+        Timeout = #duration(0, 0, 0, 5),
+        ManualCredentials = true,
+        ManualStatusHandling = {400, 401, 403, 404, 405, 408, 429, 500, 502, 503, 504}
+    ],
+
+    JsonBinaryToNullableRecord = (jsonBinary as binary) as nullable record =>
+        let
+            JsonTry = try Json.Document(jsonBinary),
+            Result =
+                if JsonTry[HasError] then
+                    null
+                else if not Value.Is(JsonTry[Value], type record) then
+                    null
+                else
+                    JsonTry[Value]
+        in
+            Result,
+
+    DefaultJsonFetcher = (url as text) as nullable record =>
+        let
+            Response = try Web.Contents(url, WebContentsOptions),
+            Result =
+                if Response[HasError] then
+                    null
+                else
+                    JsonBinaryToNullableRecord(Response[Value])
+        in
+            Result,
+
+    GetFirstAuthorizationServer = (metadata as nullable record) as nullable text =>
+        if metadata = null or not Record.HasFields(metadata, "authorization_servers") then
+            null
+        else
+            let
+                AuthorizationServers = metadata[authorization_servers]
+            in
+                if not Value.Is(AuthorizationServers, type list)
+                    or List.IsEmpty(AuthorizationServers)
+                    or not Value.Is(AuthorizationServers{0}, type text)
+                    or AuthorizationServers{0} = "" then
+                    null
+                else
+                    AuthorizationServers{0},
+
+    GetTokenEndpoint = (metadata as nullable record) as nullable text =>
+        if metadata = null or not Record.HasFields(metadata, "token_endpoint") then
+            null
+        else if not Value.Is(metadata[token_endpoint], type text) or metadata[token_endpoint] = "" then
+            null
+        else
+            metadata[token_endpoint],
+
+    DiscoverProtectedResourceMetadata = (resourceEndpoint as text) as nullable record =>
+        let
+            Url = BuildProtectedResourceMetadataUrl(resourceEndpoint)
+        in
+            DefaultJsonFetcher(Url),
+
+    DiscoverAuthorizationServerMetadata = (authorizationServer as text) as nullable record =>
+        let
+            Url = BuildAuthorizationServerMetadataUrl(authorizationServer)
+        in
+            DefaultJsonFetcher(Url),
+
+    DiscoverTokenEndpoint = (resourceEndpoint as text) as nullable text =>
+        let
+            ProtectedResourceMetadata = DiscoverProtectedResourceMetadata(resourceEndpoint),
+            AuthorizationServer = GetFirstAuthorizationServer(ProtectedResourceMetadata),
+            AuthorizationServerMetadata =
+                if AuthorizationServer = null then
+                    null
+                else
+                    DiscoverAuthorizationServerMetadata(AuthorizationServer),
+            TokenEndpoint = GetTokenEndpoint(AuthorizationServerMetadata)
+        in
+            TokenEndpoint
+in
+    [
+        ProtectedResourceMetadataPath = ProtectedResourceMetadataPath,
+        AuthorizationServerMetadataPath = AuthorizationServerMetadataPath,
+        BuildEndpointUrl = BuildEndpointUrl,
+        BuildProtectedResourceMetadataUrl = BuildProtectedResourceMetadataUrl,
+        BuildAuthorizationServerMetadataUrl = BuildAuthorizationServerMetadataUrl,
+        JsonBinaryToNullableRecord = JsonBinaryToNullableRecord,
+        DiscoverProtectedResourceMetadata = DiscoverProtectedResourceMetadata,
+        DiscoverAuthorizationServerMetadata = DiscoverAuthorizationServerMetadata,
+        DiscoverTokenEndpoint = DiscoverTokenEndpoint,
+        GetFirstAuthorizationServer = GetFirstAuthorizationServer,
+        GetTokenEndpoint = GetTokenEndpoint
+    ]

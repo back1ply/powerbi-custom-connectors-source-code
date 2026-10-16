@@ -4,7 +4,6 @@
 //     2) Helpers to create Sql Ast
 //     3) Some Assert functions to validate overrides
 //     4) Merge Override function to merge user overrides with SqlGenerator override.
-// NOTE: This SQL Generatator is used in Lakehouse connector for supporting Spark Compute. 
 let
 // Base SqlGenerator
     Implementation = "1.0",
@@ -276,7 +275,7 @@ let
         Time.Minute = nullable text,
         Time.Hour = nullable text,
         Number.Round = nullable text,
-        Number.Roundup = nullable text,
+        Number.RoundUp = nullable text,
         Number.RoundDown = nullable text,
         Number.Log = nullable text,
         Value.NullableEquals = nullable text,
@@ -560,11 +559,44 @@ let
         Time.Minute = funcName[minute],          // minute([timecolumn])
         Time.Hour = funcName[hour],              // hour([timecolumn])
         Number.Round = funcName[round],          // round([numbercolumn])
-        Number.Roundup = funcName[ceil],         // ceil([numbercolumn])
+        Number.RoundUp = funcName[ceil],         // ceil([numbercolumn])
         Number.RoundDown = funcName[floor],      // floor([numbercolumn])
         Number.Log = funcName[LN],               // LN([numbercolumn])
         Value.Equals = null,
-        Value.NullableEquals = null
+        Value.NullableEquals = null,
+        
+        List.Contains = (visitor, rowType, groupKeys, ast) =>
+            if List.Count(ast[Arguments]) = 2 then
+                let
+                    arg1 = ast[Arguments]{0},
+                    arg2 = ast[Arguments]{1},
+                    sqlAstArg2 = visitor(arg2),
+                    withNullRemoved = List.RemoveNulls(arg1[Value]),
+                    countAfterNullRemoved = List.Count(withNullRemoved),
+                    hasNull = List.Count(arg1[Value]) <> countAfterNullRemoved,
+                    valueEqualsTo = BinaryLogicalOperation("Equals",sqlAstArg2,visitor([Kind = "Constant", Value = withNullRemoved{0}])),
+                    isNull = UnaryLogicalOperation("IsNull",sqlAstArg2),
+                    result = if(arg1[Kind] = "Constant" and Type.Is(Value.Type(arg1[Value]),type list))
+                        then 
+                            let                                
+                                result = if(countAfterNullRemoved = 1) 
+                                    then 
+                                        if hasNull then ConditionOperation("Or",valueEqualsTo,isNull) else valueEqualsTo
+                                    else 
+                                        if (hasNull and (countAfterNullRemoved = 0)) 
+                                        then isNull
+                                        else
+                                            let 
+                                                inExpression = InExpression({[Kind = "Constant", Value = withNullRemoved],ast[Arguments]{1}},visitor),
+                                                result = if hasNull then ConditionOperation("Or",inExpression,isNull) else inExpression
+                                            in 
+                                                result
+                                in 
+                                    result
+                        else ...
+                    in
+                        result
+            else ...
     ],
 
     DefaultTypes = #table(type table [Type = type,SqlTypeName = text],{}),

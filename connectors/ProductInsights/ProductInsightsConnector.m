@@ -1,4 +1,4 @@
-﻿[Version = "1.0.1"]
+﻿[Version = "1.0.2"]
 section ProductInsights;
 
 client_id = Text.FromBinary(Extension.Contents("client_id"));
@@ -510,6 +510,7 @@ StartLogin = (resourceUrl, state, display) =>
             client_id = client_id,  
             redirect_uri = redirect_uri,
             response_type = "code",
+            state = state,
             prompt = "refresh_session",
             login = "login"    
         ])

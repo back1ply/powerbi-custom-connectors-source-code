@@ -353,48 +353,42 @@ let
     timeTypeWithFacets = Type.ReplaceFacets(Time.Type, [NativeTypeName = "TIME"]),
     //Adbc Functions Overrides
     AdbcFunctionOverrides = [
-        Text.Middle = (visitor, rowType, groupKeys, ast) as record =>
-            if
-                ast[Kind] = "Invocation"
-                and ast[Function][Kind] = "Constant"
-                and ast[Function][Value] = Text.Middle
-                and (GetListCount(ast[Arguments]) = 2 or GetListCount(ast[Arguments]) = 3)
-            then
-                let
-                    args = ast[Arguments],
-                    sqlexprList = List.Transform(args, (c) => visitor(c)),
-                    arguments = List.Transform(sqlexprList, each Argument(_, _[Type])),
-                    result =
-                        if (GetListCount(sqlexprList) = 3) then
-                            if (args{2}[Kind] = "Constant" and Type.Is(Value.Type(args{2}[Value]), type number)) then
-                                InvocationWithType(arguments, "SUBSTRING", textTypeWithFacets)
-                            else
+        Text.Middle = (visitor, rowType, groupKeys, ast) as record => 
+            let 
+                count = GetListCount(ast[Arguments])
+            in 
+                if count = 2 or count = 3 then
+                    let 
+                        args = ast[Arguments],
+                        sqlexprList = List.Transform(args, (c) => visitor(c)),
+                        arguments = List.Transform(sqlexprList, each Argument(_, _[Type])),
+                        addOne = BinaryOperation(sqlexprList{1}, "Add", one),
+                        result = if (count = 3)
+                            then 
+                                if(args{2}[Kind] = "Constant" and Type.Is(Value.Type(args{2}[Value]), type number)) 
+                                then 
+                                    let
+                                        middle = InvocationWithType({arguments{0}, Argument(addOne, integerTypeWithFacets), arguments{2}}, "SUBSTRING", textTypeWithFacets)
+                                    in 
+                                        middle
+                                else
+                                    let
+                                        LengthInvocation = Invocation({arguments{0}}, funcName[Length]),
+                                        IfNullSecondArg = BinaryOperation(LengthInvocation, "Subtract", sqlexprList{1}),
+                                        IfNull = InvocationWithType({arguments{2}, Argument(IfNullSecondArg, integerTypeWithFacets)}, "IfNull", integerTypeWithFacets),
+                                        middle = InvocationWithType({arguments{0}, Argument(addOne, integerTypeWithFacets), Argument(IfNull, integerTypeWithFacets)}, "SUBSTRING", textTypeWithFacets)
+                                     in
+                                        middle 
+                            else 
                                 let
                                     LengthInvocation = Invocation({arguments{0}}, funcName[Length]),
-                                    IfNullSecondArg = BinaryOperation(LengthInvocation, "Subtract", sqlexprList{1}),
-                                    IfNull = Invocation(
-                                        {arguments{2}, Argument(IfNullSecondArg, integerTypeWithFacets)}, "IfNull"
-                                    ),
-                                    result = Invocation(
-                                        {arguments{0}, arguments{1}, Argument(IfNull, integerTypeWithFacets)},
-                                        "SUBSTRING"
-                                    )
-                                in
-                                    result
-                        else
-                            let
-                                LengthInvocation = Invocation({arguments{0}}, funcName[Length]),
-                                thirdArgument = BinaryOperation(LengthInvocation, "Subtract", sqlexprList{1}),
-                                allarguments = List.Combine(
-                                    {arguments, {Argument(thirdArgument, integerTypeWithFacets)}}
-                                ),
-                                sqlastWithTwoArguments = Invocation(allarguments, "SUBSTRING")
-                            in
-                                sqlastWithTwoArguments
-                in
-                    result
-            else
-                ...,
+                                    argumentsList = {arguments{0}, Argument(addOne, integerTypeWithFacets)},
+                                    sqlastWithTwoArguments = InvocationWithType(argumentsList, "SUBSTRING", textTypeWithFacets)
+                                 in
+                                    sqlastWithTwoArguments
+                    in 
+                        result
+                else ...,
 
         Text.From = (visitor, rowType, groupKeys, ast) =>
             if ast[Kind] = "Invocation" and ast[Function][Kind] = "Constant" and ast[Function][Value] = Text.From and  GetListCount(ast[Arguments]) = 1 then
@@ -687,27 +681,7 @@ let
                     timestampadd
             else
                 ...,
-        List.Contains = (visitor, rowType, groupKeys, ast) =>
-            if
-                ast[Kind] = "Invocation"
-                and ast[Function][Kind] = "Constant"
-                and ast[Function][Value] = List.Contains
-                and GetListCount(ast[Arguments]) = 2
-            then
-                let
-                    arg1 = ast[Arguments]{0},
-                    result =
-                        if (arg1[Kind] = "Constant" and Type.Is(Value.Type(arg1[Value]), type list)) then
-                            if (GetListCount(arg1[Value]) = 1) then
-                                SingleListElement(ast, visitor)
-                            else
-                                InExpression(ast[Arguments], visitor)
-                        else
-                            ...
-                in
-                    result
-            else
-                ...,
+
         Int32.From = (visitor, rowType, groupKeys, ast) =>
             if
                 ast[Kind] = "Invocation"

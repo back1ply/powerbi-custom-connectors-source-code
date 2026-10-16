@@ -1,4 +1,4 @@
-[Version = "5.4.0"]
+[Version = "5.4.4", Traits = [GatewayRequired = true]]
 section Starburst;
 
 //Indicates the level of SQL-92 supported by the driver.
@@ -15,16 +15,16 @@ RedirectUri = "https://oauth.powerbi.com/views/oauthredirect.html";
 GENERIC = "Generic"; // Generic 
 AAD = "AAD"; // Secured by Microsoft AAD/Entra ID
 
-// Shared method that can be used in Power Query 
-// Cannot change Kind (used as data sourcee type by powerbi.com) and shared function signature (used in Power Query in existing reports). 
+// Shared function is the entry point that can be used in Power Query 
+// Cannot change Kind (used as data source type by powerbi.com) and shared function signature (used in Power Query in existing reports). 
 [DataSource.Kind="StarburstPresto", Publish="StarburstPresto.Publish"]
 shared StarburstPresto.Contents = Value.ReplaceType(StarburstGenericImpl, StarburstGenericType);
 
-// Shared method that can be used in Power Query 
+// Shared function is the entry point that can be used in Power Query 
 [DataSource.Kind="StarburstAad", Publish="StarburstAad.Publish"]
 shared StarburstAad.Contents = Value.ReplaceType(StarburstAadImpl, StarburstAadType);
 
-// Connection type and options in authentication dialog.
+// Define authentication options in authentication dialog.
 StarburstPresto = [
     SupportsEncryption = true,
     Authentication = [
@@ -57,7 +57,7 @@ StarburstPresto = [
             { "StarburstPresto.Contents", Host, Port }
 ];
 
-// Connection type and options in authentication dialog.
+// Define authentication options in authentication dialog.
 StarburstAad = [
     SupportsEncryption = true,
     Authentication = [
@@ -86,9 +86,10 @@ StarburstAad = [
             { "StarburstAad.Contents", Host, Port }
 ];
 
-// Get Data (pick a connector) dialog
+// Define appearance in the Get Data dialog
 StarburstPresto.Publish = StarburstPublish("Starburst", "Connect to Starburst");
 
+// Define appearance in the Get Data dialog
 StarburstAad.Publish = StarburstPublish("Starburst secured by Entra ID", "Connect to Starburst that is secured by Entra ID, with SSO support");
 
 StarburstPublish = (typeName as text, typeTooltip as text) =>
@@ -106,23 +107,23 @@ StarburstPublish = (typeName as text, typeTooltip as text) =>
         // Native query support
         NativeQueryProperties =
         [
-            navigationSteps = {
+            NavigationSteps = {
                 [
-                    indices = {
+                    Indices = {
                         [
-                            value = "Catalog",
-                            indexName = "Name"
+                            FieldDisplayName = "Catalog",
+                            IndexName = "Name"
                         ],
                         [
-                            displayName = "Database",
-                            indexName = "Kind"
+                            ConstantValue = "Database",
+                            IndexName = "Kind"
                         ]
                     },
-                    access = "NativeData"
+                    FieldAccess = "NativeData"
                 ]
             },
     
-            nativeQueryOptions = [
+            DefaultOptions = [
                 EnableFolding = true
             ]
         ]
@@ -133,9 +134,10 @@ Starburst.Icons = [
     Icon32 = { Extension.Contents("StarburstEnterprise32.png"), Extension.Contents("StarburstEnterprise40.png"), Extension.Contents("StarburstEnterprise48.png"), Extension.Contents("StarburstEnterprise64.png") }
 ];
 
-// Options in connect dialog.
+// Define appearance in connect dialog.
 StarburstGenericType = StarburstType("Starburst");
 
+// Define appearance in connect dialog.
 StarburstAadType = StarburstType("Starburst secured by Entra ID");
 
 StarburstType = (typeName as text) =>
@@ -150,7 +152,7 @@ StarburstType = (typeName as text) =>
             Documentation.FieldDescription = "The port the server is running on.",
             Documentation.SampleValues = { 443 }
         ]),
-        optional Options as (type [
+        optional options as (type [
             optional Role = (type text meta [
                 Documentation.FieldCaption = "Role",
                 Documentation.FieldDescription = "Enter the system role.",
@@ -159,7 +161,7 @@ StarburstType = (typeName as text) =>
             ]),
             optional Catalog = (type text meta [
                 Documentation.FieldCaption = "Catalog",
-                Documentation.FieldDescription = "Enter the default catalog name if you want to use native query.",
+                Documentation.FieldDescription = "Specify a catalog name to enable native queries or to restrict the Navigator dialog to loading objects from only one catalog.",
                 Documentation.SampleValues = { "tpch" },
                 Documentation.DefaultValue = ""
             ]),
@@ -311,7 +313,7 @@ StarburstImpl = (Host as text, Port as number, Options as record, ImplType as te
                     [
                         AllowHostNameCNMismatch = 1,
                         AllowSelfSignedServerCert = 1,
-                        ApplicationName = "Power BI Extension 5.4.0",
+                        ApplicationName = "Power BI Extension 5.4.2",
                         RemoveTypeNameParameters = 1
                     ], 
                     // ExtraConnectionString
@@ -421,7 +423,7 @@ StarburstImpl = (Host as text, Port as number, Options as record, ImplType as te
         ],
 
         OdbcDataSource = Odbc.DataSource(ConnectionString, OdbcOptions), 
-        CatalogNavigation = ToCatalogNavigation(OdbcDataSource, ConnectionString, [CredentialConnectionString = CredentialConnectionString])
+        CatalogNavigation = ToCatalogNavigation(OdbcDataSource, ConnectionString, [CredentialConnectionString = CredentialConnectionString], Options)
     in
         CatalogNavigation;
 
@@ -505,20 +507,24 @@ OAuthStartLogin = (resourceUrl, state, display) =>
     let
         oauthConfig = GetOAuthConfig(resourceUrl),
         codeVerifier = Text.NewGuid() & Text.NewGuid(),
+        authQuery = try Uri.Parts(oauthConfig[authUrl])[Query] otherwise [],
+        extraQuery = Record.RemoveFields(
+            [
+                client_id = oauthConfig[publicClientId],
+                state = state,
+                scope = CombineAsText(oauthConfig[scopes]),
+                response_type = "code",
+                code_challenge_method = "S256",
+                code_challenge = CreateSha256Hash(codeVerifier),
+                redirect_uri = RedirectUri
+            ],
+            Record.FieldNames(authQuery),
+            MissingField.Ignore
+        ),
         authorizeUrl =
             oauthConfig[authUrl]
-            & "?"
-            & Uri.BuildQueryString(
-                [
-                    client_id = oauthConfig[publicClientId],
-                    state = state,
-                    scope = CombineAsText(oauthConfig[scopes]),
-                    response_type = "code",
-                    code_challenge_method = "S256",
-                    code_challenge = CreateSha256Hash(codeVerifier),
-                    redirect_uri = RedirectUri
-                ]
-            )
+            & (if Record.FieldCount(authQuery) = 0 then "?" else "&")
+            & Uri.BuildQueryString(extraQuery)
     in
         [
             LoginUri = authorizeUrl,
@@ -577,19 +583,23 @@ OAuthGetToken = (resourceUrl, code, grant_type, optional verifier) as record =>
                 [
                     refresh_token = code
                 ],
-        query =
-                codeVerifier
-                & codeParameter
-                & [
-                    client_id = oauthConfig[publicClientId],
-                    grant_type = grant_type,
-                    redirect_uri = RedirectUri
-                ],
+        tokenQuery = try Uri.Parts(oauthConfig[tokenUrl])[Query] otherwise [],
+        content = Record.RemoveFields(
+            codeVerifier
+            & codeParameter
+            & [
+                client_id = oauthConfig[publicClientId],
+                grant_type = grant_type,
+                redirect_uri = RedirectUri
+            ],
+            Record.FieldNames(tokenQuery),
+            MissingField.Ignore
+        ),
         response =
                 Web.Contents(
                     oauthConfig[tokenUrl],
                     [
-                        Content = Text.ToBinary(Uri.BuildQueryString(query)),
+                        Content = Text.ToBinary(Uri.BuildQueryString(content)),
                         Headers = [
                             #"Content-type" = "application/x-www-form-urlencoded",
                             #"Accept" = "application/json"
@@ -623,35 +633,63 @@ AadGetAuthorizationUri = (resourceUrl as text) as text =>
 
 AadGetResource = (resourceUrl as text) as text =>
     let
-        isStarburstScope = (t as text) as logical => 
-            if (Text.StartsWith(t, "https://") and Text.Contains(Text.Middle(t, 8), "/")) then true
-            else if (Text.StartsWith(t, "http://") and Text.Contains(Text.Middle(t, 7), "/")) then true
-            else false,
         oauthConfig = GetOAuthConfig(resourceUrl),
-        scopes = Table.FromList(oauthConfig[scopes], null, {"scope"}),
-        starburstScope = Table.SelectRows(scopes, each isStarburstScope([scope])){0}[scope],
-        appIdUri = Text.Middle(starburstScope, 0, 8 + Text.PositionOf(Text.Middle(starburstScope, 8), "/"))
+        isEntraScope = (url as text, schema as text) as logical => 
+            Text.StartsWith(url, schema) and Text.Contains(Text.Middle(url, Text.Length(schema)), "/"),
+        getAppIdUrl = (url as text, schema as text) as text => 
+            Text.Middle(url, 0, Text.Length(schema) + Text.PositionOf(Text.Middle(url, Text.Length(schema)), "/")),
+        sortedScopes = List.Sort(oauthConfig[scopes]),
+        appIdUrls = List.Transform(
+            sortedScopes, 
+            each 
+                if isEntraScope(_, "https://") then getAppIdUrl(_, "https://") 
+                else if isEntraScope(_, "http://") then getAppIdUrl(_, "http://") 
+                else if isEntraScope(_, "api://") then getAppIdUrl(_, "api://") 
+                else ""
+        ),
+        filteredUrls = List.Select(appIdUrls, each _ <> "")
     in
-        appIdUri;
+        if List.IsEmpty(filteredUrls) then 
+            error "Could not find Application ID URI from returned scope list."
+        else 
+            filteredUrls{0};
 
 //
-// Naviation table functions
+// Navigation table functions
 //
-ToCatalogNavigation = (odbcDataSoruce as table, connectionString as any, connectionOptions as record) as table =>
+ToCatalogNavigation = (odbcDataSource as table, connectionString as any, connectionOptions as record, options as record) as table =>
     let 
-        catalogRecords = Table.TransformRows(odbcDataSoruce, 
+        catalogRecords = Table.TransformRows(odbcDataSource, 
             each [
                 Name = _[Name], 
-                Data = ToSchemaNavigation(odbcDataSoruce, connectionString, connectionOptions, _[Name]), 
+                // Create schema navigation for each catalog entry
+                Data = ToSchemaNavigation(odbcDataSource, connectionString, connectionOptions, _[Name]), 
                 Kind = "Database",
                 IsLeaf = false,
                 NativeData = _[Data]
             ]
         ),
         catalogTable = Table.FromRecords(catalogRecords, {"Name", "Data", "Kind", "IsLeaf", "NativeData"}),
-        navigationTable = ToNavigation(catalogTable)
+
+        // Filter catalog table by Catalog option
+        // If Catalog option is not defined, return all catalogs
+        filteredCatalogTable =
+            if Record.HasFields(options, "Catalog") 
+                    and options[Catalog] <> null 
+                    and Text.Length(Text.Trim(options[Catalog])) > 0 then
+                Table.SelectRows(catalogTable, each [Name] = options[Catalog])
+            else
+                catalogTable
     in 
-        navigationTable;
+        // Raise error if filteredCatalogTable is empty after filtering by Catalog option
+        // This is to ensure that the user is aware that no catalog was found matching the specified name
+        if Record.HasFields(options, "Catalog") 
+                and options[Catalog] <> null 
+                and Text.Length(Text.Trim(options[Catalog])) > 0 
+                and Table.IsEmpty(filteredCatalogTable) then
+            error Error.Record("DataSource.Error", "No catalog found matching the specified name '" & options[Catalog] & "'.")
+        else
+            ToNavigation(filteredCatalogTable);
 
 ToSchemaNavigation = (sourceTable as table, connectionString as any, connectionOptions as record, catalogName as text) as table =>
     let 
@@ -882,10 +920,10 @@ MergeConnectionProperties = (rec1 as record, rec2 as record) =>
     in
         ret;
 
-// Only white labled properties can be specified via extrConnectionString
-ValidateExtraConnectionString = (extrConnectionString as text, implType as text) as record =>
+// Only whitelisted properties can be specified via extraConnectionString
+ValidateExtraConnectionString = (extraConnectionString as text, implType as text) as record =>
     let 
-        properties = ParseConnectionString(Text.Trim(extrConnectionString)),
+        properties = ParseConnectionString(Text.Trim(extraConnectionString)),
         BooleanValidator = (val) as logical => val = "0" or val = "1",
         ValidPropertyMap = Table.AddColumn(
             #table(
@@ -946,6 +984,7 @@ ValidateExtraConnectionString = (extrConnectionString as text, implType as text)
                     // ProxyUid - security concerns
                     // RemoveTypeNameParameters - always use 1
                     {"Roles", null},
+                    {"SessionProperties", null},
                     // SessionUser - security concerns, self-declaration is not allowed
                     {"Schema", null},
                     // ServerVersion - don't want to give it to end users
@@ -958,8 +997,15 @@ ValidateExtraConnectionString = (extrConnectionString as text, implType as text)
                     // UseGSSAPI - handled by authentication dialog
                     {"UseProxy", each BooleanValidator(_)},
                     // UseSystemCatalogForMetadata - lazy navigator
-                    {"UseSystemTrustStore", each BooleanValidator(_)}
-                    // UseUnicodeSqlCharacterTypes - obsolete option 
+                    {"UseSystemTrustStore", each BooleanValidator(_)},
+                    // UseUnicodeSqlCharacterTypes - obsolete option
+                    // V3 keywords
+                    // Database - users have to use UI input
+                    {"DefaultVarcharLength", each Int32.From(_) >= 0 and Int32.From(_) <= 65535},
+                    {"HTTPProxy", null},
+                    {"NonProxyHosts", null},
+                    // Server - users have to use UI input
+                    {"SSLVerification", each Text.Upper(_) = "FULL" or Text.Upper(_) = "CA" or Text.Upper(_) = "NONE"}
                 }
             ),
             "ValidKey",

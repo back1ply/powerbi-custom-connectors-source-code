@@ -1,0 +1,505 @@
+// Workspace.pqm - Warehouse Workspace Module
+// This module contains all workspace-related functionality for the Warehouse connector
+let
+    // Load dependent modules via dependency injection following FabricSql pattern
+    Utils = try #shared[Utils] otherwise error "Module Utils not found in shared context. Ensure the Utils module is loaded.",
+    Table.NavigationTableView = try #shared[Table.NavigationTableView] otherwise error "Module Table.NavigationTableView not found in shared context. Ensure the Table.NavigationTableView module is loaded.",
+    WorkspacePrivateLink = try #shared[WorkspacePrivateLink] otherwise error "Internal Error: WorkspacePrivateLink not found in shared context. Ensure the module is loaded with the correct context.",
+    WorkspaceDlp = try #shared[WorkspaceDlp] otherwise error "Internal Error: WorkspaceDlp not found in shared context. Ensure the WorkspaceDlp module is loaded with the correct context.",
+    Variable.ValueOrDefault = try #shared[Variable.ValueOrDefault] otherwise (url, optional options) => error "Internal Error: Variable.ValueOrDefault not found in shared context. Ensure the module is loaded with the correct context.",
+
+    // Resolve ApiUrl internally
+    ApiUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
+    UseWorkspacePL = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseWorkspacePL", false)),
+
+    // Raises the standard NoWorkspacesAvailable error with consistent diagnostics
+    // tracing. sourceFn identifies the caller for both the trace Name and the error
+    // record's source attribution.
+    RaiseNoWorkspacesAvailable = (sourceFn as text) =>
+        error Diagnostics.Trace(
+            TraceLevel.Error,
+            [Name = Text.Format("Workspace/#{0}/NoWorkspacesAvailable", {sourceFn}), Data = []],
+            Utils[Connector.GenerateErrorRecord](
+                "NoWorkspacesAvailable",
+                Extension.LoadString("NoWorkspacesAvailable"),
+                sourceFn)),
+
+    GetWorkspacesNavTable = (workspaceViewGenerator as function, options as record, optional testConnectionFn as nullable function) =>
+        let
+            // Get DLP policies first
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            
+            // Extract tenant ID once and cache it for all workspace operations
+            workspacesEndpoint = Uri.Combine(ApiUrl, "/v1/workspaces"),
+            jsonResponse = Utils[Web.JsonContents](
+                workspacesEndpoint, 
+                /*headers*/ null,
+                /*additionalHandlers*/ null, 
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetWorkspacesNavTable")]
+            ),
+            
+            // Guard against the service returning an empty workspace list.
+            // Without this, downstream code silently produces an empty navigation
+            // table which gives users no diagnostic information.
+            allWorkspaces = if List.IsEmpty(jsonResponse[value]) then
+                    RaiseNoWorkspacesAvailable("GetWorkspacesNavTable")
+                else
+                    GetWorkspaces(jsonResponse),
+            // Filter workspaces based on DLP policy
+            filteredWorkspaces = Diagnostics.Trace(
+                TraceLevel.Information,
+                [
+                    Name = "Workspace/GetWorkspacesNavTable/ApplyWorkspaceDlp",
+                    Data = [
+                        DlpPolicies = Utils[NonPii](Utils[Value.ToText](dlpPolicies))
+                    ]
+                ],
+                Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies))
+            ),
+            getAllArtifactsInWorkspace = (workspaceId) => let
+                    // Resolve the currentWorkspaceId
+                    finalWorkspaceId = ResolveWorkspaceId(workspaceId),
+                    isRelativeReference = workspaceId = ".",
+                    // Check workspace access with DLP policy and use validated workspace ID
+                    validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](finalWorkspaceId, dlpPolicies),
+                    // Use workspace-specific URL for artifact generation
+                    workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, validatedWorkspaceId),
+                    artifactTable = workspaceViewGenerator(workspaceSpecificApiUrl, validatedWorkspaceId, options, isRelativeReference)
+                in 
+                    artifactTable,
+            additionalHandler = if testConnectionFn <> null then [ OnTestConnection = testConnectionFn ] else [],
+            navtable = Table.NavigationTableView(
+                () => filteredWorkspaces,
+                {"workspaceId"},
+                getAllArtifactsInWorkspace,
+                [
+                    Name = {"workspaceName", each [workspaceName]},
+                    ItemKind = each "Folder",
+                    ItemName = each "Folder",
+                    IsLeaf = each false
+                ],
+                additionalHandler)
+         in
+            navtable,
+
+    GetWorkspaces = (jsonResponse as record) as table =>
+        let
+            // Ensure that each record has 'id' and 'displayName'
+            validateFields = List.Transform(jsonResponse[value], each if Record.HasFields(_, {"id", "displayName"})
+                then _  else error Utils[Connector.GenerateErrorRecord]("GetWorkspacesFailure", Extension.LoadString("MissingFieldsError"), "GetWorkspaces")),
+
+            // Filter to only include records with 'capacityId'
+            premiumWorkspaces = List.Select(validateFields, each Record.HasFields(_, "capacityId")),
+            premiumWorkspacesTable = Table.FromRecords(premiumWorkspaces, {"id", "displayName"}),
+            rename = Table.RenameColumns(premiumWorkspacesTable, {{"id", "workspaceId"}, {"displayName", "workspaceName"}}),
+            withCurrentWorkspaceReferences = if CanResolveCurrentWorkspace() then Table.Combine({rename, GetCurrentWorkspace()}) 
+            else 
+                Diagnostics.Trace(
+                    TraceLevel.Warning,
+                    [
+                        Name = "CurrentWorkspaceNotResolved",
+                        Data = 
+                        [
+                            CurrentWorkspaceId = Utils[NonPii](Variable.ValueOrDefault("currentWorkspaceId", "<error>"))
+                        ]
+                    ], rename)
+        in
+            withCurrentWorkspaceReferences,
+    CanResolveCurrentWorkspace = () as logical =>
+        let
+            currentWorkspaceId = Variable.ValueOrDefault("currentWorkspaceId", "<error>")
+        in
+            currentWorkspaceId <> "<error>",
+    GetCurrentWorkspace = () as table =>
+        let
+            currentWorkspaceTable = #table({"workspaceId", "workspaceName"}, {{"." ,"!(" & Extension.LoadString("CurrentWorkspace") & ")"}})
+        in
+            currentWorkspaceTable,
+    ResolveWorkspaceId = (workspaceId as text) as text =>
+        if workspaceId = "." then 
+            let 
+                currentWorkspaceId = Variable.ValueOrDefault("currentWorkspaceId", "<error>"),
+                unableToResolveCurrentWorkspace = Table.ViewError(Error.Record(
+                    Utils[NonPii]("DataSource.Error"),
+                    Utils[NonPii](Extension.LoadString("CurrentWorkspaceNotResolved")),
+                    [ Reason = Utils[NonPii]("CurrentWorkspaceNotResolved") ],
+                    {Utils[NonPii](workspaceId)}
+                ))
+            in
+                if currentWorkspaceId = "<error>" then 
+                    error Diagnostics.Trace(TraceLevel.Error, [Name="CurrentWorkspaceResolutionError", Data=[]], unableToResolveCurrentWorkspace)
+                else 
+                    currentWorkspaceId
+        else  
+            workspaceId,
+    GetFirstWarehouse = (noWarehousesFoundErrorMessage as text) as record =>
+        let
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            workspacesEndpoint = Uri.Combine(ApiUrl, "/v1/workspaces"),
+            jsonResponse = Utils[Web.JsonContents](
+                workspacesEndpoint, 
+                /*headers*/ null,
+                /*additionalHandlers*/ null, 
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetWorkspacesNavTable")]
+            ),
+            
+            allWorkspaces = if List.IsEmpty(jsonResponse[value]) then
+                    RaiseNoWorkspacesAvailable("GetFirstWarehouse")
+                else
+                    GetWorkspaces(jsonResponse),
+            // Filter workspaces based on DLP policy
+            filteredWorkspaces = Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies)),
+            allWarehouses = Table.AddColumn(filteredWorkspaces, "warehouseId", each GetFirstWarehouseId([workspaceId], dlpPolicies)),
+            warehousesWithIds = Table.SelectRows(allWarehouses, each [warehouseId] <> null),
+            firstWarehouse = if Table.IsEmpty(warehousesWithIds) then
+                    error Diagnostics.Trace(
+                        TraceLevel.Error,
+                        [Name = "Workspace/GetFirstWarehouse/NoWarehousesFound", Data = []],
+                        Utils[Connector.GenerateErrorRecord](
+                            "NoWarehousesFound",
+                            noWarehousesFoundErrorMessage,
+                            "GetFirstWarehouse"))
+                else
+                    Table.First(warehousesWithIds)
+        in
+            firstWarehouse,
+
+    GetFirstWarehouseId = (workspaceId as text, dlpPolicies as record) as nullable text =>
+        let
+            // Check workspace access with DLP policy and use validated workspace ID
+            validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
+            workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, validatedWorkspaceId),
+            warehouseEndpoint = Uri.Combine(workspaceSpecificApiUrl, Text.Format("v1/workspaces/#{0}/items?type=Warehouse", {validatedWorkspaceId})),
+            jsonResponse = Utils[Web.JsonContents](
+                warehouseEndpoint, 
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](validatedWorkspaceId), 
+                /*additionalHandlers*/ null, 
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstWarehouseId")]),
+            workspacesData = jsonResponse[value],
+            warehouses = List.Select(workspacesData, each Record.HasFields(_, {"id", "displayName"}))
+        in
+            if List.IsEmpty(warehouses) then null else List.First(warehouses)[id]?,
+
+    GetFirstLakehouse = (noLakehousesFoundErrorMessage as text) as record =>
+        let
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            workspacesEndpoint = Uri.Combine(ApiUrl, "/v1/workspaces"),
+            jsonResponse = Utils[Web.JsonContents](
+                workspacesEndpoint, 
+                /*headers*/ null,
+                /*additionalHandlers*/ null, 
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstLakehouse")]
+            ),
+            
+            allWorkspaces = if List.IsEmpty(jsonResponse[value]) then
+                    RaiseNoWorkspacesAvailable("GetFirstLakehouse")
+                else
+                    GetWorkspaces(jsonResponse),
+            // Filter workspaces based on DLP policy
+            filteredWorkspaces = Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies)),
+            // Ignore per-workspace failures when probing for lakehouses so a single
+            // failing workspace (permissions, bad state, transient error) does not abort
+            // the test connection flow. A failed probe yields null and is dropped below.
+            withLakehouseIds = Table.AddColumn(
+                filteredWorkspaces,
+                "lakehouseIds",
+                each
+                    try GetFirstLakehouseIds([workspaceId])
+                    catch (e) => Diagnostics.Trace(
+                        TraceLevel.Warning,
+                        [
+                            Name = "Workspace/GetFirstLakehouse/GetFirstLakehouseIdsFailed",
+                            Data = [WorkspaceId = Utils[NonPii]([workspaceId])]
+                        ],
+                        null)),
+            withNonNullIds = Table.SelectRows(withLakehouseIds, each [lakehouseIds] <> null and [lakehouseIds][databaseId]? <> null),
+            expanded = Table.ExpandRecordColumn(withNonNullIds, "lakehouseIds", {"databaseId", "lakehouseId"}, {"lakehouseDbId", "lakehouseId"}),
+            firstLakehouse = if Table.IsEmpty(expanded) then
+                    error Diagnostics.Trace(
+                        TraceLevel.Error,
+                        [Name = "Workspace/GetFirstLakehouse/NoLakehousesFound", Data = []],
+                        Utils[Connector.GenerateErrorRecord](
+                            "NoLakehousesFound",
+                            noLakehousesFoundErrorMessage,
+                            "GetFirstLakehouse"))
+                else
+                    Table.First(expanded)
+        in
+            firstLakehouse,
+
+    // Returns a record [databaseId, lakehouseId] for the first lakehouse in the workspace
+    // that has a SQL endpoint provisioned, or null if none is found.
+    GetFirstLakehouseIds = (workspaceId as text) as nullable record =>
+        let
+            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/lakehouses", {workspaceId})),
+            response = Utils[Web.JsonContents](
+                url,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                /*additionalHandlers*/ null,
+                /*jsonBody*/ null,
+                /*startState*/ null,
+                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstLakehouseIds")]
+            ),
+            responseAsRecord = Table.FromList(response[value], Splitter.SplitByNothing(), {"Lakehouses"}),
+            lakehouses = Table.ExpandRecordColumn(
+                responseAsRecord,
+                "Lakehouses",
+                {"id", "displayName", "description", "properties"}, 
+                {"lakehouseId", "lakehouseName", "description", "extendedProperties"}),
+            transformFields = Table.TransformColumns(lakehouses, {{"extendedProperties",
+                (property) => TransformLakehouseExtendedProperties(property)
+                }}),
+            withDatabaseId = Table.AddColumn(
+                transformFields,
+                "databaseId",
+                each try GetDwProperties([extendedProperties])[id]? otherwise null),
+            withDatabaseIdOnly = Table.SelectRows(withDatabaseId, each [databaseId] <> null)
+        in
+            if Table.IsEmpty(withDatabaseIdOnly) then null
+            else
+                let
+                    firstRow = Table.First(withDatabaseIdOnly)
+                in
+                    [databaseId = firstRow[databaseId]?, lakehouseId = firstRow[lakehouseId]?],
+    
+    GetDwProperties = (extendedProperties) => 
+        let 
+            dwProperties = extendedProperties[DwProperties]? ?? extendedProperties[sqlEndpointProperties]? 
+        in
+            if dwProperties = null then null
+            else if dwProperties is text then Json.Document(dwProperties)
+            else dwProperties,
+    
+    TransformLakehouseExtendedProperties = (extendedProperties as record) as record =>
+        let 
+            renameFunction = (recordToModify as record, renames as list) =>
+                Record.RenameFields(recordToModify, renames, MissingField.Ignore),
+            renamedRecord = renameFunction(extendedProperties,
+                {
+                    {"oneLakeTablesPath", "OneLakeTablesPath"},
+                    {"oneLakeFilesPath", "OneLakeFilesPath"},
+                    {"sqlEndpointProperties", "DwProperties"},
+                    {"defaultSchema", "DefaultSchema"}
+                }),
+            renamedInnerRecord = Record.TransformFields(
+                renamedRecord,
+                {"DwProperties", each renameFunction(_, {{"connectionString", "tdsEndpoint"}})})
+        in
+            renamedInnerRecord,
+
+    GetWarehouseInformation = (workspaceId as text, warehouseId as text) as record =>
+        let
+            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/warehouses/#{1}", {workspaceId, warehouseId})),
+            response = Utils[Web.JsonContents](
+                url,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                /*additionalHandlers*/ null,
+                /*jsonBody*/ null,
+                /*startState*/ null,
+                /*traceContext*/ [Origin = Utils[NonPii]("GetWarehouseInformation")]
+            )
+        in
+            response,
+
+    GetLakehouseInformation = (workspaceId as text, lakehouseId as text) as record =>
+        let
+            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/lakehouses/#{1}", {workspaceId, lakehouseId})),
+            response = Utils[Web.JsonContents](
+                url,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                /*additionalHandlers*/ null,
+                /*jsonBody*/ null,
+                /*startState*/ null,
+                /*traceContext*/ [Origin = Utils[NonPii]("GetLakehouseInformation")]
+            )
+        in
+            response,
+
+    // https://learn.microsoft.com/en-us/rest/api/fabric/sqlendpoint/items/get-connection-string?tabs=HTTP&tryIt=true&source=docs
+    GetSqlConnectionString = (validatedWorkspaceId as text, sqlEndpointId as text, workspaceSpecificApiUrl as text, artifactKind as text) as nullable record =>
+        let
+            isPL = WorkspacePrivateLink[IsWorkspacePLUrl](workspaceSpecificApiUrl),
+            endPoint = if artifactKind = "Lakehouse" then
+                Text.Format("v1/workspaces/#{0}/sqlEndpoints/#{1}/connectionString", {validatedWorkspaceId, sqlEndpointId})
+            else if artifactKind = "Warehouse" then
+                Text.Format("v1/workspaces/#{0}/warehouses/#{1}/connectionString", {validatedWorkspaceId, sqlEndpointId})
+            else
+                error Error.Record(
+                    Utils[NonPii]("DataSource.Error"),
+                    Utils[NonPii]("Internal Error: Unsupported Artifact Type in GetSqlConnectionString"),
+                    [
+                        Reason = Utils[NonPii]("UnsupportedArtifactType"),
+                        ArtifactType = Utils[NonPii](artifactKind),
+                        WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                        ArtifactId = Utils[NonPii](sqlEndpointId)
+                    ]
+                ),
+            basePath = Text.Format(endPoint, {validatedWorkspaceId, sqlEndpointId}),
+            connectionPath = if isPL then basePath & "?privateLinkType=Workspace" else basePath,
+            url = Uri.Combine(workspaceSpecificApiUrl, connectionPath),
+            response = Utils[Web.JsonContents](
+                url,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](validatedWorkspaceId),
+                /*additionalHandlers*/ null,
+                /*jsonBody*/ null,
+                /*startState*/ null,
+                /*traceContext*/ [Origin = Utils[NonPii]("GetSqlConnectionString")] )
+        in
+            response,
+
+    // GetTDSEndPointViaFabricApi
+    // Fallback that retrieves TDS endpoint info via standard Fabric REST APIs when the legacy
+    // /information endpoint returns HTTP 403 ("API is not accessible for application").
+    // For Warehouse:  GET v1/workspaces/{workspaceId}/warehouses/{warehouseId}
+    // For Lakehouse:  GET v1/workspaces/{workspaceId}/lakehouses/{lakehouseArtifactId}
+    GetTDSEndPointViaFabricApi = (validatedWorkspaceId as text, artifactObjectId as text, artifactKind as text, lakehouseArtifactId as nullable text) as record =>
+        if artifactKind = "Warehouse" then
+            let
+                response = GetWarehouseInformation(validatedWorkspaceId, artifactObjectId)
+            in
+                [tdsEndpoint = response[properties][connectionString], name = response[displayName]]
+        else if artifactKind = "Lakehouse" then
+            let
+                response = GetLakehouseInformation(validatedWorkspaceId, lakehouseArtifactId),
+                dwProps = GetDwProperties(response[properties]),
+                provisioningStatus = if dwProps = null then null else dwProps[provisioningStatus]?
+            in
+                if provisioningStatus <> "Success" then
+                    error Error.Record(
+                        Utils[NonPii]("DataSource.Error"),
+                        Utils[NonPii](Extension.LoadString("ArtifactInInvalidState")),
+                        [
+                            WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                            ArtifactId = Utils[NonPii](artifactObjectId),
+                            ArtifactKind = Utils[NonPii](artifactKind),
+                            ProvisioningStatus = Utils[NonPii](provisioningStatus)
+                        ])
+                else
+                    [tdsEndpoint = dwProps[connectionString], name = response[displayName]]
+        else
+            error Error.Record(
+                Utils[NonPii]("DataSource.Error"),
+                Utils[NonPii]("Internal Error: Unsupported Artifact Kind in GetTDSEndPointViaFabricApi"),
+                [
+                    Reason = Utils[NonPii]("UnsupportedArtifactKind"),
+                    ArtifactKind = Utils[NonPii](artifactKind)
+                ]),
+
+    // GetTDSEndPoint
+    // Retrieves the legacy /information payload (Warehouse or Lakehouse). If 
+    //   MashupFlight_UseWorkspacePL feature switch
+    // evaluates to true, it overwrites the original `tdsEndpoint` value using the connection string API; otherwise leaves it unchanged.
+    // After (conditional) overwrite it validates state/status (must both be 1) and returns ONLY a pruned record:
+    //   [ tdsEndpoint = <text>, name = <text> ]
+    // Internal validation still examines `state` & `status` from the /information response before pruning.
+    // Falls back to standard Fabric REST APIs if the legacy endpoint returns HTTP 403
+    // ("API is not accessible for application"). For Lakehouse, requires lakehouseArtifactId
+    // for direct GET; for Warehouse, uses artifactObjectId.
+    GetTDSEndPoint = (workspaceId as text, artifactObjectId as text, artifactKind as text, lakehouseArtifactId as nullable text) as record  =>
+        let
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            // Check workspace access with DLP policy and use validated workspace ID
+            validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
+            workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, validatedWorkspaceId),
+            endpointPath = if artifactKind = "Lakehouse" then
+                    Text.Format("v1.0/myorg/lhdatamarts/#{0}/information", {artifactObjectId})
+                else if artifactKind = "Warehouse" then
+                    Text.Format("v1.0/myorg/datawarehouses/#{0}/information", {artifactObjectId})
+                else
+                    error Error.Record(
+                        Utils[NonPii]("DataSource.Error"),
+                        Utils[NonPii]("Internal Error: Unsupported Artifact Kind in GetTDSEndPoint"),
+                        [
+                            Reason = Utils[NonPii]("UnsupportedArtifactKind"),
+                            ArtifactKind = Utils[NonPii](artifactKind),
+                            WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                            ArtifactId = Utils[NonPii](artifactObjectId)
+                        ]
+                    ),
+            url = Uri.Combine(workspaceSpecificApiUrl, endpointPath),
+            // Custom 403 handler following the ErrorOrRefreshTokenHandler pattern.
+            // Falls back to the standard Fabric REST APIs on any 403 error.
+            fabricApiFallbackHandler = (state) =>
+                let
+                    fallbackResult = Diagnostics.Trace(
+                        TraceLevel.Warning,
+                        [
+                            Name = "GetTDSEndPoint/FabricApiFallback",
+                            Data = [
+                                WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                                ArtifactId = Utils[NonPii](artifactObjectId),
+                                ArtifactKind = Utils[NonPii](artifactKind)
+                            ]
+                        ],
+                        GetTDSEndPointViaFabricApi(validatedWorkspaceId, artifactObjectId, artifactKind, lakehouseArtifactId))
+                in
+                    state & [
+                        Response = [
+                            tdsEndpoint = fallbackResult[tdsEndpoint],
+                            name = fallbackResult[name],
+                            state = 1,
+                            status = 1
+                        ],
+                        Complete = true
+                    ],
+            jsonResponse = Utils[Web.JsonContents](
+                url, 
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](validatedWorkspaceId), 
+                /*additionalHandlers*/ [403 = fabricApiFallbackHandler], 
+                /*jsonBody*/ null, 
+                /*startState*/ null, 
+                /*traceContext*/ [Origin = Utils[NonPii]("GetTDSEndPoint")]),
+            // Retrieve connection string via new API only when both flights enabled
+            connectionStringRecord = if UseWorkspacePL then 
+                GetSqlConnectionString(validatedWorkspaceId, artifactObjectId, workspaceSpecificApiUrl, artifactKind) else null,
+            jsonResponseWithConnection = if connectionStringRecord <> null and Record.HasFields(connectionStringRecord, "connectionString") then
+                jsonResponse & [ tdsEndpoint = connectionStringRecord[connectionString] ] else jsonResponse,
+            state = jsonResponse[state]?,
+            status = jsonResponse[status]?,
+            name = jsonResponse[name]?,        
+            invalidArtifactStateAndStatusError = Error.Record(
+                Utils[NonPii]("DataSource.Error"),
+                Utils[NonPii](Extension.LoadString("ArtifactInInvalidState")),
+                [
+                    WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                    ArtifactId = Utils[NonPii](artifactObjectId),
+                    ArtifactKind = Utils[NonPii](artifactKind)
+                ],
+                {Utils[NonPii](artifactKind), name, Utils[NonPii](artifactObjectId), Utils[NonPii](state), Utils[NonPii](status)}
+            )
+        in
+            if state = 1 and status = 1 then jsonResponseWithConnection[[tdsEndpoint],[name]]
+            else error Diagnostics.Trace(
+                TraceLevel.Error, 
+                [
+                    Name = "GetTDSEndPoint",
+                    Data = [
+                        ArtifactName = name,                        
+                        ArtifactId = Utils[NonPii](artifactObjectId),
+                        State = Utils[NonPii](state), 
+                        Status = Utils[NonPii](status),
+                        WorkspaceId = Utils[NonPii](validatedWorkspaceId),
+                        ArtifactKind = Utils[NonPii](artifactKind)
+                    ]
+                ], 
+                invalidArtifactStateAndStatusError)
+in
+    [
+        GetWorkspacesNavTable = GetWorkspacesNavTable,
+        GetFirstWarehouse = GetFirstWarehouse,
+        GetFirstLakehouse = GetFirstLakehouse,
+        GetTDSEndPoint = GetTDSEndPoint,
+        ResolveWorkspaceId = ResolveWorkspaceId,
+        GetWarehouseInformation = GetWarehouseInformation,
+        GetLakehouseInformation = GetLakehouseInformation,
+        GetDwProperties = GetDwProperties,
+        TransformLakehouseExtendedProperties = TransformLakehouseExtendedProperties
+    ]

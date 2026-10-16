@@ -1,0 +1,59 @@
+let
+    /* TraceContext Module - Trace ID and Span ID generation for distributed tracing
+    Generates W3C compliant traceparent headers for Grafana correlation
+    Generates a random hex string of specified length */
+    GenerateRandomHex = (length as number) as text =>
+        let
+            // Generate multiple GUIDs and combine to ensure sufficient length
+            guid1 = Text.Replace(Text.Replace(Text.Replace(Text.NewGuid(), "-", ""), "{", ""), "}", ""),
+            guid2 = Text.Replace(Text.Replace(Text.Replace(Text.NewGuid(), "-", ""), "{", ""), "}", ""),
+            guid3 = Text.Replace(Text.Replace(Text.Replace(Text.NewGuid(), "-", ""), "{", ""), "}", ""),
+            combined = guid1 & guid2 & guid3,
+            result = Text.Start(combined, length)
+        in
+            result,
+
+    // Create trace context with proper UUID format for traceparent header
+    CreateContext = (optional operationName as text) as record =>
+        let
+            traceId = GenerateRandomHex(32),
+            spanId = GenerateRandomHex(16),
+            tracePath = Extension.LoadString("AConnectHeaderValue")
+        in
+            [
+                traceId = traceId,
+                spanId = spanId,
+                tracePath = tracePath
+            ],
+
+    // Update tracePath by preserving original context value
+    UpdateTracePath = (context as record, operationName as text) as record =>
+        let
+            updated = context
+        in
+            updated,
+
+    // Create W3C traceparent header (format: 00-traceId-spanId-01)
+    CreateTraceParent = (context as record) as text =>"00-" & context[traceId] & "-" & context[spanId] & "-01",
+
+    // Inject traceparent header into HTTP headers
+    InjectHeaders = (baseHeaders as record, context as record) as record =>
+        let
+            traceParentValue = CreateTraceParent(context)
+        in
+            Record.Combine({
+                baseHeaders,
+                [
+                    #"traceparent" = traceParentValue,
+                    #"X-Trace-Id" = context[traceId],
+                    #"X-Span-Id" = context[spanId],
+                    #"X-TracePath" = context[tracePath]
+                ]
+            })
+in
+    [
+        CreateContext = CreateContext,
+        UpdateTracePath = UpdateTracePath,
+        CreateTraceParent = CreateTraceParent,
+        InjectHeaders = InjectHeaders
+    ]

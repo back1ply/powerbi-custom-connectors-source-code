@@ -18,6 +18,7 @@ let
 
     // Like Table.GenerateByPage utility (https://learn.microsoft.com/en-us/power-query/helper-functions#tablegeneratebypage)
     // But works for responses containing multiple tables; if there are multiple tables, returns a navigation table
+    // Also prevents additional requests for metadata compared to the standard Table.GenerateByPage
     Table.GenerateByPageMultiTable = (getNextPage as function) as table =>
         let
             listOfPageContents = List.Generate(
@@ -30,10 +31,30 @@ let
         in
             CombineTablesById(listOfTablesWithIds),
 
+    // Slight modification of standard pagination function from MS Docs:
+    // If we pass in pre-determined tableType obtained from metadata,
+    // we avoid an additional data request from being triggered to get the table schema.
+    Table.GenerateByPageWithType = (getNextPage as function, tableType as type) as table =>
+        let
+            listOfPages = List.Generate(
+                () => getNextPage(null),            // get the first page of data
+                (lastPage) => lastPage <> null,     // stop when the function returns null
+                (lastPage) => getNextPage(lastPage) // pass the previous page to the next function call
+            ),
+            nonEmptyPages = List.Select(listOfPages, each Table.RowCount(_) > 0),
+            // concatenate the pages together
+            tableOfPages = Table.FromList(nonEmptyPages, Splitter.SplitByNothing(), {"Column1"}),
+            columnNames = Table.Column(Type.TableSchema(tableType), "Name"),
+            expandedTable =  Table.ExpandTableColumn(tableOfPages, "Column1", columnNames)
+        in
+            Value.ReplaceType(
+                expandedTable,
+                tableType
+            ),
     // Takes: { [ tableId: <test>, data: <table> ] ... }
     // Returns: <combined table if there is only one tableId, navigation table of combined tables otherwise>
     // See tests
-    CombineTablesById = (listOfTablesWithIds as list) =>
+    CombineTablesById = (listOfTablesWithIds as list) as table =>
         let
             partialTablesRecord = List.Accumulate(listOfTablesWithIds, [], (state, tableInfo) =>
                     if (Record.HasFields(state, tableInfo[tableId]))
@@ -92,7 +113,7 @@ let
             in
                 List.Last(list),
 
-    CheckGraphQLErrors = (response as record) =>
+    CheckGraphQLErrors = (response as record) as record =>
         // Checks for "errors" attribute when Apollo errors are thrown by the service (as opposed to Error in the schema)
         let
             hasError = Record.HasFields(response, "errors") and List.Count(response[errors]) > 0,
@@ -107,7 +128,7 @@ let
                 else response
         in
             resp,
-    LoadGqlQuery = (queryPath as text) => Text.FromBinary(Extension.Contents(queryPath)),
+    LoadGqlQuery = (queryPath as text) as text => Text.FromBinary(Extension.Contents(queryPath)),
 
     /* Check if the query is BQL or SQL or SQLDiscovery (show/describe etc.)
      * We need to know this before we decide to apply query folding or not.
@@ -132,8 +153,8 @@ let
             // SQL Discovery keywords
             showPosition = Text.PositionOf(strippedQuery_, "show", Occurrence.First, Comparer.OrdinalIgnoreCase),
             describePosition = Text.PositionOf(strippedQuery_, "describe", Occurrence.First, Comparer.OrdinalIgnoreCase),
-            explainPosition = Text.PositionOf(strippedQuery_, "analyze", Occurrence.First, Comparer.OrdinalIgnoreCase),
-            analyzePosition = Text.PositionOf(strippedQuery_, "explain", Occurrence.First, Comparer.OrdinalIgnoreCase),
+            analyzePosition = Text.PositionOf(strippedQuery_, "analyze", Occurrence.First, Comparer.OrdinalIgnoreCase),
+            explainPosition = Text.PositionOf(strippedQuery_, "explain", Occurrence.First, Comparer.OrdinalIgnoreCase),
 
             keywordPositions = {
                 { "Get", getPosition },
@@ -190,9 +211,9 @@ let
                         currAndNextChar = if idx < Text.Length(query) - 1
                             then Text.Range(query, idx, 2)
                             else currChar,
-                        nextState = 
+                        nextState =
                             // end of an omittable block
-                            if (state[blockStart] = "--" or state[blockStart] = "##")
+                            if (state[blockStart] = "--" or state[blockStart] = "##") // ## marks a BQL comment
                                 and (currChar = "#(lf)" or currChar ="#(cr)")
                                 then [
                                     // leave newlines ending comments
@@ -252,7 +273,7 @@ let
 
     // Takes: [ <tableId as text> = { <partial tables for that tableId> }, ...  ]
     // Returns: <combined table if there is only one tableId, navigation table of combined tables otherwise>
-    ToTableOrNavigationTable = (partialTablesRecord as record) =>
+    ToTableOrNavigationTable = (partialTablesRecord as record) as table =>
         let
             objects = #table(
                 {"Name",  "Key",   "Data", "ItemKind", "ItemName", "IsLeaf"},
@@ -278,10 +299,10 @@ let
 
     // Create table using column metadata in the format specified in the paginated schema:
     // https://bbgithub.dev.bloomberg.com/OfficeTools/bi-graph-svc/blob/c8c1ae3da7230b1ca6632291bc291588cac37182/src/service-modules/data-query/schema.graphql#L29
-    CreateTypedTable = (colmetadata as list, rows as list) =>
+    CreateTypedTable = (colmetadata as list, rows as list) as table =>
         let
 
-            GetColumnType = (columnType as text) =>
+            GetColumnType = (columnType as text) as type =>
                 let
                     typeName =      if (columnType = "STRING")   then type text
                             else if (columnType = "INT")      then type number
@@ -289,6 +310,8 @@ let
                             else if (columnType = "BOOLEAN")  then type logical
                             else if (columnType = "DATE")     then type date
                             else if (columnType = "DATETIME") then type datetime
+                            else if (columnType = "TIME") then type time
+                            else if (columnType = "BINARY") then type binary
                             else error Error.Record("Get column type error", "Unknown input data type.")
                 in
                     typeName,
@@ -328,7 +351,7 @@ let
             )
         in
             tablesWithIdList,
-    GenerateTraceParentId = () =>
+    GenerateTraceParentId = () as text =>
         let
             RandomHexDigit = () => Text.From(Number.ToText(Number.RoundDown(Number.RandomBetween(0, 15)), "X")),
             CreateUUIDPart = (length as number) as text => Text.Lower(Text.Combine(List.Transform({1..length}, each RandomHexDigit()), "")),
@@ -337,10 +360,10 @@ let
             traceParent = "00-" & TraceId() & "-" & SpanId() & "-01"
         in
             traceParent,
-    SendPostQuery = (body as text, traceParentId as text) =>
+    SendPostQuery = (body as text, traceParentId as text) as binary =>
         let
             headers = [
-                #"Accept" = "text/json",
+                #"Accept" = "application/json",
                 #"Accept-Encoding" = "gzip",
                 #"Content-type" = "application/json",
                 #"traceparent" = traceParentId
@@ -359,7 +382,7 @@ let
         in
             rawResult,
 
-        CheckForErrorResponse =  (response as record, getInnerResponse as function) =>
+        CheckForErrorResponse =  (response as record, getInnerResponse as function) as record =>
         // Checks for Error types defined in the schema here:
         // https://bbgithub.dev.bloomberg.com/OfficeTools/bi-graph-svc/blob/c8c1ae3da7230b1ca6632291bc291588cac37182/src/service-modules/data-query/schema.graphql#L48
         // queryName: e.g., "queryCheck" in the response { "queryCheck": { "errorCategory": ... } }
@@ -385,6 +408,7 @@ in
         WaitFor = Value.WaitFor,
         ToNavigationTable = Table.ToNavigationTable,
         GenerateByPageMultiTable = Table.GenerateByPageMultiTable,
+        GenerateByPageWithType = Table.GenerateByPageWithType,
 
         LoadGqlQuery = LoadGqlQuery,
         CheckGraphQLErrors = CheckGraphQLErrors,

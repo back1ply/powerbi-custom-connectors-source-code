@@ -1,6 +1,6 @@
 ﻿///**** The Azure Cost Management connector allows PowerBI users to create flexible reports and get actionable insights into their Azure
 ///**** billing and usage data ***/
-[Version = "1.0.41"]
+[Version = "1.0.42"]
 section AzureCostManagement;
 
 /// Note: constants declarations starts here
@@ -49,11 +49,28 @@ appTypeModern = "modern";
 /// GTM Pricesheet api (apiVersion=2022-04-01 onwards) needs a new extra RP scope information in the url and this is a helper for it
 costmanagementProviderUriPart = "/providers/Microsoft.CostManagement";
 
+EnvironmentConfiguration = [
+    AzureActiveDirectory = Environment.FeatureSwitch("AzureActiveDirectoryUri", GlobalCloudConfiguration[AzureActiveDirectory]),
+    AzureResourceManager = Environment.FeatureSwitch("AzureResourceManagerUri", GlobalCloudConfiguration[AzureResourceManager]),
+    AzureResourceManagerResource = Environment.FeatureSwitch("AzureResourceManagerAadResource", GlobalCloudConfiguration[AzureResourceManagerResource])
+];
+
+GlobalCloudConfiguration = [
+    AzureActiveDirectory = "https://login.microsoftonline.com",
+    AzureResourceManager = "https://management.azure.com/",
+    AzureResourceManagerResource = "https://management.core.windows.net/"
+];
+
+GetEndpointConfig = () as record =>
+    if (Text.StartsWith(EnvironmentConfiguration[AzureActiveDirectory], GlobalCloudConfiguration[AzureActiveDirectory])) then
+        GlobalCloudConfiguration
+    else
+        EnvironmentConfiguration;
 
 //baseUri = "https://management.azure.com/";
 GetBaseUri=() as text =>
     let
-       baseUri = Uri.Combine(Environment.FeatureSwitch("AzureResourceManagerUri", "https://management.azure.com/"), "/")
+       baseUri = Uri.Combine(GetEndpointConfig()[AzureResourceManager], "/")
     in
        baseUri;
 
@@ -67,7 +84,7 @@ GetBillingAccountUri = () as text =>
 //tenantDiscoveryUri = "https://management.azure.com/providers/Microsoft.Billing/billingAccounts/";
 GetTenantDiscoveryUri=() as text =>
     let
-        tenantDiscoveryUri = Uri.Combine(Environment.FeatureSwitch("AzureResourceManagerUri", "https://management.azure.com/"), "/"),
+        tenantDiscoveryUri = Uri.Combine(GetEndpointConfig()[AzureResourceManager], "/"),
         endpointUri = Uri.Combine(tenantDiscoveryUri, "providers/Microsoft.Billing/billingAccounts/")
     in
         endpointUri;
@@ -75,14 +92,14 @@ GetTenantDiscoveryUri=() as text =>
 //resourceUri = "https://management.core.windows.net/";
 GetResourceUri= () as text =>
     let
-        resourceUri = Uri.Combine(Environment.FeatureSwitch("AzureResourceManagerAadResource", "https://management.core.windows.net/"), "/")
+        resourceUri = Uri.Combine(GetEndpointConfig()[AzureResourceManagerResource], "/")
     in
         resourceUri;
 
 //authorizationUri = "https://login.windows.net/";
 GetAuthorizationUri= () as text =>
     let
-        authorizationUri = Uri.Combine(Environment.FeatureSwitch("AzureActiveDirectoryUri", "https://login.microsoftonline.com/"), "/"),
+        authorizationUri = Uri.Combine(GetEndpointConfig()[AzureActiveDirectory], "/"),
         endpointUri =   Uri.Combine(authorizationUri, authorization_extension)
     in
         endpointUri;

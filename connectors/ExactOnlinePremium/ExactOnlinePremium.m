@@ -1,5 +1,5 @@
 ﻿// This file contains your Data Connector logic
-[Version = "1.0.0"]
+[Version = "1.0.1", Traits = [GatewayRequired = true]]
 section ExactOnlinePremium;
 
 oauth_client_id = "04ea1ba3-216e-46f3-9d7e-3c5c107c8e00";

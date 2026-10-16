@@ -1,4 +1,4 @@
-﻿[Version = "1.0.3"]
+﻿[Version = "1.0.4"]
 section OneStream;
 
 
@@ -753,7 +753,7 @@ ExpandCells = (table) =>
     in
         Expanded;
 
-// Retry for data processing (7 times)
+// Retry for data processing
 WaitAndCallDataRequest = (sessionInfoBody as text,  requestId as text, baseUrl as text, getDataResult as logical, optional pageNumber as number) => 
     let
         retryCount = Number.IntegerDivide(RequestTimeOut, RetryInterval),
@@ -797,6 +797,7 @@ GetWebContentData = (url as text, params, baseUrl as text, query, isDataRequest 
                 [
                     #"Content-Type" = "application/json", 
                     #"Accept" = "application/json",
+                    #"xf-api-client" = "powerbi-connector",
                     #"X-OS-PBI" = "true", // Identification Header so we know this specific call comes from PowerBI.
                     #"Cache-Control" = "no-cache",
                     #"CacheGuid" = b64Content, // the B64-encoded request is used to prevent PowerBI from returning a cached error result for different request on same endpoint.

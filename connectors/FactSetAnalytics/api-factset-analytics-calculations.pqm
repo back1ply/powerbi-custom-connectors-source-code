@@ -93,7 +93,11 @@ let
         optional _usePortfolioPricingSourcesForBenchmark as logical
     ) as table =>
         let
-            table = FactSetAnalytics.v3.RunPAMultiPortCalculation(_cachedoutputage, _componentid, {_accountid}, {_accountholdingsmode}, {_benchmarkid}, {_benchmarkholdingsmode}, _startdate, _enddate, _frequency, _groupsId, _groupsFrequency, _currencyisocode, _componentdetail, _portfolioPricingSources, _benchmarkPricingSources, _usePortfolioPricingSourcesForBenchmark)
+            accountIdList = if _accountid is null then null else {_accountid},
+            accountHoldingsModeList = if _accountholdingsmode is null then null else {_accountholdingsmode},
+            benchmarkIdList = if _benchmarkid is null then null else {_benchmarkid},
+            benchmarkHoldingsModeList = if _benchmarkholdingsmode is null then null else {_benchmarkholdingsmode},
+            table = FactSetAnalytics.v3.RunPAMultiPortCalculation(_cachedoutputage, _componentid, accountIdList, accountHoldingsModeList, benchmarkIdList, benchmarkHoldingsModeList, _startdate, _enddate, _frequency, _groupsId, _groupsFrequency, _currencyisocode, _componentdetail, _portfolioPricingSources, _benchmarkPricingSources, _usePortfolioPricingSourcesForBenchmark)
         in
             table,
 
@@ -193,9 +197,16 @@ let
                 enddate = _enddate,
                 frequency = _frequency
             ],
+            
+            accountIdsList = if _accountIds is null then {} else _accountIds,
             accountHoldingsModeList = if _accountHoldingsModes is null then {} else _accountHoldingsModes,
+            accountsListOfRecords = Analytics[Utils][ConstructListOfRecords](accountIdsList, accountHoldingsModeList, List.Count(accountIdsList), List.Count(accountHoldingsModeList), 0, {}),
+            accountsList = if List.Count(accountsListOfRecords) = 0 then null else accountsListOfRecords,
+
             benchmarkIdsList = if _benchmarkIds is null then {} else _benchmarkIds,
             benchmarkHoldingsModeList = if _benchmarkHoldingsModes is null then {} else _benchmarkHoldingsModes,
+            benchmarksListOfRecords = Analytics[Utils][ConstructListOfRecords](benchmarkIdsList, benchmarkHoldingsModeList, List.Count(benchmarkIdsList), List.Count(benchmarkHoldingsModeList), 0, {}),
+            benchmarksList = if List.Count(benchmarksListOfRecords) = 0 then null else benchmarksListOfRecords,
 
             groupsIdList = if _groupsId is null then {} else _groupsId,
             groupsFrequencyList = if _groupsFrequency is null then {} else _groupsFrequency,
@@ -214,8 +225,8 @@ let
 
             calculation = [
                 componentid = _componentid,
-                accounts = Analytics[Utils][ConstructListOfRecords](_accountIds, accountHoldingsModeList, List.Count(_accountIds), List.Count(accountHoldingsModeList), 0, {}),
-                benchmarks = Analytics[Utils][ConstructListOfRecords](benchmarkIdsList, benchmarkHoldingsModeList, List.Count(benchmarkIdsList), List.Count(benchmarkHoldingsModeList), 0, {}),
+                accounts = accountsList,
+                benchmarks = benchmarksList,
                 dates = dates,
                 groups = groups,
                 currencyisocode = _currencyisocode,
@@ -302,7 +313,10 @@ let
         optional _currencyisocode as text
     ) as table =>
         let
-            table = FactSetAnalytics.v3.RunSPARMultiPortCalculation(_cachedoutputage, _componentid, {_accountid}, {_accountreturntype}, {_accountprefix}, _benchmarkid, _benchmarkreturntype, _benchmarkprefix, _startdate, _enddate, _frequency, _currencyisocode)
+            accountid = if _accountid is null then null else  {_accountid},
+            accountreturntype = if _accountreturntype is null then null else  {_accountreturntype},
+            accountprefix = if _accountprefix is null then null else  {_accountprefix},
+            table = FactSetAnalytics.v3.RunSPARMultiPortCalculation(_cachedoutputage, _componentid, accountid, accountreturntype, accountprefix, _benchmarkid, _benchmarkreturntype, _benchmarkprefix, _startdate, _enddate, _frequency, _currencyisocode)
         in
             table,
 
@@ -389,10 +403,14 @@ newRunSPARV3MultiPortCalculationImpl = (
             enddate = _enddate,
             frequency = _frequency
         ],
-        accounts = Analytics[Utils][ConstructListOfAccounts](_accountids, _returntypes, _prefixes, List.Count(_accountids), List.Count(_returntypes), List.Count(_prefixes), 0, {} ),
+        accountids = if _accountids is null then {} else _accountids,
+        returntypes = if _returntypes is null then {} else _returntypes,
+        prefixes = if _prefixes is null then {} else _prefixes,
+        accounts = Analytics[Utils][ConstructListOfAccounts](accountids, returntypes, prefixes, List.Count(accountids), List.Count(returntypes), List.Count(prefixes), 0, {} ),
+        accountsList = if List.Count(accounts) = 0 then null else accounts,
         calculation = [
             componentid = _componentid,
-            accounts = accounts,
+            accounts = accountsList,
             benchmark = benchmark,
             currencyisocode = _currencyisocode,
             dates = dates

@@ -1,0 +1,354 @@
+// Output Interceptor: State Machine for Versioned Table Write Operations
+//
+// Intercepts versioned Table.View operations (OnCreateVersion, OnInsertRows,
+// OnDeleteRows, OnPublishVersion, OnDeleteVersion) on a container (navigation
+// table of tables) and its child tables. Reconstructs the caller's intent as
+// one of three canonical operations per table:
+//
+//   Append       – insert rows into an existing (or newly created) table
+//   ReplaceData  – delete all rows, then insert new ones (table structure preserved)
+//   ReplaceTable – drop the table entirely, create a fresh one, then insert rows
+//   ReplacePartition – delete rows matching a predicate, then insert new ones
+//
+// State is maintained in Extension.State, keyed by version and table identifiers.
+// Each signal is validated against the current state; invalid transitions raise errors.
+//
+// State Machine (per table within a version):
+//
+//   (none) --[Container.Delete]--> Dropped
+//   (none) --[Container.Insert]--> Created(schema)
+//   (none) --[Table.DeleteAll]---> DataCleared
+//   (none) --[Table.DeleteRows]--> PartialDataCleared(predicate)
+//   (none) --[Table.Insert]------> Appending(data)
+//
+//   Dropped ----------[Container.Insert]--> DroppedAndCreated(schema)
+//   Created ----------[Table.Insert]------> CreatedWithData(schema, data)
+//   DataCleared ------[Table.Insert]------> DataReplacing(data)
+//   PartialDataCleared [Table.Insert]------> PartitionReplacing(predicate, data)
+//   DroppedAndCreated -[Table.Insert]------> TableReplacing(schema, data)
+//
+//   Any data-accumulating phase --[Table.Insert]--> same phase (data accumulated)
+//
+// At commit, terminal states resolve to:
+//   Appending          → OnAppend (table existed, data appended)
+//   CreatedWithData    → OnAppend (table was new, created and filled)
+//   Created            → OnAppend (table was new, no data — empty table created)
+//   DataReplacing      → OnReplaceData (existing data cleared, new data inserted)
+//   DataCleared        → OnReplaceData (existing data cleared, no new data)
+//   PartitionReplacing → OnReplaceData (matching rows deleted, new data inserted)
+//   PartialDataCleared → OnReplaceData (matching rows deleted, no new data)
+//   TableReplacing     → OnReplaceTable (table dropped, recreated with new schema, filled)
+//   DroppedAndCreated  → OnReplaceTable (table dropped, recreated, no data)
+//   Dropped            → ERROR (incomplete: table dropped but never recreated)
+//
+// Usage:
+//
+//   OutputInterceptor = Expression.Evaluate(
+//       Text.FromBinary(Extension.Contents("OutputInterceptor.pqm")), #shared);
+//
+//   interceptor = OutputInterceptor(
+//       [
+//           OnAppend           = (version, tableId, data, schema) => ...,
+//           OnReplaceData      = (version, tableId, predicate, data) => ...,
+//           OnReplaceTable     = (version, tableId, schema, data) => ..., // optional
+//           OnCompareSchemas   = (version, tableId, schema) => ...,       // optional
+//           OnError            = (code, detail) => ...           // optional
+//       ],
+//       "optional-state-prefix"  // namespaces Extension.State keys (optional)
+//   );
+//
+// Interceptor API and handler signatures:
+//
+//   GetTableState(version, tableId)
+//     Returns the pending state record for a table in a version, or null.
+//
+//   GetTableStates(version)
+//     Returns pending state records for all tables changed in a version.
+//
+//   OnAppend(version, tableId, data, schema)
+//     version: version identifier from OnCreateVersion
+//     tableId: identifier for the target table
+//     data:    table value with rows to insert (lazy; not buffered)
+//     schema:  type table [...] if the table was newly created; null if it
+//              already existed (handler should INSERT only)
+//     Returns: action
+//
+//   OnReplaceData(version, tableId, predicate, data)
+//     version:   version identifier from OnCreateVersion
+//     tableId:   identifier for the target table
+//     predicate: opaque value representing the rows to delete (e.g. SQL WHERE clause)
+//     data:      table value with replacement rows
+//     Returns:   action
+//     Note:      handler should DELETE rows matching predicate then INSERT new ones.
+//                predicate can be null to indicate all rows (i.e. delete all and
+//                replace with new data while preserving schema)
+//
+//   OnReplaceTable(version, tableId, schema, data)
+//     version: version identifier from OnCreateVersion
+//     tableId: identifier for the target table
+//     schema:  type table [...] defining the new table structure
+//     data:    table value with rows to insert
+//     Returns: action
+//     Note:    handler should DROP (if exists), CREATE with new schema,
+//              then INSERT rows
+//
+//   OnCompareSchemas(version, tableId, schema)   [optional]
+//     version: version identifier from OnCreateVersion
+//     tableId: identifier for the target table
+//     schema:  type table [...] the new table structure from the drop/recreate sequence
+//     Returns: logical — true if the new schema is identical to the existing one
+//     Note:    when defined and the resolved operation is OnReplaceTable, this
+//              callback is invoked first. If it returns true the interceptor
+//              downgrades the operation to OnReplaceData since atomic table
+//              replacement is unnecessary when the schema has not changed.
+//
+//   OnError(code, detail)   [optional]
+//     code:   text error code (e.g. "DuplicateVersion", "NoVersionState")
+//     detail: record with contextual fields (varies per error)
+//     Returns: never — must raise an error
+//     Note:    connectors can use the code to look up a localized message.
+//              Default: (code, detail) => error Error.Record("Expression.Error", code, detail, null, code)
+
+let
+    // State Keys
+    SafeKey = (parts) => Text.Combine(List.Transform(parts, (s) => Text.Replace(s, "|", "||")), "|"),
+    VersionKey = (prefix, version) => SafeKey(if prefix <> null then {prefix, "OI", "V", version} else {"OI", "V", version}),
+    TableKey   = (prefix, version, tableId) => SafeKey(if prefix <> null then {prefix, "OI", "T", version, tableId} else {"OI", "T", version, tableId}),
+
+    // Extension.State Access
+    GetState = (key) =>
+        Extension.State(){[Name = key]}?[Value]?,
+
+    SetState = (key, value) =>
+        let
+            existing = Extension.State(){[Name = key]}?
+        in
+            if existing <> null
+            then ValueAction.Replace(Extension.State(){[Name = key]}[Value], value)
+            else TableAction.InsertRows(
+                Extension.State(),
+                #table({"Name", "Value"}, {{key, value}})),
+
+    RemoveState = (key) =>
+        TableAction.DeleteRows(
+            Table.SelectRows(Extension.State(), each [Name] = key)),
+
+    // Default error handler
+    DefaultOnError = (code, detail) =>
+        error Error.Record("Expression.Error", code, detail, null, code),
+
+    // Transition Helper
+    TransitionTable = (prefix, version, tableId, transition, onError) =>
+        let
+            vKey = VersionKey(prefix, version),
+            tKey = TableKey(prefix, version, tableId),
+
+            versionState =
+                let vs = GetState(vKey) in
+                if vs = null then
+                    onError("NoVersionState", [Version = version])
+                else vs,
+
+            currentTableState = GetState(tKey),
+
+            newTableState = transition(currentTableState),
+
+            isNewEntry = currentTableState = null,
+
+            addToVersionTables =
+                if isNewEntry then
+                    SetState(
+                        vKey,
+                        versionState & [Tables = versionState[Tables] & {tableId}])
+                else
+                    Action.DoNothing,
+
+            setTableState = SetState(tKey, [TableId = tableId] & newTableState)
+        in
+            Action.Sequence({addToVersionTables, setTableState, Action.DoNothing}),
+
+    // Combine Data Parts
+    CombineDataParts = (dataParts) =>
+        if List.Count(dataParts) = 1 then dataParts{0}
+        else Table.Combine(dataParts),
+
+    // Resolve and Execute
+    ResolveAndExecute = (version, tableState, handlers, onError) =>
+        let
+            phase   = tableState[Phase],
+            tableId = tableState[TableId],
+
+            emptyData = if tableState[Schema]? <> null
+                then #table(tableState[Schema], {})
+                else #table({}, {})
+        in
+            if phase = "Appending" then
+                handlers[OnAppend](version, tableId, CombineDataParts(tableState[DataParts]), null)
+            else if phase = "CreatedWithData" then
+                handlers[OnAppend](version, tableId, CombineDataParts(tableState[DataParts]), tableState[Schema])
+            else if phase = "Created" then
+                handlers[OnAppend](version, tableId, emptyData, tableState[Schema])
+            else if phase = "DataReplacing" then
+                handlers[OnReplaceData](version, tableId, null, CombineDataParts(tableState[DataParts]))
+            else if phase = "DataCleared" then
+                handlers[OnReplaceData](version, tableId, null, emptyData)
+            else if phase = "PartitionReplacing" then
+                handlers[OnReplaceData](version, tableId, tableState[Predicate], CombineDataParts(tableState[DataParts]))
+            else if phase = "PartialDataCleared" then
+                handlers[OnReplaceData](version, tableId, tableState[Predicate], emptyData)
+            else if phase = "TableReplacing" then
+                    let
+                        schema = tableState[Schema],
+                        data = CombineDataParts(tableState[DataParts]),
+                        schemasMatch =
+                            handlers[OnCompareSchemas]? <> null
+                            and handlers[OnCompareSchemas](version, tableId, schema)
+                    in
+                        if schemasMatch then
+                            handlers[OnReplaceData](version, tableId, null, data)
+                        else
+                            handlers[OnReplaceTable](version, tableId, schema, data)
+                else if phase = "DroppedAndCreated" then
+                    let
+                        schema = tableState[Schema],
+                        schemasMatch =
+                            handlers[OnCompareSchemas]? <> null
+                            and handlers[OnCompareSchemas](version, tableId, schema)
+                    in
+                        if schemasMatch then
+                            handlers[OnReplaceData](version, tableId, null, emptyData)
+                        else
+                            handlers[OnReplaceTable](version, tableId, schema, emptyData)
+            else
+                onError("IncompleteOperation", [TableId = tableId, Phase = phase]),
+
+    // State Cleanup
+    CleanupVersion = (prefix, version, tableIds) =>
+        let
+            tableCleanup = List.Transform(tableIds, (tableId) =>
+                RemoveState(TableKey(prefix, version, tableId))),
+            versionCleanup = RemoveState(VersionKey(prefix, version))
+        in
+            Action.Sequence(tableCleanup & {versionCleanup, Action.DoNothing}),
+
+    // Public API
+    OutputInterceptor.Create = (handlers as record, optional statePrefix as nullable text) =>
+    let
+        onError = if handlers[OnError]? <> null then handlers[OnError] else DefaultOnError
+    in
+    [
+        GetTableState = (version, tableId) =>
+            GetState(TableKey(statePrefix, version, tableId)),
+
+        GetTableStates = (version) =>
+            let
+                versionState = GetState(VersionKey(statePrefix, version)),
+                tableIds = if versionState is record and versionState[Tables]? is list then versionState[Tables] else {}
+            in
+                List.RemoveNulls(List.Transform(tableIds, (tableId) => GetState(TableKey(statePrefix, version, tableId)))),
+
+        OnCreateVersion = (version) =>
+            let
+                vKey = VersionKey(statePrefix, version),
+                existing = GetState(vKey)
+            in
+                if existing <> null then
+                    onError("DuplicateVersion", [Version = version])
+                else
+                    SetState(vKey, [Tables = {}]),
+
+        OnContainerDeleteRow = (version, tableId) =>
+            TransitionTable(statePrefix, version, tableId, (current) =>
+                if current = null then
+                    [Phase = "Dropped"]
+                else
+                    onError("UnexpectedContainerDelete", [TableId = tableId, CurrentPhase = current[Phase]]), onError),
+
+        OnContainerInsertRow = (version, tableId, schema) =>
+            TransitionTable(statePrefix, version, tableId, (current) =>
+                if current = null then
+                    [Phase = "Created", Schema = schema]
+                else if current[Phase] = "Dropped" then
+                    [Phase = "DroppedAndCreated", Schema = schema]
+                else
+                    onError("UnexpectedContainerInsert", [TableId = tableId, CurrentPhase = current[Phase]]), onError),
+
+        OnTableDeleteAllRows = (version, tableId) =>
+            TransitionTable(statePrefix, version, tableId, (current) =>
+                if current = null then
+                    [Phase = "DataCleared"]
+                else
+                    onError("UnexpectedTableDeleteAll", [TableId = tableId, CurrentPhase = current[Phase]]), onError),
+
+        OnTableDeleteRows = (version, tableId, predicate) =>
+            TransitionTable(statePrefix, version, tableId, (current) =>
+                if current = null then
+                    [Phase = "PartialDataCleared", Predicate = predicate]
+                else
+                    onError("UnexpectedTableDeleteRows", [TableId = tableId, CurrentPhase = current[Phase]]), onError),
+
+        OnTableInsertRows = (version, tableId, data) =>
+            TransitionTable(statePrefix, version, tableId, (current) =>
+                if current = null then
+                    [Phase = "Appending", DataParts = {data}]
+                else if current[Phase] = "Created" then
+                    [Phase = "CreatedWithData", Schema = current[Schema], DataParts = {data}]
+                else if current[Phase] = "DataCleared" then
+                    [Phase = "DataReplacing", DataParts = {data}]
+                else if current[Phase] = "PartialDataCleared" then
+                    [Phase = "PartitionReplacing", Predicate = current[Predicate], DataParts = {data}]
+                else if current[Phase] = "DroppedAndCreated" then
+                    [Phase = "TableReplacing", Schema = current[Schema], DataParts = {data}]
+                else if current[Phase] = "Appending"
+                     or current[Phase] = "CreatedWithData"
+                     or current[Phase] = "DataReplacing"
+                     or current[Phase] = "PartitionReplacing"
+                     or current[Phase] = "TableReplacing" then
+                    current & [DataParts = current[DataParts] & {data}]
+                else
+                    onError("UnexpectedTableInsert", [
+                        TableId      = tableId,
+                        CurrentPhase = current[Phase],
+                        ValidPhases  = "Created, DataCleared, PartialDataCleared, DroppedAndCreated, (none), or a data-accumulating phase"
+                    ]), onError),
+
+        OnCommit = (version) =>
+            let
+                vKey = VersionKey(statePrefix, version),
+                versionState =
+                    let vs = GetState(vKey) in
+                    if vs = null then
+                        onError("NoVersionStateAtCommit", [Version = version])
+                    else vs,
+
+                tableIds = versionState[Tables],
+
+                operationActions = List.Transform(tableIds, (tableId) =>
+                    let
+                        tableState = GetState(TableKey(statePrefix, version, tableId)),
+                        validatedState =
+                            if tableState = null then
+                                onError("MissingTableState", [Version = version, TableId = tableId])
+                            else tableState
+                    in
+                        ResolveAndExecute(version, validatedState, handlers, onError)),
+
+                cleanup = CleanupVersion(statePrefix, version, tableIds)
+            in
+                Action.Sequence(
+                    operationActions
+                    & {cleanup, Action.DoNothing}),
+
+        OnRollback = (version) =>
+            let
+                vKey = VersionKey(statePrefix, version),
+                versionState = GetState(vKey),
+
+                tableIds = if versionState <> null then versionState[Tables] else {},
+
+                cleanup = CleanupVersion(statePrefix, version, tableIds)
+            in
+                Action.Sequence({cleanup, Action.DoNothing})
+    ]
+in
+    OutputInterceptor.Create

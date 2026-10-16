@@ -1,6 +1,7 @@
 ﻿// This file contains the Exasol Connector logic
 [
-    Version = "1.1.0"
+    Version = "1.1.1",
+    Traits = [GatewayRequired = true]
 ]
 section Exasol;
 

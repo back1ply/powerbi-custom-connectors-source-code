@@ -1,0 +1,580 @@
+let
+    // Core Utilities
+    NonPii = (x) => x meta [Is.Pii = false],
+    IsNonPii = (x) => Value.Metadata(x)[Is.Pii]? = false,
+    
+    Value.ToText = (value, optional depth) =>
+        let
+            nextDepth = if depth = null then 3 else depth - 1,
+            result = if depth = 0 then "..."
+                else if value is null then "<null>"
+                else if value is function then Record.FieldOrDefault(Value.Metadata(Value.Type(value)), "Documentation.Name", "<function>")
+                else if value is table then "#table({" & Text.Combine(Table.ColumnNames(value), ",") & "},{" & Text.Combine(
+                    List.Transform(Table.ToRows(Table.FirstN(value, 2)), each @Value.ToText(_, nextDepth)), "},#(cr)#(lf){") & "})"
+                    //& "Row Count (" & Number.ToText(Table.RowCount(value)) & ")"
+                else if value is list then "{" & Text.Combine(List.Transform(List.FirstN(value, 10), each @Value.ToText(_, nextDepth)), ",") & "}"
+                else if value is record then "[" & Text.Combine(List.Transform(Record.FieldNames(value), each _ & "=" & @Value.ToText(Record.Field(value, _), nextDepth)), ",") & "]"
+                else if value is type then List.First(Table.Schema(#table({"type"}, {{value}}))[TypeName], "<type>")
+                else if value is action then "action"
+                else Text.From(value)
+        in
+            try result catch (e) => @Value.ToText(e, nextDepth),
+  
+    Connector.GenerateErrorRecord = (marker as text, piiFreeLogMessage as text, callerName as text, optional errorRecord as nullable record) =>
+        let
+            errorStringForMarker = try Utility.GetErrorCodeForMarker(marker) otherwise null,
+            innerRecordErrorCode = errorRecord[ErrorCode]?,
+            innerDetailErrorCode = errorRecord[Details]?[ErrorCode]?,
+            appenededErrorCode = if errorStringForMarker <> null then 
+                Utility.AppendErrorCode(errorStringForMarker, innerRecordErrorCode) 
+            else 
+                innerRecordErrorCode,
+            innerErrorCode = if appenededErrorCode <> null then 
+                Utility.AppendErrorCode(appenededErrorCode, innerDetailErrorCode)
+            else 
+                innerDetailErrorCode,
+            
+            message = errorRecord[Message]?,
+            messageFormat = errorRecord[Message.Format]?,
+            errorMessage = if IsNonPii(message) then 
+                message 
+            else 
+                if IsNonPii(messageFormat) then 
+                    messageFormat
+                else 
+                    null,
+            finalErrorMessage = if errorMessage <> null then
+                Text.Format(Extension.LoadString("TraceMessageWithDetails"), {piiFreeLogMessage, errorMessage})
+            else 
+                piiFreeLogMessage,
+            recordToLogAsSafeData = [ ErrorCode = marker, InnerErrorCode = innerErrorCode, ErrorMessage = finalErrorMessage ],
+            withNonPiiMeta = CreateSafeRecordToLog(recordToLogAsSafeData),
+            recordToLog = [ 
+                ErrorDetailMessage = errorRecord[Message],
+                ErrorDetail = Value.ToText(errorRecord)
+            ] & withNonPiiMeta,
+            tracedMessage = Diagnostics.Trace(
+                TraceLevel.Error,
+                [
+                    Name = callerName,
+                    Data = recordToLog
+                ],
+                errorRecord[Message]),
+            reason = if IsNonPii(errorRecord[Reason]?) then errorRecord[Reason]? else NonPii("DataSource.Error"),
+            finalError = if (errorRecord = null) then
+                // fallback to previous behavior when no error record is provided
+                Error.Record(
+                    NonPii("DataSource.Error"),
+                    NonPii(Diagnostics.Trace(TraceLevel.Error, [Name = callerName,  Data = [], SafeData = [ErrorCode = marker, ErrorMessage = piiFreeLogMessage]], piiFreeLogMessage)),
+                    [ InnerErrorCode = NonPii(errorStringForMarker) ])
+            else
+                Error.Record(
+                reason,
+                NonPii(Extension.LoadString("FinalErrorMessageWithDetails")),
+                errorRecord & [ InnerErrorCode = NonPii(innerErrorCode) ],
+                {
+                    NonPii(finalErrorMessage),
+                    tracedMessage
+                }) meta Value.Metadata(errorRecord)
+        in
+            finalError,
+
+    Error.MakeErrorCodesNonPii = (errorRecord as nullable record, maxDepth as number) as nullable record =>
+        if errorRecord = null or maxDepth <= 0 then
+            errorRecord
+        else
+            let
+                currentErrorCode = errorRecord[ErrorCode]?,
+                recordWithSafeErrorCode =
+                    if currentErrorCode <> null then
+                        Record.TransformFields(errorRecord, {"ErrorCode", each NonPii(_)}, MissingField.Ignore)
+                    else
+                        errorRecord,
+                recordFieldNames =
+                    if maxDepth > 1 then
+                        List.Select(
+                            Record.FieldNames(errorRecord),
+                            (fieldName) => Record.Field(errorRecord, fieldName) is record)
+                    else
+                        {},
+                recordFieldTransformations = List.Transform(
+                    recordFieldNames,
+                    (fieldName) => {fieldName, each @Error.MakeErrorCodesNonPii(_, maxDepth - 1)}),
+                recordWithSafeNestedRecords =
+                    if not List.IsEmpty(recordFieldTransformations) then
+                        Record.TransformFields(
+                            recordWithSafeErrorCode,
+                            recordFieldTransformations,
+                            MissingField.Ignore)
+                    else
+                        recordWithSafeErrorCode
+            in
+                recordWithSafeNestedRecords meta Value.Metadata(errorRecord),
+
+   Connector.SurfaceErrorRecord = (marker as text, piiFreeLogMessage as text, callerName as text, optional errorRecord as nullable record) =>
+        let
+            errorRecordErrorCode = errorRecord[ErrorCode]?,
+            errorRecordMessage = errorRecord[Message]?,
+            detailErrorCode = errorRecord[Detail]?[ErrorCode]?,
+            detailErrorNumber = errorRecord[Detail]?[Number]?,
+            detailErrorClass = errorRecord[Detail]?[Class]?,
+            detailErrorState = errorRecord[Detail]?[State]?,
+            surfaceDetailErrorCode =
+                if detailErrorCode = -2146232060 // Sql Exception Error Code
+                    and List.NonNullCount({detailErrorNumber, detailErrorClass, detailErrorState}) = 3
+                then Text.Format("SQLError|#{0}|#{1}|#{2}", {detailErrorNumber, detailErrorClass, detailErrorState})
+                else detailErrorCode,
+            errorRecordWithSurfaceDetailErrorCode = if detailErrorCode <> null then
+                (Record.TransformFields(
+                    errorRecord,
+                    {"Detail", each Record.TransformFields(
+                        _,
+                        {"ErrorCode", each surfaceDetailErrorCode},
+                        MissingField.Ignore) meta Value.Metadata(_)},
+                    MissingField.Ignore) meta Value.Metadata(errorRecord))
+            else
+                errorRecord,
+            errorRecordWithSafeErrorCodes = Error.MakeErrorCodesNonPii(errorRecordWithSurfaceDetailErrorCode, 3),
+
+            safeErrorMessage = CreateSafeErrorMessage(errorRecord, piiFreeLogMessage),
+
+            MarkerErrorCode =
+            [
+                MarkerErrorCode = NonPii(Utility.GetErrorCodeForMarker(marker))
+            ],
+
+            newErrorRecordIfErrorRecordIsNull = Error.Record(
+                NonPii("DataSource.Error"),
+                NonPii(piiFreeLogMessage),
+                MarkerErrorCode
+            ),
+
+            newErrorRecordForLakehouseError = (errorRecordWithSafeErrorCodes &
+            [
+                Detail = if errorRecordWithSafeErrorCodes[Detail]? <> null then
+                    (errorRecordWithSafeErrorCodes[Detail] & MarkerErrorCode)
+                        meta Value.Metadata(errorRecordWithSafeErrorCodes[Detail])
+                    else MarkerErrorCode
+            ]) meta Value.Metadata(errorRecord),
+
+            newErrorRecord = if (errorRecord = null) then newErrorRecordIfErrorRecordIsNull else
+            if errorRecordErrorCode <> null and Text.StartsWith(errorRecordErrorCode, "Lakehouse") then
+                newErrorRecordForLakehouseError
+            else
+                Error.Record(
+                    if IsNonPii(errorRecord[Reason]?) then errorRecord[Reason]? else NonPii("DataSource.Error"),
+                    NonPii(Extension.LoadString("FinalErrorMessageWithDetails")),
+                    (errorRecordWithSafeErrorCodes & MarkerErrorCode) meta Value.Metadata(errorRecordWithSafeErrorCodes),
+                    {
+                        NonPii(safeErrorMessage),
+                        errorRecordMessage
+                    }
+                ) meta Value.Metadata(errorRecord),
+
+            recordToLog = if IsNonPii(newErrorRecord[Message]) then newErrorRecord
+            else
+                [
+                    SafeErrorMessage = NonPii(safeErrorMessage)
+                ] & newErrorRecord
+        in
+            Diagnostics.Trace(
+                TraceLevel.Error,
+                [
+                    Name = NonPii(callerName),
+                    Data = recordToLog
+                ],
+                newErrorRecord
+            ),
+
+    CreateSafeErrorMessage = (errorRecord as nullable record, piiFreeLogMessage as text) =>
+        let
+            errorRecordMessage = errorRecord[Message]?,
+            errorRecordMessageFormat = errorRecord[Message.Format]?,
+
+            safeErrorMessage = if IsNonPii(errorRecordMessage)
+            then 
+                errorRecordMessage 
+            else 
+                if IsNonPii(errorRecordMessageFormat) 
+                then 
+                    errorRecordMessageFormat
+                else 
+                    null,
+
+            safeFinalErrorMessage = if safeErrorMessage <> null then
+                Text.Format(Extension.LoadString("TraceMessageWithDetails"), {piiFreeLogMessage, safeErrorMessage})
+            else 
+                piiFreeLogMessage
+        in
+            safeFinalErrorMessage,
+          
+    CreateSafeRecordToLog = (input as record) =>
+        let
+            withNonPiiMeta = List.Transform(Record.FieldValues(input), (t) => NonPii(t)),
+            fieldNames = Record.FieldNames(input)
+        in
+            Record.FromList(withNonPiiMeta, fieldNames),
+
+    Text.IsNullOrEmpty = (a as text) =>
+        a = null or Text.Trim(a) = "",
+
+    Value.ConvertToLogical = (a) =>
+        a <> null and a <> "" and Logical.From(a),
+
+    Value.WaitFor = (producer as function, delay as function, optional count as number) as any =>
+        let
+            list = List.Generate(
+                () => {0, null},
+                (state) => state{0} <> null and (count = null or state{0} <= (count + 1)), //first row is {0, null} and doesn't invoke the producer.
+                (state) => if state{1} <> null
+                    then {null, state{1}}
+                    else {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), delay(state{0}))},
+                (state) => state{1}),
+            result = List.Last(list)
+        in
+            result,
+
+    // Builds a space-delimited scope string from the given resource URLs, preserving the input order.
+    // The order is significant: the returned scopes appear in the exact order the resource URLs are supplied.
+    Utility.CreateOrderedScope = (resourceUrls as list) as text =>
+        let
+            appendix = "user_impersonation",
+            scopes = List.Transform(resourceUrls, (resourceUrl) => Text.Format("#{0}/#{1}", {resourceUrl, appendix})),
+            result = Text.Combine(scopes, " ")
+        in
+            result,
+
+    Utility.GetErrorCodeForMarker = (marker as text) as text =>
+        let
+            errorString = Extension.LoadString(marker),
+            dummyErrorRecord = Error.Record(NonPii("DataSource.Error"), NonPii(errorString))
+        in
+            try dummyErrorRecord[ErrorCode] otherwise null,
+
+    Utility.AppendErrorCode = (errorCode as nullable text, newErrorCode as nullable text) as text =>
+        if (errorCode = null) then newErrorCode else 
+            (if (newErrorCode = null) then errorCode else Text.Combine({errorCode, newErrorCode}, ",")),
+
+    // Web Utilities
+    
+    PBICommonHeaderNames = {
+        UniqueRequestHeader,
+        "x-ms-client-session-id",
+        "RequestId",
+        "ActivityId"
+    },
+
+    UniqueRequestHeader = "x-ms-client-request-id",
+
+    PBICommonHeaders = () =>
+        let
+            activityId = Diagnostics.ActivityId(),
+            requestId = Text.NewGuid()
+        in
+            Record.FromList({requestId, activityId, requestId, activityId}, PBICommonHeaderNames),
+
+    DefaultHandlers = [
+        302 = DefaultErrorHandler,
+        400 = DefaultErrorHandler,
+        403 = AuthHandler,
+        401 = AuthHandler,
+        404 = DefaultErrorHandler,
+        500 = DefaultErrorHandler,
+        503 = DefaultErrorHandler,
+        Error = RequestFailureHandler
+    ],
+
+    JsonHandler = (state) => state & [
+        Response = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
+        Complete = true
+    ],
+
+    Http.Request = (url as text, options as record, handlers as record, optional startState as nullable record) =>
+        let
+            errorHandler = handlers[Error]?,
+            handledStatuses = List.Buffer(List.Transform(Record.FieldNames(Record.RemoveFields(handlers, "Error")), Number.From)),
+            moreOptions = options & [ManualStatusHandling = handledStatuses],
+            list = List.Generate(
+                () => [Iteration = 0, Url = url, Response = null, Complete = false, Return = false] & (startState ?? []),
+                (state) => not state[Return],
+                (state) => if state[Complete] then state & [Return = true] else
+                    let
+                        // The urls from the connector don't have PII data, so it is safe to log them.
+                        response = Web.Contents(url, moreOptions & [IsRetry = state[Iteration] > 0]),
+                        responseStatus = Value.Metadata(response)[Response.Status]? ?? 200,
+                        status = if errorHandler = null then responseStatus
+                                 else try responseStatus catch(e) => errorHandler(e, url, options[Headers]?),
+                        handler = Record.FieldOrDefault(handlers, Text.From(status, "")),
+                        partial = state & [Iteration = state[Iteration] + 1, Response = response, Complete = false, Status = status],
+                        nextState = if handler = null then partial & [Complete = true] else partial & handler(partial)
+                    in
+                        nextState),
+            result = List.Last(list)[Response]
+        in
+            result,
+
+    Web.JsonContents = (url as text, optional headers as record, optional additionalHandlers as record, optional jsonBody as any, optional startState as record, optional traceContext as record) =>
+        let
+            capacityId = Extension.CurrentApplication()[PBI_CapacityObjectId]?,
+            capacityHeaders = if capacityId <> null then
+                [
+                    #"x-ms-caller-capacity-id" = capacityId,
+                    #"x-ms-src-capacity-id" = capacityId
+                ] 
+            else
+                [],
+            allHeaders = PBICommonHeaders() 
+                & capacityHeaders 
+                & (headers ?? []) 
+                & (if jsonBody = null then [] else [#"Content-Type" = "application/json;charset=UTF-8"]),
+            content = if jsonBody = null then null else Json.FromValue(jsonBody)
+        in
+            Http.Request(
+                url,
+                [
+                    Headers = allHeaders,
+                    ExcludedFromCacheKey = PBICommonHeaderNames,
+                    Content=content,
+                    SafeRequestHeaders = {UniqueRequestHeader},
+                    SafeResponseHeaders = {"RequestId", "x-ms-public-api-error-code"}, // Trident responses seem to return a new unique value here
+                    TraceData = (traceContext ?? []) & [RequestUrl = NonPii(url)]
+                ],
+                DefaultHandlers & [200 = JsonHandler] & (additionalHandlers ?? []),
+                startState),
+
+    FormatDownstreamServiceErrorCode = (errorCode as nullable any, status as any) as text =>
+        if errorCode = null then Text.Format("HttpStatusCode|#{0}", {status}) else Text.From(errorCode),
+
+    DefaultErrorHandler = (state as record) =>
+        let
+            url = state[Url],
+            status = state[Status],
+            result = try
+            let
+                jsonResponse = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
+                responseStatusCode = Record.FieldOrDefault(Value.Metadata(jsonResponse), "Response.Status", 0),
+                requestId = Value.Metadata(jsonResponse)[Headers]?[RequestId]? ?? Value.Metadata(jsonResponse)[Headers]?[requestid]? ?? "",
+                errorCode = jsonResponse[error]?[code]? ?? jsonResponse[errorCode]? ?? jsonResponse[code]?,
+                errorMessage = jsonResponse[error]?[message]? ?? jsonResponse[error]?[pbi.error]?[parameters]?[ErrorMessage]? ?? jsonResponse[message]? ?? errorCode,
+                errorDetails = try if List.IsEmpty(jsonResponse[error][pbi.error][details]) then errorMessage
+                    else Text.Combine(jsonResponse[error][pbi.error][details], " ") otherwise Value.ToText(jsonResponse[error]? ?? jsonResponse),
+                errorRecord =
+                    Error.Record(
+                        NonPii("DataSource.Error"),
+                        NonPii(Extension.LoadString("DownstreamServiceCallFailure")),
+                        [
+                            Error = errorDetails,
+                            ErrorCode = NonPii(FormatDownstreamServiceErrorCode(errorCode, status)),
+                            RequestId = NonPii(requestId),
+                            RequestUrl = NonPii(url),
+                            HttpStatusCode = NonPii(status),
+                            ErrorMessage = errorMessage
+                        ],
+                        {NonPii(url), NonPii(status)}
+                    )
+            in
+                errorRecord,
+            jsonResponseText = try Text.FromBinary(state[Response]) otherwise "<encoding error>",
+            errorMessageToLog = if result[HasError] then Text.Format(Extension.LoadString("ErrorParsingJsonInHttpResponse"), {jsonResponseText})
+                else result[Value][Message],
+            finalResult = Diagnostics.Trace(TraceLevel.Warning, [
+                    Name = "Connector.WebError",
+                    Data = [ Error = errorMessageToLog ],
+                    SafeData = [ Url = url, StatusCode = status ]
+                ],
+                if result[HasError] then Error.Record(
+                    NonPii("DataSource.Error"),
+                    NonPii(Extension.LoadString("DownstreamServiceCallFailure")),
+                    [
+                        ErrorCode = NonPii(FormatDownstreamServiceErrorCode(null, status)),
+                        RequestUrl = NonPii(url),
+                        HttpStatusCode = NonPii(status),
+                        ErrorMessage = jsonResponseText
+                    ],
+                    {NonPii(url), NonPii(status)})
+                else result[Value])
+        in
+            error finalResult,
+
+    AuthHandler = (state) =>
+        if state[Refreshed]? = true or not Web.TryRefreshToken() then DefaultErrorHandler(state)
+        else state & [Refreshed = true],
+
+    RetryHandler = (count, optional delayFunction) =>
+        let delay = delayFunction ?? ((i) => i * 0.2) in
+        (state) =>
+            if state[Iteration] < count then Function.InvokeAfter(() => state, #duration(0, 0, 0, delay(state[Iteration])))
+            else DefaultErrorHandler(state),
+
+    RequestFailureHandler = (exception as record, url as text, headers as nullable record) =>
+        let
+            httpStatusCode = exception[Message.Parameters]?{1}?
+        in
+            error Error.Record(
+                NonPii("DataSource.Error"),
+                NonPii(Extension.LoadString("DownstreamServiceCallError")),
+                [
+                    ErrorCode = NonPii(FormatDownstreamServiceErrorCode(exception[errorCode]?, httpStatusCode)),
+                    ActualError = exception,
+                    RequestHeaders = if headers = null then [] else NonPii(Record.SelectFields(headers, PBICommonHeaderNames))
+                ],
+                {
+                    NonPii(url),
+                    NonPii(exception[Reason]?),
+                    NonPii(exception[Message]?)
+                }),
+
+    Web.TryRefreshToken = () as logical =>
+        let
+            forceRefreshOfTokens = true
+        in
+            Extension.CurrentCredential(forceRefreshOfTokens) <> null, // Force refresh of token.
+
+    Web.RefreshToken = () as logical =>
+        let
+            result = Record.HasFields(Extension.CurrentCredential(true), {"Doesn't exist"}) // Force refresh of token.
+        in
+            result,
+
+    // Caching Design
+
+    // Connector has a two caches:
+    //   * Time based cache, implemented in Web.JsonContentsWithCaching
+    //   * Web response caching, implmented in Web.Contents.
+
+    // Web.JsonContentsWithCaching ultimately calls Web.Contents. Each
+    // request should follow the following constraints:
+    //   * Cache responses in at most one cache.
+    //   * Don't cache certain types of requests, such as those which
+    //     might hold authentication tokens.
+
+    // Web.JsonContentsWithCaching avoids using the cache in Web.Contents
+    // by passing Iteration=1 in its state. This sets Web.Contents option
+    // IsRefresh=true which causes the request to be made without using
+    // a previously cached response. The result of the request may still
+    // be cached!
+
+    // All calls to Web.JsonContents can similarly bypass the cache by
+    // setting Iteration=1.
+    Web.JsonContentsWithCaching = (
+        url as text,
+        cacheKeyPrefix as text,
+        cacheHours as number,
+        optional headers as record,
+        optional additionalHandlers as record,
+        optional jsonBody as any,
+        optional startState as record,
+        optional traceContext as record
+    ) as any =>
+        let
+            now = DateTimeZone.RemoveZone(DateTimeZone.UtcNow()),
+            hoursForSuffix = Number.RoundDown(Duration.TotalHours(now - #datetime(2023, 1, 1, 0, 0, 0))),
+            cacheKeySuffix = Text.From(cacheHours * Number.IntegerDivide(hoursForSuffix, cacheHours)),
+            // Note: cacheKeyPrefix is sufficiently unique so that URL isn't required as part of cacheKey
+            cacheKey = cacheKeyPrefix & cacheKeySuffix,
+            // Note: Iteration > 0 forces no further caching on the web request
+            jsonContents = Web.JsonContents(url, headers, additionalHandlers, jsonBody, (startState ?? []) & [Iteration = 1], traceContext),
+            jsonBinary = Json.FromValue(jsonContents),
+            serializedJson = Extension.Cache()[Metadata][Serialized](cacheKey, () => try jsonBinary otherwise #binary({})),
+            contents = if serializedJson <> #binary({})
+                then Json.Document(serializedJson)
+                else jsonContents
+        in
+            contents,
+
+    GetCredential = (resource) =>
+        let
+            currentCredentials = Extension.CurrentCredential(),
+            trimmedResource = Text.TrimEnd(resource, "/"),
+            prop = "AccessToken:" & trimmedResource,
+            propWithSlash = "AccessToken:" & trimmedResource & "/",
+            tokenValue = Record.FieldOrDefault(currentCredentials[Properties], prop, Record.FieldOrDefault(currentCredentials[Properties], propWithSlash, "")),
+            finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,
+            credentialToReturn = currentCredentials & [access_token = finalTokenValue]
+        in
+            credentialToReturn,
+
+    // OneLake URL helpers
+    GetOneLakeBaseUrl = (cloudEnv, isMsit as logical, includeHttps as logical) => 
+    let
+        OneLakePBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
+        OneLakeFormatWithHttps = "https://#{0}",
+        result = 
+            if cloudEnv = "tip1" 
+                or Text.Contains(OneLakePBIBaseUrl, "powerbistagingapi") 
+                or Text.Contains(OneLakePBIBaseUrl, "dxtapi") 
+            then
+                "dxt-onelake.dfs.fabric.microsoft.com" 
+            else if cloudEnv = "tip2" 
+                or Text.Contains(OneLakePBIBaseUrl, "daily") 
+            then 
+                "daily-onelake.dfs.fabric.microsoft.com" 
+            else if cloudEnv = "Ppe" 
+                or cloudEnv = "PpeCloud" 
+            then 
+                "onelake-int-edog.dfs.pbidedicated.windows-int.net" 
+            else if isMsit 
+            then 
+                "msit-onelake.dfs.fabric.microsoft.com" // there is no separate cloud identifier for MSIT
+            else 
+                "onelake.dfs.fabric.microsoft.com"
+    in
+        if includeHttps then 
+            Text.Format(OneLakeFormatWithHttps, {result}) 
+        else 
+            result,
+    
+    //Filter out system schemas from the input table.
+    FilterSystemSchemas = (input) =>
+        let
+            schemalist = {"guest", "INFORMATION_SCHEMA", "sys", "_rsc", "queryinsights","db_owner", "db_accessadmin", "db_securityadmin", "db_ddladmin","db_backupoperator", "db_datareader", "db_datawriter", "db_denydatareader", "db_denydatawriter"}
+        in
+            Table.SelectRows(input, each not List.Contains(schemalist, [Schema])),
+
+    //Sensitivity label helpers to add ID as a trait for Fabric Connectors 
+    GetSensitivityLabelId = (item as record) as nullable text =>
+        let
+            labelId = item[sensitivityLabel]?[id]? ?? null
+        in
+            labelId,
+
+    AddSensitivityTrait = (value as table, sensitivityLabelId as nullable text) as table =>
+        if sensitivityLabelId <> null then 
+            let
+                trait = [Provider = "MicrosoftInformationProtection", Identifier = "Classification", Value = [LabelId = sensitivityLabelId]],
+                result = Extension.AddTrait(value, trait)
+            in 
+                result
+        else value 
+in
+    [        
+        // Common utilities
+        NonPii = NonPii,
+        
+        Value.ToText = Value.ToText,
+        Value.WaitFor = Value.WaitFor,
+        Text.IsNullOrEmpty = Text.IsNullOrEmpty,
+        Value.ConvertToLogical = Value.ConvertToLogical,
+        Connector.GenerateErrorRecord = Connector.GenerateErrorRecord,
+        Connector.SurfaceErrorRecord = Connector.SurfaceErrorRecord,
+        FilterSystemSchemas = FilterSystemSchemas,
+        GetSensitivityLabelId = GetSensitivityLabelId,
+        AddSensitivityTrait = AddSensitivityTrait,
+        
+        // Web and auth functions
+        Web.JsonContents = Web.JsonContents,
+        Web.JsonContentsWithCaching = Web.JsonContentsWithCaching,
+        Web.DefaultErrorHandler = DefaultErrorHandler,
+        RetryHandler = RetryHandler,
+        AuthHandler = AuthHandler,
+        JsonHandler = JsonHandler,
+        
+        // Credential functions
+        GetCredential = GetCredential,
+        
+        // OneLake functions
+        GetOneLakeBaseUrl = GetOneLakeBaseUrl,
+
+        // Scope function
+        Utility.CreateOrderedScope = Utility.CreateOrderedScope
+    ]

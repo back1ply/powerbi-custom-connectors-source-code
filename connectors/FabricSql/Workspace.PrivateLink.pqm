@@ -160,6 +160,7 @@ let
 in
     // Export record with public members only
     [
+        GenerateWorkspacePLUrl = GenerateWorkspacePLUrl,
         GetPrivateLinkS2SHeader = GetPrivateLinkS2SHeader,
         GetWorkspaceBaseUrl = GetWorkspaceBaseUrl,
         IsWorkspacePLUrl = IsWorkspacePLUrl

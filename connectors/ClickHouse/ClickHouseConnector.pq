@@ -2,8 +2,9 @@
 // based on an ODBC driver. It is meant as a template for other
 // ODBC based connectors that require similar functionality.
 //
-[Version = "1.1.2"]
+[Version = "1.1.6", Traits = [GatewayRequired = true]]
 section ClickHouse;
+ConnectorVersion = "1.1.6";
 
 // When set to true, additional trace information will be written out to the User log.
 // This should be set to false before release. Tracing is done through a call to
@@ -229,6 +230,8 @@ let
 
             Port = port ,
             Database = database,  
+            ClientName = "PowerBi/" & ConnectorVersion,
+            SQLCompatibilitySettings = 1,
             
             // These fields come from the options record, so they might be null.
             // A later step will strip all null values from the connection string.

@@ -1,0 +1,565 @@
+let
+    OutputInterceptorCreate =
+        try #shared[OutputInterceptorCreate]
+        otherwise error "Internal error: OutputInterceptorCreate was not injected.",
+
+    QuoteIdentifier = (identifier as text) as text =>
+        "[" & Text.Replace(identifier, "]", "]]") & "]",
+
+    QuoteString = (value as text) as text =>
+        "N'" & Text.Replace(value, "'", "''") & "'",
+
+    MakeTableId = (schemaName as text, tableName as text) as text =>
+        Text.FromBinary(Json.FromValue({schemaName, tableName})),
+
+    ParseTableId = (tableId as text) as record =>
+        let
+            parts = Json.Document(tableId)
+        in
+            [Schema = parts{0}, Name = parts{1}],
+
+    IsTrueSelector = (selector as function) as logical =>
+        let
+            expression = RowExpression.From(selector)
+        in
+            expression[Kind] = "Constant" and expression[Value] = true,
+
+    WithCleanup = (operation as action, cleanup as function) as action =>
+        Action.Sequence({
+            Action.Try(operation),
+            (result) =>
+                if result[HasError] then
+                    Action.Sequence({
+                        Action.Try(cleanup()),
+                        () => error result[Error]
+                    })
+                else
+                    Action.Sequence({
+                        cleanup(),
+                        () => Action.Return(result[Value])
+                    })
+        }),
+
+    MakeVersionTable = (keyParts as list, containerCtor as function, interceptor as record) as table =>
+        let
+            key = Text.Combine(List.Transform(keyParts, (part) => Text.Replace(part, "|", "||")), "|"),
+            makeTable = (rows as list) => #table({"Version", "Published", "Data", "Modified"}, rows),
+            emptyTable = makeTable({}),
+            baseTable = makeTable({{null, true, null, null}}),
+            stateRow = () => Extension.State(){[Name = key]}?,
+            versionsTable = (optional defaultValue) => Extension.State(){[Name = key]}?[Value]? ?? defaultValue,
+            allVersions = () => Table.Combine({baseTable, versionsTable(emptyTable)}),
+            addData = (versions as table) =>
+                Table.FromRecords(Table.TransformRows(versions, (row) => row & [Data = containerCtor(row[Version])])),
+            view = Table.View(addData(allVersions()), [
+                OnInsertRows = (rowsToInsert) =>
+                    Action.Sequence({
+                        () => Action.Return(versionsTable()),
+                        (oldValue) =>
+                            Action.Sequence({
+                                () =>
+                                    if oldValue = null then
+                                        TableAction.InsertRows(
+                                            Extension.State(),
+                                            #table({"Name", "Value"}, {{key, makeTable({})}}))
+                                    else
+                                        Action.DoNothing,
+                                () =>
+                                    let
+                                        versionsToAdd = List.Buffer(rowsToInsert[Version]),
+                                        createActions = List.Transform(
+                                            versionsToAdd,
+                                            (currentVersion) => interceptor[OnCreateVersion](currentVersion)),
+                                        addedRows = List.Transform(
+                                            versionsToAdd,
+                                            (currentVersion) => {currentVersion, false, null, null})
+                                    in
+                                        Action.Sequence(
+                                            createActions
+                                            & {() => Action.Return(Table.Buffer(makeTable(addedRows)))}),
+                                (added) =>
+                                    Action.Sequence({
+                                        () => ValueAction.Replace(
+                                            stateRow()[Value],
+                                            Table.Buffer(Table.Combine({oldValue ?? emptyTable, added}))),
+                                        () => Action.Return(addData(added))
+                                    })
+                            })
+                    }),
+                OnUpdateRows = (updates, selector) =>
+                    Action.Sequence({
+                        () => Action.Sequence(List.Transform(
+                            Table.SelectRows(versionsTable(emptyTable), selector)[Version],
+                            (currentVersion) => interceptor[OnCommit](currentVersion))),
+                        () => ValueAction.Replace(
+                            stateRow()[Value],
+                            Table.Buffer(Table.SelectRows(versionsTable(emptyTable), (row) => not selector(row)))),
+                        () => Action.Return(emptyTable)
+                    }),
+                OnDeleteRows = (selector) =>
+                    Action.Sequence({
+                        () => Action.Sequence(List.Transform(
+                            Table.SelectRows(versionsTable(emptyTable), selector)[Version],
+                            (currentVersion) => interceptor[OnRollback](currentVersion))),
+                        () => ValueAction.Replace(
+                            stateRow()[Value],
+                            Table.Buffer(Table.SelectRows(versionsTable(emptyTable), (row) => not selector(row)))),
+                        () => Action.Return(baseTable)
+                    })
+            ])
+        in
+            view,
+
+    WrapDatabase = (
+        database as table,
+        server as text,
+        databaseName as text,
+        hierarchicalNavigation as logical
+    ) as table =>
+        Diagnostics.Trace(
+            TraceLevel.Information,
+            [
+                Name = "Warehouse/OutputInterceptor/WrapDatabase",
+                Data = [HierarchicalNavigation = hierarchicalNavigation]
+            ],
+            if hierarchicalNavigation then
+                WrapHierarchicalDatabase(database, server, databaseName)
+            else
+                WrapContainer(database, database, server, databaseName, null, false, null, null)),
+
+    WrapHierarchicalDatabase = (
+        database as table,
+        server as text,
+        databaseName as text
+    ) as table =>
+        let
+            getRows = () =>
+                Table.FromRecords(
+                    Table.TransformRows(
+                        database,
+                        (row) =>
+                            let
+                                schemaName = row[Schema],
+                                container = row[Data]
+                            in
+                                row & [
+                                    Data = WrapContainer(
+                                        database,
+                                        container,
+                                        server,
+                                        databaseName,
+                                        schemaName,
+                                        true,
+                                        null,
+                                        null)
+                                ])),
+            view = Table.View(null, [
+                GetType = () => Value.Type(database),
+                GetRows = getRows,
+                GetExpression = () => Value.Expression(Value.Optimize(database)),
+                OnInvoke = (function, args, index) =>
+                    Function.Invoke(function, List.ReplaceRange(args, index, 1, {getRows()})),
+                OnInsertRows = (rows) => TableAction.InsertRows(database, rows),
+                OnDeleteRows = (selector) => TableAction.DeleteRows(Table.SelectRows(database, selector)),
+                OnNativeStatement = (statement, parameters, options) =>
+                    ValueAction.NativeStatement(database, statement, parameters, options),
+                OnTestConnection = () => DataSource.TestConnection(database),
+                ThrowFoldingFailures = false
+            ])
+        in
+            view,
+
+    WrapContainer = (
+        database as table,
+        physicalContainer as table,
+        server as text,
+        databaseName as text,
+        fixedSchema as nullable text,
+        hierarchicalNavigation as logical,
+        optional version as nullable text,
+        optional existingInterceptor as nullable record
+    ) as table =>
+        let
+            statePrefix = Text.Combine(
+                {"Warehouse", server, databaseName, fixedSchema ?? "*"},
+                "|"),
+            interceptor =
+                existingInterceptor
+                ?? MakeInterceptor(database, server, databaseName, hierarchicalNavigation, statePrefix),
+            useInterceptor = version <> null,
+            identity = (row as record) as record => [
+                Schema = fixedSchema ?? row[Schema],
+                Name = if hierarchicalNavigation then row[Name] else row[Item]
+            ],
+            tableId = (row as record) as text =>
+                let
+                    tableIdentity = identity(row)
+                in
+                    MakeTableId(tableIdentity[Schema], tableIdentity[Name]),
+            wrapRow = (row as record) as nullable record =>
+                let
+                    id = tableId(row),
+                    tableIdentity = identity(row),
+                    state = if useInterceptor then interceptor[GetTableState](version, id) else null,
+                    phase = state[Phase]?,
+                    pendingSchema =
+                        state[Schema]?
+                        ?? (if state[DataParts]? is list and not List.IsEmpty(state[DataParts]) then
+                                Value.Type(List.Last(state[DataParts]))
+                            else
+                                null),
+                    hidden = phase = "Dropped",
+                    wrappedData = WrapLeaf(
+                        database,
+                        row[Data],
+                        server,
+                        databaseName,
+                        tableIdentity[Schema],
+                        tableIdentity[Name],
+                        hierarchicalNavigation,
+                        version,
+                        interceptor,
+                        pendingSchema)
+                in
+                    if hidden then null else row & [Data = wrappedData],
+            physicalRows = () => List.RemoveNulls(Table.TransformRows(physicalContainer, wrapRow)),
+            virtualRows = () =>
+                if not useInterceptor then
+                    {}
+                else
+                    let
+                        states = interceptor[GetTableStates](version),
+                        virtualStates = List.Select(
+                            states,
+                            each [Phase]? = "Created" or [Phase]? = "CreatedWithData"),
+                        records = List.Transform(
+                            virtualStates,
+                            (state) =>
+                                let
+                                    parsed = ParseTableId(state[TableId]),
+                                    emptyData = #table(state[Schema], {}),
+                                    baseRecord =
+                                        if hierarchicalNavigation then
+                                            [Name = parsed[Name], Data = emptyData, Kind = "Table"]
+                                        else
+                                            [Schema = parsed[Schema], Item = parsed[Name], Data = emptyData, Kind = "Table"]
+                                in
+                                    wrapRow(baseRecord))
+                    in
+                        records,
+            getRows = () =>
+                if not useInterceptor then
+                    physicalContainer
+                else
+                    Table.FromRecords(virtualRows() & physicalRows()),
+            deleteRows = (rows as table, optional selector as nullable function) =>
+                let
+                    selectedRows = if selector = null then rows else Table.SelectRows(Table.StopFolding(rows), selector),
+                    selectedTableIds = List.Buffer(Table.TransformRows(selectedRows, tableId)),
+                    actions =
+                        if useInterceptor then
+                            List.Transform(
+                                selectedTableIds,
+                                (selectedTableId) =>
+                                    interceptor[OnContainerDeleteRow](version, selectedTableId))
+                        else
+                            List.Transform(
+                                selectedTableIds,
+                                (selectedTableId) =>
+                                    let
+                                        parsed = ParseTableId(selectedTableId),
+                                        selectedPhysicalRows =
+                                            if hierarchicalNavigation then
+                                                Table.SelectRows(
+                                                    physicalContainer,
+                                                    each [Name] = parsed[Name])
+                                            else
+                                                Table.SelectRows(
+                                                    physicalContainer,
+                                                    each [Schema] = parsed[Schema] and [Item] = parsed[Name])
+                                    in
+                                        TableAction.DeleteRows(selectedPhysicalRows))
+                in
+                    Action.Sequence(actions & {Action.DoNothing}),
+            view = Table.View(null, [
+                GetType = () => Value.Type(physicalContainer),
+                GetRows = getRows,
+                GetExpression = () => Value.Expression(Value.Optimize(physicalContainer)),
+                OnSelectRows = (selector) =>
+                    let
+                        selected = Table.SelectRows(getRows(), selector)
+                    in
+                        Table.View(selected, [
+                            OnDeleteRows = (optional nestedSelector) => deleteRows(selected, nestedSelector),
+                            ThrowFoldingFailures = false
+                        ]),
+                OnInsertRows = (rowsToInsert) =>
+                    if useInterceptor then
+                        Action.Sequence(
+                            List.Combine(Table.TransformRows(
+                                rowsToInsert,
+                                (row) => {
+                                    interceptor[OnContainerInsertRow](version, tableId(row), Value.Type(row[Data])),
+                                    () => interceptor[OnTableInsertRows](version, tableId(row), row[Data])
+                                }))
+                            & {Action.DoNothing})
+                    else
+                        TableAction.InsertRows(physicalContainer, rowsToInsert),
+                OnDeleteRows = (optional selector) => deleteRows(getRows(), selector),
+                OnInvoke = (function, args, index) =>
+                    if function = Value.Versions then
+                        MakeVersionTable(
+                            {statePrefix, "Versions"},
+                            (currentVersion) => @WrapContainer(
+                                database,
+                                physicalContainer,
+                                server,
+                                databaseName,
+                                fixedSchema,
+                                hierarchicalNavigation,
+                                currentVersion,
+                                interceptor),
+                            interceptor)
+                    else if function = Value.VersionIdentity then
+                        version
+                    else
+                        Function.Invoke(function, List.ReplaceRange(args, index, 1, {getRows()})),
+                OnNativeStatement = (statement, parameters, options) =>
+                    ValueAction.NativeStatement(physicalContainer, statement, parameters, options),
+                OnTestConnection = () => DataSource.TestConnection(physicalContainer),
+                ThrowFoldingFailures = false
+            ])
+        in
+            view,
+
+    WrapLeaf = (
+        database as table,
+        physicalLeaf as table,
+        server as text,
+        databaseName as text,
+        schemaName as text,
+        tableName as text,
+        hierarchicalNavigation as logical,
+        optional version as nullable text,
+        optional interceptor as nullable record,
+        optional pendingSchema as nullable type
+    ) as table =>
+        let
+            id = MakeTableId(schemaName, tableName),
+            useInterceptor = version <> null and interceptor <> null,
+            tableState = if useInterceptor then interceptor[GetTableState](version, id) else null,
+            effectivePendingSchema =
+                pendingSchema
+                ?? tableState[Schema]?
+                ?? (if tableState[DataParts]? is list and not List.IsEmpty(tableState[DataParts]) then
+                        Value.Type(List.Last(tableState[DataParts]))
+                    else
+                        null),
+            baseLeaf = if effectivePendingSchema <> null then #table(effectivePendingSchema, {}) else physicalLeaf,
+            view = Table.View(baseLeaf, [
+                GetType = () => Value.Type(baseLeaf),
+                GetRows = () => baseLeaf,
+                GetExpression = () => Value.Expression(Value.Optimize(baseLeaf)),
+                OnInsertRows = (rows) =>
+                    if useInterceptor then
+                        interceptor[OnTableInsertRows](version, id, rows)
+                    else
+                        TableAction.InsertRows(physicalLeaf, rows),
+                OnDeleteRows = (optional selector) =>
+                    if useInterceptor and (selector = null or IsTrueSelector(selector)) then
+                        interceptor[OnTableDeleteAllRows](version, id)
+                    else if useInterceptor then
+                        interceptor[OnTableDeleteRows](version, id, selector)
+                    else
+                        TableAction.DeleteRows(
+                            if selector = null then physicalLeaf else Table.SelectRows(physicalLeaf, selector)),
+                OnInvoke = (function, args, index) =>
+                    if function = Value.Versions then
+                        let
+                            statePrefix = Text.Combine(
+                                {"Warehouse", server, databaseName, schemaName},
+                                "|"),
+                            effectiveInterceptor =
+                                interceptor
+                                ?? MakeInterceptor(
+                                    database,
+                                    server,
+                                    databaseName,
+                                    hierarchicalNavigation,
+                                    statePrefix)
+                        in
+                            MakeVersionTable(
+                                {statePrefix, tableName, "Versions"},
+                                (currentVersion) => @WrapLeaf(
+                                    database,
+                                    physicalLeaf,
+                                    server,
+                                    databaseName,
+                                    schemaName,
+                                    tableName,
+                                    hierarchicalNavigation,
+                                    currentVersion,
+                                    effectiveInterceptor,
+                                    null),
+                                effectiveInterceptor)
+                    else if function = Value.VersionIdentity then
+                        version
+                    else
+                        Function.Invoke(function, List.ReplaceRange(args, index, 1, {baseLeaf})),
+                OnNativeStatement = (statement, parameters, options) =>
+                    ValueAction.NativeStatement(physicalLeaf, statement, parameters, options),
+                OnTestConnection = () => DataSource.TestConnection(physicalLeaf)
+            ])
+        in
+            view,
+
+    MakeInterceptor = (
+        database as table,
+        server as text,
+        databaseName as text,
+        hierarchicalNavigation as logical,
+        statePrefix as text
+    ) as record =>
+        let
+            getContainer = (schemaName as text) as table =>
+                if hierarchicalNavigation then database{[Schema = schemaName]}[Data] else database,
+            getLeaf = (schemaName as text, tableName as text) as table =>
+                let
+                    container = getContainer(schemaName)
+                in
+                    if hierarchicalNavigation then
+                        container{[Name = tableName]}[Data]
+                    else
+                        container{[Schema = schemaName, Item = tableName]}[Data],
+            makeCreateRows = (schemaName as text, tableName as text, data as table) as table =>
+                if hierarchicalNavigation then
+                    #table({"Name", "Data"}, {{tableName, data}})
+                else
+                    #table({"Schema", "Item", "Data"}, {{schemaName, tableName, data}}),
+            replacePhysicalData = (
+                schemaName as text,
+                tableName as text,
+                selector as nullable function,
+                data as table
+            ) as action =>
+                let
+                    leaf = getLeaf(schemaName, tableName),
+                    physicalVersions = () => Value.Versions(leaf),
+                    physicalVersion = Text.NewGuid()
+                in
+                    Action.Sequence({
+                        TableAction.InsertRows(physicalVersions(), #table({"Version"}, {{physicalVersion}})),
+                        (createdVersions) =>
+                            let
+                                pendingLeaf = createdVersions{0}[Data]
+                            in
+                                Action.Sequence({
+                                    TableAction.DeleteRows(
+                                        if selector = null then pendingLeaf else Table.SelectRows(pendingLeaf, selector)),
+                                    () => TableAction.InsertRows(pendingLeaf, data),
+                                    () => TableAction.UpdateRows(
+                                        Table.SelectRows(
+                                            physicalVersions(),
+                                            each [Version] = physicalVersion),
+                                        {{"Published", each true}})
+                                })
+                    }),
+            schemasMatch = (schemaName as text, tableName as text, newSchema as type) as logical =>
+                let
+                    existingSchema = Value.Type(getLeaf(schemaName, tableName)),
+                    existingFields = Type.RecordFields(Type.TableRow(existingSchema)),
+                    newFields = Type.RecordFields(Type.TableRow(newSchema)),
+                    existingNames = Record.FieldNames(existingFields),
+                    newNames = Record.FieldNames(newFields),
+                    matchingTypes =
+                        existingNames = newNames
+                        and List.AllTrue(List.Transform(
+                            existingNames,
+                            (fieldName) =>
+                                let
+                                    existingField = Record.Field(existingFields, fieldName),
+                                    newField = Record.Field(newFields, fieldName),
+                                    existingType = Type.ReplaceFacets(existingField[Type], []),
+                                    newType = Type.ReplaceFacets(newField[Type], [])
+                                in
+                                    existingField[Optional] = newField[Optional]
+                                    and Type.Is(existingType, newType)
+                                    and Type.Is(newType, existingType)))
+                in
+                    matchingTypes,
+            replacePhysicalTable = (
+                schemaName as text,
+                tableName as text,
+                version as text,
+                data as table
+            ) as action =>
+                let
+                    suffix = Text.Remove(Text.NewGuid(), {"-"}),
+                    maximumBaseLength = 128 - Text.Length("__pq_") - Text.Length(suffix) - 1,
+                    temporaryName = "__pq_" & Text.Start(tableName, maximumBaseLength) & "_" & suffix,
+                    qualifiedOriginal = QuoteIdentifier(schemaName) & "." & QuoteIdentifier(tableName),
+                    qualifiedTemporary = QuoteIdentifier(schemaName) & "." & QuoteIdentifier(temporaryName),
+                    swapStatement = Text.Combine({
+                        "BEGIN TRY BEGIN TRANSACTION; DROP TABLE ",
+                        qualifiedOriginal,
+                        "; EXEC sp_rename ",
+                        QuoteString(qualifiedTemporary),
+                        ", ",
+                        QuoteString(tableName),
+                        ", N'OBJECT'; COMMIT TRANSACTION; END TRY ",
+                        "BEGIN CATCH IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION; THROW; END CATCH;"
+                    }),
+                    cleanupStatement = "DROP TABLE IF EXISTS " & qualifiedTemporary & ";",
+                    createAndLoad = TableAction.InsertRows(
+                        getContainer(schemaName),
+                        makeCreateRows(schemaName, temporaryName, data)),
+                    swap = ValueAction.NativeStatement(database, swapStatement, null, null),
+                    cleanup = () => ValueAction.NativeStatement(database, cleanupStatement, null, null)
+                in
+                    Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [
+                            Name = "Warehouse/OutputInterceptor/ReplaceTable",
+                            Data = []
+                        ],
+                        WithCleanup(Action.Sequence({createAndLoad, swap}), cleanup)),
+            handlers = [
+                OnAppend = (version, tableId, data, tableSchema) =>
+                    let
+                        parsed = ParseTableId(tableId)
+                    in
+                        if tableSchema <> null then
+                            TableAction.InsertRows(
+                                getContainer(parsed[Schema]),
+                                makeCreateRows(parsed[Schema], parsed[Name], data))
+                        else
+                            TableAction.InsertRows(getLeaf(parsed[Schema], parsed[Name]), data),
+                OnReplaceData = (version, tableId, selector, data) =>
+                    let
+                        parsed = ParseTableId(tableId),
+                        schemaChanged =
+                            selector = null
+                            and Table.ColumnCount(data) > 0
+                            and not schemasMatch(parsed[Schema], parsed[Name], Value.Type(data))
+                    in
+                        if schemaChanged then
+                            replacePhysicalTable(parsed[Schema], parsed[Name], version, data)
+                        else
+                            replacePhysicalData(parsed[Schema], parsed[Name], selector, data),
+                OnReplaceTable = (version, tableId, tableSchema, data) =>
+                    let
+                        parsed = ParseTableId(tableId)
+                    in
+                        replacePhysicalTable(parsed[Schema], parsed[Name], version, data),
+                OnCompareSchemas = (version, tableId, newSchema) =>
+                    let
+                        parsed = ParseTableId(tableId)
+                    in
+                        schemasMatch(parsed[Schema], parsed[Name], newSchema)
+            ]
+        in
+            OutputInterceptorCreate(handlers, statePrefix)
+in
+    [
+        WrapDatabase = WrapDatabase
+    ]

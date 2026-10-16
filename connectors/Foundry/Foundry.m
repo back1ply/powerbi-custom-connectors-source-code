@@ -1,4 +1,4 @@
-﻿[Version = "1.3.0"]
+﻿[Version = "1.3.1", Traits = [GatewayRequired = true]]
 section Foundry;
 
 DSN_NAME = "FoundrySql";

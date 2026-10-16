@@ -1,5 +1,5 @@
 ﻿// This file contains your Data Connector logic
-[Version = "1.0.4"]
+[Version = "1.0.5", Traits = [GatewayRequired = true]]
 section Kyligence;
 
 EnableTraceOutput = true;

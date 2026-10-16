@@ -1,5 +1,5 @@
 // Release versions are set automatically by the build system. Do not manually edit the vesion in source.
-[Version = "1.2.2"]
+[Version = "1.2.4", Traits = [GatewayRequired = true]]
 section MongoDBAtlasODBC;
 
 // When set to true, additional trace information will be written out to the User log.
@@ -144,19 +144,19 @@ MongoDBAtlasODBC.Publish = [
     SourceTypeImage = MongoDBAtlasODBC.Icons,
     SupportsDirectQuery = true,
     NativeQueryProperties = [
-        navigationSteps = {
+        NavigationSteps = {
             [
-                indices = {[
-                    value = "database",
-                    indexName = "Name"
+                Indices = {[
+                    FieldDisplayName = "database",
+                    IndexName = "Name"
                 ], [
-                    displayName = "Database",
-                    indexName = "Kind"
+                    ConstantValue = "Database",
+                    IndexName = "Kind"
                 ]},
-                access = "Data"
+                FieldAccess = "Data"
             ]
         },
-        nativeQueryOptions = [
+        DefaultOptions = [
             EnableFolding = true
         ]
     ]

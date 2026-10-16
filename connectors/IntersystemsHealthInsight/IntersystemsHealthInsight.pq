@@ -1,5 +1,5 @@
 // This file contains HealthInsight Connector logic
-[Version = "1.0.3"]
+[Version = "1.0.4", Traits = [GatewayRequired = true]]
 section IntersystemsHealthInsight;
 
 Config_SqlConformance = ODBC[SQL_SC][SQL_SC_SQL92_FULL];

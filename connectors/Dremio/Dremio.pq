@@ -1,6 +1,6 @@
-[Version = "3.12.0"]
+[Version = "3.16.1"]
 section Dremio;
-ConnectorVersion = "3.12.0";
+ConnectorVersion = "3.16.1";
 
 // When set to true, additional trace information will be written out to the User log.
 // This should be set to false before release. Tracing is done through a call to
@@ -29,6 +29,7 @@ shared Dremio.DatabasesV370 = DremioDatabaseExportV370;
 shared DremioTesting.Contents = () =>
 [
     funcsToTest = AdbcOptions,
+    OAuthDiscovery = OAuthDiscoveryModule,
     AdbcDataSource = AdbcDataSourceModule
 ];
 
@@ -142,12 +143,12 @@ Dremio.Publish = [
     SupportsDirectQuery = true,
     // Display Native Query navigating from the root of the DataSource
     NativeQueryProperties = [
-      navigationSteps = {
+      NavigationSteps = {
         [
         ]
       },
 
-      nativeQueryOptions = [
+      DefaultOptions = [
           EnableFolding = true
       ]
     ]
@@ -264,7 +265,10 @@ DremioDatabaseExportV300 =
 DremioDatabaseExportV370 =
     let
         Function = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) as table =>
-          DremioXdbcDatabase(server, encryption, engine, routingTag, routingQueue, options),
+            let
+              defaultOptions = if options <> null then options & [UseAdbcByDefault = UseAdbcByDefault] else [UseAdbcByDefault = UseAdbcByDefault]
+            in
+              DremioXdbcDatabase(server, encryption, engine, routingTag, routingQueue, defaultOptions),
         FunctionType = Type.ForFunction(
             [
                 Parameters = [
@@ -477,12 +481,12 @@ DremioCloud.Publish = [
     LearnMoreUrl = "https://docs.dremio.com/cloud/sonar/client-apps/microsoft-power-bi",
     // Display Native Query navigating from the root of the DataSource
     NativeQueryProperties = [
-      navigationSteps = {
+      NavigationSteps = {
         [
         ]
       },
 
-      nativeQueryOptions = [
+      DefaultOptions = [
           EnableFolding = true
       ]
     ]
@@ -681,7 +685,10 @@ DremioCloudDatabaseByServerExportV360 =
 DremioCloudDatabaseByServerExportV370 =
     let
         Function = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) as table =>
-            DremioCloudXdbcDatabase(NormalizeServerName(server), projectId, engine, routingTag, routingQueue, encryption, options),
+            let
+              defaultOptions = if options <> null then options & [UseAdbcByDefault = UseAdbcByDefault] else [UseAdbcByDefault = UseAdbcByDefault]
+            in
+              DremioCloudXdbcDatabase(NormalizeServerName(server), projectId, engine, routingTag, routingQueue, encryption, defaultOptions),
         FunctionType = Type.ForFunction(
             [
                 Parameters = [
@@ -967,6 +974,11 @@ AADAuthorizationURI = "https://login.microsoftonline.com/common/oauth2/authorize
 AADSoftwareResource = "429333a8-1521-4502-9101-6d4f2c1de644";
 AADCloudResource = "https://analysis.windows.net/powerbi/connector/Dremio";
 
+UseAdbcByDefault = Logical.From(Environment.FeatureSwitch("TenantSetting_UseAdbcByDefault", false)) ?? false;
+
+AdbcModuleIdentifier = () => ...;
+MakeAdbcUniqueIdentifier = (connectionString as record) as record => [Module = AdbcModuleIdentifier, Signature = connectionString];
+
 //
 // Load common library functions
 //
@@ -998,8 +1010,8 @@ IsAdbcMode = (server as text, optional options as record) as logical =>
     // lets try to check for odbc:// prefix as well for future forward compatibility
     else if StripOdbcPrefix(server) <> server then
         false
-    // Implementation has lesser precedence than prefix
-    else if options <> null and options[Implementation]? = "2.0" then
+    // Implementation has lesser precedence than prefix or env switch for ADBC by default
+    else if (options <> null and options[Implementation]? = "2.0") or UseAdbcByDefault then
         true
     else
         false;
@@ -1016,7 +1028,9 @@ FilterOptionsForOdbc = (optional options as record) =>
                 "AdbcFetchTimeout",
                 "AdbcQueryTimeout",
                 "AdbcUpdateTimeout",
-                "UseAdbcConnection"
+                "UseAdbcConnection",
+                "UseAdbcByDefault",
+                "UseInformationSchemaSchemata"
             },
             nonNullFields = List.Select(Record.FieldNames(options), each Record.Field(options, _) <> null),
             filteredNullOptions = Record.SelectFields(options, nonNullFields)
@@ -1025,17 +1039,39 @@ FilterOptionsForOdbc = (optional options as record) =>
     else
         options;
 
+TraceImplementation = (dataSourceKind as text, isAdbc as logical, result as table) as table =>
+    let
+        implementation = if isAdbc then "2.0" else "1.0",
+        driverType = if isAdbc then "ADBC" else "ODBC"
+    in
+        Diagnostics.Trace(
+            TraceLevel.Information, [
+                Name = "Dremio/Implementation",
+                Data = [],
+                SafeData = [DataSourceKind = dataSourceKind, Implementation = implementation, DriverType = driverType]
+            ],
+            result
+        );
+
 DremioXdbcDatabase = (server as text, encryption as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional options as record) as table =>
-    if IsAdbcMode(server, options) then
-        DremioAdbcDataSource(StripAdbcPrefix(server), encryption, engine, routingTag, routingQueue, options)
-    else
-        DremioDatabase(StripOdbcPrefix(server), encryption, engine, routingTag, routingQueue, FilterOptionsForOdbc(options));
+    let
+        isAdbc = IsAdbcMode(server, options),
+        result = if isAdbc then
+            DremioAdbcDataSource(MakeAdbcUniqueIdentifier, StripAdbcPrefix(server), encryption, engine, routingTag, routingQueue, options)
+        else
+            DremioDatabase(StripOdbcPrefix(server), encryption, engine, routingTag, routingQueue, FilterOptionsForOdbc(options))
+    in
+        TraceImplementation("Dremio", isAdbc, result);
 
 DremioCloudXdbcDatabase = (server as text, optional projectId as text, optional engine as text, optional routingTag as text, optional routingQueue as text, optional encryption as text, optional options as record) as table =>
-    if IsAdbcMode(server, options) then
-        DremioCloudAdbcDataSource(StripAdbcPrefix(server), projectId, engine, routingTag, routingQueue, encryption, options)
-    else
-        DremioCloudDatabase(StripOdbcPrefix(server), projectId, engine, routingTag, routingQueue, encryption, FilterOptionsForOdbc(options));
+    let
+        isAdbc = IsAdbcMode(server, options),
+        result = if isAdbc then
+            DremioCloudAdbcDataSource(MakeAdbcUniqueIdentifier, StripAdbcPrefix(server), projectId, engine, routingTag, routingQueue, encryption, options)
+        else
+            DremioCloudDatabase(StripOdbcPrefix(server), projectId, engine, routingTag, routingQueue, encryption, FilterOptionsForOdbc(options))
+    in
+        TraceImplementation("DremioCloud", isAdbc, result);
 
 Extension.LoadExpression = (name as text) =>
     let
@@ -1045,6 +1081,7 @@ Extension.LoadExpression = (name as text) =>
         Expression.Evaluate(asText, #shared);
 
 AdbcOptions = Extension.LoadFunction("DremioAdbcOptions.pqm");
+OAuthDiscoveryModule = Extension.LoadFunction("DremioOAuthDiscovery.pqm");
 AdbcDataSourceModule = Extension.LoadFunction("DremioAdbcDataSource.pqm");
 DremioCloudAdbcDataSource = AdbcDataSourceModule[DremioCloudAdbcDataSource]; 
 DremioAdbcDataSource = AdbcDataSourceModule[DremioAdbcDataSource];

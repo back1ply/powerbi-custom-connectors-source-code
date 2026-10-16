@@ -1,10 +1,10 @@
-[Version = "3.0.0"] // https://docs.microsoft.com/en-us/power-query/handlingversioning
+[Version = "3.0.1"] // https://docs.microsoft.com/en-us/power-query/handlingversioning
 
 section IndustrialAppStore;
 
 // [IMPORTANT] KEEP THIS UP TO DATE WITH THE ABOVE VERSION
 // this is sent to the API to indicate the version of this connector
-version = "3.0.0";
+version = "3.0.1";
 
 Configuration = Json.Document(Extension.Contents("config.json"));
 
@@ -880,26 +880,26 @@ IndustrialAppStore.ProcessBadActors = (outerTable as table, display as text, ass
         jointRem;
 
 // Turns normal tags into desired table
-IndustrialAppStore.ProcessNormal = (outerTable as table, display as text, tags as text, optional includeTtimestamp as logical, optional compat as logical) => 
+IndustrialAppStore.ProcessNormal = (outerTable as table, display as text, tags as text, optional includeTtimestamp as logical, optional compat as logical, optional alignedTimestamps as logical) => 
     let 
         innerTable = if (compat = true)     //compatibility for GET DATA function
             then outerTable
             else Record.ToTable(outerTable[Value]{0}),
-        processedTable = ProcessNormal_inner(innerTable, display, tags, includeTtimestamp)
+        processedTable = ProcessNormal_inner(innerTable, display, tags, includeTtimestamp, alignedTimestamps)
     in
         processedTable;
 
-ProcessNormal_inner = (outerTable as table, display as text, tags as text, optional includeTtimestamp as logical) => 
+ProcessNormal_inner = (outerTable as table, display as text, tags as text, optional includeTtimestamp as logical, optional alignedTimestamps as logical) => 
     let
         hasTags = Table.RowCount(outerTable) > 0,
 
         tagList = Text.Split(tags, ","),
 
         jointRem = if (hasTags)
-            then innerFunction(outerTable, display, includeTtimestamp)
+            then innerFunction(outerTable, display, includeTtimestamp, alignedTimestamps)
             else #table(List.InsertRange(tagList, 0, {"Sample Time"}), {List.Repeat({"N/A"}, List.Count(tagList) + 1)}),
 
-        innerFunction = (outerTable as table, display as text, optional includeTtimestamp as logical) =>
+        innerFunction = (outerTable as table, display as text, optional includeTtimestamp as logical, optional alignedTimestamps as logical) =>
         let
             expandedTags = Table.ExpandRecordColumn(outerTable, "Value", {"TagName", "DisplayType", "Values"}, {"TagName", "DisplayType", "Values"}), // gets a row in table for each of the tags
 
@@ -926,26 +926,106 @@ ProcessNormal_inner = (outerTable as table, display as text, tags as text, optio
             hasValues = List.IsEmpty(columns{3}{0}) = false,
 
             jointRem = if (hasValues) 
-                then innerLevelFunction(columns, valuesTableTyped, includeTtimestamp)
+                then innerLevelFunction(columns, valuesTableTyped, includeTtimestamp, alignedTimestamps)
                 else #table(List.InsertRange(tagNames, 0, {"Sample Time"}), {List.Repeat({"N/A"}, List.Count(tagNames) + 1)}),
 
             //if the tag has no value this would not run and just return a table with the message tag has no value
-            innerLevelFunction = (columns as list, valuesTableTyped as table, optional includeTtimestamp as logical) => 
+            innerLevelFunction = (columns as list, valuesTableTyped as table, optional includeTtimestamp as logical, optional alignedTimestamps as logical) => 
                 let
-                    datesList = List.Transform(columns{3}{0}, (x) => (x[UtcSampleTime])), // list of all the timestamps of all the values
-                        
-                    datesTable = Table.RenameColumns(Table.SelectColumns(Table.FromList(datesList), {"Column1"}), {"Column1", "Sample Time"}), // Table of all the dates with the correct name
-                    datesTableTyped = Table.TransformColumnTypes(datesTable, {"Sample Time", type datetime}), // sets the type of the datetime column
-                        
-                    valuesWIndex = Table.AddIndexColumn(valuesTableTyped, "joiner"), // adding indexed column to join the tables using
-                    datesWIndex = Table.AddIndexColumn(datesTableTyped, "joiner"), // adding indexed column to join the tables using        
+                    // Use aligned timestamp logic (original fast path) or left join logic
+                    jointRem = if (alignedTimestamps = true) then
+                        // Original logic: assume all tags share the same timestamps
+                        let
+                            datesList = List.Transform(columns{3}{0}, (x) => (x[UtcSampleTime])), // list of all the timestamps from first tag
+                            
+                            datesTable = Table.RenameColumns(Table.SelectColumns(Table.FromList(datesList), {"Column1"}), {"Column1", "Sample Time"}), // Table of all the dates with the correct name
+                            datesTableTyped = Table.TransformColumnTypes(datesTable, {"Sample Time", type datetime}), // sets the type of the datetime column
+                            
+                            valuesWIndex = Table.AddIndexColumn(valuesTableTyped, "joiner"), // adding indexed column to join the tables using
+                            datesWIndex = Table.AddIndexColumn(datesTableTyped, "joiner"), // adding indexed column to join the tables using        
 
-                    joint = if includeTtimestamp = null or includeTtimestamp = true then
-                                Table.Join(datesWIndex, "joiner", valuesWIndex, "joiner") // joining tables
-                        else
-                                valuesWIndex,
+                            joint = if includeTtimestamp = null or includeTtimestamp = true then
+                                        Table.Join(datesWIndex, "joiner", valuesWIndex, "joiner") // joining tables
+                                else
+                                        valuesWIndex,
 
-                    jointRem = Table.RemoveColumns(joint, "joiner") // removing joiner column
+                            result = Table.RemoveColumns(joint, "joiner") // removing joiner column
+                        in
+                            result
+                    else
+                        // New logic: handle misaligned timestamps with left joins
+                        let
+                            tagNames = Table.ColumnNames(valuesTableTyped),
+                            
+                            // Extract all timestamps from all tags and get distinct values
+                            allTimestamps = List.Distinct(
+                                List.Combine(
+                                    List.Transform(
+                                        List.Positions(tagNames),
+                                        (idx) => List.Transform(columns{3}{idx}, (x) => x[UtcSampleTime])
+                                    )
+                                )
+                            ),
+                            
+                            // Create the base timestamp table and sort it
+                            timestampTable = Table.FromColumns(
+                                {allTimestamps},
+                                {"Sample Time"}
+                            ),
+                            timestampTableTyped = Table.TransformColumnTypes(timestampTable, {{"Sample Time", type datetime}}),
+                            timestampTableSorted = Table.Sort(timestampTableTyped, {{"Sample Time", Order.Ascending}}),
+                            timestampTableIndexed = Table.AddIndexColumn(timestampTableSorted, "TimestampIndex"),
+                            
+                            // For each tag, create a lookup table and left join to timestamp table
+                            resultTable = List.Accumulate(
+                                List.Positions(tagNames),
+                                timestampTableIndexed,
+                                (state, idx) =>
+                                    let
+                                        tagName = tagNames{idx},
+                                        tagValues = Table.Column(valuesTableTyped, tagName),
+                                        tagTimestamps = List.Transform(columns{3}{idx}, (x) => x[UtcSampleTime]),
+                                        
+                                        // Create tag-specific table with its timestamps and values
+                                        tagTable = Table.FromColumns(
+                                            {tagTimestamps, tagValues},
+                                            {"Sample Time", tagName}
+                                        ),
+                                        tagTableTyped = Table.TransformColumnTypes(
+                                            tagTable, 
+                                            {
+                                                {"Sample Time", type datetime},
+                                                {tagName, if (display = "Numeric" and (columns{3}{idx}){0}[IsNumeric]) 
+                                                          then type number 
+                                                          else type text}
+                                            }
+                                        ),
+                                        
+                                        // Left join to preserve all timestamps
+                                        joined = Table.NestedJoin(
+                                            state,
+                                            {"Sample Time"},
+                                            tagTableTyped,
+                                            {"Sample Time"},
+                                            "TagData",
+                                            JoinKind.LeftOuter
+                                        ),
+                                        
+                                        // Expand the joined column
+                                        expanded = Table.ExpandTableColumn(joined, "TagData", {tagName}, {tagName})
+                                    in
+                                        expanded
+                            ),
+                            
+                            // Remove the temporary index column
+                            final = Table.RemoveColumns(resultTable, "TimestampIndex"),
+                            
+                            // Optionally remove timestamp column if not requested
+                            result = if includeTtimestamp = null or includeTtimestamp = true 
+                                     then final 
+                                     else Table.RemoveColumns(final, "Sample Time")
+                        in
+                            result
                 in
                     jointRem
 
