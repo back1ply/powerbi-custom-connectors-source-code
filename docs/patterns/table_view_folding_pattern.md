@@ -151,6 +151,7 @@ View = (state as record) as table => Table.View(null, [
 ### How Power Query executes this
 
 If a user writes:
+
 ```powerquery
 Source = MyConnector.Contents(),
 KeepSpecificColumns = Table.SelectColumns(Source, {"ID", "Name"}),
@@ -174,4 +175,4 @@ In massive enterprise connectors (Databricks, Kusto), `OnSort` translates sortin
 ## See Also
 
 - [`native_query_folding_pattern.md`](native_query_folding_pattern.md) — `Value.NativeQuery` for ODBC/SQL connectors where folding is automatic via the driver.
-- [`table_view_folding_handlers_pattern.md`](table_view_folding_handlers_pattern.md) — _(merged into this file)_
+- `table_view_folding_handlers_pattern.md` — _(merged into this file)_

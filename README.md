@@ -64,10 +64,8 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [crypto_hmac_signing_pattern.md](docs/patterns/crypto_hmac_signing_pattern.md)       # HMAC header generation for Custom APIs
 │       ├── [datetime_zone_coercion_pattern.md](docs/patterns/datetime_zone_coercion_pattern.md) # Normalizing date/datetime/datetimezone inputs to DateTimeZone
 │       ├── [diagnostics_tracing_pattern.md](docs/patterns/diagnostics_tracing_pattern.md)       # Custom telemetry with Diagnostics.Trace
-│       ├── [dynamic_data_privacy_pattern.md](docs/patterns/dynamic_data_privacy_pattern.md)     # Resolving Formula.Firewall collisions
 │       ├── [dynamic_data_source_pattern.md](docs/patterns/dynamic_data_source_pattern.md)       # RelativePath caching rules for Gateway refresh
 │       ├── [error_handling_pattern.md](docs/patterns/error_handling_pattern.md)                 # ManualStatusHandling, Error.Record, and structured exceptions
-│       ├── [html_error_responses_pattern.md](docs/patterns/html_error_responses_pattern.md)     # Catching 502 Bad Gateway proxy responses
 │       ├── [multiple_environments_pattern.md](docs/patterns/multiple_environments_pattern.md)   # UI Dropdown configurations (AllowedValues)
 │       ├── [privacy_credential_logging_pattern.md](docs/patterns/privacy_credential_logging_pattern.md) # Masking secrets in log output
 │       ├── [record_field_expansion_dynamic_pattern.md](docs/patterns/record_field_expansion_dynamic_pattern.md) # Runtime nested column discovery with Record.FieldNames
@@ -81,14 +79,12 @@ The raw `.mez` and `.pqx` files have been automatically unpacked using PowerShel
 │       ├── [feature_switch_pattern.md](docs/patterns/feature_switch_pattern.md)                 # Environment.FeatureSwitch A/B testing
 │       ├── [localization_pattern.md](docs/patterns/localization_pattern.md)                     # Global UI translation with resources.resx
 │       ├── [navigation_table_pattern.md](docs/patterns/navigation_table_pattern.md)             # Hierarchical nav tables with Type.AddTableKey primary keys
-│       ├── [navigation_table_simple_pattern.md](docs/patterns/navigation_table_simple_pattern.md) # Flat folder mappings with Type.AddTableKey
 │       ├── [ui_customization_pattern.md](docs/patterns/ui_customization_pattern.md)             # Customizing icons and branding variants
 │       ### 🚀 Action & Backend Delegation
 │       ├── [action_writeback_pattern.md](docs/patterns/action_writeback_pattern.md)             # Constructing PowerApps-compatible Action pipelines
 │       ├── [native_query_folding_pattern.md](docs/patterns/native_query_folding_pattern.md)     # Injecting raw SQL via Value.NativeQuery
 │       ├── [odbc_bitwise_flag_composition_pattern.md](docs/patterns/odbc_bitwise_flag_composition_pattern.md) # Number.BitwiseOr loop to compose ODBC SQL conformance flags
 │       ├── [odbc_directquery_pattern.md](docs/patterns/odbc_directquery_pattern.md)             # DirectQuery flag, AstVisitor, and Gateway TestConnection
-│       ├── [table_action_mutations_pattern.md](docs/patterns/table_action_mutations_pattern.md) # Overriding Table.View for Power Automate Writeback
 │       ├── [table_view_folding_pattern.md](docs/patterns/table_view_folding_pattern.md)         # REST API Query Folding with Table.View and OnSkip/OnTake handlers
 │       ### 🔒 OAuth2 Advanced Enhancements
 │       ├── [base64url_encoding_pattern.md](docs/patterns/base64url_encoding_pattern.md)         # URL-safe Base64 encoding for PKCE and JWT parameters
