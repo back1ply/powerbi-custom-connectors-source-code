@@ -1,5 +1,8 @@
 name: Refresh certified connectors
 
+env:
+  PYTHONUTF8: '1'
+
 on:
   schedule:
     - cron: '23 3 * * 1'
