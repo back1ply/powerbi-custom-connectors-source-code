@@ -4,18 +4,25 @@ title: Response and pagination metadata
 description: Pagination state versus HTTP response metadata.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bValue\.Metadata\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L54
   title: AzureResourceGraph/AzureResourceGraph.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: c5dbb335bd62c600687e6baf2aa408c92f0bc5489a3085e5430763cccb7c587d
+  sources_sha256:
+    example: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

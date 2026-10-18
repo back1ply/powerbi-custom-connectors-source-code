@@ -4,18 +4,25 @@ title: Navigation tables and connection checks
 description: Navigation-column mappings and connection-test entry points.
 category: Navigation and UI
 tags: [navigation-and-ui]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:Table\.ToNavigationTable\s*\(|TestConnection\s*=)']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L26
   title: Asana/Asana.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: a14495cb07514ec04c8236b24ff322f62227d1b732c20f2590fcc2661827e4fd
+  sources_sha256:
+    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

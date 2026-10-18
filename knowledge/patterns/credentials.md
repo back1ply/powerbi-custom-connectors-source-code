@@ -4,18 +4,25 @@ title: Credential access
 description: Authentication-kind dispatch and credential connection strings.
 category: Authentication
 tags: [authentication]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bExtension\.CurrentCredential\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L115
   title: Actian/Actian.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 97c1b43f5028a9da2b96df5a1eaeb18617667483eda339735b8357f2812865cf
+  sources_sha256:
+    example: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

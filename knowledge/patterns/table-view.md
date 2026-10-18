@@ -4,18 +4,25 @@ title: Table.View handlers
 description: Stateful Table.View handlers and request parameter generation.
 category: Query folding
 tags: [query-folding]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:34:15Z'
+  at: '2026-10-18T09:58:42Z'
 detect: [\bTable\.View\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L37
   title: Asana/Asana.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: d35da4c4842a67f297fc001b623bb47c2aeb562e46fc0790819206e5ec01e556
+  sources_sha256:
+    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

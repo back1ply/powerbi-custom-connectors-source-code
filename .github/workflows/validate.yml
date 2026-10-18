@@ -6,6 +6,12 @@ on:
     branches: [master]
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: Exact commit to validate when called by refresh automation
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -15,6 +21,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -36,6 +44,8 @@ jobs:
           git diff --exit-code -- knowledge
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run okflint validate --manifest okf-base.yaml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb verify-reviews
       - name: Scan archive and bundle for secrets
         uses: ./.github/actions/scan-secrets
       - name: Build review preview

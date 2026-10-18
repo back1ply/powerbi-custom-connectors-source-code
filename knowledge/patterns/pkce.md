@@ -4,18 +4,25 @@ title: PKCE and URL-safe encoding
 description: PKCE verifier transport, SHA-256, and URL-safe encoding.
 category: Authentication
 tags: [authentication]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [code_challenge\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L225
   title: Asana/Asana.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 5ec43407e8c16de1502663f3aa0d2f785cc70450739eb1411c55ed058fcd1175
+  sources_sha256:
+    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

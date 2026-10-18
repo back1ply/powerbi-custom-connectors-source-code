@@ -23,7 +23,8 @@ No hand-typed counts, connector lists, or "seen in" claims.
   pages have exact, source-linked excerpts, detection rules, and generated match
   lists. Tests check excerpts and cited files against the archive. Explanations
   now cover mechanisms, adaptation decisions, and failure paths, including sourced
-  HMAC and action-handler pages. They remain drafts pending human review.
+  HMAC and action-handler pages. The user delegated review to an agent; the
+  current pages are stable with accurately attributed agent verification.
   Legacy `docs/` is retained as historical material outside the published bundle.
 - Connector tags include authentication kinds and detected patterns. A generated
   tag index supports browsing the directory by either kind of tag.
@@ -55,15 +56,21 @@ No hand-typed counts, connector lists, or "seen in" claims.
 - README, license scope, repository-local CodeScene rules, and validation are
   in place. Validation checks tests, lint, generated output, internal links,
   secrets, and the site-preview build. Secret scans run before artifact upload.
-- Weekly refresh automation opens or updates a draft PR. Excerpt failures are
-  reported for repair; a failed secret scan prevents PR creation. Checks run in
-  the refresh workflow because the default token does not trigger another PR run.
-- A manual Pages workflow validates and deploys the resulting preview artifact
-  only after an explicit review acknowledgement. Publication is pending human
-  review, as required below; no remote push or deployment has been performed.
-- Still open: human review of the pattern drafts, initial publication, and
-  enabling automatic deployment on merge after that review. Optional MCP
-  registration remains out of scope.
+- Source reviews now fingerprint authored prose, detection rules, citation
+  metadata, and complete cited files. `verify-reviews` blocks expired reviews;
+  builds return affected pages to draft without inventing a new review.
+  Generated match-list updates and CRLF/LF differences preserve valid reviews.
+  See `REVIEW.md` for the source audit and corrected claims.
+- Weekly refreshes open a PR, validate its exact head commit, and merge routine
+  updates when all checks pass. Expired reviews or failing content checks leave
+  a draft PR; a failed secret scan prevents PR creation. Existing repository
+  merge restrictions are respected without administrative bypasses.
+- Pages publication is automatic for validated master commits. Automated token
+  merges explicitly dispatch publication because their push events do not start
+  another workflow. Both publication paths require current source-bound reviews.
+- Still open: one-time GitHub activation and initial publication. Optional MCP
+  registration remains out of scope. Remote activation is separate from the
+  requested local source review.
 
 Tool references: [okflint](https://github.com/mattdav/okflint),
 [okf-schema](https://github.com/gsemet/okf-schema),
@@ -117,9 +124,9 @@ Links:
 | `title`, `description` | from manifest/package | written |
 | `resource` | package URL from Microsoft's manifest | — |
 | `tags` | auth kinds + detected patterns | category (auth, pagination, folding…) |
-| `sources` | one entry per source file (`id` = file name) | one entry per connector file cited, `id` used as footnote label |
+| `sources` | one entry per source file with a generated file ID | one entry per connector file cited, `id` used as footnote label |
 | `generated` | `{ by: process:pqkb-build, at: … }` | `{ by: codex/gpt-6, at: … }` for prose |
-| `verified` | `{ by: process:pqkb-refresh, at: … }` after a successful refresh | **omitted until you actually review the page**; then `{ by: human:back1ply, at: … }` |
+| `verified` | `{ by: process:pqkb-refresh, at: … }` after a successful refresh | `{ by: codex/gpt-6, at: … }` after the delegated agent review; human actors only for actual human review |
 | `status` | `stable` (connectors that leave the manifest are deleted; the deletion is recorded in `log.md`) | `draft` until reviewed, then `stable` |
 | `stale_after` | refresh time + 14 days | — |
 | extension key `detect` | — | regex rule(s) the scanner runs |
@@ -179,11 +186,12 @@ Code Health check on new or changed tool code (per AGENTS.md), and a commit.
   - examples are real excerpts from the archive
   - every claim is footnoted to a connector file
   - wording is plain (no "exclusively", no "ultimate")
-- All pages start as `status: draft`. You review them; reviewed pages get
-  `verified: human:back1ply` and `status: stable`.
+- Pages start as `status: draft`. An agent or human checks the source and records
+  their own actor identity, a verification event, and source/content fingerprints.
+  Reviewed pages become stable. Changed reviewed scope expires the review.
 
 ### Phase 4: GitHub Pages
-- **Must run after Phase 1 redaction and Phase 3.** The site makes the credential
+- **Must run after Phase 1 redaction and a valid Phase 3 source review.** The site makes the credential
   files crawlable and would spread wrong claims.
 - Build `knowledge/` with the generator chosen in Phase 0, deploy with
   `actions/deploy-pages`.
@@ -195,10 +203,11 @@ Code Health check on new or changed tool code (per AGENTS.md), and a commit.
 
 ### Phase 5: Automation
 - On PR: OKF validate, link check, secret scan, pytest.
-- Weekly cron: refresh → regenerate → open a PR (peter-evans/create-pull-request).
-  Never push straight to master.
-- First publish: manual Pages deployment after human review. Enable deployment
-  on merge to master after the initial review and publication.
+- Weekly cron: refresh → regenerate → open a PR → validate the exact PR commit →
+  merge only when all checks pass. Never push straight to master or bypass merge
+  restrictions. Review expiry and failing checks leave the PR for repair.
+- On merge to master: validate and publish Pages. Token-driven merges explicitly
+  dispatch publication. No recurring human acknowledgement is required.
 - Optional: register the bundle with okf-mcp so agents can query it over MCP.
 
 ## Decisions
@@ -208,3 +217,7 @@ Code Health check on new or changed tool code (per AGENTS.md), and a commit.
 2. **Tooling language:** Python with uv.
 3. **Site generator:** MkDocs Material, after the Kiso spike failed. See the
    compatibility evidence in the progress section.
+4. **Review policy:** the user delegated source review to agents and requested
+   hands-off operation. Accept agent reviews with accurate actor attribution and
+   source/content fingerprints; never present them as human verification. Hash
+   checks detect drift but do not perform or silently renew a prose review.

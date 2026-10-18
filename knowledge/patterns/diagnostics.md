@@ -4,18 +4,25 @@ title: Diagnostic tracing
 description: Tracing values while preserving return and error behavior.
 category: Schema and errors
 tags: [schema-and-errors]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bDiagnostics\.Trace\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Diagnostics.pqm#L1
   title: Actian/Diagnostics.pqm
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: b1f2e917d58202f4ade67e5da4e5b10df272c6e38188819ee44732247ab190d5
+  sources_sha256:
+    example: ec0852823d563e91e08f72d06f4a06d577be886c373775390d775409ac8319df
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

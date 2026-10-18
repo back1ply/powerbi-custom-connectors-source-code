@@ -4,18 +4,25 @@ title: GraphQL requests
 description: GraphQL request bodies, cursors, and application errors.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bGetGraphQLPage\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L987
   title: CogniteDataSource/CogniteDataSource.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 5beb0c6ea2c6b448d9a0670e09e478ece778e91f936d33f18c1992345c5aa439
+  sources_sha256:
+    example: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

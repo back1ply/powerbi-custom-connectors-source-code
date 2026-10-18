@@ -6,7 +6,7 @@ import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pqkb import bundle, refresh
+from pqkb import bundle, refresh, reviews
 
 
 def _repo(value: str) -> Path:
@@ -27,7 +27,16 @@ def main(argv: list[str] | None = None) -> int:
         "--source-dir", type=Path, help="use a complete local package folder instead of downloading"
     )
     commands.add_parser("build", help="rebuild the bundle from connectors/ without downloading")
+    commands.add_parser(
+        "verify-reviews", help="check pattern reviews against prose and cited source"
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "verify-reviews":
+        problems = reviews.check_reviews(args.repo)
+        for problem in problems:
+            print(problem)
+        return int(bool(problems))
 
     now = datetime.now(UTC)
     if args.command == "refresh":

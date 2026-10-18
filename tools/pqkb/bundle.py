@@ -9,10 +9,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 from pqkb import frontmatter
+from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
+from pqkb.reviews import invalidate_review
 from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
-REPO_BLOB = "https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master"
 PRODUCER = "process:pqkb-build"
 STALE_AFTER = timedelta(days=14)
 SEEN_START, SEEN_END = "<!-- seen-in:start -->", "<!-- seen-in:end -->"
@@ -44,11 +45,6 @@ def iso(moment: datetime) -> str:
 
 def link_text(text: str) -> str:
     return text.replace("[", "(").replace("]", ")").replace("\n", " ")
-
-
-def source_url(connector: str, file: str, line: int | None = None) -> str:
-    url = f"{REPO_BLOB}/connectors/{quote(connector)}/{quote(file)}"
-    return f"{url}#L{line}" if line else url
 
 
 def load_patterns(folder: Path) -> list[Pattern]:
@@ -366,6 +362,8 @@ def build(repo: Path, now: datetime | None = None) -> None:
     write_connector_pages(repo, patterns, hits, now)
     for pattern_id, pattern_hits in hits.items():
         update_pattern(by_id[pattern_id], seen_in_section(pattern_hits, records))
+    for pattern in patterns:
+        invalidate_review(repo, pattern.path)
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))
     write_text_if_changed(knowledge / "patterns" / "index.md", patterns_index(patterns))

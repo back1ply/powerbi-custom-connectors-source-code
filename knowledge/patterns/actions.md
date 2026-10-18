@@ -4,18 +4,25 @@ title: Actions and table mutation handlers
 description: Actions and table mutation handlers in extracted connector implementations.
 category: Actions
 tags: [actions]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:34:15Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:Action\.(?:Sequence|Return)|TableAction\.(?:InsertRows|UpdateRows|DeleteRows))\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L1034
   title: LakeHouse/LakeHouse.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: c9d050fc80391bcd7c51b54e2ef07861f488a2216b92f11d0a623d85aec8a769
+  sources_sha256:
+    example: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

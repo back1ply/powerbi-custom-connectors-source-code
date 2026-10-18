@@ -4,18 +4,25 @@ title: Retries, delays, and polling
 description: Retry producers, page delays, and exhaustion behavior.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:Value\.WaitFor|Function\.InvokeAfter)\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
   title: AzureResourceGraph/AzureResourceGraph.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 5c6a1038af6a12cf68c470154e63c4a3a1651ef305906c4c043474b50ba9d11a
+  sources_sha256:
+    example: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

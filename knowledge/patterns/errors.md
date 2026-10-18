@@ -4,18 +4,25 @@ title: Structured errors and HTTP status handling
 description: Explicit API errors and the limits of handled-status branches.
 category: Schema and errors
 tags: [schema-and-errors]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:Error\.Record\s*\(|ManualStatusHandling\s*=)']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L134
   title: Asana/Asana.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 240fd6da846f1d857c1ea1d717f445360ac37c4c83a0a83352a9b447c1fef1b4
+  sources_sha256:
+    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

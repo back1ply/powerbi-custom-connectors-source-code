@@ -4,18 +4,25 @@ title: Buffering tables, lists, and binaries
 description: Binary response snapshots and buffered configuration lists.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:Table|List|Binary)\.Buffer\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L170
   title: Anaplan/Anaplan.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 96dda9bfe9bafc330f5c8116c85cb7438563b629ce53395149d6762ec0093d6f
+  sources_sha256:
+    example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

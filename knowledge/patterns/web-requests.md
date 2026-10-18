@@ -4,24 +4,31 @@ title: Web requests and relative paths
 description: Web request options and explicit HTTP response branches.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:42Z'
 detect: [\bRelativePath\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L665
   title: Anaplan/Anaplan.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 09f3b5db658511dfdd65328e054521f70969b54c4c157e7dcba521ba71cc2c02
+  sources_sha256:
+    example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
 Anaplan's `GetApiToken` creates a request to `authUrl` with a relative authentication path loaded from a resource string. It supplies a binary body, headers, a query record, and `ManualStatusHandling = {401}` in the same `Web.Contents` options record. The source chooses a different header record when `isRefresh` is true.[^example]
 
-The function reads `Response.Status` from the response metadata. Status 201 extracts `tokenInfo` from the parsed JSON, status 401 raises `Extension.CredentialError`, and other statuses return null. The outer `try getToken() otherwise null` also converts errors from the inner function into null.[^example]
+The function reads `Response.Status` from the response metadata. Inside `getToken`, status 201 extracts `tokenInfo` from the parsed JSON, status 401 raises `Extension.CredentialError`, and other statuses produce null. The `tokenResponse` binding uses `try getToken() otherwise null`. The outer function declares an `as record` return type, so the inner null fallback alone does not establish what callers receive.[^example]
 
 # Adaptation and failure paths
 

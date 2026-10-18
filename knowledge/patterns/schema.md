@@ -4,18 +4,25 @@ title: Schema and type enforcement
 description: Function metadata, returned table types, and dynamic expansion.
 category: Schema and errors
 tags: [schema-and-errors]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:SchemaTransformTable|Table\.ChangeType|Value\.ReplaceType)\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L10
   title: Asana/Asana.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 0fde1bf40fd73efe36641c66f1238a4f2db06532a7c9a0d853f2ec9eb48bfb30
+  sources_sha256:
+    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

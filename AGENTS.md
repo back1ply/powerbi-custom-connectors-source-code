@@ -12,5 +12,15 @@ resolve reported regressions. Run `analyze_change_set` before opening a PR.
 
 Scripts generate connector pages, indexes, counts, and pattern detection lists.
 Edit pattern explanations in `knowledge/patterns/`; rebuild with `uv run pqkb build`.
-Keep patterns as drafts until a human reviews them. Never attribute human
-verification to an automated check.
+The user delegated source review to agents and requested hands-off maintenance.
+An agent may mark a pattern stable after checking every claim against its cited
+source, recording its own actor identity and source/content fingerprints.
+Never attribute human verification to an agent or a deterministic check.
+Changed reviewed content or cited source invalidates the review and blocks
+automatic publication until an agent or human renews it. Generated match-list
+changes alone do not invalidate an otherwise unchanged source review.
+
+After completing a source review, use `reviews.record_review(repo, path,
+reviewer, now)` from `tools/pqkb/reviews.py` to record the actual reviewer and
+current fingerprints. Then build, run `pqkb verify-reviews`, and run the tests.
+Never call the recording function merely to make a failing check pass.

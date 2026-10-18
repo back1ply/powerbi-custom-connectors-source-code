@@ -4,18 +4,25 @@ title: HMAC request signing
 description: HMAC request signing in extracted connector implementations.
 category: Authentication
 tags: [authentication]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:34:15Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bCrypto\.CreateHmac\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
   title: ShortcutsBI/Function.OAuthSignatureGenerator.pqm
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: ee36a1403dfde9602cb6b0bb39f0f4a8ae55e7f960227324b19d5de9c38122ff
+  sources_sha256:
+    example: 386be20de30e6051da9bb4697b0642066f0b23f89af211a953716bb9c1c77f99
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

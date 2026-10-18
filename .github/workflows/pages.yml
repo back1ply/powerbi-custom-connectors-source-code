@@ -1,13 +1,9 @@
-name: Publish reviewed reference
+name: Publish reference
 
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
-    inputs:
-      reviewed:
-        description: I reviewed the current pattern pages and approve publishing this reference
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
@@ -20,7 +16,7 @@ concurrency:
 
 jobs:
   validate:
-    if: inputs.reviewed
+    if: github.ref == 'refs/heads/master'
     uses: ./.github/workflows/validate.yml
   deploy:
     needs: validate

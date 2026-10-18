@@ -4,24 +4,31 @@ title: Page generation and cursor traversal
 description: Cursor and offset pagination through table metadata.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bTable\.GenerateByPage\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Attio/Attio.pq#L107
   title: Attio/Attio.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: d261dd2b0878ce069dfef265977829c1cee8e975ce713f71e2adcad0576d0e3a
+  sources_sha256:
+    example: 57a398b8b0d14e01888b0484e169d12a946dd076ea8d5166d56b62939a434428
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
 Attio selects paging settings by matching an endpoint suffix. Its cursor page function adds a cursor parameter only after an initial page, reads the next cursor from the response, and attaches it to the returned table as `NextCursor` metadata. A false `hasMore` value, a null cursor, or a blank text cursor becomes a null continuation marker.[^example]
 
-The offset variant sends the configured offset and limit, converts the response items to a table, and calculates `NextOffset`. An empty page returns `null`; a shorter-than-page-size response marks the continuation as finished. The `Table.GenerateByPage` callbacks read those metadata fields to decide whether to request another page.[^example]
+When `__sendsLimit(url)` permits it, the offset variant sends the configured offset and limit. It converts the response items to a table and calculates `NextOffset`. An empty page returns `null`; a shorter-than-page-size response marks the continuation as finished. The `Table.GenerateByPage` callbacks read those metadata fields to decide whether to request another page.[^example]
 
 # Adaptation and failure paths
 

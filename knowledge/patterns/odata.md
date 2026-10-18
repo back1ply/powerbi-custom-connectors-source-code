@@ -4,18 +4,25 @@ title: OData feeds
 description: Credential headers and explicit OData feed options.
 category: Data retrieval
 tags: [data-retrieval]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bOData\.Feed\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AptixInsights/AptixInsights.pq#L37
   title: AptixInsights/AptixInsights.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: a660004aec1d0af492c950c018762ee57450e1c964e619c38658f39a99a35b1b
+  sources_sha256:
+    example: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 

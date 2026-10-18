@@ -4,10 +4,10 @@ title: ODBC and DirectQuery configuration
 description: ODBC capabilities and a separate DirectQuery declaration.
 category: Query folding
 tags: [query-folding]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\bOdbc\.(?:DataSource|Query)\s*\(']
 sources:
 - id: example
@@ -16,13 +16,21 @@ sources:
 - id: directquery
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L83
   title: MarkLogicODBC/MarkLogicODBC.m
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 802a5d190317aa82f1815356a5096794c164c0277957773548e0319cfabb455c
+  sources_sha256:
+    example: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
+    directquery: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
-AmazonAthena calls `Odbc.DataSource` with a connection string and a substantial options record. The options shown include hierarchical navigation, hidden native-query UI, connection pooling, and capability records. A `SQLColumns` callback maps FLOAT metadata to DOUBLE and rewrites the corresponding type name.[^example]
+AmazonAthena calls `Odbc.DataSource` with a connection string and a substantial options record. The options shown include `HierarchicalNavigation = true`, `HideNativeQuery = true`, `ClientConnectionPooling = true`, and capability records. A `SQLColumns` callback maps FLOAT metadata to DOUBLE and rewrites the corresponding type name.[^example]
 
 Its `SqlCapabilities` record sets `PrepareStatements = true`, `SupportsTop = false`, and a LIMIT-clause kind. These are concrete declarations of this implementation's SQL behavior; an ODBC connection call on its own does not establish them.[^example]
 

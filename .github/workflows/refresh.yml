@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency:
   group: certified-connector-refresh
@@ -15,6 +16,10 @@ concurrency:
 
 jobs:
   refresh:
+    outputs:
+      pr: ${{ steps.pr.outputs.pull-request-number }}
+      head: ${{ steps.pr.outputs.pull-request-head-sha }}
+      ready: ${{ steps.readiness.outputs.ready }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +47,23 @@ jobs:
           uv run ruff format --check tools tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run okflint validate --manifest okf-base.yaml
+      - name: Verify source-bound pattern reviews
+        id: reviews
+        continue-on-error: true
+        run: uv run pqkb verify-reviews
       - name: Build review preview
         id: site
         continue-on-error: true
         run: uv run --group site mkdocs build --strict
       - name: Scan before publishing a refresh branch
         uses: ./.github/actions/scan-secrets
-      - name: Open or update draft refresh PR
+      - name: Determine refresh readiness
+        id: readiness
+        env:
+          READY: ${{ steps.tests.outcome == 'success' && steps.static.outcome == 'success' && steps.reviews.outcome == 'success' && steps.site.outcome == 'success' }}
+        run: '"ready=$env:READY" >> $env:GITHUB_OUTPUT'
+      - name: Open or update refresh PR
+        id: pr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: automation/certified-connectors
@@ -58,16 +73,57 @@ jobs:
             knowledge/
           commit-message: Refresh certified connector archive and knowledge
           title: Refresh certified connectors from Microsoft
-          draft: always-true
+          draft: ${{ steps.readiness.outputs.ready != 'true' }}
           body: |
             Updates the extracted archive, generated connector pages, pattern match lists, and refresh log.
 
             Checks run in this refresh workflow:
             - Source excerpts and pipeline: ${{ steps.tests.outcome }}
             - Lint, metadata, and links: ${{ steps.static.outcome }}
+            - Source-bound pattern reviews: ${{ steps.reviews.outcome }}
             - Site build: ${{ steps.site.outcome }}
             - Secret scan: passed (a failure prevents this PR step)
 
-            Review changed implementations and any stale pattern excerpts before merging. Failed content checks are preserved here for repair; this PR stays a draft.
+            Routine refreshes merge automatically only when every check passes. Changed reviewed prose or cited source invalidates its review; failures leave this PR for repair and a renewed agent or human source review.
 
-            This workflow uses GITHUB_TOKEN, so the resulting PR does not automatically trigger the separate pull_request validation workflow. After repairs, dispatch Validate reference on this branch and inspect the result before merging.
+            Checks above run in this refresh workflow. After repairs, dispatch Validate reference on this branch. This workflow explicitly dispatches publication after a successful merge because GITHUB_TOKEN merges do not trigger push workflows.
+  validate-refresh:
+    needs: refresh
+    if: needs.refresh.outputs.ready == 'true' && needs.refresh.outputs.pr
+    uses: ./.github/workflows/validate.yml
+    with:
+      ref: ${{ needs.refresh.outputs.head }}
+  merge-refresh:
+    needs: [refresh, validate-refresh]
+    if: always() && needs.refresh.outputs.ready == 'true' && needs.refresh.outputs.pr
+    runs-on: windows-latest
+    steps:
+      - name: Merge validated commit and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.refresh.outputs.pr }}
+          HEAD_SHA: ${{ needs.refresh.outputs.head }}
+          VALIDATION_RESULT: ${{ needs.validate-refresh.result }}
+        run: |
+          $draft = gh pr view $env:PR_NUMBER --json isDraft --jq .isDraft
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:VALIDATION_RESULT -ne 'success') {
+            if ($draft -ne 'true') {
+              gh pr ready $env:PR_NUMBER --undo
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            throw 'The exact PR commit did not pass validation; retained as a draft.'
+          }
+          if ($draft -eq 'true') {
+            gh pr ready $env:PR_NUMBER
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh pr merge $env:PR_NUMBER --squash --delete-branch --match-head-commit $env:HEAD_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $state = gh pr view $env:PR_NUMBER --json state --jq .state
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($state -eq 'MERGED') {
+            gh workflow run pages.yml --ref master
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }

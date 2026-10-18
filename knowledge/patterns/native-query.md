@@ -4,24 +4,31 @@ title: Native queries
 description: Native-query interception and display-name handling.
 category: Query folding
 tags: [query-folding]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: [\bValue\.NativeQuery\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L78
   title: CommonDataService/CommonDataService.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: 96b4dd5141d80148bd76e9ee7cc0bbcac6cb9413ada9cd8e71b21dace6c67120
+  sources_sha256:
+    example: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
 CommonDataService creates a `Sql.Database` navigation table, then wraps it in `Table.View` with an `OnNativeQuery` handler. The handler removes its connector-specific `DisplayNames` option from the options passed onward, calls `Value.NativeQuery`, and adjusts captions through helper functions.[^example]
 
-When display-name behavior is requested, it builds a second navigation table with `ApplyDisplayNamesOption`. The second native-query call uses `try ... otherwise baseResultWithCaptions`. The final selection depends on the display-name option and `EnableFolding`; a `TryCatch` wrapper translates a failure to `TableViewError`.[^example]
+The handler also defines a second navigation table with `ApplyDisplayNamesOption`; the final selection determines whether that alternative is used. The second native-query call uses `try ... otherwise baseResultWithCaptions`. The final selection depends on the display-name option and `EnableFolding`; a `TryCatch` wrapper translates a failure to `TableViewError`.[^example]
 
 # Adaptation and failure paths
 

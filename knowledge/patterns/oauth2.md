@@ -4,18 +4,25 @@ title: OAuth2 login and token refresh
 description: OAuth2 callbacks and refresh-token exchange.
 category: Authentication
 tags: [authentication]
-status: draft
+status: stable
 generated:
   by: codex/gpt-6
-  at: '2026-10-18T09:33:26Z'
+  at: '2026-10-18T09:58:41Z'
 detect: ['\b(?:StartLogin|FinishLogin|Refresh)\s*=']
 sources:
 - id: example
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/GoogleSheets/GoogleSheets.pq#L48
   title: GoogleSheets/GoogleSheets.pq
+verified:
+  by: codex/gpt-6
+  at: '2026-10-18T10:00:47Z'
+review:
+  content_sha256: b87f53c94f8697ed186133148a8330faeea5413e181f648c68651f1d5109ca0e
+  sources_sha256:
+    example: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
 ---
 
-**Draft: awaiting human review.**
+**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
