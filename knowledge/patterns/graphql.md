@@ -15,14 +15,12 @@ sources:
   title: CogniteDataSource/CogniteDataSource.pq
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:38Z'
 review:
-  content_sha256: 5beb0c6ea2c6b448d9a0670e09e478ece778e91f936d33f18c1992345c5aa439
+  content_sha256: c0ec1c7e760bdfd34d1b19db61846ea4984b6cce16f19db3f42130b8913fc664
   sources_sha256:
     example: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -79,17 +77,3 @@ GetGraphQLPage = (url as text, payload as text, variables as record, optional cu
 ```
 
 [^example]: CogniteDataSource/CogniteDataSource.pq; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from the `detect` expressions in this page. Detection reports the first matching line per source file, including matches in comments, strings, or helper definitions. Treat each result as a source-reading lead; it is not proof of runtime behavior or a complete implementation.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **1** connector in this archive.
-
-* [Cognite Data Fusion (REST API)](../connectors/CogniteDataSource.md): [CogniteDataSource.pq line 987](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L987)
-
-<!-- seen-in:end -->

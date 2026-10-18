@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -11,7 +13,7 @@ from urllib.parse import quote
 from pqkb import frontmatter
 from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
-from pqkb.reviews import invalidate_review
+from pqkb.reviews import digest, invalidate_review
 from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
 PRODUCER = "process:pqkb-build"
@@ -75,8 +77,6 @@ def write_if_changed(path: Path, meta: dict, body: str, now: datetime) -> bool:
         if same_meta and old.body.strip() == body.strip():
             return False
     full: dict = {**meta, "generated": {"by": PRODUCER, "at": iso(now)}}
-    if meta.get("type") == "Power Query Connector":
-        full["stale_after"] = iso(now + STALE_AFTER)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(frontmatter.render(full, body), encoding="utf-8", newline="\n")
     return True
@@ -197,15 +197,13 @@ def patterns_by_category(patterns: list[Pattern]) -> dict[str, list[Pattern]]:
     return dict(sorted(groups.items(), key=lambda kv: (order.get(kv[0], len(order)), kv[0])))
 
 
-def patterns_index(patterns: list[Pattern], prefix: str = "") -> str:
+def patterns_index(patterns: list[Pattern]) -> str:
     lines: list[str] = []
     for category, items in patterns_by_category(patterns).items():
         lines += [f"# {category}", ""]
         for p in sorted(items, key=lambda p: p.title.lower()):
             lines.append(
-                index_entry(
-                    p.title, f"{prefix}{p.pattern_id}.md", p.doc.meta.get("description", "")
-                )
+                index_entry(p.title, f"{p.pattern_id}.md", p.doc.meta.get("description", ""))
             )
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -231,7 +229,7 @@ def tags_index(pages: Path) -> str:
                 index_entry(
                     document.meta["title"],
                     f"../connectors/{quote(page.name)}",
-                    document.meta["description"],
+                    "",
                 )
             )
         lines.append("")
@@ -243,6 +241,10 @@ def root_index(patterns: list[Pattern], connector_count: int) -> str:
         '---\nokf_version: "0.2"\n---\n\n'
         + "# Power Query Connector Source Reference\n\n"
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
+        + "Reviews check static source, not vendor runtime behavior. Pattern matches are "
+        + "regex leads and can include comments or unused helpers.\n\n"
+        + "[Download the OKF bundle](https://back1ply.github.io/"
+        + "powerbi-custom-connectors-source-code/knowledge.zip).\n\n"
         + index_entry(
             "Patterns",
             "patterns/index.md",
@@ -290,6 +292,7 @@ def log_entry(changes: Changes, records: dict[str, ConnectorRecord]) -> list[str
 def append_log(
     path: Path, changes: Changes, records: dict[str, ConnectorRecord], now: datetime
 ) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     bullets = log_entry(changes, records)
     if not bullets:
         bullets = ["* **Verification**: Checked the connector archive; no package version changes."]
@@ -303,7 +306,7 @@ def append_log(
     path.write_text(new.rstrip("\n") + "\n", encoding="utf-8", newline="\n")
 
 
-def remove_stale_connector_pages(folder: Path, names: set[str]) -> None:
+def remove_stale_pages(folder: Path, names: set[str]) -> None:
     for page in folder.glob("*.md"):
         if page.name != "index.md" and page.stem not in names:
             page.unlink()
@@ -324,7 +327,7 @@ def write_connector_pages(
     sources = read_sources(repo / "connectors", records)
     by_id = {p.pattern_id: p for p in patterns}
     used = hits_by_connector(hits)
-    pages = repo / "knowledge" / "connectors"
+    pages = repo / "build" / "knowledge" / "connectors"
     for name, record in records.items():
         auth = set().union(*(auth_kinds(text) for text in sources[name].values()))
         write_if_changed(
@@ -333,7 +336,7 @@ def write_connector_pages(
             connector_body(record, auth, used[name], by_id),
             now,
         )
-    remove_stale_connector_pages(pages, set(records))
+    remove_stale_pages(pages, set(records))
 
 
 def archive_records(connectors_dir: Path) -> dict[str, ConnectorRecord]:
@@ -345,22 +348,51 @@ def archive_records(connectors_dir: Path) -> dict[str, ConnectorRecord]:
 
 def confirm_archive(repo: Path, now: datetime) -> None:
     """Record a successful refresh without changing the content-generation timestamp."""
+    receipt = {"verified_at": iso(now), "archive_sha256": archive_digest(repo)}
+    (repo / "knowledge" / "refresh.json").write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+    apply_confirmation(repo)
+
+
+def apply_confirmation(repo: Path) -> None:
+    confirmation = confirmation_metadata(repo)
     for name in load_index(repo / "connectors"):
-        path = repo / "knowledge" / "connectors" / f"{name}.md"
+        path = repo / "build" / "knowledge" / "connectors" / f"{name}.md"
         document = frontmatter.read(path)
-        document.meta["verified"] = {"by": "process:pqkb-refresh", "at": iso(now)}
-        document.meta["stale_after"] = iso(now + STALE_AFTER)
-        path.write_text(
-            frontmatter.render(document.meta, document.body), encoding="utf-8", newline="\n"
-        )
+        document.meta.pop("verified", None)
+        document.meta.pop("stale_after", None)
+        document.meta.update(confirmation)
+        write_text_if_changed(path, frontmatter.render(document.meta, document.body))
+
+
+def confirmation_metadata(repo: Path) -> dict:
+    receipt = repo / "knowledge" / "refresh.json"
+    if not receipt.is_file():
+        return {}
+    record = json.loads(receipt.read_text(encoding="utf-8"))
+    if record["archive_sha256"] != archive_digest(repo):
+        return {}
+    now = datetime.fromisoformat(record["verified_at"])
+    return {
+        "verified": {"by": "process:pqkb-refresh", "at": iso(now)},
+        "stale_after": iso(now + STALE_AFTER),
+    }
+
+
+def archive_digest(repo: Path) -> str:
+    root = repo / "connectors"
+    fingerprints = {"index.json": digest((root / "index.json").read_bytes())}
+    for name, record in load_index(root).items():
+        for file in record.files:
+            fingerprints[f"{name}/{file}"] = digest((root / name / file).read_bytes())
+    return digest(json.dumps(fingerprints, sort_keys=True).encode())
 
 
 def build(repo: Path, now: datetime | None = None) -> None:
-    """Regenerate every generated part of ``knowledge/`` from ``connectors/``."""
+    """Render authored knowledge and archive metadata into ``build/knowledge/``."""
     now = now or datetime.now(UTC)
-    knowledge, connectors_dir = repo / "knowledge", repo / "connectors"
+    knowledge, connectors_dir = repo / "build" / "knowledge", repo / "connectors"
     records = archive_records(connectors_dir)
-    patterns = load_patterns(knowledge / "patterns")
+    patterns = render_patterns(repo, knowledge)
     by_id = {p.pattern_id: p for p in patterns}
     sources = read_sources(connectors_dir, records)
     hits = scan(sources, rules_for(patterns))
@@ -368,15 +400,14 @@ def build(repo: Path, now: datetime | None = None) -> None:
     write_connector_pages(repo, patterns, hits, now)
     for pattern_id, pattern_hits in hits.items():
         update_pattern(by_id[pattern_id], seen_in_section(pattern_hits, records))
-    for pattern in patterns:
-        invalidate_review(repo, pattern.path)
+    apply_confirmation(repo)
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))
     write_text_if_changed(knowledge / "patterns" / "index.md", patterns_index(patterns))
     write_text_if_changed(knowledge / "index.md", root_index(patterns, len(records)))
     (knowledge / "tags").mkdir(exist_ok=True)
     write_text_if_changed(knowledge / "tags" / "index.md", tags_index(knowledge / "connectors"))
-    log = knowledge / "log.md"
+    log = repo / "knowledge" / "log.md"
     if not log.exists():
         heading = f"## {now.astimezone(UTC):%Y-%m-%d}"
         write_text_if_changed(
@@ -384,3 +415,15 @@ def build(repo: Path, now: datetime | None = None) -> None:
             f"# Refresh log\n\n{heading}\n\n"
             "* **Initialization**: Created the knowledge bundle from the connector archive.\n",
         )
+    shutil.copyfile(log, knowledge / "log.md")
+
+
+def render_patterns(repo: Path, destination: Path) -> list[Pattern]:
+    folder = destination / "patterns"
+    folder.mkdir(parents=True, exist_ok=True)
+    sources = load_patterns(repo / "knowledge" / "patterns")
+    remove_stale_pages(folder, {pattern.pattern_id for pattern in sources})
+    for pattern in sources:
+        invalidate_review(repo, pattern.path)
+        shutil.copyfile(pattern.path, folder / pattern.path.name)
+    return load_patterns(folder)

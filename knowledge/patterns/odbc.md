@@ -18,15 +18,13 @@ sources:
   title: MarkLogicODBC/MarkLogicODBC.m
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:39Z'
 review:
-  content_sha256: 802a5d190317aa82f1815356a5096794c164c0277957773548e0319cfabb455c
+  content_sha256: 1eaacaec2ca38a56626706fea5632b3d7082c0a7c1a14e48c64e74f61d6579b2
   sources_sha256:
     example: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
     directquery: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -68,43 +66,3 @@ The following excerpt is copied from `AmazonAthena/AmazonAthena.m`, lines 122–
 [^example]: AmazonAthena/AmazonAthena.m; see the matching `sources` entry.
 
 [^directquery]: MarkLogicODBC/MarkLogicODBC.m; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from the `detect` expressions in this page. Detection reports the first matching line per source file, including matches in comments, strings, or helper definitions. Treat each result as a source-reading lead; it is not proof of runtime behavior or a complete implementation.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **27** connectors in this archive.
-
-* [Actian](../connectors/Actian.md): [Actian.m line 218](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L218)
-* [AmazonAthena](../connectors/AmazonAthena.md): [AmazonAthena.m line 124](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L124)
-* [Amazon OpenSearch Service](../connectors/AmazonOpenSearchService.md): [AmazonOpenSearchService.m line 154](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonOpenSearchService/AmazonOpenSearchService.m#L154)
-* [BIConnector](../connectors/BIConnector.md): [BIConnector.pq line 39](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/BIConnector/BIConnector.pq#L39)
-* [ClickHouse](../connectors/ClickHouse.md): [ClickHouseConnector.pq line 367](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ClickHouse/ClickHouseConnector.pq#L367)
-* [CosmosDB](../connectors/CosmosDB.md): [CosmosDB.m line 388](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CosmosDB/CosmosDB.m#L388)
-* [Azure Databricks](../connectors/Databricks.md): [Databricks.pq line 591](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Databricks/Databricks.pq#L591)
-* [Data Virtuality LDW](../connectors/DataVirtuality.md): [DataVirtuality.m line 53](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/DataVirtuality/DataVirtuality.m#L53)
-* [Denodo](../connectors/Denodo.md): [DenodoForPowerBI.m line 209](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Denodo/DenodoForPowerBI.m#L209)
-* [Dremio](../connectors/Dremio.md): [Dremio.pq line 904](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Dremio/Dremio.pq#L904)
-* [Exact Online Premium](../connectors/ExactOnlinePremium.md): [ExactOnlinePremium.m line 108](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ExactOnlinePremium/ExactOnlinePremium.m#L108)
-* [Exasol](../connectors/Exasol.md): [Exasol.pq line 113](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Exasol/Exasol.pq#L113)
-* [Palantir Foundry Datasets](../connectors/Foundry.md): [Foundry.m line 65](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Foundry/Foundry.m#L65)
-* [Indexima](../connectors/Indexima.md): [Indexima.m line 249](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Indexima/Indexima.m#L249)
-* [InterSystems Health Insight](../connectors/IntersystemsHealthInsight.md): [IntersystemsHealthInsight.pq line 137](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IntersystemsHealthInsight/IntersystemsHealthInsight.pq#L137)
-* [InterSystems IRIS](../connectors/IRIS.md): [Iris_PowerBI_Connector.m line 125](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IRIS/Iris_PowerBI_Connector.m#L125)
-* [JethroDataConnector](../connectors/JethroData1.0.1.md): [JethroODBC.m line 38](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/JethroData1.0.1/JethroODBC.m#L38)
-* [KylinDirectQuery](../connectors/Kyligence.md): [Kyligence.m line 44](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Kyligence/Kyligence.m#L44)
-* [Kyvos ODBC](../connectors/KyvosODBC.md): [KyvosODBC.pq line 517](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/KyvosODBC/KyvosODBC.pq#L517)
-* [MariaDB](../connectors/MariaDB.md): [MariaDB.m line 268](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MariaDB/MariaDB.m#L268)
-* [MarkLogic](../connectors/MarkLogicODBC.md): [MarkLogicODBC.m line 315](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L315)
-* [MongoDB Atlas SQL](../connectors/MongoDBAtlasODBC.md): [MongoDBAtlasODBC.pq line 47](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MongoDBAtlasODBC/MongoDBAtlasODBC.pq#L47)
-* [OpenSearch Project](../connectors/OpenSearchProject.md): [OpenSearchProject.m line 154](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/OpenSearchProject/OpenSearchProject.m#L154)
-* [QubolePresto](../connectors/QubolePresto.md): [QubolePresto.m line 190](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/QubolePresto/QubolePresto.m#L190)
-* [SingleStore Direct Query Connector](../connectors/SingleStoreODBC.md): [SingleStoreODBC.m line 308](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SingleStoreODBC/SingleStoreODBC.m#L308)
-* [StarburstPresto](../connectors/StarburstPresto.md): [StarburstEnterprise.pq line 425](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/StarburstPresto/StarburstEnterprise.pq#L425)
-* [TIBCO.ODBC.TDV](../connectors/TIBCO.md): [TIBCO.ODBC.TDV.m line 40](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/TIBCO/TIBCO.ODBC.TDV.m#L40)
-
-<!-- seen-in:end -->

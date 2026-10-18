@@ -1,8 +1,8 @@
 site_name: Power Query Connector Source Reference
 site_url: https://back1ply.github.io/powerbi-custom-connectors-source-code/
 repo_url: https://github.com/back1ply/powerbi-custom-connectors-source-code
-docs_dir: knowledge
-site_dir: public
+docs_dir: build/knowledge
+site_dir: build/site
 theme:
   name: material
   features:

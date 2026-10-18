@@ -15,14 +15,12 @@ sources:
   title: LakeHouse/LakeHouse.pq
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:38Z'
 review:
-  content_sha256: c9d050fc80391bcd7c51b54e2ef07861f488a2216b92f11d0a623d85aec8a769
+  content_sha256: 94cc8085c1cb9fb3b6e03bb8dadcae505d8e0f57decc45a22acfe65aedf83042
   sources_sha256:
     example: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -54,18 +52,3 @@ The following excerpt is copied from `LakeHouse/LakeHouse.pq`, lines 1034–1039
 ```
 
 [^example]: LakeHouse/LakeHouse.pq; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from this page's `detect` expressions. It reports the first matching line per source file, including comments and helper definitions. A match is a source-reading lead, not a runtime or compatibility guarantee.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **2** connectors in this archive.
-
-* [Lakehouse](../connectors/LakeHouse.md): [DeltaTableFastCopy.pqm line 220](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/DeltaTableFastCopy.pqm#L220), [LakeHouse.pq line 884](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L884), [MDSync.pqm line 112](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/MDSync.pqm#L112), [SparkCompute.pqm line 364](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/SparkCompute.pqm#L364)
-* [Warehouse](../connectors/Warehouse.md): [OutputInterceptor.pqm line 128](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Warehouse/OutputInterceptor.pqm#L128), [WarehouseOutputInterceptor.pqm line 28](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Warehouse/WarehouseOutputInterceptor.pqm#L28)
-
-<!-- seen-in:end -->

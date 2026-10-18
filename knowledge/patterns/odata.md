@@ -15,14 +15,12 @@ sources:
   title: AptixInsights/AptixInsights.pq
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:39Z'
 review:
-  content_sha256: a660004aec1d0af492c950c018762ee57450e1c964e619c38658f39a99a35b1b
+  content_sha256: 7dd0d6f985670e245526fc3455ec6c285628d0f94855f0ea8e19ffdd8e5893af
   sources_sha256:
     example: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -62,29 +60,3 @@ AptixInsightsImpl = (url as text, optional query as any) =>
 ```
 
 [^example]: AptixInsights/AptixInsights.pq; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from the `detect` expressions in this page. Detection reports the first matching line per source file, including matches in comments, strings, or helper definitions. Treat each result as a source-reading lead; it is not proof of runtime behavior or a complete implementation.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **13** connectors in this archive.
-
-* [Topcon Aptix Insights](../connectors/AptixInsights.md): [AptixInsights.pq line 50](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AptixInsights/AptixInsights.pq#L50)
-* [Cognite Data Fusion (OData)](../connectors/Cognite.md): [Cognite.pq line 147](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Cognite/Cognite.pq#L147)
-* [Cognite Data Fusion (REST API)](../connectors/CogniteDataSource.md): [CogniteDataSource.pq line 544](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L544)
-* [Digital Construction Works Insights](../connectors/DCWInsights.md): [DCWInsights.m line 31](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/DCWInsights/DCWInsights.m#L31)
-* [Emigo Data Source](../connectors/Emigo.md): [Emigo.m line 234](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Emigo/Emigo.m#L234)
-* [HexagonSmartApi](../connectors/HexagonSmartApi.md): [HexagonSmartApi.m line 108](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/HexagonSmartApi/HexagonSmartApi.m#L108), [UoM.pqm line 33](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/HexagonSmartApi/UoM.pqm#L33)
-* [Intune Data Warehouse](../connectors/IntuneDataWarehouse.md): [Intune.m line 32](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IntuneDataWarehouse/Intune.m#L32)
-* [Intune Data Warehouse](../connectors/IntuneV2.md): [IntuneV2.pq line 56](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IntuneV2/IntuneV2.pq#L56)
-* [Microsoft Graph Security](../connectors/MicrosoftGraphSecurity.md): [MicrosoftGraphSecurity.m line 112](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MicrosoftGraphSecurity/MicrosoftGraphSecurity.m#L112)
-* [Planview OKR](../connectors/PlanviewOKR.md): [PlanviewOKR.m line 173](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/PlanviewOKR/PlanviewOKR.m#L173)
-* [Planview ProjectPlace](../connectors/PlanviewProjectplace.md): [PlanviewProjectplace.m line 133](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/PlanviewProjectplace/PlanviewProjectplace.m#L133)
-* [Planview IdeaPlace](../connectors/Spigit.md): [Spigit.m line 132](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Spigit/Spigit.m#L132)
-* [SumTotal](../connectors/SumTotal.md): [SumTotal.pq line 65](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SumTotal/SumTotal.pq#L65)
-
-<!-- seen-in:end -->

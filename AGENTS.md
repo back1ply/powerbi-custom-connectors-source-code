@@ -10,7 +10,9 @@ resolve reported regressions. Run `analyze_change_set` before opening a PR.
 
 ## Generated knowledge
 
-Scripts generate connector pages, indexes, counts, and pattern detection lists.
+Authored patterns and refresh history live in `knowledge/`.
+Render connector pages, indexes, counts, and match lists into ignored `build/knowledge/`.
+Never commit generated output or edit it as a source.
 Edit pattern explanations in `knowledge/patterns/`; rebuild with `uv run pqkb build`.
 The user delegated source review to agents and requested hands-off maintenance.
 An agent may mark a pattern stable after checking every claim against its cited
@@ -21,6 +23,6 @@ automatic publication until an agent or human renews it. Generated match-list
 changes alone do not invalidate an otherwise unchanged source review.
 
 After completing a source review, use `reviews.record_review(repo, path,
-reviewer, now)` from `tools/pqkb/reviews.py` to record the actual reviewer and
+reviewer, now)` from `src/pqkb/reviews.py` to record the actual reviewer and
 current fingerprints. Then build, run `pqkb verify-reviews`, and run the tests.
 Never call the recording function merely to make a failing check pass.

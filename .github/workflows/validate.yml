@@ -37,9 +37,9 @@ jobs:
         run: |
           uv run pytest -q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run ruff check tools tests
+          uv run ruff check src tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run ruff format --check tools tests
+          uv run ruff format --check src tests
       - name: Check generated bundle and internal links
         run: |
           uv run pqkb build
@@ -53,8 +53,10 @@ jobs:
         uses: ./.github/actions/scan-secrets
       - name: Build review preview
         run: uv run --group site mkdocs build --strict
+      - name: Package portable OKF bundle
+        run: Compress-Archive -Path build/knowledge/* -DestinationPath build/site/knowledge.zip -Force
       - name: Upload review preview
         uses: actions/upload-artifact@v4
         with:
           name: reference-site-preview
-          path: public
+          path: build/site

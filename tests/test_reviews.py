@@ -72,7 +72,10 @@ def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(rev
     )
     bundle.build(repo, DAY)
     updated = frontmatter.read(page)
-    assert "Detected in **2** connectors" in updated.body
+    generated = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
+    assert "Detected in **2** connectors" in generated.body
+    assert reviews.review_reason(repo, generated) == ""
+    assert updated.body == original.body
     assert updated.meta["verified"] == original.meta["verified"]
     assert main(["--repo", str(repo), "verify-reviews"]) == 0
 
