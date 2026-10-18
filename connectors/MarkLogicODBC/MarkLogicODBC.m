@@ -2,7 +2,7 @@
 // based on an ODBC driver. It is meant as a template for other 
 // ODBC based connectors that require similar functionality.
 // 
-[Version = "1.0.5"]
+[Version = "1.0.6", Traits = [GatewayRequired = true]]
 section MarkLogicODBC;
 
 // When set to true, additional trace information will be written out to the User log. 

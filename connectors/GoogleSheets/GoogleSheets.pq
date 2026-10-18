@@ -2,7 +2,7 @@
 section GoogleSheets;
 
 ClientId = "836582736780-j225jgqf50956ed5qjm6ratl3up80bk1.apps.googleusercontent.com";
-ClientSecret = "c0fwt1FXY0JxNprsL8awxoSb";
+ClientSecret = "<redacted>";
 CallbackUrl = "https://oauth.powerbi.com/views/oauthredirect.html";
 ApiErrorStatusCodes = { 400, 403, 404, 500, 503 };
 

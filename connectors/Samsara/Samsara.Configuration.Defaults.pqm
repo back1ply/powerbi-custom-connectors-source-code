@@ -3,15 +3,20 @@
  * serve as the context for the rest of the data load flow.
  *
  * @param AccessToken Some token we can use to authenticate with our backend.
- * @param Region Either "US" or "EU", chosen by the customer.
+ * @param Region Either "US", "EU", or "CA", chosen by the customer.
  * @param Version This client's version.
  * @returns The default state record.
  */
 (AccessToken as text, Region as text, Version as text) =>
     let
-        BaseUrl = if Region = "US"
-            then "https://data-connector.samsara.com/data-connectors"
-            else "https://data-connector.eu.samsara.com/data-connectors"
+        BaseUrl = if Region = "US" then
+            "https://data-connector.samsara.com/data-connectors"
+        else if Region = "EU" then
+            "https://data-connector.eu.samsara.com/data-connectors"
+        else if Region = "CA" then
+            "https://data-connector.ca.samsara.com/data-connectors"
+        else
+            "https://data-connector.samsara.com/data-connectors"
     in
         [
             // These are static values that we don't

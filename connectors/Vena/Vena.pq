@@ -1,15 +1,15 @@
 ﻿// This file contains the Data Connector logic for the Vena connector
 
 // Version Information for Microsoft certification and easy tracking
-[Version = "1.1.0"]
+[Version = "1.1.1"]
 
 // Connector Metadata
-// Version: 1.1.0
+// Version: 1.1.1
 // Description: This connector retrieves data from Vena, providing access to your data via Power BI.
 
 section Vena;
 
-pbic_version = "1.1.0";  // The version used by the connector internally
+pbic_version = "1.1.1";  // The version used by the connector internally
 [DataSource.Kind="Vena", Publish="Vena.Publish"]
 shared Vena.Contents = Value.ReplaceType(VenaImpl, VenaInputs);
 
@@ -17,31 +17,20 @@ shared Vena.Contents = Value.ReplaceType(VenaImpl, VenaInputs);
 VenaInputs = type function (
     source as (type text meta [
         Documentation.FieldCaption = "Source Region",
-        Documentation.FieldDescription = "The Region Where Your Vena Data Is Hosted.",
-        Documentation.AllowedValues = {
-            //For drop down options
-            "https://ca3.vena.io",
-            "https://ca4.vena.io",
-            "https://eu1.vena.io",
-            "https://eu2.vena.io",
-            "https://eu3.vena.io",
-            "https://us1.vena.io",
-            "https://us2.vena.io",
-            "https://us3.vena.io",
-            "https://us4.vena.io",
-            "https://us5.vena.io"
-        }
+        Documentation.FieldDescription = "To find your region, log into vena.io and view the region listed in the URL. For example, the region in ""https://us2.vena.io"" is us2.",
+        Documentation.SampleValues = { "Enter your region (us1, us2, etc.)" }
     ]),
     optional modelQuery as (type text meta [
         Documentation.FieldCaption = "Model Query",
         Documentation.FieldDescription = "MQL Query For Your Hierarchies/Intersections.            " 
                                           & "Leaving This Field Blank Will Retrieve All Members And Intersections.",
-        Documentation.SampleValues = { "dimension(..." }//Suggested input
+        Documentation.SampleValues = { "dimension(...)" }
     ]),
     optional apiVersion as (type text meta [
         Documentation.FieldCaption = "Endpoint version",
         Documentation.FieldDescription = "The format you want to pull Vena data in.  V2 now includes operators.",
-        Documentation.AllowedValues = { "v1", "v2" }
+        Documentation.AllowedValues = { "v1", "v2" },
+        Documentation.SampleValues = { "Select an endpoint version" }
     ]))
     as table meta [
         Documentation.Name = "Vena " & pbic_version,
@@ -50,6 +39,14 @@ VenaInputs = type function (
 
 VenaImpl = (source as text, optional modelQuery as text,optional apiVersion as text) as table =>
     let
+        
+        normalizedSource = 
+            if Text.StartsWith(source, "http", Comparer.OrdinalIgnoreCase) then 
+                source 
+            else 
+                // Remove space and build normalizedSource
+                "https://" & Text.Remove(source, {" "}) & ".vena.io",
+
         VenaBasic = 
         let
             Credentials = Extension.CurrentCredential(),
@@ -61,6 +58,7 @@ VenaImpl = (source as text, optional modelQuery as text,optional apiVersion as t
 
 
         apiVersion = if Value.Equals(apiVersion, null) then "" else apiVersion,
+        
         CodeDTO = CodeDTO.Fetch(),
         Main = Expression.Evaluate(CodeDTO[Main.pqm], #shared),
         Utils = Expression.Evaluate(CodeDTO[Utils.pqm], #shared),
@@ -88,7 +86,7 @@ VenaImpl = (source as text, optional modelQuery as text,optional apiVersion as t
             // Get the Split Auth token from the splitConfig API
             authToken =
                 let
-                    splitConfigURL = source & "/api/splitConfig",
+                    splitConfigURL = normalizedSource & "/api/splitConfig",
                     headers = [
                         Accept = "application/json"
                     ],
@@ -118,7 +116,7 @@ VenaImpl = (source as text, optional modelQuery as text,optional apiVersion as t
             // Make the API GET request with error handling to fetch the treatment
             // (Use RelativePath, Query, and CredentialQuery to avoid logging PII)
             response = try Web.Contents(
-                source,
+                normalizedSource,
                 [
                     Headers = headers,
                     RelativePath = "/split-evaluator/client/get-treatment-with-config",
@@ -165,9 +163,39 @@ VenaImpl = (source as text, optional modelQuery as text,optional apiVersion as t
                     otherwise [ ConfigType = "streaming", PageSize = defaultPageSize ],
 
             configType = splitResult[ConfigType],
-            pageSize = Text.From(splitResult[PageSize]) // in case PageSize is stored as a number in Split
+            pageSize = Text.From(splitResult[PageSize]), // in case PageSize is stored as a number in Split
+
+            // Check if operational tables should be shown
+            opTableSplitName = "insights_op-table-in-pbi-desktop",
+            opTableResponse = try Web.Contents(
+                normalizedSource,
+                [
+                    Headers = headers,
+                    RelativePath = "/split-evaluator/client/get-treatment-with-config",
+                    Query = [
+                        #"split-name" = opTableSplitName
+                    ],
+                    CredentialQuery = [
+                        key = keyParam
+                    ],
+                    IsRetry = true
+                ]
+            ) otherwise null,
+
+            showOperationalTables =
+                if opTableResponse = null then
+                    false
+                else
+                    try
+                        let
+                            responseText = Text.FromBinary(opTableResponse),
+                            parsedResponse = Json.Document(responseText),
+                            treatment = try parsedResponse[treatment] otherwise "off"
+                        in
+                            treatment = "on"
+                    otherwise false
         in
-            Main(source, VenaBasic, Utils, pbic_version, apiVersion, configType, pageSize, modelQuery)
+            Main(normalizedSource, VenaBasic, Utils, pbic_version, apiVersion, configType, pageSize, showOperationalTables, modelQuery)
     in
         result;
 

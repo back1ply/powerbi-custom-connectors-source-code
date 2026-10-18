@@ -1,0 +1,29 @@
+site_name: Power Query Connector Source Reference
+site_url: https://back1ply.github.io/powerbi-custom-connectors-source-code/
+repo_url: https://github.com/back1ply/powerbi-custom-connectors-source-code
+docs_dir: knowledge
+site_dir: public
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+plugins:
+  - search
+markdown_extensions:
+  - tables
+  - footnotes
+  - pymdownx.highlight:
+      use_pygments: false
+  - pymdownx.superfences
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js
+  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-powerquery.min.js
+extra_css:
+  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism.min.css
+nav:
+  - Overview: index.md
+  - Patterns: patterns/index.md
+  - Connectors: connectors/index.md
+  - Connector tags: tags/index.md
+  - Refresh log: log.md

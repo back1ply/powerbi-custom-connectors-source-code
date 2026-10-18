@@ -40,7 +40,7 @@ PlanviewProjectplace.Icons = [
 
 client_id = "2cce06ccd6ae2e34c59f3c197549dfd1";
 
-client_secret = "12dcdd8fa44e4a69adeaa3ca7bc38850429f02be";
+client_secret = "<redacted>";
 
 redirect_uri = "https://oauth.powerbi.com/views/oauthredirect.html";
 

@@ -6,7 +6,8 @@
 ///  Copyright (C) 2021 Simba Technologies Incorporated.
 //==================================================================================================
 
-[Version = "1.2.6"] 
+[Version = "1.2.8", Traits = [GatewayRequired = true]]
+
 section AmazonAthena;
 Config_SqlConformance = SQL_SC[SQL_SC_SQL92_FULL];  // null, 1, 2, 4, 8
 
@@ -253,20 +254,20 @@ AmazonAthena.UI = [
        SourceImage = AmazonAthena.Icons,
    SourceTypeImage = AmazonAthena.Icons,
     NativeQueryProperties = [
-    navigationSteps = {
+    NavigationSteps = {
         [
-            indices = {
+            Indices = {
                    [     
-                        displayName = "Database",
-                        indexName = "Kind"
+                        ConstantValue = "Database",
+                        IndexName = "Kind"
                     ]
                     },
-            access = "Data"
+            FieldAccess = "Data"
             
         ]        
     }
    ,
-    nativeQueryOptions = [
+    DefaultOptions = [
             EnableFolding = true
         ]
 ]

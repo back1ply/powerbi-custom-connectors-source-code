@@ -6,7 +6,8 @@ let
         Documentation.FieldDescription = Extension.LoadString("RegionDesc"),
         Documentation.AllowedValues = { 
             Extension.LoadString("RegionUS"), 
-            Extension.LoadString("RegionEU") 
+            Extension.LoadString("RegionEU"),
+            Extension.LoadString("RegionCA")
         },
         Documentation.SampleValues = {
             Extension.LoadString("RegionExample")

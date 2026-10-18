@@ -2,7 +2,7 @@
 // based on an ODBC driver. It is meant as a template for other 
 // ODBC based connectors that require similar functionality.
 // 
-[Version = "1.0.7"]
+[Version = "1.0.9"]
 section CosmosDB;
 
 // When set to true, additional trace information will be written out to the User log. 
@@ -24,12 +24,10 @@ EnableTraceOutput = false;
 //
 
 GetPlatformVersion = () => try Number.From(Text.Split(Module.Versions()[Core], "."){1}) otherwise 0;
-// The new driver is available in 2.148(2025 SU10) and later.
-HasNewOdbcDriver = GetPlatformVersion() >= 148;
 Value.ConvertToLogical = (a) =>
     a <> null and a <> "" and Logical.From(a);
 
-Config_DriverName = if (Value.ConvertToLogical(Environment.FeatureSwitch("MashupFlight_UseNewDocumentDBDriver", false)) and HasNewOdbcDriver) then
+Config_DriverName = if (Value.ConvertToLogical(Environment.FeatureSwitch("MashupFlight_UseNewDocumentDBDriver", false))) then
                         "Simba DocumentDB ODBC Driver New"
                     else
                         "Simba DocumentDB ODBC Driver";
@@ -472,14 +470,16 @@ CosmosDB =
         validProtocol = if uriParts <> null then (uriParts[Scheme] = "https" or uriParts[Scheme] = "http") else false,
 
         host = if uriParts <> null then uriParts[Host] else null,
-        // Fail if the host contains a slash ("/")
-        containsSlash = if hostName <> null then Text.Contains(hostName, "/") else false,
+
+        // Allow an optional trailing slash, but reject endpoints with a resource path.
+        path = if uriParts <> null then Record.FieldOrDefault(uriParts, "Path", "") else null,
+        hasUnexpectedPath = path <> null and path <> "" and path <> "/",
   
         // Validate port
         port = if uriParts <> null then Text.From(uriParts[Port]) else null,
         isValidPort = port = "443",
 
-        cleanHostList = List.Select(Text.Split(hostName, "."), each _ <> ""),
+        cleanHostList = if host <> null then List.Select(Text.Split(host, "."), each _ <> "") else {},
         endPointList = List.Select(Text.Split(endPoint, "."), each _ <> ""),
 
         // Ensure a valid acctname exists before endpoint and uri ends with the endpoint
@@ -488,7 +488,7 @@ CosmosDB =
             Text.EndsWith(host, endPoint) and 
             List.Count(cleanHostList) > List.Count(endPointList) 
     in
-        not containsAtSymbol and validProtocol and not containsSlash and isValidPort and isValidAccountName,
+        not containsAtSymbol and validProtocol and not hasUnexpectedPath and isValidPort and isValidAccountName,
 
     // Set supported types of authentication
     Cloud = Environment.FeatureSwitch("Cloud", DefaultCloud),

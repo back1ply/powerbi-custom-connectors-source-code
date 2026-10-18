@@ -1,5 +1,5 @@
 // This file contains Data Connector logic
-[Version = "1.0.0"]
+[Version = "1.0.1", Traits = [GatewayRequired = true]]
 section AmazonOpenSearchService;
 
 // When set to true, additional trace information will be written out to the User log. 

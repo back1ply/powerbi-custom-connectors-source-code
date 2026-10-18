@@ -9,8 +9,8 @@
 **/
 (uniqueIdentifier) => let
     // Modules
-    LakehouseUtils = try #shared[LakehouseUtils] catch(e) => 
-        error Diagnostics.Trace(TraceLevel.Error, [Name = "LakehouseUtilsModuleLoadError", Data = []], e),
+    Utils = try #shared[Utils] catch(e) => 
+        error Diagnostics.Trace(TraceLevel.Error, [Name = "UtilsModuleLoadError", Data = []], e),
     SqlGenerator = try #shared[SqlGenerator] catch(e) => 
         error Diagnostics.Trace(TraceLevel.Error, [Name = "SqlGeneratorModuleLoadError", Data = []], e),
     SqlView.Generator = try #shared[SqlView.Generator] catch(e) => 
@@ -33,11 +33,6 @@
     ]),
 
     Function.Atomic = (n, f) => let f = Table.ViewFunction(f) in Value.ReplaceType(f, Value.Type(f) meta [Documentation.Name = n]),
-
-
-    // SQL Generator Setup
-    SignatureVal = "LakehouseSparkCompute",
-    MakeUniqueIdentifier = () => [Module = uniqueIdentifier, Signature = SignatureVal],
 
     /**
         Creates a view using the Spark SQL Generator on top of a Delta table.
@@ -124,7 +119,7 @@
                     )
                 in
                     finalResult,
-            generatorFn = SqlView.Generator(MakeUniqueIdentifier(), SqlGenerator, GetData),
+            generatorFn = SqlView.Generator(uniqueIdentifier, SqlGenerator, GetData),
             withSqlView = Diagnostics.Trace(
                 TraceLevel.Information,
                 [
@@ -169,7 +164,7 @@
                     ABFSFormat,
             baseParameters = [
                 Workspace = workspaceId,
-                OneLakeBaseUrl = LakehouseUtils[GetOneLakeBaseUrl](cloud, Text.Contains(Text.Lower(apiUrl), "msit"), false),
+                OneLakeBaseUrl = Utils[GetOneLakeBaseUrl](cloud, Text.Contains(Text.Lower(apiUrl), "msit"), false),
                 Lakehouse = lakehouseId,
                 TableName = tableName
             ],

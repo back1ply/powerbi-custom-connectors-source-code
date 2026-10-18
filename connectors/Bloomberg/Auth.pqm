@@ -23,6 +23,9 @@ let
                 #"Content-type" = "application/x-www-form-urlencoded",
                 #"Accept" = "application/json"
             ],
+            // Don't throw on 400; we want to parse the error response
+            // which may contain error/error_description fields
+            ManualStatusHandling = {400},
             IsRetry = true
         ]),
 
@@ -38,17 +41,32 @@ let
             response = sendTokenRequestFn(query),
             // The outer JSON that contains access_token
             credential = Json.Document(response),
-            // check for error in response
+            // check for error in response and validate access_token presence
             validatedCredential = if (credential[error]? <> null) then
-                error Error.Record("TokenResponseError", credential[error], credential[message]?)
+                error Error.Record(
+                    "Token Response Error",
+                    Text.Format("Error: #{0}, Description: #{1}", {credential[error], credential[error_description]?})
+                )
+            else if (credential[access_token]? = null) then
+                error Error.Record(
+                    "Token Response Error",
+                    "Missing access token value."
+                )
             else
                 credential,
             // access_token itself decoded and parsed
-            decodedAccessToken = try JWT.DecodeJWT(validatedCredential[access_token])
-                otherwise error Error.Record("Authentication Error","Could not decode access token."),
-
+            decodedAccessToken = if (credential[error]? = "invalid_grant") then
+                    error Error.Record("Session Timeout", "Your session has expired. Please sign in again.")
+                else try JWT.DecodeJWT(validatedCredential[access_token])
+                    catch (e) => error Error.Record(
+                        "Authentication Error",
+                        Text.Format("Cause: #[Reason], Message: #[Message]", e)
+                    ),
             ParseAdminCredential = (adminTokenString) => try Json.Document(adminTokenString)
-                otherwise error Error.Record("Admin Authentication Error", "Could not parse admin token."),
+                catch (e) => error Error.Record(
+                    "Admin Authentication Error",
+                    Text.Format("Cause: #[Reason], Message: #[Message]", e)
+                ),
             // If the decoded access_token has an inner adminToken attribute, use that as the access token.
             adminCredential = if (Record.HasFields(decodedAccessToken, "adminToken") and decodedAccessToken[adminToken] <> "")
                 then ParseAdminCredential(decodedAccessToken[adminToken])
@@ -60,7 +78,7 @@ let
                 then validatedAdminCredential
                 else validatedCredential
         in
-        finalCredential,
+            finalCredential,
 
     StartLogin = (resourceUrl, state, display) =>
         let
@@ -100,8 +118,11 @@ let
     Refresh = (clientApplication, dataSourcePath, oldCredential) =>
         let
             refreshToken = oldCredential[refresh_token],
-            decodedAccessToken = try JWT.DecodeJWT(oldCredential[access_token])
-                otherwise error Error.Record("Authentication Error","Could not decode access token."),
+            decodedAccessToken =  try JWT.DecodeJWT(oldCredential[access_token])
+                catch (e) => error Error.Record(
+                    "Authentication Error",
+                    Text.Format("Cause: #[Reason], Message: #[Message]", e)
+                ),
             // Could be the admin token client ID if an admin token is being used instead of the regular client ID
             clientId = decodedAccessToken[client_id],
             newCredential = TokenMethod(refreshToken, "refresh_token", SendTokenRequest, [clientId = clientId])

@@ -132,13 +132,16 @@ let
 
     ConstructListOfRecords = (ids as list, holdingsModes as list, idsTotalLength as number, holdingsModeTotalLength, index as number, finalList as list) as list =>
         let
+            maxLength = List.Max({idsTotalLength, holdingsModeTotalLength}),
             output =
-                if index = idsTotalLength then finalList
+                if index = maxLength then finalList
                 else
                     let
-                        tempIdRecord = [id = ids{index}],
+                        tempIdRecord =
+                            if index >= idsTotalLength then [id = null]
+                            else [id = ids{index}],
                         tempHmRecord =
-                            if index >= holdingsModeTotalLength then [holdingsmode = "B&H"]
+                            if index >= holdingsModeTotalLength then [holdingsmode = null]
                             else [holdingsmode = holdingsModes{index}],
                         tempRecord = Record.Combine({tempIdRecord, tempHmRecord}),
                         fList = List.Combine({finalList, {tempRecord}}),
@@ -147,18 +150,21 @@ let
                         answer
         in
             output,
-    
+
     ConstructListOfAccounts = (ids as list, returnTypes as list, prefixes as list, idsTotalLength as number, returnTypesTotalLength as number, prefixesTotalLength as number, index as number, finalList as list) as list =>
     let
-        output = 
-            if index = idsTotalLength then finalList
-            else 
+        maxLength = List.Max({idsTotalLength, returnTypesTotalLength, prefixesTotalLength}),
+        output =
+            if index = maxLength then finalList
+            else
                 let
-                    tempIdRecord = [id = ids{index}],
-                    tempRtRecord = 
+                    tempIdRecord =
+                        if index >= idsTotalLength then [id = null]
+                        else [id = ids{index}],
+                    tempRtRecord =
                         if index >= returnTypesTotalLength then [returntype = null]
                         else [returntype = returnTypes{index}],
-                    tempPrecord = 
+                    tempPrecord =
                         if index >= prefixesTotalLength then [prefix = null]
                         else [prefix = prefixes{index}],
                     tempRecord = Record.Combine({tempIdRecord, tempRtRecord, tempPrecord}),
@@ -166,7 +172,6 @@ let
                     answer = @ConstructListOfAccounts(ids, returnTypes, prefixes, idsTotalLength, returnTypesTotalLength, prefixesTotalLength, index+1, fList)
                 in
                     answer
-
     in
         output
 in

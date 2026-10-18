@@ -117,6 +117,7 @@ Because `Value.ReplaceType` performs no data conversion, **it will not parse tex
 If the API returns `{"Id": "123"}` (string) and you declare that column as `Int64.Type`, the Power Query UI will show a green "Number" indicator. The moment the user performs arithmetic, the engine crashes with a Type Mismatch — the underlying bytes are still text.
 
 **Rule of thumb:**
+
 - JSON property is natively the correct type (number, boolean, string) → use `Value.ReplaceType`.
 - JSON property requires parsing (`"2024-01-01"` → `Date`) → use `Table.ChangeType` or `Table.TransformColumnTypes`.
 
@@ -124,5 +125,5 @@ If the API returns `{"Id": "123"}` (string) and you declare that column as `Int6
 
 ## See Also
 
-- [`type_imposition_pattern.md`](type_imposition_pattern.md) — _(merged into this file)_
+- `type_imposition_pattern.md` — _(merged into this file)_
 - [`navigation_table_pattern.md`](navigation_table_pattern.md) — `Value.ReplaceType` is also used internally by `Table.ToNavigationTable` to attach navigation metadata.

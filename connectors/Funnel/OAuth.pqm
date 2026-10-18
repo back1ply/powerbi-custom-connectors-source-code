@@ -47,7 +47,7 @@ let
 					code = parts[code],
 					grant_type = "authorization_code",
 					client_id = "KHGyWRL56519p0uqBkjtbueBdavHGOPK",
-					client_secret="RGVw7aZ56PUTB05lC7gitUb_tJf_Il4hSp_9tj_yCJ53fotja2ewj3JbcXoOge8Q",
+					client_secret="<redacted>",
 					redirect_uri = redirect_uri])),
 				Headers=[
 					#"Content-type" = "application/x-www-form-urlencoded",
@@ -64,7 +64,7 @@ let
 				Content = Json.FromValue([
 					refresh_token = oldCredential[refresh_token],
 					client_id = "KHGyWRL56519p0uqBkjtbueBdavHGOPK",
-					client_secret="RGVw7aZ56PUTB05lC7gitUb_tJf_Il4hSp_9tj_yCJ53fotja2ewj3JbcXoOge8Q",
+					client_secret="<redacted>",
 					grant_type = "refresh_token"
 				]),
 				Headers = [

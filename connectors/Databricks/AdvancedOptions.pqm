@@ -12,7 +12,7 @@ let
 
         IdentityFn = (x as any) => x,
 
-        ToAdbcBoolean = (value as any) => 
+        ToAdbcBoolean = (value as any) =>
             if value is number then
                 if value = 1 then "true" else if value = 0 then "false" else Text.From(value)
             else if value is text then
@@ -20,7 +20,16 @@ let
             else
                 value,
 
-        RenameField = (key as text, optional valueTransform as function) => 
+        MetricViewBiCompatibilityModeValidator = (val as text) =>
+            let
+                lowerVal = Text.Lower(val)
+            in
+                if lowerVal = "true" or lowerVal = "1" then
+                    error Error.Record("Expression.Error", Extension.LoadString("MetricViewBICompatibilityModeDisabled"))
+                else
+                    val,
+
+        RenameField = (key as text, optional valueTransform as function) =>
             (value) => Record.AddField([], key, if valueTransform <> null then valueTransform(value) else value)
 
     in
@@ -32,13 +41,16 @@ let
                 {"BatchSize", type number, PositiveInteger, RenameField("RowsFetchedPerBlock"), RenameField("adbc.apache.statement.batch_size")},
                 {"Database", type text, EmptyTextToNull,  RenameField("Schema"), RenameField("adbc.connection.db_schema")},
                 {"Catalog", type text, EmptyTextToNull,  RenameField("Catalog"), RenameField("adbc.connection.catalog")},
-                {"QueryTags", type text, EmptyTextToNull, RenameField("SSP_query_tags"), RenameField("adbc.databricks.ssp_query_tags")},
+                // QueryTags: ADBC uses statement-level query tags instead of connection string
+                {"QueryTags", type text, EmptyTextToNull, RenameField("SSP_query_tags"), null},
                 {"EnableArrow", type text, IdentityFn,  RenameField("EnableArrow"), null},
                 {"EnableQueryResultDownload", type text, IdentityFn, RenameField("EnableQueryResultDownload"), RenameField("adbc.databricks.cloudfetch.enabled", ToAdbcBoolean)},
                 {"EnableQueryResultLZ4Compression", type text, IdentityFn, RenameField("EnableQueryResultLZ4Compression"), RenameField("adbc.databricks.cloudfetch.lz4.enabled", ToAdbcBoolean)},
                 {"EnableMultipleCatalogsSupport", type text, IdentityFn, RenameField("EnableMultipleCatalogsSupport"), RenameField("adbc.databricks.enable_multiple_catalog_support", ToAdbcBoolean)},
+                {"ScopeCurrentCatalog", type text, IdentityFn, null, RenameField("adbc.databricks.scope_current_catalog", ToAdbcBoolean)},
                 {"MaxNumResultFileDownloadThreads", type text, IdentityFn, RenameField("MaxNumResultFileDownloadThreads"), RenameField("adbc.databricks.cloudfetch.parallel_downloads")},
                 {"MaxConsecutiveResultFileDownloadRetries", type text, IdentityFn, RenameField("MaxConsecutiveResultFileDownloadRetries"), RenameField("adbc.databricks.cloudfetch.max_retries")},
+                {"CloudFetchStragglerMitigationEnabled", type text, IdentityFn, null, RenameField("adbc.databricks.cloudfetch.straggler_mitigation_enabled", ToAdbcBoolean)},
                 {"MaxBytesPerFetchRequest", type text, IdentityFn, RenameField("MaxBytesPerFetchRequest"), RenameField("adbc.databricks.max_bytes_per_fetch_request")},
                 {"EnableFetchHeartbeat", type text, IdentityFn, RenameField("EnableFetchHeartbeat"), null},
                 {"FetchHeartbeatInterval", type text, IdentityFn, RenameField("FetchHeartbeatInterval"), RenameField("adbc.databricks.fetch_heartbeat_interval")},
@@ -50,8 +62,14 @@ let
                 {"SSP_databricks.catalog", type text, IdentityFn, RenameField("SSP_databricks.catalog"), RenameField("adbc.databricks.ssp_databricks.catalog")},
                 {"SSP_spark.thriftserver.cloudfetch.enabled", type text, IdentityFn, RenameField("SSP_spark.thriftserver.cloudfetch.enabled"), RenameField("adbc.databricks.ssp_spark.thriftserver.cloudfetch.enabled")},
                 {"EnablePKFK", type number, IdentityFn, RenameField("EnablePKFK"), RenameField("adbc.databricks.enable_pk_fk", ToAdbcBoolean)},
-
+                {"MetricViewBiCompatibilityMode", type text, MetricViewBiCompatibilityModeValidator, RenameField("SSP_spark.databricks.sql.metricView.bi.compatibilityMode.enabled"), RenameField("adbc.databricks.ssp_spark.databricks.sql.metricView.bi.compatibilityMode.enabled", ToAdbcBoolean)},
                 {"UseDescTableExtended", type number, IdentityFn, null, RenameField("adbc.databricks.use_desc_table_extended", ToAdbcBoolean)},
+                // ADBC-only toggles, disabled by default (driver default is false)
+                {"EnableConfigCache", type number, IdentityFn, null, RenameField("adbc.databricks.feature_flag_cache_enabled", ToAdbcBoolean)},
+                // Opts into the fast metadata path (DESC TABLE EXTENDED ... AS JSON STATIC ONLY).
+                // Requires UseDescTableExtended and a SQL warehouse path; a no-op otherwise.
+                {"EnableFastMetadataQuery", type number, IdentityFn, null, RenameField("adbc.databricks.enable_fast_metadata_query", ToAdbcBoolean)},
+                {"EnableClientTelemetry", type number, IdentityFn, null, RenameField("adbc.databricks.telemetry.enabled", ToAdbcBoolean)},
                 {"TokenRenewLimit", type number, IdentityFn, RenameField("TokenRenewLimit"), RenameField("adbc.databricks.token_renew_limit")},
 
                 // automatic proxy discovery optional field
@@ -65,11 +83,16 @@ let
 
                 {"CancelQueryExplicitly", type logical, IdentityFn, null, null},
 
+                // Stored procedures support flag (default: enabled)
+                {"EnableStoredProcedures", type logical, IdentityFn, null, null},
+
                 // Versioned for forward compatibility with new experimental features
-                {"EnableExperimentalFlagsV1_1_0", type text, (val as text) => val = "disabled", null, null}, 
+                {"EnableExperimentalFlagsV1_1_0", type text, (val as text) => val = "disabled", null, null},
                 {"SSP_use_cached_result", type logical, IdentityFn, null, null},
 
-                {"Implementation",type nullable text, IdentityFn, null, null}
+                {"Implementation",type nullable text, IdentityFn, null, null},
+                {"EnableAutoQueryTags", type text, (val as text) => val = "true", null, null},
+                {"Protocol", type text, EmptyTextToNull, null, null}
 
             }
         ),
@@ -87,21 +110,28 @@ let
         in
             // flags should not override explicit settings
             enabledFlags & options,
-        
+
     ValidateAdvancedOptions = (optional options as record) as record =>
         let
             allKeys = Table.Column(AdvancedOptionsValidators, "Key"),
 
             // all advanced options are assumed to be nullable
             assertType = (field as record) => (v) =>
-                try
-                    if v = null then
-                        null
-                    else if Value.Is(v, field[Type]) then
-                        field[Validator](v)
-                    else error Error.Record("Expression.Error")
-                otherwise
-                    error Error.Record("Expression.Error", Text.Format(Extension.LoadString("ErrorAdvancedOptionValue"), {v, field[Key]})),
+                let
+                    result = try
+                        if v = null then
+                            null
+                        else if Value.Is(v, field[Type]) then
+                            field[Validator](v)
+                        else error Error.Record("Expression.Error")
+                in
+                    if result[HasError] then
+                        if result[Error][Message] <> null and result[Error][Message] <> "" then
+                            error result[Error]
+                        else
+                            error Error.Record("Expression.Error", Text.Format(Extension.LoadString("ErrorAdvancedOptionValue"), {v, field[Key]}))
+                    else
+                        result[Value],
 
             fieldToValidatorMap = List.Transform(Table.ToRecords(AdvancedOptionsValidators), each {[Key], assertType(_)}),
 

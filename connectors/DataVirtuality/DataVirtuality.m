@@ -1,5 +1,5 @@
 ﻿// This file contains the Data Virtuality Connector logic
-[Version = "3.0.0"]
+[Version = "3.0.1", Traits = [GatewayRequired = true]]
 section DataVirtuality;
 
 DefaultPort = "35433";

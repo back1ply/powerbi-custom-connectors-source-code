@@ -1,4 +1,4 @@
-﻿[Version = "1.1.1"]
+﻿[Version = "1.1.2", Traits = [GatewayRequired = true]]
 section IRIS;
 
 Config_SqlConformance = ODBC[SQL_SC][SQL_SC_SQL92_FULL];

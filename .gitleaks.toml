@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "ExactOnlinePremium's OAuth client identifier is public, not a secret"
+condition = "AND"
+paths = ['^connectors[/\\]ExactOnlinePremium[/\\]ExactOnlinePremium\.m$']
+regexTarget = "match"
+regexes = ['^oauth_client_id\s*=\s*"[^"]+"$']

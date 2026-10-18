@@ -4,7 +4,7 @@
  * that the customer is allowed to use our data.
  *
  * @param AccessToken Some token we can use to authenticate with our backend.
- * @param Region Either "US" or "EU", chosen by the customer.
+ * @param Region Either "US", "EU", or "CA", chosen by the customer.
  * @param Version This client's version.
  * @param Extension.ImportContext A record that has a function to import other files.
  * @returns Any override state provided by our backend.

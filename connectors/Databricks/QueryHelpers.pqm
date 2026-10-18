@@ -1,0 +1,29 @@
+let
+    // Detects if a query is a stored procedure call or SQL script
+    // Returns a record with detection results
+    DetectQueryType = (query as text, options as record) as record =>
+        let
+            // Check if stored procedures feature is enabled (default: true)
+            enableStoredProcedures = Record.FieldOrDefault(options, "EnableStoredProcedures", true),
+
+            trimmedQuery = Text.Trim(query),
+            upperQuery = Text.Upper(trimmedQuery),
+
+            isStoredProcedure = enableStoredProcedures and Text.StartsWith(upperQuery, "CALL "),
+            isSqlScript = enableStoredProcedures and Text.StartsWith(upperQuery, "BEGIN"),
+
+            queryType =
+                if isStoredProcedure then "PROCEDURE"
+                else if isSqlScript then "SCRIPT"
+                else "OTHER"
+        in
+            [
+                QueryType = queryType,
+                IsStoredProcedure = isStoredProcedure,
+                IsSqlScript = isSqlScript,
+                ShouldWrap = not (isStoredProcedure or isSqlScript)
+            ]
+in
+    [
+        DetectQueryType = DetectQueryType
+    ]

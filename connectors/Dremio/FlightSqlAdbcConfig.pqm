@@ -49,7 +49,8 @@
                 {"VARBINARY", -3, false, 2147483647, null, null, null},
                 {"VARCHAR", 12, false, 2147483647, null, "'", "'"},
                 {"WCHAR", -8, false, 2147483647, null, "'", "'"},
-                {"WVARCHAR", -9, false, 2147483647, null, "'", "'"}
+                {"WVARCHAR", -9, false, 2147483647, null, "'", "'"},
+                {"UUID", -2, false, 16, null, null, null}
             }
         )
     ]

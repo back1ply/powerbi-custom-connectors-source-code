@@ -1,0 +1,60 @@
+name: Validate reference
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact commit to validate when called by refresh automation
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: '1'
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked tooling
+        run: |
+          python -m pip install uv==0.11.3
+          uv sync --locked --group site
+      - name: Test and lint
+        run: |
+          uv run pytest -q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run ruff check tools tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run ruff format --check tools tests
+      - name: Check generated bundle and internal links
+        run: |
+          uv run pqkb build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- knowledge
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run okflint validate --manifest okf-base.yaml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb verify-reviews
+      - name: Scan archive and bundle for secrets
+        uses: ./.github/actions/scan-secrets
+      - name: Build review preview
+        run: uv run --group site mkdocs build --strict
+      - name: Upload review preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-site-preview
+          path: public

@@ -1,4 +1,4 @@
-[Version="1.1.2"]
+[Version="1.1.4"]
 section DeltaSharing;
 
 
@@ -8,7 +8,7 @@ shared DeltaSharing.Contents =  Value.ReplaceType(GetShares, SharingServerType);
 // We support readerVersion 3 for delta format
 ConnectorReaderVersion = 3;
 // NOTE: version string needs to be updated both at the top and in the version variable
-version = "1.1.2";
+version = "1.1.4";
 user_agent = "Delta-Sharing-PowerBI/" & version;
 
 // Data Source Kind description
@@ -39,14 +39,14 @@ DeltaSharing = [
 // Validate allowed query parameters and transform to lower case key
 ValidateAndToLowerCaseQueryParams = (queryParams as record) as record =>
     let
-        lowerAllowedParams = {"clientid", "scope"},
+        lowerAllowedParams = {"clientid", "scope", "audience"},
         queryParamNames = Record.FieldNames(queryParams),
         fieldValues = Record.FieldValues(queryParams),
         lowerQueryParamNames = List.Transform(queryParamNames, Text.Lower),
         unexpectedParams = List.RemoveItems(lowerQueryParamNames, lowerAllowedParams)
     in
         if List.Count(unexpectedParams) > 0 then
-            error Error.Record("Error", "Only clientId and scope are allowed in Query Parameter, found unexpected: " & Text.Combine(unexpectedParams, ", "))
+            error Error.Record("Error", "Only clientId, scope and audience are allowed in Query Parameter, found unexpected: " & Text.Combine(unexpectedParams, ", "))
         else
             Record.FromList(fieldValues, lowerQueryParamNames);
                 
@@ -70,6 +70,8 @@ GetOIDCAppInfo = (dataSourcePath) =>
         // Read clientid/scope from query parameter, or use default EntraID setting
         clientId = if Record.HasFields(validatedQueryParams, "clientid") and validatedQueryParams[clientid] <> null then validatedQueryParams[clientid] else "a672d62c-fc7b-4e81-a576-e60dc46e951d",
         scope = if Record.HasFields(validatedQueryParams, "scope") and validatedQueryParams[scope] <> null then validatedQueryParams[scope] else "64978f70-f6a6-4204-a29e-87d74bfea138/Read offline_access",
+        // Optional audience: only included in the authorization request when provided as a query parameter
+        audience = if Record.HasFields(validatedQueryParams, "audience") and validatedQueryParams[audience] <> null then validatedQueryParams[audience] else null,
 
         // Construct the deltaSharingHost URL
         deltaSharingHost = Uri.FromParts(parsedUrl & [Query = []]),
@@ -83,6 +85,7 @@ GetOIDCAppInfo = (dataSourcePath) =>
             ClientId = clientId,
             RedirectUri = "https://oauth.powerbi.com/views/oauthredirect.html",
             Scope = scope,
+            Audience = audience,
             ClientSecret = null,
             AuthorizeUrl = authorizeUrl,
             TokenUrl = tokenUrl
@@ -183,7 +186,8 @@ let
         redirectUri = clientApp[RedirectUri],
         clientId = clientApp[ClientId],
         scope = clientApp[Scope],
-        oidcQuery = Uri.BuildQueryString([
+        audience = clientApp[Audience],
+        baseQuery = [
             client_id = clientId,
             scope = scope,
             response_type = "code",
@@ -191,7 +195,10 @@ let
             code_challenge = codeChallenge,
             code_challenge_method = "S256",
             redirect_uri = redirectUri
-        ])
+        ],
+        // Only send audience during authorization when it was provided as a query parameter
+        queryWithAudience = if audience <> null then baseQuery & [audience = audience] else baseQuery,
+        oidcQuery = Uri.BuildQueryString(queryWithAudience)
     in
         [
             LoginUri = url,
@@ -478,13 +485,52 @@ HandleError = (resp, respMetadata) =>
 
 GetItems = (url as text, optional cols as list) as table =>
   let
-    source = Json.Document(SendRequest(url, [])),  
-    items = source[items]?,
+    // Parse the base URL to add query parameters for pagination
+    baseUrlParts = Uri.Parts(url),
+
+    // Function to fetch a single page from the Delta Sharing API
+    // Returns a record with [items = list, nextPageToken = text or null]
+    FetchPage = (pageToken as nullable text) as record =>
+      let
+        // Build query parameters: always include maxResults, add pageToken if present
+        // Use 500 to match Databricks Delta Sharing server default/limit
+        queryParams = if pageToken = null then
+                        [maxResults = "500"]
+                      else
+                        [maxResults = "500", pageToken = pageToken],
+
+        // Construct URL with query parameters
+        urlWithParams = Uri.FromParts(baseUrlParts & [Query = queryParams]),
+
+        // Make the API request
+        response = Json.Document(SendRequest(urlWithParams, [])),
+        items = response[items]?,
+        nextPageToken = response[nextPageToken]?
+      in
+        [items = items, nextPageToken = nextPageToken],
+
+    // Recursive function to fetch all pages
+    FetchAllPages = (pageToken as nullable text) as list =>
+      let
+        page = FetchPage(pageToken),
+        items = if page[items] = null then {} else page[items],
+        nextToken = page[nextPageToken],
+        // Recursively fetch remaining pages if nextPageToken exists
+        remainingItems = if nextToken <> null and nextToken <> "" then
+                           @FetchAllPages(nextToken)
+                         else
+                           {}
+      in
+        items & remainingItems,
+
+    // Fetch all items across all pages
+    allItems = FetchAllPages(null),
+
     // Convert items to a table, for non-existing fields, use null
-    itemsTable = if items = null then 
-                   #table(cols, {}) 
-                 else 
-                   Table.FromRecords(items, null, MissingField.UseNull)
+    itemsTable = if List.IsEmpty(allItems) then
+                   #table(cols, {})
+                 else
+                   Table.FromRecords(allItems, null, MissingField.UseNull)
   in
     itemsTable;
 

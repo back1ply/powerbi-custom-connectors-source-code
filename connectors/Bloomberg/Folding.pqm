@@ -21,6 +21,7 @@ let
     DataHandler = Extension.LoadFunction("Data-Handler.pqm"),
     DataHandler.GetSqlMetadata  = DataHandler[GetSqlMetadata],
     DataHandler.GetSqlData  = DataHandler[GetSqlData],
+    GetTypeFromMetadata = DataHandler[GetTypeFromMetadata],
 
     // Configuration module
     Configuration = Extension.LoadFunction("Configuration.pqm"),
@@ -39,7 +40,7 @@ let
 
                         GetSchema = () => let
                             state_ = Diagnostics.LogValue("GetSchema state", state),
-                            res = getDataFn(state_, initialState[traceParentId]),
+                            res = getDataFn(state_),
                             tableType = Table.Schema(res),
                             schemaResult_ = Diagnostics.LogValue("Type", tableType)
                         in
@@ -189,23 +190,6 @@ let
             DataHandler.GetSqlData,
             initialState
         ),
-
-    GetTypeFromMetadata = (
-        state as record
-    ) =>
-        let
-            metadata = DataHandler.GetSqlMetadata(state),
-            tableType = ExtractTypeFromMetadata(metadata)
-        in
-            tableType,
-
-    ExtractTypeFromMetadata = (metadata as record) =>
-        let
-            typedTable = CreateTypedTable(metadata[columns], {}),
-            tableType = Value.Type(typedTable),
-            tableType_ = Diagnostics.LogValue("Type extracted from metadata", tableType)
-        in
-            tableType,
 
     ConvertFunction = (fn as function) =>
         let

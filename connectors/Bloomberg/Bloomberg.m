@@ -1,5 +1,5 @@
 // This file contains your Data Connector logic
-[Version = "2.0.6"]
+[Version = "2.0.12"]
 section Bloomberg;
 
 // shared marks something as a thing that should be exported; Publish makes it appear in the Get Data menu
@@ -10,7 +10,7 @@ shared Bloomberg.Query = Value.ReplaceType(BloombergQuery, EntryPointType);
 [DataSource.Kind="BQL"]
 shared BQL.Query = Value.ReplaceType(BQLQuery, EntryPointType);
 
-ConnectorVersion = "2.0.6";
+ConnectorVersion = "2.0.12";
 
 //
 // Load common library functions
@@ -38,7 +38,6 @@ Auth = Extension.LoadFunction("Auth.pqm");
 Auth.StartLogin= Auth[StartLogin];
 Auth.FinishLogin= Auth[FinishLogin];
 Auth.Refresh= Auth[Refresh];
-Auth.GetBloombergDataSource = Auth[GetBloombergDataSource];
 
 // Folding module
 Folding = Extension.LoadFunction("Folding.pqm");
@@ -52,6 +51,7 @@ Configuration.IsBeta = Configuration[IsBeta];
 DataHandler = Extension.LoadFunction("Data-Handler.pqm");
 DataHandler.GetBqlData = DataHandler[GetBqlData];
 DataHandler.GetSqlData = DataHandler[GetSqlData];
+DataHandler.GetSqlDiscoveryData = DataHandler[GetSqlDiscoveryData];
 
 TestExports = [
     Utils = [
@@ -75,7 +75,7 @@ EntryPointType = type function (
     ];
 
 
-BloombergQuery = (query as text) => EntryPointImpl(
+BloombergQuery = (query as text) as table => EntryPointImpl(
     query,
     // We want to track which entrypoint function name people are using
     // (the new "Bloomberg.Query" or "BQL.Query", which will be deprecated going forward).
@@ -85,7 +85,7 @@ BloombergQuery = (query as text) => EntryPointImpl(
     }
 );
 
-BQLQuery = (query as text) => EntryPointImpl(
+BQLQuery = (query as text) as table => EntryPointImpl(
     query,
     {
         [key="ConnectorVersion", value=ConnectorVersion],
@@ -93,21 +93,21 @@ BQLQuery = (query as text) => EntryPointImpl(
     }
 );
 
-EntryPointImpl = (bqlQuery as text, clientContext as list) =>
+EntryPointImpl = (query as text, clientContext as list) as table =>
     let
-        bqlQuery1 =  Diagnostics.LogTrace(TraceLevel.Information, Text.Combine({"Connector version ", ConnectorVersion}), bqlQuery),
-        bqlQuery2 = Diagnostics.LogValue("Query Bi", bqlQuery1),
+        query1 =  Diagnostics.LogTrace(TraceLevel.Information, Text.Combine({"Connector version ", ConnectorVersion}), query),
+        query2 = Diagnostics.LogValue("Query", query1),
 
-        table = if bqlQuery2 = null
+        table = if query2 = null
             then error Error.Record("Invalid argument", "Query argument cannot be null.")
-            else if Text.Clean(bqlQuery2) = ""
+            else if Text.Clean(query2) = ""
                 then error Error.Record("Invalid argument", "Query argument cannot be empty.")
             else
-                GetData(bqlQuery2, clientContext)
+                GetData(query2, clientContext)
     in
         table;
 
-GetData = (query as text, clientContext as list) =>
+GetData = (query as text, clientContext as list) as table =>
     let
         traceParentId = GenerateTraceParentId(),
         queryType =  Diagnostics.LogValue("Query Type is", GetQueryType(query)),
@@ -118,7 +118,7 @@ GetData = (query as text, clientContext as list) =>
                 [sql=query, traceParentId=traceParentId, clientContext=clientContext]
             )
         else if queryType = "SQLDiscovery" then
-            DataHandler.GetSqlData(
+            DataHandler.GetSqlDiscoveryData(
                 [sql=query, traceParentId=traceParentId, clientContext=clientContext]
             )
         else

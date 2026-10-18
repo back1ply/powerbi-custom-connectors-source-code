@@ -1,14 +1,14 @@
-﻿(source as text, VenaBasic as text, Utils as record, pbic_version as text, apiVersion as text, configType as text, pageSize as text, optional modelQuery as text) as table =>
+﻿(source as text, VenaBasic as text, Utils as record, pbic_version as text, apiVersion as text, configType as text, pageSize as text, showOperationalTables as logical, optional modelQuery as text) as table =>
     let
         // Pull helper methods from the Utils file
         Hierarchies.CreateTablesForModel = Utils[Hierarchies.CreateTablesForModel],
         Values.CreateTableForModel = Utils[Values.CreateTableForModel],
         Values.CreateTableForModelWithNewExportApiJson = Utils[Values.CreateTableForModelWithNewExportApiJson],
+        OperationalTables.CreateTablesForModel = Utils[OperationalTables.CreateTablesForModel],
         Table.ToNavigationTable = Utils[Table.ToNavigationTable],
         Customer.GetEnabled = Utils[Customer.GetEnabled],
         User.FetchModels = Utils[User.FetchModels],
         Validate = Utils[Validate],
-
 
         enabled = Customer.GetEnabled(source & "/api/etl/powerBiConnector/enabled", VenaBasic),
 
@@ -50,9 +50,23 @@
                         )
             in
                 {modelName, modelId, navigationTable, "Table", "Table", false}
-        )
+        ),
+
+        // Combine operational tables section with all models (conditionally based on split flag "insights_op-table-in-pbi-desktop")
+        finalNavigationTable = 
+            if showOperationalTables then
+                let
+                    operationalTablesSection = 
+                        let
+                            operationalTablesRows = OperationalTables.CreateTablesForModel(source, VenaBasic, pbic_version)
+                        in
+                            {"Operational Tables", "operational_tables", Table.ToNavigationTable(operationalTablesRows), "Table", "Table", false}
+                in
+                    List.Combine({{operationalTablesSection}, allModelsTable})
+            else
+                allModelsTable
     in
         if not enabled then
             error "#(lf)Thanks for your interest in the Power BI Connector! This is a premium Vena feature. To inquire about pricing and trial options, please contact your customer success manager or csm@venacorp.com"
         else
-            Table.ToNavigationTable(allModelsTable)
+            Table.ToNavigationTable(finalNavigationTable)

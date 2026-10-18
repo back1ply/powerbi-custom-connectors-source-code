@@ -3,6 +3,15 @@
 // These functions are used to construct the ConnectionString for ADBC Flight SQL connections.
 
 let
+    LoadExpression = (name as text) as any =>
+        let
+            binary = Extension.Contents(name),
+            asText = Text.FromBinary(binary)
+        in
+            Expression.Evaluate(asText, #shared),
+
+    OAuthDiscovery = LoadExpression("DremioOAuthDiscovery.pqm"),
+
     IsPositiveNumber = (value) => Value.Is(value, type number) and value > 0,
 
     // IsValidDomain validates that a value is a valid hostname WITHOUT port number or protocol prefix.
@@ -42,13 +51,13 @@ let
     // BuildAdbcOption creates a record with a single ADBC configuration field if the value is not null.
     // Parameters:
     //   - adbcFieldName: The ADBC driver configuration field name (e.g., "adbc.flight.sql.client_option.with_max_msg_size")
-    //   - value: The value to set (if null, returns empty record)
+    //   - value: The value to set (if null, returns empty record).
     // Returns a record with the ADBC field set, or an empty record if value is null.
     BuildAdbcOption = (adbcFieldName as text, value as any) as record =>
         if value = null then
           []
         else
-          Record.FromList({value}, {adbcFieldName}),
+          Record.FromList({Text.From(value)}, {adbcFieldName}),
 
     // GetAdbcMaxMessageSize returns a record with the max message size configuration for ADBC Flight SQL connections.
     // If AdbcMaxMessageSize is provided in the options record, returns a record with the adbc.flight.sql.client_option.with_max_msg_size field.
@@ -155,41 +164,29 @@ let
         in
           AllOptions,
 
-    // GetOAuthTokenExchangeParameters returns the OAuth token exchange configuration for ADBC Flight SQL connections.
-    // This function should only be called when OAuth authentication is being used.
-    //
-    // Token URI Resolution Priority:
-    //   1. For Dremio Cloud regions OR private link domains, use the designated login service (ignores custom domain and port)
-    //   2. Otherwise, if AuthorizationServerDomain is provided, use it with the configured or default port
-    //   3. Otherwise, construct from the server host and port (defaults to <host>:9047)
-    //
-    // Parameters:
-    //   - domain: The Dremio server host domain
-    //   - encryption: Whether encryption is enabled (affects http vs https protocol for Dremio Software)
-    //   - options: The options record containing optional AuthorizationServerDomain and/or AuthorizationServerPort (optional)
-    //
-    // Options:
-    //   - AuthorizationServerDomain: Domain of the authorization server (no scheme or port), e.g., "auth.example.com"
-    //     Ignored for Dremio Cloud regions and private link domains
-    //   - AuthorizationServerPort: Port number for the authorization server (defaults to 9047 for Dremio Software)
-    //     Used for Dremio Software flows (including when AuthorizationServerDomain is set); ignored for Dremio Cloud regions and private link domains
-    //
-    // Returns a record with OAuth token exchange configuration fields.
-    GetOAuthTokenExchangeParameters = (domain as text, encryption as logical, optional options as record) as record =>
+    BuildOAuthTokenExchangeConfig = (tokenEndpoint as text) as record =>
+        [
+          adbc.flight.sql.oauth.flow = "token_exchange",
+          adbc.flight.sql.oauth.exchange.scope = "dremio.all",
+          adbc.flight.sql.oauth.exchange.subject_token_type = "urn:ietf:params:oauth:token-type:jwt",
+          adbc.flight.sql.oauth.token_uri = tokenEndpoint
+        ],
+
+    HasNonNullField = (input as nullable record, fieldName as text) as logical =>
+        input <> null and Record.HasFields(input, fieldName) and Record.Field(input, fieldName) <> null,
+
+    HasExplicitAuthorizationServerOption = (optional options as record) as logical =>
+        HasNonNullField(options, "AuthorizationServerDomain")
+            or HasNonNullField(options, "AuthorizationServerPort"),
+
+    GetCloudLoginUri = (domain as text) as nullable text =>
         let
             // Map of Dremio Cloud regions to their login services
             CloudRegionMap = [
               data.eu.dremio.cloud = "https://login.eu.dremio.cloud",
               data.dremio.cloud = "https://login.dremio.cloud"
             ],
-
-            // Build the token URI with priority:
-            // 1. Use CloudRegionMap or private link pattern for known cloud regions (takes precedence and ignores custom domain/port)
-            // 2. Use AuthorizationServerDomain/Port override when provided (non-cloud only)
-            // 3. Construct from server host and port for Dremio Software
-            // Exact region mapping (match must be against the original server host, not the override)
             ExactCloudLogin = Record.FieldOrDefault(CloudRegionMap, domain, null),
-            // Private link mapping (treat as cloud): <org>.data.privatelink.dremio.cloud -> https://<org>.login.privatelink.dremio.cloud
             // Private link mapping (treat as cloud). Supported patterns:
             //   - <org>.data.privatelink.dremio.cloud -> https://<org>.login.privatelink.dremio.cloud
             //   - <org>.data.privatelink.<environment>.dremio.site -> https://<org>.login.privatelink.<environment>.dremio.site
@@ -213,8 +210,22 @@ let
                         else
                             null
                 else
-                    null,
-            CloudLoginUri = if ExactCloudLogin <> null then ExactCloudLogin else PrivateLinkLogin,
+                    null
+        in
+            if ExactCloudLogin <> null then ExactCloudLogin else PrivateLinkLogin,
+
+    IsDremioCloudEndpoint = (domain as text) as logical =>
+        GetCloudLoginUri(domain) <> null,
+
+    // GetLegacyOAuthTokenEndpoint returns the existing derived OAuth token endpoint.
+    // It is kept as the fallback path for old servers and explicit auth-server overrides.
+    GetLegacyOAuthTokenEndpoint = (domain as text, encryption as logical, optional options as record) as text =>
+        let
+            // Build the token URI with priority:
+            // 1. Use CloudRegionMap or private link pattern for known cloud regions (takes precedence and ignores custom domain/port)
+            // 2. Use AuthorizationServerDomain/Port override when provided (non-cloud only)
+            // 3. Construct from server host and port for Dremio Software
+            CloudLoginUri = GetCloudLoginUri(domain),
 
             // If cloud/private link matched, ignore any custom AuthorizationServer* options entirely
             TokenUri = if CloudLoginUri <> null then
@@ -238,28 +249,66 @@ let
                     Host = DomainOverride ?? domain,
                     DefaultTokenUri = (if encryption then "https://" else "http://") & Host & ":" & Text.From(Port)
                 in
-                    DefaultTokenUri,
-            // Return the complete OAuth token exchange configuration
-            OAuthConfig = [
-              adbc.flight.sql.oauth.flow = "token_exchange",
-              adbc.flight.sql.oauth.exchange.scope = "dremio.all",
-              adbc.flight.sql.oauth.exchange.subject_token_type = "urn:ietf:params:oauth:token-type:jwt",
-              adbc.flight.sql.oauth.token_uri = TokenUri & "/oauth/token"
-            ]
+                    DefaultTokenUri
         in
-          OAuthConfig
+          TokenUri & "/oauth/token",
+
+    CloudTokenExchangeParameters = (domain as text, encryption as logical, optional options as record) as record =>
+        BuildOAuthTokenExchangeConfig(GetLegacyOAuthTokenEndpoint(domain, encryption, options)),
+
+    // SoftwareTokenExchangeParameters returns OAuth token exchange configuration for Dremio Software
+    // ADBC connections. Explicit AuthorizationServer* options take precedence. Otherwise it tries
+    // RFC 9728/RFC 8414 discovery. Any discovery error, missing metadata, or non-RFC-compatible
+    // backend response falls back to the legacy derived token endpoint.
+    SoftwareTokenExchangeParameters = (domain as text, flightPort as number, encryption as logical, optional options as record) as record =>
+        let
+            HasOverride = HasExplicitAuthorizationServerOption(options),
+            ResourceEndpoint = OAuthDiscovery[BuildEndpointUrl](domain, flightPort, encryption),
+            DiscoveryResult =
+                if HasOverride then
+                    null
+                else
+                    try OAuthDiscovery[DiscoverTokenEndpoint](ResourceEndpoint) otherwise null,
+            DiscoveredTokenEndpoint =
+                if not HasOverride and Value.Is(DiscoveryResult, type text) and DiscoveryResult <> "" then
+                    DiscoveryResult
+                else
+                    null,
+            TokenEndpoint =
+                if DiscoveredTokenEndpoint <> null then
+                    DiscoveredTokenEndpoint
+                else
+                    GetLegacyOAuthTokenEndpoint(domain, encryption, options)
+        in
+            BuildOAuthTokenExchangeConfig(TokenEndpoint),
+
+    // GetOAuthTokenExchangeParameters selects OAuth behavior by backend endpoint, not by connector kind.
+    // Recognized Dremio Cloud endpoints keep the existing hardcoded fallback behavior. Other endpoints
+    // are treated as Dremio Software-compatible backends and may use RFC 9728/RFC 8414 discovery.
+    GetOAuthTokenExchangeParameters = (domain as text, flightPort as number, encryption as logical, optional options as record) as record =>
+        if IsDremioCloudEndpoint(domain) then
+            CloudTokenExchangeParameters(domain, encryption, options)
+        else
+            SoftwareTokenExchangeParameters(domain, flightPort, encryption, options)
 in
     [
         IsValidDomain = IsValidDomain,
         IsPositiveNumber = IsPositiveNumber,
         GetOptionValue = GetOptionValue,
         BuildAdbcOption = BuildAdbcOption,
+        BuildOAuthTokenExchangeConfig = BuildOAuthTokenExchangeConfig,
+        HasExplicitAuthorizationServerOption = HasExplicitAuthorizationServerOption,
+        GetCloudLoginUri = GetCloudLoginUri,
+        IsDremioCloudEndpoint = IsDremioCloudEndpoint,
+        GetLegacyOAuthTokenEndpoint = GetLegacyOAuthTokenEndpoint,
         GetAdbcMaxMessageSize = GetAdbcMaxMessageSize,
         GetAdbcConnectTimeout = GetAdbcConnectTimeout,
         GetAdbcFetchTimeout = GetAdbcFetchTimeout,
         GetAdbcQueryTimeout = GetAdbcQueryTimeout,
         GetAdbcUpdateTimeout = GetAdbcUpdateTimeout,
         GetAdbcDriverOptions = GetAdbcDriverOptions,
+        CloudTokenExchangeParameters = CloudTokenExchangeParameters,
+        SoftwareTokenExchangeParameters = SoftwareTokenExchangeParameters,
         GetOAuthTokenExchangeParameters = GetOAuthTokenExchangeParameters
     ]
 

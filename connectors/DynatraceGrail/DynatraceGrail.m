@@ -1,4 +1,4 @@
-﻿[Version = "1.0.6"]
+﻿[Version = "1.0.7"]
 section DynatraceGrail;
 
 
@@ -358,7 +358,7 @@ DynatraceGrail= [
 
 // Data Source UI publishing description
 DynatraceGrail.UI = [
-    Beta = true,
+    Beta = false,
     Category = "Other",
     ButtonText = { "Dynatrace Grail DQL", "Connect" },
     LearnMoreUrl = "https://learn.microsoft.com/en-us/power-query/connectors/dynatrace-grail-dql",

@@ -6,6 +6,8 @@ let
     Utils = try #shared[Utils] otherwise error "Internal Error: Utils module not found in shared context. Ensure the module is loaded with the correct context.",
     Fabric.GetClusterUrl = try #shared[Fabric.GetClusterUrl] otherwise error "Module GetClusterUrl not found in shared context. Ensure the GetClusterUrl module is loaded.",
     WorkspaceDlp = try #shared[WorkspaceDlp] otherwise error "Internal Error: WorkspaceDlp not found in shared context. Ensure the WorkspaceDlp module is loaded with the correct context.",
+    WorkspacePrivateLink = try #shared[WorkspacePrivateLink] otherwise error "Internal Error: WorkspacePrivateLink not found in shared context. Ensure the WorkspacePrivateLink module is loaded with the correct context.",
+    UseHardcodedWorkspaceType = try #shared[UseHardcodedWorkspaceType] otherwise false,
 
     Cdsa.GetNavTableForWorkspaces = (getNavTableForDataflow as function, options as nullable record) as nullable table =>
         let
@@ -41,8 +43,13 @@ let
                 () => withData,
                 {"workspaceId"},
                 (_workspaceId) =>
-                    // Note: Navigation table folding breaks because workspaceType is needed from workspaces call.
-                    Cdsa.GetNavTableForWorkspace(_baseUrl, _workspaceId, filteredWorkspaces{[workspaceId = _workspaceId]}[workspaceType], getNavTableForDataflow, options, dlpPolicies),
+                    // When UseHardcodedWorkspaceType is enabled, workspaceType is hardcoded to "Folder" (backend always returns this value),
+                    // which enables navigation table folding without needing to call the expensive cdsa/workspaces API.
+                    // When disabled, we fall back to looking up workspaceType from the workspaces API call.
+                    if UseHardcodedWorkspaceType then
+                        Cdsa.GetNavTableForWorkspace(_baseUrl, _workspaceId, "Folder", getNavTableForDataflow, options, dlpPolicies)
+                    else
+                        Cdsa.GetNavTableForWorkspace(_baseUrl, _workspaceId, filteredWorkspaces{[workspaceId = _workspaceId]}[workspaceType], getNavTableForDataflow, options, dlpPolicies),
                 [
                     Name = {"workspaceName", each [workspaceName]},
                     workspaceType = each "Folder",

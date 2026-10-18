@@ -1,12 +1,14 @@
 [
-    Version = "1.0.197",
+    Version = "1.0.264",
     Requires = [
         Core = "[0.0,)",
         DataSource = "[0.0,)",
         Environment = "[0.0,)",
         Extensibility = "[0.0,)",
         DeltaLake="[0.0,)",
+        Parquet="[0.0,)",
         Web="[0.0,)",
+        AzureBlob = "[0.0,)",
         AzureDataLakeStorage="[0.0,)",
         Sql="[0.0,)",
         Action="[0.0,)",
@@ -30,41 +32,40 @@ section Lakehouse;
 
 
 PBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com");
-AadWorkspaceApiOAuthResource = Environment.FeatureSwitch("PowerBiAadResource", "https://analysis.windows.net/powerbi/api");
-AadAuthorizationUri =  Uri.Combine(Environment.FeatureSwitch("AzureActiveDirectoryUri", "https://login.microsoftonline.com"), "/common/oauth2/authorize");
-AadAdlsStorageResource = "https://storage.azure.com";
-AadSqlResource = "https://database.windows.net/";
+AadWorkspaceApiOAuthResource = FabricEnvironment[PowerBiResource];
+AadAuthorizationUri = FabricEnvironment[AuthorizationUri];
+AadAdlsStorageResource = FabricEnvironment[StorageResource];
+AadSqlResource = FabricEnvironment[SqlResource];
 AadRedirectUrl = "https://oauth.powerbi.com/views/oauthredirect.html";
 
-DeltaLake.DefaultOptions = [Compression=Compression.Snappy];
+// For sensitivity label information in Excel
+IncludeFabricSensitivityLabels =
+    let
+        value = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("IncludeFabricSensitivityLabels", false))
+    in
+        Diagnostics.Trace(
+            TraceLevel.Information,
+            [
+                Name = "Lakehouse/IncludeFabricSensitivityLabels",
+                Data = [Enabled = Utils[NonPii](Utils[Value.ToText](value))]
+            ],
+            value);
 
-UseDmsTableApi = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_EnableDMSTableApi", true));
+DeltaLake.Options = (options) => [Compression=Compression.Snappy] & (if options[EnableVorder]? = null then [] else [PreserveOrder=not options[EnableVorder]]);
+
 ValidateStagingArtifacts = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_ValidateStagingArtifacts", false));
-FixedSchemaFix = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_FixedSchemaFix", true));
-DisableDmsDelayedBackgroudProcessing = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_DisableDmsDelayedBackgroudProcessing", true));
-LogSqlErrorCodesFromDMSResponse = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_LogSqlErrorCodesFromDMSResponse", true));
-IgnoreTableNameValidation = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_IgnoreTableNameValidation", true));
-DynamicSchemaEmptyTableFix = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_DynamicSchemaEmptyTableFix", true));
-MaxDMSBatchDuration = Value.ConvertToNumber(Environment.FeatureSwitch("MashupFlight_MaxDMSBatchDuration", 3600)); //batch duration of 1 hour by default.
 UseFileCache = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseFileCache", false));
-DMSUseLongPolling = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_DMSUseLongPolling", true));
-ReportDMSBatchDuration = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_ReportDMSBatchDuration", true));
+
 CacheTrimDuration = Value.ConvertToNumber(Environment.FeatureSwitch("MashupFlight_CacheTrimDuration", 86400));
 EnablePartitionedRefresh = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_EnablePartitionedRefresh", false));
 ForceMDSyncForODLakehouse = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_ForceMDSyncForODLakehouse", false));
 TranslateKeyNotFound = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_TranslateKeyNotFound", false));
 HideSysAndQueryInsightsSchema = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_HideSysAndQueryInsightsSchema", false));
-EnableHierarchicalNavigationSupport = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_EnableHierarchicalNavigationSupport", false));
+FilterSchemasForHierarchicalNavigation = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_FilterSchemasForHierarchicalNavigation", false));
+LakehouseSurfaceInnerError = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_LakehouseSurfaceInnerError", false));
 
-//TODO use FailIfPollingExpiresFlag once TableAPI is propertly tested
-// TODO revisit the MaxIterationCount and PollingCount once we have more data from telemetry.
-// With the polling multiplier of 1.22, with 20 retries we will wait for a max of around 5 mins per batch
-// For Long Polling we will poll a max of 5 times without delay. 
-MetadataSyncConfig = if UseDmsTableApi then if DMSUseLongPolling then
-            [MaxIterationCount = 55, PollingCount = 5, NothingInProgressIterationCount = 55, PollingDelayMultiplier=1]
-        else
-            [MaxIterationCount = 55, PollingCount = 20, NothingInProgressIterationCount = 55, PollingDelayMultiplier=1.22]
-    else [MaxIterationCount = 1, PollingCount = 55, NothingInProgressIterationCount = 25, PollingDelayMultiplier = 1.1];
+
+GetPlatformVersion = () => try Number.From(Text.Split(Module.Versions()[Core], "."){1}) otherwise 0;
 
 // This folder will hold all the version folders which are created in the connector as a part of Replace and Append Data scenarios
 TemporaryParentVersionFolder = "_mashup_temporary";
@@ -93,7 +94,7 @@ cloud = Environment.FeatureSwitch("Cloud", "global");
 LakehouseCacheParentTable = (workspaceId as text, lakehouseId as text, isMsit as logical) => OneLake.Contents(Text.Format(OneLakeFilesPathFormat, {OneLakeFilesPathBaseUrl(cloud, isMsit), workspaceId, lakehouseId}));
 LakehouseCacheTable = (workspaceId as text, lakehouseId as text, isMsit as logical) => OneLake.Contents(Text.Format(OneLakeCacheFolderFilesPathFormat, {OneLakeFilesPathBaseUrl(cloud, isMsit), workspaceId, lakehouseId}));
 LakehouseCacheFile = (workspaceId as text, lakehouseId as text, cacheKey as text, isMsit as logical) => Binary.Buffer(OneLake.FileContents(Text.Format(OneLakeFilesContentPathFormat, {OneLakeFilesPathBaseUrl(cloud, isMsit), workspaceId, lakehouseId, cacheKey})));
-OneLakeFilesPathBaseUrl = (cloudEnv, isMsit as logical) => LakehouseUtils[GetOneLakeBaseUrl](cloudEnv, isMsit, true);
+OneLakeFilesPathBaseUrl = (cloudEnv, isMsit as logical) => Utils[GetOneLakeBaseUrl](cloudEnv, isMsit, true);
 // END of Cache Setup
 
 // TODO : Add Support for Equals.
@@ -105,14 +106,30 @@ OneLakeUriFormat = "https://#{0}/v1.0/workspaces/#{1}/artifacts/#{2}/sasuri?expi
 // End Workspace PL Setup.
 
 IsHierarchicalNavigationEnabled = (options) => 
-    EnableHierarchicalNavigationSupport and options[HierarchicalNavigation]? = true;
+    options[HierarchicalNavigation]? = true;
 
 [DataSource.Kind="Lakehouse", Publish="Lakehouse.Publish"]
 shared Lakehouse.Contents = Value.ReplaceType(LakehouseView, LakehouseType);
 
 LakehouseType =
     let
-        functionType = type function (optional options as record)
+        HierarchicalNavigationOptionType = type logical meta [
+            Documentation.FieldCaption = Extension.LoadString("Lakehouse.Fields.HierarchicalNavigation.FieldCaption")
+        ],
+        EnableVorderOptionType = type logical meta [
+            Documentation.FieldCaption = Extension.LoadString("Lakehouse.Fields.EnableVorder.FieldCaption"),
+            Documentation.DefaultValue = true
+        ],
+        OutputMetadataRefreshOptionType = type logical meta [
+            Documentation.FieldCaption = Extension.LoadString("Lakehouse.Fields.OutputMetadataRefresh.FieldCaption"),
+            Documentation.DefaultValue = true
+        ],
+        LakehouseOptions = type [
+            optional HierarchicalNavigation = HierarchicalNavigationOptionType,
+            optional EnableVorder = EnableVorderOptionType,
+            optional OutputMetadataRefresh = OutputMetadataRefreshOptionType
+        ],
+        functionType = type function (optional options as LakehouseOptions)
             as table meta [
                 Documentation.Name = Extension.LoadString("DataSourceLabel"),
                 Documentation.Caption = Extension.LoadString("lakehouse.caption"),
@@ -124,79 +141,27 @@ LakehouseType =
 
 LakehouseView = (optional options as record) as table =>
     let
-        invoke = LakehouseImpl(options),
+        invoke = GetNavTableForLakehouses(options),
         view = (x) => Table.View(null, Handlers((op, transform) =>
             if List.Contains({"GetRows", "GetType", "GetRowCount", "GetExpression", "OnTestConnection"}, op) then transform(x(invoke))
             else @view((y) => transform(x(y)))))
     in
         view((t) => t);
 
-LakehouseImpl = (optional options as record) => Lakehouses(options);
-
-Lakehouses = (options) =>
-    let
-        result = GetNavTableForLakehouses(options)
-    in
-        result;
-
-
 GetNavTableForLakehouses = (options as nullable record) as nullable table =>
     let
-        baseUrl = Fabric.GetClusterUrl(PBIBaseUrl)
+        nonNullOptions = options ?? [],
+        testConnection = () =>
+            let
+                firstLakehouse = Workspace[GetFirstLakehouse](Extension.LoadString("NoLakehousesFound")),
+                lakehouseDbId = firstLakehouse[lakehouseDbId]?,
+                lakehouseArtifactId = firstLakehouse[lakehouseId]?,
+                workspaceId = firstLakehouse[workspaceId]?,
+                database = GetLakehouseDatabase(PBIBaseUrl, workspaceId, lakehouseDbId, lakehouseArtifactId)
+            in
+                Sql.TestServerConnection(database, lakehouseDbId)
     in
-        GetWorkspaces2(baseUrl, options ?? []);
-
-GetWorkspaces2 = (baseUrl as text, options as record) =>
-    let
-        dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
-        allWorkspaces = GetWorkspaces(baseUrl, options),
-        // Filter workspaces based on DLP policy
-        workspaces = Diagnostics.Trace(
-            TraceLevel.Information,
-            [
-                Name = "GetWorkspaces2/ApplyWorkspaceDlp",
-                Data = [
-                    DlpPolicies = Utils[NonPii](Utils[Value.ToText](dlpPolicies))
-                ]
-            ],
-            Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies))),
-        // build nav table
-        navTable = Table.NavigationTableView(
-            () => workspaces,
-            {"workspaceId"},
-            (workspaceId) => GetNavTableForWorkspace(WorkspacePrivateLink[GetWorkspaceBaseUrl](baseUrl, workspaceId), workspaceId, options),
-            [
-                Name = {"workspaceName", each [workspaceName]},
-                ItemKind = each "Folder",
-                ItemName = each "Folder",
-                IsLeaf = each false
-            ],
-            [
-                OnTestConnection = () => 
-                let
-                    firstLakehouse = GetFirstLakehouse(workspaces, baseUrl),
-                    lakehouseDbId = firstLakehouse[lakehouseDbId]?,
-                    workspaceId = firstLakehouse[workspaceId]?,
-                    database = GetLakehouseDatabase(baseUrl, workspaceId, lakehouseDbId)
-                in
-                    Sql.TestConnection(database, lakehouseDbId)
-            ])
-    in
-        navTable;
-
-GetFirstLakehouse = (allWorkspaces as table, baseUrl as text) as record =>
-    let
-        allLakehouses = Table.AddColumn(allWorkspaces, "lakehouseDbId", each GetFirstLakehouseDbId([workspaceId], baseUrl)),
-        firstLakehouse = Table.First(Table.SelectRows(allLakehouses, each [lakehouseDbId] <> null))
-    in
-        firstLakehouse;
-
-GetFirstLakehouseDbId = (workspaceId as text, baseUrl as text) as any =>
-    let
-        lakehouses = GetLakehousePublicAPIWitoutData(baseUrl, workspaceId, []),
-        withDatabaseIdOnly = Table.SelectRows(lakehouses, each [databaseId] <> null)
-    in
-        Table.First(withDatabaseIdOnly)[databaseId]?;
+        Workspace[GetWorkspacesNavTable](GetNavTableForWorkspace, nonNullOptions, testConnection);
 
 LakehouseNavTableType = type table [
     lakehouseId=text,
@@ -218,7 +183,25 @@ LakehouseTableDetailType = type table [
     IsLeaf = logical
 ];
 
-GetNavTableForWorkspace = (baseUrl as text, workspaceId as text, options as record) as nullable table =>
+GetLakehouseIdByName = (lakehouses as table, lakehouseName as text, workspaceId as text ) =>
+    let
+       lakehouseId = lakehouses{[lakehouseName=lakehouseName]}?[lakehouseId]?,
+       extendedProperties = lakehouses{[lakehouseName=lakehouseName]}[extendedProperties]
+    in
+       if lakehouseId = null then
+            error Table.ViewError(Error.Record(
+                    Utils[NonPii]("DataSource.Error"),
+                    Utils[NonPii](Extension.LoadString("LakehouseNotFoundError")),
+                    [
+                        LakehouseName = Utils[NonPii](lakehouseName),
+                        WorkspaceId = Utils[NonPii](workspaceId)
+                    ],
+                    {Utils[NonPii](lakehouseName), Utils[NonPii](workspaceId)}
+                ))
+       else
+            [LakehouseId = lakehouseId, ExtendedProperties = extendedProperties];
+
+GetNavTableForWorkspace = (baseUrl as text, workspaceId as text, options as record, isRelativeReference as logical) as nullable table =>
     let
         dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
         validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
@@ -226,23 +209,27 @@ GetNavTableForWorkspace = (baseUrl as text, workspaceId as text, options as reco
         warehouses = GetWarehouses(baseUrl, validatedWorkspaceId, options),
         includeWarehouses = options[IncludeWarehouses]? ?? false,
         all = if includeWarehouses then Table.Combine({lakehouses, warehouses}) else lakehouses,
-        emptyTable = AddLakehouseTrivia(#table(LakehouseNavTableType, {})),
+        keyColumnName = if isRelativeReference = true then "lakehouseName" else "lakehouseId",
+        emptyTable = AddLakehouseTrivia(#table(LakehouseNavTableType, {}), keyColumnName),
 
         navTable = Table.View(null, [
             GetType = () => Value.Type(emptyTable),
-            GetRows = () => AddLakehouseTrivia(all),
+            GetRows = () => AddLakehouseTrivia(all, keyColumnName),
 
             OnSelectRows = (selector) =>
                 let
                     index = try GetIndex(selector, {"databaseId", "ItemName"}) otherwise ...,
                     lakeHouseIndex = try GetIndex(selector, {"lakehouseId"}) otherwise ...,
+                    lakeHouseNameIndex = try GetIndex(selector, {"lakehouseName"}) otherwise ...,
                     cacheLocation = GetCacheLocation(options, validatedWorkspaceId, lakeHouseIndex[lakehouseId]),
                     // Fetch extended properties for lakehouse from state table
                     stateTableDataForLakehouse = GetDataFromCacheTable(cacheLocation, lakeHouseIndex[lakehouseId], "GetNavTableForWorkspace/OnSelectRows", baseUrl),
                     cachedLakehouseExtendedProperties = stateTableDataForLakehouse[Data]? ?? null, 
-                    getLakehouseDetails = (storedBaseUrl, extendedProperties) => GenerateLakehouseView(storedBaseUrl, validatedWorkspaceId, lakeHouseIndex[lakehouseId], extendedProperties, options),
+                    getLakehouseDetails = (storedBaseUrl, extendedProperties) => GenerateLakehouseViewWithSensitivityLabels(storedBaseUrl, validatedWorkspaceId, lakeHouseIndex[lakehouseId], extendedProperties, options),
                     isWarehouse = includeWarehouses and index[ItemName] = "Warehouse",
                     default = Table.SelectRows(GetRows(), selector), // TODO: optimize to skip LH
+                    getLakehouseIdByName = GetLakehouseIdByName(GetRows(), lakeHouseNameIndex[lakehouseName], validatedWorkspaceId),
+                    getLakehouseDetailsByName = (storedBaseUrl, extendedProperties, lakehouseId) => GenerateLakehouseViewWithSensitivityLabels(storedBaseUrl, validatedWorkspaceId, lakehouseId, extendedProperties, options),
                     triedData = GetWarehouseDatabaseView(baseUrl, validatedWorkspaceId, index[databaseId], options),
                     lazyRecord = (recordCtor, keys, baseRecord) =>
                         let record = recordCtor() in List.Accumulate(keys, [], (r, f) => Record.AddField(r, f, () => (Record.FieldOrDefault(baseRecord, f, null) ?? Record.Field(record, f)), true)),
@@ -257,9 +244,11 @@ GetNavTableForWorkspace = (baseUrl as text, workspaceId as text, options as reco
                     if isWarehouse then
                         if triedData = null then emptyTable
                         else result(index, triedData)
+                    else if isRelativeReference then
+                        result(lakeHouseNameIndex, getLakehouseDetailsByName(baseUrl, getLakehouseIdByName[ExtendedProperties], getLakehouseIdByName[LakehouseId]))
                     else if lakeHouseIndex <> null and cachedLakehouseExtendedProperties <> null then
-                        result(lakeHouseIndex, getLakehouseDetails(cachedLakehouseExtendedProperties[BaseUrl], cachedLakehouseExtendedProperties[ExtendedProperties]))
-                    else 
+                        result(lakeHouseIndex, getLakehouseDetails(baseUrl, cachedLakehouseExtendedProperties[ExtendedProperties]))
+                    else
                         if TranslateKeyNotFound and lakeHouseIndex <> null then
                             let
                                 result =
@@ -281,10 +270,12 @@ GetNavTableForWorkspace = (baseUrl as text, workspaceId as text, options as reco
             OnTestConnection = () =>
                 let
                     lakehouseWithDb = Table.SelectRows(lakehouses, each [databaseId] <> null),
-                    firstLakehouse = Table.First(lakehouseWithDb)[databaseId]?,
-                    database = if (firstLakehouse <> null) then GetLakehouseDatabase(baseUrl, validatedWorkspaceId, firstLakehouse) else null
+                    firstLakehouseRow = Table.First(lakehouseWithDb),
+                    firstDatabaseId = firstLakehouseRow[databaseId]?,
+                    firstLakehouseArtifactId = firstLakehouseRow[lakehouseId]?,
+                    database = if (firstDatabaseId <> null) then GetLakehouseDatabase(baseUrl, validatedWorkspaceId, firstDatabaseId, firstLakehouseArtifactId) else null
                 in
-                    Sql.TestConnection(database, firstLakehouse)
+                    Sql.TestConnection(database, firstDatabaseId)
         ])
     in
         navTable;
@@ -314,42 +305,34 @@ NewKeyNotFoundError = (detail as record, parameters as list, exceptionKey as tex
         )
     );
 
-AddLakehouseTrivia = (table) =>
+AddLakehouseTrivia = (table, keyName as text) =>
     let
         withItemKind = Table.AddColumn(table, "ItemKind", each "Database"),
         withItemName = Table.AddColumn(withItemKind, "ItemName", each if [databaseId] = [lakehouseId] then "Warehouse" else "Database"),
         withIsLeaf = Table.AddColumn(withItemName, "IsLeaf", each false),
+        nameColumnInNavTable = if keyName = "lakehouseId" then "lakehouseName" else "lakehouseId",
 
-        nav = Table.ToNavigationTable(withIsLeaf, {"lakehouseId"}, "lakehouseName", "Data", "ItemKind", "ItemName", "IsLeaf")
+        nav = Table.ToNavigationTable(withIsLeaf, {keyName}, "lakehouseName", "Data", "ItemKind", "ItemName", "IsLeaf")
     in
         nav;
-
-GetWorkspaces = (baseUrl as text, options as record) as table =>
-    let
-        url = Uri.Combine(baseUrl, "/v1/workspaces"),
-        response = Utils[Web.JsonContents](
-            url,
-            /*headers*/ null,
-            /*additionalHandlers*/ null,
-            /*jsonBody*/ null,
-            /*startState*/ null,
-            /*traceContext*/ [Origin = Utils[NonPii]("GetWorkspaces")]
-        ),
-        workspaces = Table.FromRecords(response[value], {"id", "displayName", "capacityId"}, MissingField.UseNull),
-        justPremiumWorkspaces = Table.SelectRows(workspaces, each [capacityId] <> null),
-        removedCapacityObjectColumns = Table.RemoveColumns(justPremiumWorkspaces,"capacityId"),
-        rename = Table.RenameColumns(removedCapacityObjectColumns, {{"id", "workspaceId"}, {"displayName", "workspaceName"}})
-    in
-        rename;
 
 GetLakehouses = (baseUrl as text, workspaceId as text, options as record) as nullable table =>
     let
         lakehouesWithoutData = GetLakehousePublicAPIWitoutData(baseUrl, workspaceId, options),
-        lakehouseArtifactsWithData = Table.AddColumn(lakehouesWithoutData, "Data", each GenerateLakehouseView(baseUrl, workspaceId, [lakehouseId], 
-            [extendedProperties], options), type table),
-        reorderdColumns = Table.ReorderColumns(lakehouseArtifactsWithData,Table.ColumnNames(#table(LakehouseNavTableType, {})))
+        lakehouseArtifactsWithData = Table.AddColumn(
+            lakehouesWithoutData,
+            "Data",
+            if IncludeFabricSensitivityLabels and options[IsModelStorage]? <> true then
+                each Utils[AddSensitivityTrait](
+                    GenerateLakehouseView(baseUrl, workspaceId, [lakehouseId], [extendedProperties], options),
+                    [sensitivityLabelId])
+            else
+                each GenerateLakehouseView(baseUrl, workspaceId, [lakehouseId], [extendedProperties], options),
+            type table),
+        reorderdColumns = Table.ReorderColumns(lakehouseArtifactsWithData,Table.ColumnNames(#table(LakehouseNavTableType, {}))),
+        withoutSensitivityLabel = Table.RemoveColumns(reorderdColumns, {"sensitivityLabelId"}, MissingField.Ignore)
     in
-        if (lakehouesWithoutData = null) then #table(LakehouseNavTableType, {}) else reorderdColumns;
+        if (lakehouesWithoutData = null) then #table(LakehouseNavTableType, {}) else withoutSensitivityLabel;
 
 GetLakehousePublicAPIWitoutData = (baseUrl as text, workspaceId as text, options as record) =>
     let
@@ -363,20 +346,40 @@ GetLakehousePublicAPIWitoutData = (baseUrl as text, workspaceId as text, options
             /*startState*/ null,
             /*traceContext*/ [Origin = Utils[NonPii]("GetLakehouses")]
         ),
-        responseAsRecord = Table.FromList(response[value], Splitter.SplitByNothing(), {"Lakehouses"}),
-        lakehouses = Table.ExpandRecordColumn(
-            responseAsRecord,
-            "Lakehouses",
-            {"id", "displayName", "description", "properties"}, 
-            {"lakehouseId", "lakehouseName", "description", "extendedProperties"}),
+        responseValue = response[value],
+        withSensitivityInfo =
+            if IncludeFabricSensitivityLabels then
+                List.Transform(
+                   responseValue,
+                    (item as record) =>
+                        item & [sensitivityLabelId = Utils[GetSensitivityLabelId](item)]
+                )
+            else
+                responseValue,
+        responseAsRecord = Table.FromList(withSensitivityInfo, Splitter.SplitByNothing(), {"Lakehouses"}),
+        lakehouses = 
+            if IncludeFabricSensitivityLabels then
+                Table.ExpandRecordColumn(
+                        responseAsRecord,
+                        "Lakehouses",
+                        {"id", "displayName", "description", "properties", "sensitivityLabelId"},
+                        {"lakehouseId", "lakehouseName", "description", "extendedProperties", "sensitivityLabelId"}
+                    )
+                else
+                    Table.ExpandRecordColumn(
+                        responseAsRecord,
+                        "Lakehouses",
+                        {"id", "displayName", "description", "properties"},
+                        {"lakehouseId", "lakehouseName", "description", "extendedProperties"}
+                    ),
         transformFields = Table.TransformColumns(lakehouses, {{"extendedProperties",
-            (property) => TransformLakehouseExtendedProperties(property)
+            (property) => Workspace[TransformLakehouseExtendedProperties](property)
             }}),
         withCapacityObjectIdColumn = Table.AddColumn(transformFields, "capacityObjectId", each ""),
         withDatabaseId = Table.AddColumn(
             withCapacityObjectIdColumn,
             "databaseId",
-            each try GetDwProperties([extendedProperties])[id]? otherwise null)
+            each try Workspace[GetDwProperties]([extendedProperties])[id]? otherwise null)
     in 
         if (response = null) then null else withDatabaseId;
 
@@ -399,13 +402,9 @@ GetWarehouses = (baseUrl as text, workspaceId as text, options as record) as tab
     in
         if (response = null) then #table(LakehouseNavTableType, {}) else withDatabaseId;
 
-/**
-    Get the staging lakehouse extended properties record from lakehouse artifacts api.
-    This will be used to store the version table information.
-**/
-GetStagingLakehouseExtendedProperties = (baseUrl as text, workspaceId as text, stagingLakehouseDetails as record) as nullable record =>
+GetLakehouseInformation = (baseUrl as text, workspaceId as text, lakehouseId as text) =>
     let
-        url = Uri.Combine(baseUrl, Text.Format("/v1/workspaces/#{0}/lakehouses/#{1}", {stagingLakehouseDetails[StagingWorkspaceId], stagingLakehouseDetails[StagingLakehouseId]})),
+        url = Uri.Combine(baseUrl, Text.Format("/v1/workspaces/#{0}/lakehouses/#{1}", {workspaceId, lakehouseId})),
         response = try Utils[Web.JsonContents](
             url,
             /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
@@ -416,36 +415,31 @@ GetStagingLakehouseExtendedProperties = (baseUrl as text, workspaceId as text, s
         ) 
         catch (e) => Diagnostics.Trace(TraceLevel.Warning, [Name = "GetStagingLakehouseExtendedProperties", Data = [Reason=e[Reason]?, Message=e[Message]?]], null)
     in
-        if response <> null then TransformLakehouseExtendedProperties(response[properties]) else null;
+        if response <> null then response else null;
+
+/**
+    Get the staging lakehouse extended properties record from lakehouse artifacts api.
+    This will be used to store the version table information.
+**/
+GetStagingLakehouseExtendedProperties = (baseUrl as text, workspaceId as text, stagingLakehouseDetails as record) as nullable record =>
+    let
+        response = GetLakehouseInformation(baseUrl, stagingLakehouseDetails[StagingWorkspaceId], stagingLakehouseDetails[StagingLakehouseId])
+    in
+        if response <> null then Workspace[TransformLakehouseExtendedProperties](response[properties]) else null;
 
 // Transform extended properties to match what is expected by the connector.
 // This is needed because the legacy lakehouse artifacts api and public api return different property names.
-TransformLakehouseExtendedProperties = (extendedProperties as record) as record =>
-    let 
-        renameFunction = (recordToModify as record, renames as list) =>
-            Record.RenameFields(recordToModify, renames, MissingField.Ignore),
-        renamedRecord = renameFunction(extendedProperties,
-            {
-                {"oneLakeTablesPath", "OneLakeTablesPath"},
-                {"oneLakeFilesPath", "OneLakeFilesPath"},
-                {"sqlEndpointProperties", "DwProperties"},
-                {"defaultSchema", "DefaultSchema"}
-            }),
-        renamedInnerRecord = Record.TransformFields(
-            renamedRecord,
-            {"DwProperties", each renameFunction(_, {{"connectionString", "tdsEndpoint"}})})
-    in
-        renamedInnerRecord;
+// NOTE: TransformLakehouseExtendedProperties and GetDwProperties live in Fabric.Common/Workspace.pqm
+// and are accessed via Workspace[TransformLakehouseExtendedProperties] / Workspace[GetDwProperties].
 
-// presently DwProperties element in extendedProperties is coming back as a string,
-// but if in the future this format changes to a proper json element, then we will get back a record.
-GetDwProperties = (extendedProperties) => 
-    let 
-        dwProperties = extendedProperties[DwProperties]? ?? extendedProperties[sqlEndpointProperties]? 
-    in
-        if dwProperties = null then null
-        else if dwProperties is text then Json.Document(dwProperties)
-        else dwProperties;
+GenerateLakehouseViewWithSensitivityLabels = (baseUrl as text, workspaceId as text, lakehouseId as text, extendedProperties as record, options as record) =>
+    if IncludeFabricSensitivityLabels and options[IsModelStorage]? <> true then
+        let
+            sensitivityLabelId = Utils[GetSensitivityLabelId](GetLakehouseInformation(baseUrl, workspaceId, lakehouseId))
+        in
+            Utils[AddSensitivityTrait](GenerateLakehouseView(baseUrl, workspaceId, lakehouseId, extendedProperties, options), sensitivityLabelId)
+    else
+        GenerateLakehouseView(baseUrl, workspaceId, lakehouseId, extendedProperties, options);
 
 GenerateLakehouseView = (
     baseUrl as text,
@@ -589,9 +583,13 @@ GenerateLakeHouseTablesView = (
             extendedProperties[OneLakeTablesPath],
         getLakehouses = GetLakehouses(baseUrl, workspaceId, options),
         updatedExtendedProperties = getLakehouses{[lakehouseId = lakehouseId]}?[extendedProperties]? ?? extendedProperties,
-        dwProperties =  GetDwProperties(extendedProperties),
+        dwProperties =
+            let
+                raw = Workspace[GetDwProperties](extendedProperties)
+            in
+                if raw <> null then raw & [lakehouseArtifactId = lakehouseId] else null,
         lakehouseDBId = dwProperties[id]?,
-        database = GetLakehouseDatabase(baseUrl, workspaceId, lakehouseDBId),
+        database = GetLakehouseDatabase(baseUrl, workspaceId, lakehouseDBId, lakehouseId),
         //Spark Compute Setup
         sparkComputeSetup = [
             WorkspaceId = workspaceId,
@@ -612,7 +610,7 @@ GenerateLakeHouseTablesView = (
             schema ?? lakehouseDefaultSchemaName),
         refreshActionDetails = [BaseUrl = baseUrl, DwProperties=dwProperties, Options = options],
         tableMDSync = (tableName, optional additionalOption as record) =>
-            RefreshAction(
+            MDSync[RefreshAction](
                 baseUrl,
                 workspaceId,
                 dwProperties,
@@ -622,10 +620,21 @@ GenerateLakeHouseTablesView = (
                     options, 
                 tableName,
                 finalSchemaNameForMDSync),
+        batchTableMDSync = (tableNames as list, optional additionalOption as record) =>
+            MDSync[BatchRefreshAction](
+                baseUrl,
+                workspaceId,
+                dwProperties,
+                if additionalOption <> null then
+                    options & additionalOption
+                else 
+                    options, 
+                tableNames,
+                finalSchemaNameForMDSync),
         // Pass the tableMDSync as a meta because refreshAction is passed in all the down stream methods
         // and we only want to trigger MDSync during Version commit phase i.e. when the Delta Table is marked as
         // published. 
-        refreshAction = Action.DoNothing meta [MDSyncFunction = tableMDSync, IsLakehouseSchemaEnabled = lakehouseDefaultSchemaName <> null],
+        refreshAction = Action.DoNothing meta [MDSyncFunction = tableMDSync, BatchMDSyncFunction = batchTableMDSync, IsLakehouseSchemaEnabled = lakehouseDefaultSchemaName <> null],
         onelakeTables = GenerateOneLakeTable(
             baseUrl,
             workspaceId,
@@ -698,7 +707,8 @@ GenerateLakeHouseTablesView = (
             "GenerateLakeHouseTablesView/LakehouseId",
             baseUrl),
 
-        finalOneLakeTableUrl = detailsFromStateTable[Data]?[OneLakeTableUrl]? ?? oneLakeTableUrl,
+        // Bypass cache when trying to get the OneLakeTableUrl as its causing issues with Schema enabled Lakehouses.
+        finalOneLakeTableUrl = oneLakeTableUrl,
         onelakeFilesTable = GenerateFilesViewForLakeHouse(extendedProperties[OneLakeFilesPath], cacheInsertActions),
         tableWithContent = #table(
             LakehouseTableDetailType,
@@ -749,7 +759,7 @@ GenerateLakeHouseTablesView = (
                         cacheTableConfigRecord,
                         options)
                 // TODO pass in the table name to refresh action once the support for it is enabled.
-                else if (Value.Metadata(Value.Type(function))[Documentation.Name]? = "Lakehouse.RefreshSqlMetadata") then
+                else if Function.EqualsByName(function, "Lakehouse.RefreshSqlMetadata") then
                     Diagnostics.Trace(
                         TraceLevel.Information,
                         [
@@ -760,7 +770,21 @@ GenerateLakeHouseTablesView = (
                             ]
                         ],
                         tableMDSync(Utils[Value.ToText](List.Last(args))))
-                else if (Value.Metadata(Value.Type(function))[Documentation.Name]? = "Lakehouse.TrimCache") then
+                else if Function.EqualsByName(function, "Lakehouse.BatchRefreshSqlMetadata") then
+                    Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [
+                            Name = "BatchRefreshSqlMetadata",
+                            Data = [],
+                            SafeData = 
+                            [
+                                TableNames = Utils[NonPii](Utils[Value.ToText](List.Last(args))),
+                                Schema = Utils[NonPii](Utils[Value.ToText](finalSchemaNameForMDSync)),
+                                LakehouseId = Utils[NonPii](Utils[Value.ToText](lakehouseId))
+                            ]
+                        ],
+                        batchTableMDSync(List.Last(args)))
+                else if Function.EqualsByName(function, "Lakehouse.TrimCache") then
                     Diagnostics.Trace(
                         TraceLevel.Information,
                         [
@@ -772,7 +796,7 @@ GenerateLakeHouseTablesView = (
                             ]
                         ],
                         TrimCache(GetCacheLocation(options, workspaceId, lakehouseId), baseUrl))
-                else if (Value.Metadata(Value.Type(function))[Documentation.Name]? = "Lakehouse.IsModelStorage") then
+                else if Function.EqualsByName(function, "Lakehouse.IsModelStorage") then
                     Diagnostics.Trace(
                         TraceLevel.Information,
                         [
@@ -780,7 +804,15 @@ GenerateLakeHouseTablesView = (
                             Data = []
                         ],
                         options[IsModelStorage]? = true)
-                else ...,
+                else if Function.EqualsByName(function, "Partition.Table.SupportsChildPartitionCreation") then
+                    Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [
+                            Name = "SupportsChildPartitionCreation",
+                            Data = []
+                        ],
+                        true)
+                else Function.Invoke(function, List.ReplaceRange(args, index, 1, {nav})),
 
             OnSelectRows = (selector) =>
                 // If getting the "Files" node, short-circuit the listing of the tables
@@ -822,7 +854,7 @@ GenerateLakeHouseTablesView = (
                                 options,
 
                         onelakeContents = () => OneLake.Contents(finalOneLakeTableUrl),
-                        updatedDwProperties = GetDwProperties(updatedExtendedProperties),
+                        updatedDwProperties = Workspace[GetDwProperties](updatedExtendedProperties),
                         tableFolder = if ValidateStagingArtifacts then
                                 if IsStagingLakehouseProvisioned(updatedDwProperties) then 
                                     onelakeContents
@@ -856,7 +888,7 @@ GenerateLakeHouseTablesView = (
                                 #table({"Name", "Content"}, {{ tableName, #table({},{}) }})
                             ),
                             () => ValueAction.Replace(
-                                DeltaLake.Table(tableFolder(){[Name = tableName]}[Content], DeltaLake.DefaultOptions),
+                                DeltaLake.Table(tableFolder(){[Name = tableName]}[Content], DeltaLake.Options(options)),
                                 tableData),
                             tableMDSync(tableName, updatedOptions)
                         })
@@ -939,7 +971,7 @@ GetWarehouseDatabaseView = (baseUrl as text, workspaceId as text, objectId as te
         tdsEndpointDetails = if tdsEndpointFromState[Data]? <> null and checkCachedEndpoint then 
                 tdsEndpointFromState[Data]
             else 
-                try Workspace[GetTDSEndPoint](workspaceId, objectId, "Warehouse") otherwise null,
+                try Workspace[GetTDSEndPoint](workspaceId, objectId, "Warehouse", null) otherwise null,
         stateTableInsert = CacheTableInsertBuilder(
             cacheLocation,
             { [ Key = "StagingWarehouse", Id = objectId, Info = tdsEndpointDetails ] },
@@ -947,7 +979,10 @@ GetWarehouseDatabaseView = (baseUrl as text, workspaceId as text, objectId as te
         result = if tdsEndpointDetails <> null then
                 try GenerateViewForWarehouseSqlTableData(
                     Sql.Contents(tdsEndpointDetails[tdsEndpoint], tdsEndpointDetails[name], options & [CreateNavigationProperties = false]),
-                    stateTableInsert)
+                    tdsEndpointDetails[name],
+                    tdsEndpointDetails[tdsEndpoint],
+                    stateTableInsert,
+                    options)
                 catch(e) => error e
             else
                 null
@@ -960,20 +995,43 @@ IsStagingLakehouseProvisioned = (dwProperties) =>
     and not Utils[Text.IsNullOrEmpty](dwProperties[provisioningStatus]?)
     and dwProperties[provisioningStatus]? = "Success";
 
-GenerateViewForWarehouseSqlTableData = (content as table, cacheTableInsertAction) as table =>
+GenerateViewForWarehouseSqlTableData = (
+    content as table,
+    dwName as text,
+    dwServerInstance as text,
+    cacheTableInsertAction,
+    options as record) as table =>
 let
-    view = (content2) => Table.View(
+    view = (content2, tableName) => Table.View(
         content2,
         [
             GetExpression = () => Value.Expression(Value.Optimize(content2)),
             OnInvoke = (function, args, index) =>
-                if (Value.Metadata(Value.Type(function))[Documentation.Name]? = "Lakehouse.SqlTable") then content2
+                if (Function.EqualsByName(function, "Lakehouse.SqlTable")) then content2
+                else if (Function.EqualsByName(function, "Lakehouse.DeltaTableFastCopy")) then
+                    Diagnostics.Trace(
+                        TraceLevel.Information,
+                        [
+                            Name = "GenerateViewForWarehouseSqlTableData/DeltaTableFastCopy", 
+                            Data = [Source = Utils[NonPii]("Warehouse"), TableName = tableName, DwServerInstance = dwServerInstance]
+                        ],
+                        // Restrict this check for reads from Staging Warehouse.
+                        [
+                            // Run a query to check if DeltaLogPublishing is enabled for StagingDW.
+                            Enabled = options[IsModelStorage]? = true and DeltaTableFastCopy[CheckIfDeltaLogPublishingIsEnabled](content, dwName),
+                            Source = "Warehouse",
+                            ReadFromDW = true,
+                            TableName = tableName,
+                            DwServerInstance = dwServerInstance
+                        ])
                 else Function.Invoke(function, List.ReplaceRange(args, index, 1, {content2})),
-            TableDefault = (newTable) => @view(newTable)
+            TableDefault = (newTable) => @view(newTable, tableName)
         ]),
-    withView = Table.TransformColumns(content, {{"Data", view}})
+    withView = Table.AddColumn(content, "TransformedData", (_) => view(_[Data], _[Name])),
+    removedDataColumn = Table.RemoveColumns(withView, {"Data"}),
+    renamedColumns = Table.RenameColumns(removedDataColumn, {{"TransformedData", "Data"}})
 in
-    Table.View(withView, [
+    Table.View(renamedColumns, [
         GetExpression = () => Value.Expression(Value.Optimize(content)),
         OnInsertRows = (rows) => Diagnostics.Trace(TraceLevel.Information, [Name = "StagingWarehouseInsert", Data = []] , Action.Sequence({ cacheTableInsertAction, TableAction.InsertRows(content, rows) })),
         OnUpdateRows = (updates, selector) => Diagnostics.Trace(TraceLevel.Information, [Name = "StagingWarehouseUpdate", Data = [] ], Action.Sequence({ cacheTableInsertAction, TableAction.UpdateRows(Table.SelectRows(content, selector), updates) })),
@@ -1003,10 +1061,10 @@ GenerateLakehouseDetailForHierarchicalSqlTable = (input as table) =>
     in
         reorderColumns;
 
-GetLakehouseDatabase = (baseUrl, workspaceId, lakewarehouseId) =>
+GetLakehouseDatabase = (baseUrl, workspaceId, lakewarehouseId, lakehouseArtifactId as nullable text) =>
     let
         // Reuse shared Workspace module logic (validation + error handling unified)
-        tdsResponse = Workspace[GetTDSEndPoint](workspaceId, lakewarehouseId, "Lakehouse"),
+        tdsResponse = Workspace[GetTDSEndPoint](workspaceId, lakewarehouseId, "Lakehouse", lakehouseArtifactId),
         // Lakehouse expects only tdsEndpoint and name record
         result = tdsResponse[[tdsEndpoint],[name]]
     in
@@ -1044,17 +1102,19 @@ GetLakehouseTableVersions = (
     optional dataRow as any) =>
 let
     finalFilePathUrl = if stagingLakehouseDetails <> null then stagingLakehouseDetails[OneLakeFilesPath] else onelakeFilesUrl,
-    versionsTableFromADLS = GenerateADLSVersionTable(finalFilePathUrl, refreshAction),
+    versionsTableFromADLS = GenerateADLSVersionTable(finalFilePathUrl, refreshAction, options),
     staging2 = versionsTableFromADLS,
     versions = Table.SelectRows(staging2, each [Data] is table),
-    nullVersionRows = {{null, true, onelakeTables, null}},
+    nullVersionRows = {{null, true, onelakeTables, null, true}},
     versionsRows = Table.TransformRows(versions,
     (version) => let
         versionName = version[Name],
         // the version name which the connector returns in the version table will be without '_mashup_temporary_' marker
-        splitVersionName = Text.Split(versionName, "_"){3},
+        splitVersionByUnderScore = Text.Split(versionName, "_"),
+        splitVersionName = splitVersionByUnderScore{3},
+        isDurableVersion = List.Count(splitVersionByUnderScore) > 4,
         dataRowForVersionTable = if dataRow <> null then
-                PartitionedRefreshVersionSupport(dataRow, versionName, cacheTableFetchInsertRecord)
+                PartitionedRefreshVersionSupport(dataRow, [VersionId = versionName, IsDurable = isDurableVersion], cacheTableFetchInsertRecord)
             else 
                 CreateVersionableView(onelakeTables, versionName, onelakeTableUrl, finalFilePathUrl, refreshAction, cacheTableFetchInsertRecord, options)
     in
@@ -1062,37 +1122,48 @@ let
             splitVersionName,
             false,
             dataRowForVersionTable,
-            version[Date modified]?
+            version[Date modified]?,
+            isDurableVersion
         }),
     versionsTable = #table(
-        type table [Version = nullable text, Published = logical, Data = any, Modified = nullable datetime],
+        type table [Version = nullable text, Published = logical, Data = any, Modified = nullable datetime, Durable = nullable logical],
         nullVersionRows & versionsRows)
 in
     Table.View(versionsTable,
     [
         // Insert a new version row in the version table.
-        OnInsertRows = (rows) => if (Table.ColumnNames(rows) = {"Version"} and Table.RowCount(rows) = 1 ) then
+        OnInsertRows = (rows) => 
+        if Table.RowCount(rows) = 1 and (Set.Equals(Table.ColumnNames(rows), {"Version"}) or Set.Equals(Table.ColumnNames(rows), {"Version", "Durable"})) then
             let
-                transformedRows = Table.TransformColumns(rows,{{"Version", each TemporaryParentVersionFolder & "_" & _}}),
+                isDurableVersion = List.Contains(Table.ColumnNames(rows), "Durable"),
+                transformedVersionNamewithDurableMarker = (transformedVersion, isDurable) => if isDurable then 
+                    transformedVersion & "_durable" 
+                else
+                    transformedVersion,
+                transformedRows = Table.TransformColumns(
+                    Table.SelectColumns(rows,{"Version"}),
+                    {{"Version", each transformedVersionNamewithDurableMarker(TemporaryParentVersionFolder & "_" & _, isDurableVersion)}}
+                ),
                 renamedCols = Table.RenameColumns(transformedRows, {{"Version", "Name"}})
 
-            in Action.Sequence(
-            {
-                cacheTableFetchInsertRecord[CacheTableInsertAction],
-                TableAction.InsertRows(staging2, renamedCols),
-                () => let
-                        regenTable = @GetLakehouseTableVersions(onelakeTableUrl, onelakeFilesUrl, onelakeTables, refreshAction, stagingLakehouseDetails, cacheTableFetchInsertRecord, options),
-                        bufferedListOfVersionToInsert = List.Buffer(rows[Version]),
-                        versionTable = Table.SelectRows(regenTable, each List.Contains(bufferedListOfVersionToInsert,[Version]))
-                      in
-                        Action.Return(versionTable)
-            })
+            in 
+                Action.Sequence(
+                {
+                    cacheTableFetchInsertRecord[CacheTableInsertAction],
+                    TableAction.InsertRows(staging2, renamedCols),
+                    () => let
+                            regenTable = @GetLakehouseTableVersions(onelakeTableUrl, onelakeFilesUrl, onelakeTables, refreshAction, stagingLakehouseDetails, cacheTableFetchInsertRecord, options),
+                            bufferedListOfVersionToInsert = List.Buffer(rows[Version]),
+                            versionTable = Table.SelectRows(regenTable, each List.Contains(bufferedListOfVersionToInsert,[Version]))
+                        in
+                            Action.Return(versionTable)
+                })
         else ...,
 
         // commit the version to lakehouse.
         OnUpdateRows = (updates, selector) =>
         let
-            result = Diagnostics.Trace(TraceLevel.Information, [ Name = "LakehouseVersionCommit1", Data = [] ],
+            result = Diagnostics.Trace(TraceLevel.Information, [ Name = "LakehouseVersionCommit", Data = [] ],
                 try CommitVersionToLakehouse(onelakeTableUrl, finalFilePathUrl, selector, refreshAction, staging2, dataRow[deltaSrc]?, options))
         in
             Connector.EvaluateQueryAndActionsForErrors(result, "LakehouseVersionCommitError", "LakehouseVersionCommitError", "GetLakehouseTableVersions"),
@@ -1105,8 +1176,27 @@ in
                  versionsToDelete = Table.TransformColumns(Table.SelectRows(versionsTable, selector), {{"Version", each TemporaryParentVersionFolder & "_" & _}}),
                  tableWithActionColumns = Table.AddColumn(versionsToDelete, "DeleteActions", (r) =>
                     let
+                        // TODO clean up this version information on the delta table.
+                        // https://powerbi.visualstudio.com/Power%20Query/_workitems/edit/2035047
                         selectedVersions = Table.SelectRows(adlsVersionSource, each [Name] = r[Version]),
-                        deleteAction = Action.Sequence({TableAction.DeleteRows(selectedVersions), Action.DoNothing})
+                        // Delete the dw partition if created during insert.
+                        expandedVersionDetails = Table.ExpandTableColumn(selectedVersions, "Content", {"Name"}, {"VersionDetails"}),
+                        versionsWithDWPartitions = Table.SelectRows(expandedVersionDetails, each Text.Contains([VersionDetails], "@dw@")),
+                        withDeleteDWPartitionActions = Table.AddColumn(versionsWithDWPartitions, "DeleteDWPartitionAction", each 
+                            let
+                                dwDetails = DeltaTableFastCopy[GetDWDetailsForCleanUp]([VersionDetails]),
+                                dropDwPartition = DeltaTableFastCopy[DropTableFromDWActions](dwDetails[TableName], dwDetails[WarehouseId], dwDetails[WorkspaceId], PBIBaseUrl)
+                            in
+                                Diagnostics.Trace(
+                                    TraceLevel.Information,
+                                    [Name = "DropDWTableGC", Data = []],
+                                    DeltaTableFastCopy[InstrumentActions](dropDwPartition, "DropDWTableGC"))
+                        ),
+                        finalDWActions = if options[EnableOptimizedCopyToLakehouse]? = true and Table.RowCount(versionsWithDWPartitions) > 0 then 
+                            Action.Sequence(withDeleteDWPartitionActions[DeleteDWPartitionAction])
+                        else 
+                            Action.DoNothing,
+                        deleteAction = Action.Sequence({finalDWActions, TableAction.DeleteRows(selectedVersions), Action.DoNothing})
                     in
                         deleteAction
                     )
@@ -1142,35 +1232,36 @@ CommitVersionToLakehouse = (
         adlsSource =  OneLake.Contents(onelakeTableUrl),
         adlsVersionSource = OneLake.Contents(finalFilePathUrl),
         renamedColForVersionFolder = Table.RenameColumns(adlsVersionSource, {{"Name", "Version"}}),
-        // remove the '_mashup_temporary_' marker from the version name
-        modifledNameColumn = Table.TransformColumns(
-            renamedColForVersionFolder,
-            {
-                {
-                    "Version",
-                    each if Text.StartsWith(_,TemporaryParentVersionFolder & "_") then 
-                        Text.Split(_,"_"){3} 
-                    else 
-                        _
-                }
-            }
+        // add version column without the marker of _mashup_temporary
+        addVersionColumn = Table.AddColumn(
+            adlsVersionSource,
+            "Version",
+            each if Text.StartsWith([Name],TemporaryParentVersionFolder & "_") then Text.Split([Name], "_"){3} else [Name],
+            type text
         ),
-        subVersions = Table.SelectRows(modifledNameColumn, selector),
-        // add  back the '_mashup_temporary_' marker from the version name
-        modifiedSubVersions = Table.TransformColumns(
-            subVersions,
-            {{"Version", each TemporaryParentVersionFolder & "_" & _}}),
+        // Add a column to see if a version is durable or not.
+        addDurableColumnForVersion = Table.AddColumn(
+            addVersionColumn,
+            "Durable",
+            each if Text.Contains([Name],TemporaryParentVersionFolder) and Text.Contains([Name], "_durable") then
+                true
+            else
+                false
+        ),
+        subVersions = Table.SelectRows(addDurableColumnForVersion, selector),
         // get table name and the version to search for:
         createdTableName = Text.Split(
-            Table.SelectRows(modifiedSubVersions{0}[Content], each Text.Contains([Name], CreatedMarker)){0}[Name],
+            Table.SelectRows(subVersions{0}[Content], each Text.Contains([Name], CreatedMarker)){0}[Name],
             CreatedMarker){0},
-        versionForDeltaTable = modifiedSubVersions{0}[Version],
+        versionForDeltaTable = subVersions{0}[Name],
 
         // SparkComputeStep:
 
         sparkQueryPresent = SparkCompute[State.SparkTableActions](versionForDeltaTable & "_" & createdTableName),
         sparkQueryDetails = 
-            if sparkQueryPresent <> null then
+            if SparkCompute[IsSparkComputeEnabled](options) 
+            and sparkQueryPresent <> null 
+            and sparkQueryPresent{0}[SparkDetails] <> null then
                 sparkQueryPresent{0}[SparkDetails]
             else
                 null,
@@ -1187,23 +1278,29 @@ CommitVersionToLakehouse = (
         destinationWorkspaceId = Text.Split(Uri.Parts(onelakeTableUrl)[Path], "/"){1},
         sparkActions = 
             if sparkQueryDetails <> null then
-                SparkCompute[GenerateAndRunSparkSqlFragmentForVersionWrite](
-                    Fabric.GetClusterUrl(PBIBaseUrl),
+                Diagnostics.Trace(
+                    TraceLevel.Information,
+                    [
+                        Name = "SparkStatementExecution",
+                        Data = []
+                    ], 
+                    SparkCompute[GenerateAndRunSparkSqlFragmentForVersionWrite](
+                    PBIBaseUrl,
                     sparkQueryDetails,
                     createdTableName,
                     options[StagingWorkspaceId],
                     options[StagingLakehouseId],
                     destinationLakehouseId,
                     destinationWorkspaceId,
-                    finalSchemaName)
+                    finalSchemaName))
             else Action.DoNothing,
         // For Incremental Refresh use deltaSrc otherwise fall back to onelakeTableUrl
-        deltaTable = deltaSrc ?? DeltaLake.Table(adlsSource{[Name = createdTableName]}[Content], DeltaLake.DefaultOptions),
+        deltaTable = deltaSrc ?? DeltaLake.Table(adlsSource{[Name = createdTableName]}[Content], DeltaLake.Options(options)),
         versionTable = Value.Versions(deltaTable),
         mdSyncDetails = Value.Metadata(refreshAction)[MDSyncFunction]?,
         isSchemaEnabledLakehouse = Value.Metadata(refreshAction)[IsLakehouseSchemaEnabled]? ?? false,
         // Only perform MDSync for non-incremental refresh writes.
-        metadataSyncAction = if ForceMDSyncForODLakehouse 
+        metadataSyncAction = if ForceMDSyncForODLakehouse
             and deltaSrc = null 
             and mdSyncDetails <> null
         then
@@ -1213,25 +1310,19 @@ CommitVersionToLakehouse = (
                     Name = "MDSyncForOutputLakehouse",
                     Data = [TableName = createdTableName]
                 ],
-                mdSyncDetails(createdTableName, [MetadataRefresh = true]))
+                mdSyncDetails(createdTableName, [MetadataRefresh = true, OutputDestinationSync = true]))
         else
             Action.DoNothing
     in
-        if Table.RowCount(modifiedSubVersions) <> 1 then 
+        if Table.RowCount(subVersions) <> 1 then 
             error Text.Format(
                 Extension.LoadString("MultipleVersionsWithSameGuid"),
-                {Text.FromBinary(Json.FromValue(modifiedSubVersions))})
+                {Text.FromBinary(Json.FromValue(subVersions))})
         else 
             Action.Sequence({
-                Diagnostics.Trace(
-                    TraceLevel.Information,
-                    [
-                        Name = "SparkStatementExecution",
-                        Data = []
-                    ], 
-                    sparkActions),
+                    sparkActions,
                 if sparkQueryDetails = null then 
-                    TableAction.UpdateRows(
+                   TableAction.UpdateRows(
                         Table.SelectRows(versionTable, each [Version] = versionForDeltaTable),
                         {{"Published", each true}})
                 else
@@ -1246,7 +1337,7 @@ CommitVersionToLakehouse = (
 
 /* Acts like a staging location for a lakehouse version
             */
-GenerateADLSVersionTable = (oneLakeFileUrl as text, refreshAction as action) =>
+GenerateADLSVersionTable = (oneLakeFileUrl as text, refreshAction as action, options as record) =>
 let
 emptyTable = #table(
             type table [Name = nullable text, Extension = nullable text, #"Date accessed" = nullable datetime,#"Date modified" = nullable datetime,#"Date created" = nullable datetime, Data = any, Modified = nullable datetime],
@@ -1289,7 +1380,7 @@ Table.View(finalTable, [
         result = Diagnostics.Trace(TraceLevel.Information, [Name = "LakehouseVersionCommit", Data = []], try
             let
                 adlsSource =  OneLake.Contents(oneLakeFileUrl),
-                deltaLakeTable = DeltaLake.Table(adlsSource, DeltaLake.DefaultOptions),
+                deltaLakeTable = DeltaLake.Table(adlsSource, DeltaLake.Options(options)),
                 getVersions = Value.Versions(deltaLakeTable)
             in
                 Action.Sequence({
@@ -1399,19 +1490,31 @@ GenerateOneLakeTable = (
             sparkComputeRecord,
             options,
             schema),
+        LogNavTableViewType = (input as table, viewType as text) =>
+            Diagnostics.Trace(
+                TraceLevel.Information,
+                [
+                    Name = "Lakehouse/NavTableViewType",
+                    Data = [
+                        ViewType = Utils[NonPii](viewType)
+                    ]
+                ],
+                input),
         nav = if useSql and not useSparkCompute then
-                GenerateSqlTableView(
-                    baseUrl,
-                    workspaceId,
-                    dwProperties,
-                    deltaNav,
-                    options,
-                    onelakeTableUrl,
-                    cacheTableInsertRecord)
+                LogNavTableViewType(
+                    GenerateSqlTableView(
+                        baseUrl,
+                        workspaceId,
+                        dwProperties,
+                        deltaNav,
+                        options,
+                        onelakeTableUrl,
+                        cacheTableInsertRecord),
+                    "SqlView")
             else if useSparkCompute then
-                deltaNav[SparkCompute]
+                LogNavTableViewType(deltaNav[SparkCompute], "SparkCompute")
             else
-                deltaNav[DeltaTableWithNavProps]
+                LogNavTableViewType(deltaNav[DeltaTableWithNavProps], "OneLakeDelta")
     in
         if (onelakeTableUrl = null) then null else nav;
 
@@ -1429,12 +1532,15 @@ GenerateNavTableUsingDeltaTable = (
         renamedCols = Table.RenameColumns(oneLakeTables, {{"Content", "Data"}}),
         removedRows = Table.SelectRows(renamedCols, each not Text.StartsWith([Name], TemporaryParentVersionFolder)),
         removedRowsWithVersionIndicator = Table.SelectRows(removedRows, each not Text.StartsWith([Name], "Versions-")),
+        //select only tables to remove any binary files which are not delta tables. eg. spark view files.
+        removeBinaryFiles = Table.SelectRows(removedRowsWithVersionIndicator, each not ([Data] is binary)),
+
         tableWithTransformedNameWithData = Table.AddColumn(
-            removedRowsWithVersionIndicator,
+            removeBinaryFiles,
             "DataWithName",
             each WithAfterAction(
-                DeltaLake.Table([Data], DeltaLake.DefaultOptions),
-                RefreshAction(
+                DeltaLake.Table([Data], DeltaLake.Options(options)),
+                MDSync[RefreshAction](
                     refreshActionDetails[BaseUrl],
                     workspaceId,
                     refreshActionDetails[DwProperties],
@@ -1444,13 +1550,13 @@ GenerateNavTableUsingDeltaTable = (
                 partitionedRefreshSetup & 
                 [
                     TableId = [Name], 
-                    TableData = DeltaLake.Table([Data], DeltaLake.DefaultOptions)
+                    TableData = DeltaLake.Table([Data], DeltaLake.Options(options))
                 ]),
             type table),
 
         // DeltaLake.Metadata works on raw delta table and not on DeltaTable wrapped on Table.View.
         tableWithRawDeltaTable = Table.AddColumn(removedRowsWithVersionIndicator, "RawDeltaTableData",
-            each DeltaLake.Table([Data], DeltaLake.DefaultOptions)),
+            each DeltaLake.Table([Data], DeltaLake.Options(options))),
         withIdForDelta = Table.AddColumn(tableWithRawDeltaTable, "Id", each [Name]),
         removedDataColumnDelta = Table.RemoveColumns(withIdForDelta, {"Data"}),
         renamedDataColumnDelta = Table.RenameColumns(removedDataColumnDelta, {{"RawDeltaTableData", "Data"}}),
@@ -1460,7 +1566,7 @@ GenerateNavTableUsingDeltaTable = (
             renamedDataColumnDelta,
             "SparkCompute",
             each SparkCompute[SparkSqlViewOnDelta](
-                Fabric.GetClusterUrl(PBIBaseUrl),
+                PBIBaseUrl,
                 sparkComputeSetup[WorkspaceId],
                 sparkComputeSetup[LakehouseId],
                 [Id],
@@ -1479,7 +1585,6 @@ GenerateNavTableUsingDeltaTable = (
         withSchema = Table.AddColumn(withId, "Schema", each schemaName),
         removeOtherColumns = Table.SelectColumns(withSchema, Table.ColumnNames(#table(LakehouseTableDetailType, {}))),
         navDeltaTable = Table.ToNavigationTable(removeOtherColumns, {"Id", "ItemKind"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
-
     in
         [
             DeltaTableWithNavProps = navDeltaTable,
@@ -1516,6 +1621,7 @@ GenerateSqlTableView = (
     cacheTableInsertRecord as record) as table =>
     let
         lakehouseId = dwProperties[id]?,
+        lakehouseArtifactId = dwProperties[lakehouseArtifactId]?,
         cacheLocation = GetCacheLocation(options),
         detailsFromStateTable = GetDataFromCacheTable(
             cacheLocation,
@@ -1524,7 +1630,7 @@ GenerateSqlTableView = (
             baseUrl),
         database = if detailsFromStateTable[Data]? <> null and checkCachedLakehouseSqlEndpoint 
                 then detailsFromStateTable[Data] 
-            else GetLakehouseDatabase(baseUrl, workspaceId, lakehouseId),
+            else GetLakehouseDatabase(baseUrl, workspaceId, lakehouseId, lakehouseArtifactId),
         checkCachedLakehouseSqlEndpoint = try Sql.ValidateInstance(detailsFromStateTable[Data])
             catch(e)  => Diagnostics.Trace(TraceLevel.Warning, [Name = "LakehouseTDSCacheInvalid", Data = [Error = Utils[Value.ToText](e)]], false),
         sqlContents = Sql.Contents(database[tdsEndpoint], database[name], options),
@@ -1532,7 +1638,11 @@ GenerateSqlTableView = (
         // Transform the table with right nav table schema when HierarchicalNavigation is enabled.
         transfomedTable =
             let
-                formattedTable = GenerateLakehouseDetailForHierarchicalSqlTable(sqlContents),
+                filtered = if FilterSchemasForHierarchicalNavigation then 
+                    Utils[FilterSystemSchemas](sqlContents)
+                else
+                    sqlContents,
+                formattedTable = GenerateLakehouseDetailForHierarchicalSqlTable(filtered),
                 // Pass down the schema to list of tables as SQL table doesn't have that information.
                 withDataAndSchema = Table.AddColumn(formattedTable, "DataAndSchema", 
                     each WithSchemaAndData([Data], [Name])),
@@ -1549,10 +1659,6 @@ GenerateSqlTableView = (
             else
                 formattedTable,
 
-            // Get table ids from SQL table view and delta table view.
-            idsFromSQL = filteredTables[Id],
-            idsFromDelta = deltaTableContent[DeltaTableWithNavProps][Id],
-
             // Rather than transforming the column, add a new Data column which will have a reference to underlying 
             // delta table of the lakehouse table for easier version support integration.
             addedDataColumns = Table.AddColumn(
@@ -1565,7 +1671,8 @@ GenerateSqlTableView = (
                     options,
                     baseUrl,
                     onelakeTableUrl,
-                    cacheTableInsertRecord)),
+                    cacheTableInsertRecord,
+                    database[tdsEndpoint])),
             removeDataColumn = Table.RemoveColumns(addedDataColumns,  {"Data"}),
             renamedSqlTableViewColumn = Table.RenameColumns(removeDataColumn, {{"SqlTableView", "Data"}}),
             reorderedColumns = Table.ReorderColumns(renamedSqlTableViewColumn, Table.ColumnNames(#table(LakehouseTableDetailType, {}))),
@@ -1599,10 +1706,11 @@ GenerateViewForSqlTableData = (
     content as table,
     deltaTableContent as record,
     tableId as text,
-    cacheLocation as record,
+    options as record,
     baseUrl as text,
     onelakeTableUrl as text,
-    cacheTableInsertRecord as record) as table =>
+    cacheTableInsertRecord as record,
+    lakehouseSqlEndpoint as text) as table =>
     let
         view = (content2, deltaTableContent2) => Table.View(
             content2,
@@ -1610,7 +1718,23 @@ GenerateViewForSqlTableData = (
                 GetExpression = () => Value.Expression(Value.Optimize(content2)),
                 OnInvoke = (function, args, index) =>
                     if (function = Value.Versions) then Value.Versions(deltaTableContent2[DeltaTableWithNavProps]{[Id = tableId]}[Data])
-                    else if (Value.Metadata(Value.Type(function))[Documentation.Name]? = "Lakehouse.SqlTable") then content2 // TODO (Output): review; used to fold output to DW
+                    else if (Function.EqualsByName(function, "Lakehouse.SqlTable")) then content2 // TODO (Output): review; used to fold output to DW
+                    else if (Function.EqualsByName(function, "Lakehouse.DeltaTableFastCopy")) then
+                        Diagnostics.Trace(
+                            TraceLevel.Information,
+                            [
+                                Name = "GenerateViewForSqlTableData/DeltaTableFastCopy",
+                                Data = [Source = Utils[NonPii]("Lakehouse"), TableName = tableId, DwServerInstance = lakehouseSqlEndpoint]
+                            ],
+                            [
+                                Enabled = true,
+                                // Read from DW even if Model Storage check is true because we might be transforming data.
+                                ReadFromDW = true,
+                                Source = "Lakehouse", 
+                                TableName = tableId, 
+                                DwServerInstance = lakehouseSqlEndpoint
+                            ]
+                        )
                     else Function.Invoke(function, List.ReplaceRange(args, index, 1, {content2})),
                 OnSelectRows = (selector) => if EnablePartitionedRefresh
                         and deltaTableContent2 <> null
@@ -1623,7 +1747,7 @@ GenerateViewForSqlTableData = (
                             ],
                             TableViewWithVersionHandlers(
                                 Table.SelectRows(content2, selector),
-                                cacheLocation,
+                                options,
                                 baseUrl,
                                 selector,
                                 deltaTableContent2[RawDeltaTable]{[Id = tableId]}[Data],
@@ -1686,33 +1810,102 @@ TableViewWithVersionHandlers = (
                 Function.Invoke(function, List.ReplaceRange(args, index, 1, {input}))
     ]);
 
-PartitionedRefreshVersionSupport = (inputWithSelector as record, versionId as text, options as record) =>
+
+CreateDurableOrNormalVersionTable = (versionId as text, isDurableVersion as logical) => 
+    let
+        defaultVersionTable = #table({"Version"}, {{versionId}}),
+        durableVersionTable = Table.AddColumn(defaultVersionTable, "Durable", each true)
+    in
+        if isDurableVersion then durableVersionTable else defaultVersionTable;
+
+//try marker file actions, so we don't error out if a file is already present for durable versions.
+TryFileCreationActions = (action, actionName, optional retryLimit) =>
+    let
+        retryLimit = if retryLimit = null then 3 else retryLimit - 1
+    in
+        Action.Sequence({
+            () => Action.Try(action),
+            (r) =>
+                if (r[HasError]) then
+                    if  r[Error][Detail]?[HttpStatusCode]? = 409 then
+                        Diagnostics.Trace(
+                            TraceLevel.Warning,
+                            [Name = actionName & "/Conflict", Data = [Exception = Utils[Value.ToText](r[Error])]],
+                            Action.DoNothing
+                        )
+                    // Via DeltaLake wwe don't seem to be getting the HttpStatusCode in the error detail for both the below cases.
+                    else if r[Error][Message]? <> null and (Text.Contains(r[Error][Message]?, "PathAlreadyExists")) then
+                        Diagnostics.Trace(
+                            TraceLevel.Warning,
+                            [Name = actionName & "/PathAlreadyExists", Data = [Exception = Utils[Value.ToText](r[Error])]],
+                            Action.DoNothing
+                        )
+                    else if r[Error][Message]? <> null and (Text.Contains(r[Error][Message]?, "PathNotFound"))  and retryLimit  > 0 then
+                        Diagnostics.Trace(
+                            TraceLevel.Warning,
+                            [Name = actionName & "/NotFound", Data = [Exception = Utils[Value.ToText](r[Error])]],
+                            @TryFileCreationActions(action, actionName, retryLimit)
+                        )
+                    else
+                        error r[Error]
+                else
+                    Action.Return(r[Value])
+        });
+
+PartitionedRefreshVersionSupport = (inputWithSelector as record, versionInformation as record, options as record) =>
     Table.View(inputWithSelector[data],
     [
         OnInsertRows = (rows) =>
             let
+                versionId = versionInformation[VersionId],
+                isDurable = versionInformation[IsDurable],
+                versionTable = CreateDurableOrNormalVersionTable(versionId, isDurable),
                 dataLakeVersionParentFolder = OneLake.Contents(inputWithSelector[versionParentLocation]),
-                markerFileAction = TableAction.InsertRows(dataLakeVersionParentFolder{[Name = versionId]}[Content],
-                    #table({"Name"}, {{inputWithSelector[tableName] & CreatedMarker}})),
+                markerFileAction = Action.Sequence({
+                    () => TableAction.InsertRows(
+                        dataLakeVersionParentFolder{[Name = versionId]}[Content],
+                        #table({"Name"}, {{inputWithSelector[tableName] & CreatedMarker}})),
+                    () => Action.DoNothing
+
+                }),
+                deltaVersionInsertAction = Action.Sequence({
+                    () => TableAction.InsertRows(GetVersionTable(inputWithSelector[deltaSrc]), versionTable),
+                    () => Action.DoNothing
+                }),
                 versionPresent = GetVersionTable(inputWithSelector[deltaSrc]){[Version = versionId]}? <> null,
                 deltaTableForVersion = DeltaTableForVersion(GetVersionTable(inputWithSelector[deltaSrc]), versionId),
                 selectorAsRecord = SelectorAsRecord(
                     inputWithSelector[selectorFunction],
                     GetTypeRecordForDeltaTable(deltaTableForVersion)),
+                isAutoPartitioningPattern = IsAutoPartitioningPattern(selectorAsRecord),
+                autoPartitioningInsertAction = TableAction.InsertRows(
+                    Table.SelectRows(deltaTableForVersion, inputWithSelector[selectorFunction]),
+                    rows),
+                incrementalPartitioningInsertAction = TableAction.InsertRows(deltaTableForVersion, AddTags(rows, selectorAsRecord)),
                 insertActions = Action.Sequence({
-                    () => markerFileAction,
+                    () => TryFileCreationActions(markerFileAction, "CreateMarker"),
                     () => if not versionPresent then
-                            TableAction.InsertRows(GetVersionTable(inputWithSelector[deltaSrc]), #table({"Version"}, {{versionId}}))
+                            TryFileCreationActions(deltaVersionInsertAction, "InsertDeltaVersionOnInsert")
                         else
                             Action.DoNothing,
-                    () => TableAction.InsertRows(deltaTableForVersion, AddTags(rows, selectorAsRecord)),
+                    () => if isAutoPartitioningPattern then 
+                            Diagnostics.Trace(TraceLevel.Information,
+                                [
+                                    Name = "AutoPartitionInsert",
+                                    Data = []
+                                ],
+                                autoPartitioningInsertAction)
+                        else 
+                            incrementalPartitioningInsertAction,
                     () => Action.DoNothing
                 }),
                 result = Diagnostics.Trace(TraceLevel.Information,
                     [
                         Name = "PartitionedUpdate/InsertRows", 
-                        Data = [],
-                        SafeData = [ VersionId = versionId ]
+                        Data = [
+                            VersionId = Utils[NonPii](versionId), 
+                            IsDurableVersion = Utils[NonPii](isDurable)
+                        ]
                     ], 
                     try insertActions)
             in
@@ -1724,30 +1917,58 @@ PartitionedRefreshVersionSupport = (inputWithSelector as record, versionId as te
 
         OnDeleteRows = (selector) =>
             let
+                versionId = versionInformation[VersionId],
+                isDurable = versionInformation[IsDurable],
+                versionTable = CreateDurableOrNormalVersionTable(versionId, isDurable),
                 dataLakeVersionParentFolder = OneLake.Contents(inputWithSelector[versionParentLocation]),
-                markerFileAction = TableAction.InsertRows(dataLakeVersionParentFolder{[Name = versionId]}[Content],
-                    #table({"Name"}, {{inputWithSelector[tableName] & DeletedMarker}})),
+                deletedMarker = dataLakeVersionParentFolder{[Name = versionId]}[Content]{[Name = inputWithSelector[tableName] & DeletedMarker]}?,
+                // ensure we don't recreate the marker file for durable version flow
+                markerFileAction = Action.Sequence({
+                    () => TableAction.InsertRows(
+                        dataLakeVersionParentFolder{[Name = versionId]}[Content],
+                        #table({"Name"}, {{inputWithSelector[tableName] & DeletedMarker}})),
+                    () => Action.DoNothing
+
+                }),
+                deltaVersionInsertAction = Action.Sequence({
+                    () => TableAction.InsertRows(GetVersionTable(inputWithSelector[deltaSrc]), versionTable),
+                    () => Action.DoNothing
+                }),
                 versionPresent = GetVersionTable(inputWithSelector[deltaSrc]){[Version = versionId]}? <> null,
                 deltaTableForVersion = DeltaTableForVersion(GetVersionTable(inputWithSelector[deltaSrc]), versionId),
                 selectorAsRecord = SelectorAsRecord(
                     inputWithSelector[selectorFunction],
                     GetTypeRecordForDeltaTable(deltaTableForVersion)),
                 deltaMetadataTable = DeltaMetadata(deltaTableForVersion),
+                isAutoPartitioningPattern = IsAutoPartitioningPattern(selectorAsRecord),
+                autoPartitioningDeleteActions = TableAction.DeleteRows(Table.SelectRows(deltaTableForVersion, inputWithSelector[selectorFunction])),
+                incrementalPartitioningDeleteAction = TableAction.DeleteRows(Table.SelectRows(deltaMetadataTable, 
+                    (rec) => CheckIfTagValuesMatch(rec[Command]?[add]?[tags]?, selectorAsRecord))),
                 deleteActions = Action.Sequence({
-                    () => markerFileAction,
+                    () => TryFileCreationActions(markerFileAction, "DeleteMarker"),
                     () => if not versionPresent then
-                            TableAction.InsertRows(GetVersionTable(inputWithSelector[deltaSrc]), #table({"Version"}, {{versionId}}))
+                            TryFileCreationActions(deltaVersionInsertAction, "InsertDeltaVersionOnDelete")
                         else 
                             Action.DoNothing,
-                    () => TableAction.DeleteRows(Table.SelectRows(deltaMetadataTable, 
-                        (rec) => CheckIfTagValuesMatch(rec[Command]?[add]?[tags]?, selectorAsRecord))),
+                     () => if isAutoPartitioningPattern then 
+                            Diagnostics.Trace(
+                                TraceLevel.Information,
+                                [
+                                    Name = "AutoPartitionDelete",
+                                    Data = []
+                                ],
+                                autoPartitioningDeleteActions)
+                        else 
+                            incrementalPartitioningDeleteAction,
                     () => Action.DoNothing
                 }),
                 result = Diagnostics.Trace(TraceLevel.Information,
                     [
                         Name = "PartitionedUpdate/DeleteRows", 
-                        Data = [],
-                        SafeData = [ VersionId = versionId ]
+                        Data = [
+                            VersionId = Utils[NonPii](versionId), 
+                            IsDurableVersion = Utils[NonPii](isDurable)
+                        ]
                     ],
                     try deleteActions)
             in
@@ -1758,6 +1979,8 @@ PartitionedRefreshVersionSupport = (inputWithSelector as record, versionId as te
                     "PartitionedRefreshVersionSupport")
     ]);
 
+Set.Equals = (set1, set2) => List.Count(set1) = List.Count(set2) and List.Count(List.Difference(set1, set2)) = 0;
+
 DeltaMetadata = (deltaSrc) => DeltaLake.Metadata(deltaSrc);
 
 GetVersionTable = (deltaSrc) => Value.Versions(deltaSrc);
@@ -1765,6 +1988,8 @@ GetVersionTable = (deltaSrc) => Value.Versions(deltaSrc);
 DeltaTableForVersion = (deltaVersionTable, versionId) => deltaVersionTable{[Version = versionId]}[Data];
 
 GetTypeRecordForDeltaTable = (deltaTable) => Type.RecordFields(Type.TableRow(Value.Type(deltaTable)));
+
+IsAutoPartitioningPattern = (selectorAsRecord) => not Text.Contains(Record.FieldNames(selectorAsRecord){0}, "_Start");
 
 SelectorAsRecord = (selectorFunction as function, typeRecordForTable as record) => 
     try 
@@ -1862,7 +2087,8 @@ GenerateViewForVersionedTable = (
     onelakeFileUrl as text,
     tableName as text,
     refreshAction as action,
-    options as record)  =>
+    options as record,
+    onelakeTableUrl as text)  =>
 let
     // the delta table will either have the version or subversion.
     nullVersionData = content{[Version = null]},
@@ -1918,6 +2144,62 @@ in
                     TableAction.InsertRows(dataLakeFolders{[Name = version]}[Content], #table({"Name"}, {{tableName & CreatedMarker}}))
                 else
                     Action.DoNothing,
+                
+                // begin DeltaTableFastCopy Support
+                isDeltaTableFastCopy = DeltaTableFastCopy[ShouldUseDeltaTableFastCopy](PBIBaseUrl, rowsToInsert, options),
+                maxConcurrency = options[DeltaTableFastCopyMaxConcurrency]? ?? 300,
+
+                getSourceDetailsForUsingDeltaTableFastCopy = DeltaTableFastCopy[DeltaTableFastCopyDetails](rowsToInsert),
+                stageToDW = getSourceDetailsForUsingDeltaTableFastCopy[Source] = "Lakehouse",
+                generateDeltaTableFastCopyActions = DeltaTableFastCopy[GenerateDeltaTableFastCopyActions](
+                    PBIBaseUrl,
+                    [
+                        IsWarehouse = getSourceDetailsForUsingDeltaTableFastCopy[ReadFromDW] = true,
+                        WorkspaceId = options[StagingWorkspaceId]?,
+                        LakehouseId = options[StagingLakehouseId]?,
+                        WarehouseId = options[StagingWarehouseId]?,
+                        TableName = getSourceDetailsForUsingDeltaTableFastCopy[TableName],
+                        Version = version,
+                        StageToDW = stageToDW
+                    ],
+                    [OneLakeTableUrl = onelakeTableUrl, TableName = tableName],
+                    tableContent,
+                    rowsToInsert),
+
+                // The marker file encodes the DW Item name so the lazy GC path
+                // (OnDeleteRows -> GetDWDetailsForCleanUp -> DropTableFromDWActions in LakeHouse.pq L1129-L1144)
+                // can drop the correct DW table later. When DeltaTableFastCopy stages to DW,
+                // the actual DW table is created from the *source* TableName (via
+                // BuildStagingDWTableName, which may truncate when the combined name exceeds 128
+                // chars), so the marker must use the same value.
+                markerDWItemName = DeltaTableFastCopy[BuildStagingDWTableName](version, getSourceDetailsForUsingDeltaTableFastCopy[TableName]),                
+
+                markerForCleanUpOfLeftOverPartitions = if stageToDW then
+                    TableAction.InsertRows(
+                        dataLakeFolders{[Name = version]}[Content],
+                        #table(
+                            {"Name"},
+                            {{markerDWItemName & "@dw@" & options[StagingWarehouseId]? & "@" & options[StagingWorkspaceId]?}}
+                    ))
+                else
+                    Action.DoNothing,
+
+                deletedMarker = versionFolder{[Name = tableName & DeletedMarker]}?,
+                // For Append scenario, if the table is already existing we never have 
+                // a version created on it, so we need to insert a version and 
+                // create a .created marker file for the table for tracking.
+                markerCreationActions = if deletedMarker = null and createdMarker = null then
+                    Action.Sequence({
+                        if Table.IsEmpty(Table.SelectRows(content, each [Version] = version)) then 
+                            TableAction.InsertRows(content, #table({"Version"}, {{version}})) 
+                        else Action.DoNothing,
+                        markerFileInsertAction,
+                        markerForCleanUpOfLeftOverPartitions
+                    })
+                else
+                    markerForCleanUpOfLeftOverPartitions,
+
+                // end DeltaTableFastCopy Support.
 
                 result = Diagnostics.Trace(
                     TraceLevel.Information, 
@@ -1925,13 +2207,56 @@ in
                         Name = "VersionedLakehouseTableInsert",
                         Data = 
                         [
-                            IsSparkCompute = Utils[NonPii](isSparkComputeCase),
+                            IsSparkCompute = Utils[NonPii](isSparkComputeEnabled),
                             TableName = Utils[NonPii](tableName),
                             Version = Utils[NonPii](version)
                         ]
                     ],
                     try let
                         dataLakeFolders = OneLake.Contents(onelakeFileUrl),
+
+                        //----Partition support---
+                        partitionKeysForSourceTable = Table.PartitionKey(rowsToInsert),
+                        partitionKeysForDestinationTable = Table.PartitionKey(tableContent),
+                        isSourcePartitioned =  partitionKeysForSourceTable <> null,
+                        isDestinationPartitioned = partitionKeysForDestinationTable <> null,
+                        isAutoPartitioningPattern = isSourcePartitioned and Table.IsEmpty(rowsToInsert),
+                        // Check if destination partition can be modified.
+                        canDestinationPartitionBeModified = isAutoPartitioningPattern
+                            and not isDestinationPartitioned and Table.IsEmpty(tableContent),
+                        // For existing table with same partition scheme we avoid any partition replacement actions.
+                        avoidPartitioningDestinationForExistingTable = isAutoPartitioningPattern and isDestinationPartitioned
+                            and partitionKeysForSourceTable = partitionKeysForDestinationTable,
+                        // To successfully create/replace a partition on a table we need to do ValueAction.Replace.
+                        // Do this only if the Source Table and Destination Table is empty.
+                        // For an existing table with data, we will error if partitions don't match 
+                        // or avoid partitioning if the partition schemes are same. 
+                        partitionedTableActions = (existingTable as logical) => if not existingTable and canDestinationPartitionBeModified then
+                            ValueAction.Replace(tableContent, AnnotateDecimalTypes(rowsToInsert))
+                        else
+                            // No need to replace table contents right now as partition schemes are same
+                            // as it can lead to an empty table.
+                            if existingTable and avoidPartitioningDestinationForExistingTable then 
+                                Action.DoNothing
+                            // Handle cases for existing output to lakehouse scenario
+                            // where a partition key is added but we cannot actually do partitioned table insert.
+                            else if isSourcePartitioned and not isDestinationPartitioned then
+                                TableAction.InsertRows(tableContent, AnnotateDecimalTypes(rowsToInsert))
+                            else
+                                error Error.Record(
+                                    Utils[NonPii]("DataSource.Error"),
+                                    Utils[NonPii](Extension.LoadString("AutoPartitionedTableInsertError")),
+                                    [
+                                        TargetTableName = tableName,
+                                        IsSourceTablePartitioned = Utils[NonPii](isSourcePartitioned),
+                                        IsDestinationTablePartitioned = Utils[NonPii](isDestinationPartitioned),
+                                        PartitionKeyForSourceTable = Utils[NonPii](Utils[Value.ToText](Table.PartitionKey(rowsToInsert))),
+                                        PartitionKeyForDestinationTable = Utils[NonPii](Utils[Value.ToText](Table.PartitionKey(tableContent)))
+                                    ],
+                                    {}
+                                ),
+                        //----end Partition support---
+
                         //TODO what if a version has multiple tables marked as .deleted
                         versionFolder = dataLakeFolders{[Name = version]}[Content],
                         createdMarker = versionFolder{[Name = tableName & CreatedMarker]}?,
@@ -1948,34 +2273,40 @@ in
                                 })
                                 in actions
                             })
-                        // Table Append
-                        else if createdMarker is null then
-                            Action.Sequence({
-                                () => let actions = Action.Sequence({
-                                    () => Diagnostics.Trace(TraceLevel.Information, [Name = "VersionedLakehouseTableInsertTableAppendWithContent", Data = [], SafeData = [FixedSchemaFlag = Text.From(FixedSchemaFix)]], Action.DoNothing),
-                                    ()=> if FixedSchemaFix then 
-                                    // if Table.IsEmpty means there is no underlying version yet and we can safely insert a version.
-                                        if Table.IsEmpty(Table.SelectRows(content, each [Version] = version)) then TableAction.InsertRows(content, #table({"Version"},{{version}})) 
-                                        else Action.DoNothing
-                                    else TableAction.InsertRows(content, #table({"Version"},{{version}})),
-                                    ()=> TableAction.InsertRows(dataLakeFolders{[Name = version]}[Content], #table({"Name"}, {{tableName & CreatedMarker}})),
-                                    ()=> TableAction.InsertRows(tableContent, AnnotateDecimalTypes(rowsToInsert))
+                            // Table Append
+                            else if createdMarker is null then
+                                Action.Sequence({
+                                    () => let actions = Action.Sequence({
+                                        () => Diagnostics.Trace(TraceLevel.Information, [Name = "VersionedLakehouseTableInsertTableAppendWithContent", Data = []], Action.DoNothing),
+                                        // if Table.IsEmpty means there is no underlying version yet and we can safely insert a version.
+                                        ()=> if Table.IsEmpty(Table.SelectRows(content, each [Version] = version)) then TableAction.InsertRows(content, #table({"Version"},{{version}})) 
+                                            else Action.DoNothing,
+                                        ()=> TableAction.InsertRows(dataLakeFolders{[Name = version]}[Content], #table({"Name"}, {{tableName & CreatedMarker}})),
+                                        // In Auto partitioned pattern we will never see .deleted Marker for a table as we 
+                                        // only insert/delete specfic partitions.
+                                        ()=> if isSourcePartitioned then
+                                            Diagnostics.Trace(TraceLevel.Information, [Name = "PartitionedDeltaTableInsert", Data = []], partitionedTableActions(true))
+                                        else 
+                                            TableAction.InsertRows(tableContent, AnnotateDecimalTypes(rowsToInsert))
+                                    })
+                                    in actions
                                 })
-                                in actions
-                            })
-                        // New table insert or existing table replacement with current DFE.
-                        else TableAction.InsertRows(tableContent, AnnotateDecimalTypes(rowsToInsert)),
-                        actions = if sparkQueryDetails <> null then 
+                            // New table insert or existing table replacement with current DFE.
+                            else if isSourcePartitioned then 
+                                partitionedTableActions(false)
+                            else 
+                                TableAction.InsertRows(tableContent, AnnotateDecimalTypes(rowsToInsert)),
+                        actionSequenceToExecute = Action.Sequence({deleteOrCreateAction, refreshAction, Action.DoNothing}),
+                        actions = if isSparkComputeEnabled and sparkQueryDetails <> null then 
                             Action.Sequence({markerFileInsertAction, sparkComputeStoreActions})
+                        else if isDeltaTableFastCopy then
+                            DeltaTableFastCopy[ExecuteFastCopyActionsOrDefault](
+                                markerCreationActions,
+                                generateDeltaTableFastCopyActions, 
+                                actionSequenceToExecute,
+                                maxConcurrency)
                         else
-                            Action.Sequence
-                            (
-                                {
-                                    deleteOrCreateAction,
-                                    refreshAction,
-                                    Action.DoNothing
-                                }
-                            )
+                            actionSequenceToExecute
                     in
                         actions
                 )
@@ -2000,7 +2331,6 @@ in
                                 Data = 
                                 [
                                     Version = Utils[NonPii](version),
-                                    FixedSchemaFlag = Utils[NonPii](Text.From(FixedSchemaFix)),
                                     IsSparkComputeEnabled = Utils[NonPii](isSparkComputeEnabled)
                                 ]
                             ], Action.DoNothing),
@@ -2010,10 +2340,7 @@ in
                             Action.Sequence(
                                 {
                                     () => TableAction.InsertRows(content,  #table({"Version"}, {{version}})),
-                                    (result) => if FixedSchemaFix then
-                                        TableAction.DeleteRows(result{[Version = version]}[Data]) 
-                                    else
-                                        Action.DoNothing
+                                    (result) => TableAction.DeleteRows(result{[Version = version]}[Data])
                                 }),
                         Action.DoNothing
                     }),
@@ -2055,7 +2382,7 @@ let
     removeColumn = Table.RemoveColumns(addedColumn, {"Data"}),
     renameColumn = Table.RenameColumns(removeColumn, {"DataWithName" , "Data"}),
     justDeletedTableNames = GetDeletedTablesListForAVersion(onelakeFilesUrl, version),
-    transformedDeltaLakeTable = Table.TransformColumns(renameColumn, {{"Data", (val) => GenerateViewForVersionedTable(Value.Versions(val[IdWithData]{0}[Data]), version, onelakeFilesUrl, val[IdWithData]{0}[Id], refreshAction, options), type table}}),
+    transformedDeltaLakeTable = Table.TransformColumns(renameColumn, {{"Data", (val) => GenerateViewForVersionedTable(Value.Versions(val[IdWithData]{0}[Data]), version, onelakeFilesUrl, val[IdWithData]{0}[Id], refreshAction, options, onelakeTableUrl), type table}}),
     removedDeletedTables = if List.Count(justDeletedTableNames) > 0 then Table.SelectRows(transformedDeltaLakeTable, each not List.Contains(justDeletedTableNames, [Name])) else transformedDeltaLakeTable
 in
 Table.View(removedDeletedTables,[
@@ -2191,7 +2518,7 @@ Table.View(removedDeletedTables,[
                                                         let
                                                             deltaLakeTable = DeltaLake.Table(
                                                                 dataLakeFolders{[Name = tableNameToInsert]}[Content],
-                                                                DeltaLake.DefaultOptions),
+                                                                DeltaLake.Options(options)),
                                                             getVersions = Value.Versions(deltaLakeTable),
                                                             selectedVersion = Table.SelectRows(
                                                                 getVersions,
@@ -2210,7 +2537,7 @@ Table.View(removedDeletedTables,[
                                 dataLakeFolders = OneLake.Contents(onelakeTableUrl),
                                 deltaLakeTable = DeltaLake.Table(
                                     dataLakeFolders{[Name = tableNameToInsert]}[Content],
-                                    DeltaLake.DefaultOptions),
+                                    DeltaLake.Options(options)),
                                 getVersions = Value.Versions(deltaLakeTable),
                                 selectedVersion = getVersions{[Version = version]}?,
                                 isTableReplace = dataLakeVersionParentFolder{[Name = version]}[Content]{[Name = tableNameToInsert & ReplaceMarker]}? <> null,
@@ -2231,16 +2558,15 @@ Table.View(removedDeletedTables,[
                                                         Data = [],
                                                         SafeData = 
                                                         [
-                                                            TableAlreadyPresent = Text.From(result[alreadyPresent]), 
-                                                            FixedSchemaFlag = Text.From(FixedSchemaFix)
+                                                            TableAlreadyPresent = Text.From(result[alreadyPresent])
                                                         ]
                                                     ],
                                                     Action.DoNothing),
                                                 // if table is already present it is a delta table and we need to do an insert row call.
-                                                if result[alreadyPresent] and FixedSchemaFix then 
+                                                if result[alreadyPresent] then 
                                                     // if this is a case of table schema update, we can only achieve it 
                                                     // by ValueAction.Replace on the delta table.
-                                                    if isTableReplace and DynamicSchemaEmptyTableFix then 
+                                                    if isTableReplace then 
                                                         Action.Sequence({
                                                             ValueAction.Replace(result[Table]{0}[Data], tableContentToInsert),
                                                             TableAction.DeleteRows(
@@ -2260,7 +2586,7 @@ Table.View(removedDeletedTables,[
                                         let
                                             deltaLakeTable = DeltaLake.Table(
                                                 dataLakeFolders{[Name = tableNameToInsert]}[Content],
-                                                DeltaLake.DefaultOptions),
+                                                DeltaLake.Options(options)),
                                             getVersions = Value.Versions(deltaLakeTable),
                                             selectedVersion = Table.SelectRows(
                                                 getVersions,
@@ -2279,7 +2605,7 @@ Table.View(removedDeletedTables,[
                                                     ],
                                                     Action.DoNothing),
                                                 () => if result[alreadyPresent] then 
-                                                    Action.Return(result) 
+                                                        Action.Return(result)
                                                     else 
                                                         Action.Sequence({
                                                             TableAction.UpdateRows(selectedVersion, {{"Published", each true}}),
@@ -2291,7 +2617,7 @@ Table.View(removedDeletedTables,[
                                         let
                                             deltaLakeTable = DeltaLake.Table(
                                                 dataLakeFolders{[Name = tableNameToInsert]}[Content],
-                                                DeltaLake.DefaultOptions),
+                                                DeltaLake.Options(options)),
                                             getVersions = Value.Versions(deltaLakeTable),
                                             insertAction = 
                                                 if result[alreadyPresent] then 
@@ -2314,7 +2640,6 @@ Table.View(removedDeletedTables,[
                     }) else ...
             in
                 if Table.RowCount(renamedColsInRowsToInsert) > 1 then error Extension.LoadString("MultiTableInsertInVersionNotSupported")
-                else if not NameIsValid(tableNameToInsert) then error Extension.LoadString("InvalidTableName")
                 else actions )
             in
                 Connector.EvaluateQueryAndActionsForErrors(result, "VersionedLakehouseTableInsertError","VersionedLakehouseTableCreateError", "CreateVersionableView"),
@@ -2333,7 +2658,7 @@ Table.View(removedDeletedTables,[
                 selectedTableIds = selectedTable[Id],
                 dataLakeFolders = OneLake.Contents(onelakeTableUrl),
                 isTablePresent = dataLakeFolders{[Name = selectedTableIds{0}]}? <> null,
-                deltaTable = DeltaLake.Table(dataLakeFolders{[Name = selectedTableIds{0}]}[Content], DeltaLake.DefaultOptions),
+                deltaTable = DeltaLake.Table(dataLakeFolders{[Name = selectedTableIds{0}]}[Content], DeltaLake.Options(options)),
                 deltaTableVersions = Value.Versions(deltaTable),
                 // TODO add multi table support in a version
                 tableNameToDelete = selectedTableIds{0} & DeletedMarker,
@@ -2343,7 +2668,7 @@ Table.View(removedDeletedTables,[
                 // Create a tracker file which has a list of tables for a given version.
                 actions =  Action.Sequence({
                     TableAction.InsertRows(adlsSource, tableListFileToCreate(tableNameToDelete)),
-                    if DynamicSchemaEmptyTableFix and isTablePresent and deltaTableVersions{[Version = version]}? = null and not isSparkCompute
+                    if isTablePresent and deltaTableVersions{[Version = version]}? = null and not isSparkCompute
                         then  Action.Sequence({
                             TableAction.InsertRows(deltaTableVersions, #table({"Version"}, {{version}})),
                             // Create a tracker file which can be used to delect schema changes.
@@ -2366,7 +2691,7 @@ Table.View(removedDeletedTables,[
                     result = Diagnostics.Trace(TraceLevel.Information, "Commit the version block from CreateVersionableView", try
                     let
                         adlsSource =  DataLake.Contents(onelakeUriRecord[AdlsUrl], onelakeUriRecord[Sas]),
-                        deltaLakeTable = DeltaLake.Table(adlsSource),
+                        deltaLakeTable = DeltaLake.Table(adlsSource, DeltaLake.Options(options)),
                         getVersions = Value.Versions(deltaLakeTable)
                     in
                         Action.Sequence({
@@ -2385,42 +2710,16 @@ AnnotateDecimalTypes = (table) =>
     transformed = Table.TransformColumns(fields, {{"Value", (t) => if Type.NonNullable(t[Type]) <> Decimal.Type then t else [
         Type = Type.ReplaceFacets(t[Type], [NumericPrecisionBase = 10, NumericPrecision = 34, NumericScale = 6]),
         Optional = false]}}),
-    newType = type table Type.ForRecord(Record.FromTable(transformed), false)
+    newType = type table Type.ForRecord(Record.FromTable(transformed), false),
+    replacedType = Value.ReplaceType(table, newType),
+    preservePartitionKey = Table.ReplacePartitionKey(replacedType, Table.PartitionKey(table))
   in
-    Value.ReplaceType(table, newType);
-
-RefreshAction = (baseUrl, workspaceId, dwProperties, options, tableName as text, schemaName as nullable text) =>
-if dwProperties <> null and options[MetadataRefresh]? = true then
-    Action.Sequence({
-        () => Action.Return(
-            let
-                tryRefresh = Diagnostics.Trace(TraceLevel.Information,
-                    [Name = "RefreshMetadata", Data = [], SafeData = [ TableName = tableName, SchemaName = schemaName ]],
-                    () => try RefreshMetadata(baseUrl, workspaceId, dwProperties, options[MetadataRefresh]?, tableName, schemaName),
-                    true),
-                refreshFailed = tryRefresh[HasError],
-                finalStatus = if refreshFailed then "error" else tryRefresh[Value],
-                level = if refreshFailed
-                    then TraceLevel.Error
-                else if finalStatus = "success" or finalStatus = "N/A"
-                    then TraceLevel.Information
-                else TraceLevel.Warning,
-                statusTraceData = [
-                    Name = "RefreshMetadata/Status",
-                    Data = [],
-                    SafeData = [FinalStatus=finalStatus, ErrorMessage=tryRefresh[Error]?[Message]? ]
-                ]
-            in
-                if Diagnostics.Trace(level, statusTraceData, refreshFailed)
-                    then error tryRefresh[Error]
-                    else null),
-        Action.DoNothing
-    })
-else Action.DoNothing;
+    preservePartitionKey;
 
 Connector.EvaluateQueryAndActionsForErrors = (result as any, marker as text, errorMessageKey as text, callerName as text) =>
     if result[HasError] then
-        error Table.ViewError(Utils[Connector.GenerateErrorRecord](marker, Extension.LoadString(errorMessageKey), callerName, result[Error]))
+        error Table.ViewError(
+           Utils.Connector.GenerateErrorRecord(marker, Extension.LoadString(errorMessageKey), callerName, result[Error]))
     else
         Connector.LogActionErrorsIfPresent(result[Value], marker, callerName, Extension.LoadString(errorMessageKey));
 
@@ -2430,379 +2729,9 @@ Connector.LogActionErrorsIfPresent = (actions as any, marker as text, callerName
         ({
             () => Action.Try(actions),
             (r) => if (r[HasError]) then
-                        error Utils[Connector.GenerateErrorRecord](marker, piiFreeLogMessage, callerName, r[Error])
-                    else Action.Return(r[Value])
+                        error Utils.Connector.GenerateErrorRecord(marker, piiFreeLogMessage, callerName, r[Error])
+                   else Action.Return(r[Value])
         });
-
-// Uncomment for testing
-// [DataSource.Kind="Lakehouse"]
-// shared Lakehouse.RefreshMetadata = (databaseId) => RefreshMetadata(Fabric.GetClusterUrl(PBIBaseUrl), [id = databaseId], true);
-
-// TODO: Consider rewriting to use WebAction.Request instead of Web.Contents
-RefreshMetadata = (baseUrl, workspaceId, dwProperties, delayBackgroundProcessing, targetTableName as text, schemaName as nullable text) =>
-let
-    dwId = dwProperties[id]?,
-    rootUrl = Uri.Combine(baseUrl, Text.Format("/v1.0/myorg/lhdatamarts/#{0}", {dwId})),
-    prefix = "MetadataRefresh/",
-    startState = [Iteration = 1], // force IsRetry on all requests by claiming we start at a higher iteration
-    finalTableName = if schemaName <> null then schemaName & "." & targetTableName else targetTableName,
-    submitCommand = (iteration) =>
-    let
-        handlers = MetadataRefreshResponseHandlers(false),
-        delayCommand = [datamartVersion = null, commands = {[#"$type" = "DelayBackgroundProcessingCommand"]}],
-        delayContext = [Origin = Utils[NonPii]("RefreshMetadata/DelayBackgroundProcessing"), Iteration = Utils[NonPii](iteration)],
-        delayResponse = Utils[Web.JsonContents](
-            rootUrl,
-            /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
-            handlers,
-            /*jsonBody*/ delayCommand,
-            startState,
-            /*traceContext*/ delayContext
-        ),
-        refreshCommandDetails = [#"$type" = "MetadataRefreshExternalCommand", isDatasetRefreshRequired = false],
-        tableNameIsNotNullOrBlank = targetTableName <> null and Text.Length(targetTableName) > 0,
-        tableDefinition = [schema = schemaName, tableNames = {targetTableName}],
-        refreshCommandWithTableDetails = if schemaName <> null then [tableDefinitions = {tableDefinition}] else [tableNames = {targetTableName}],
-        refreshCommandWithTableName = if UseDmsTableApi and tableNameIsNotNullOrBlank then
-            refreshCommandDetails & refreshCommandWithTableDetails
-            else if UseDmsTableApi then 
-            Diagnostics.Trace(
-                TraceLevel.Warning, 
-                [
-                    Name = prefix & "SubmitCommand/FullMetadataSync/TableNameMissing",
-                    Data = [],
-                    SafeData = [TableName = targetTableName, UseDmsTableApiFeatureSwitch = Text.From(UseDmsTableApi), TableNameIsNotNullOrBlank = Text.From(tableNameIsNotNullOrBlank)]
-                ],
-                refreshCommandDetails
-            )
-            else refreshCommandDetails,
-        batchTimeout = [timeout = Duration.ToText(#duration(0, 0, 0, MaxDMSBatchDuration))],
-        refreshCommand = [datamartVersion = null, commands = {refreshCommandWithTableName}] & batchTimeout,
-        refreshContext = [Origin = Utils[NonPii]("RefreshMetadata/MetadataRefreshSubmit"), Iteration = Utils[NonPii](iteration)],
-        response = Utils[Web.JsonContents](
-            rootUrl,
-            /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
-            handlers,
-            /*jsonBody*/ refreshCommand,
-            startState,
-            /*traceContext*/ refreshContext
-        ),
-        responseStatusCode =
-            if DisableDmsDelayedBackgroudProcessing = false and delayBackgroundProcessing = true and delayResponse = "unreachable" 
-            then 0 else Record.FieldOrDefault(Value.Metadata(response), "Response.Status", 0),
-        errorDetails = response[error]?[pbi.error]?[details]?,
-        lockConflictBatchId = if errorDetails <> null then try SelectKeysFromListOfRecordsForDMS(errorDetails, {"LockingBatchId"}, false)[LockingBatchId]? otherwise null else null,
-        result = [StatusCode = responseStatusCode, ErrorCode = response[error]?[code]?, BatchId = response[batchId]?, LockingBatchId = lockConflictBatchId]
-    in
-        Diagnostics.Trace(if responseStatusCode <> 200 then TraceLevel.Warning else TraceLevel.Information,
-            [Name = prefix & "SubmitCommand", Data = [], SafeData = result &
-            [Iteration = iteration, TableName = targetTableName, UseDmsTableApiFeatureSwitch = Text.From(UseDmsTableApi),
-            MetadataSyncConfigurtion = Utils[Value.ToText](MetadataSyncConfig)]],
-            result),
-
-    getInProgressBatch = (iteration) =>
-    let
-        getBatchContext = [Origin = Utils[NonPii]("RefreshMetadata/GetInProgressBatch"), Iteration = Utils[NonPii](iteration)],
-        response = Utils[Web.JsonContents](
-            rootUrl & "/batches",
-            /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
-            /*additionalHandlers*/ [],
-            /*jsonBody*/ null,
-            startState,
-            /*traceContext*/ getBatchContext
-        ),
-        asTable = Table.FromRecords(response[value], {"batchId", "progressState", "startTimeStamp"}, MissingField.Error),
-        changedTypeForStartTimestamp = Table.TransformColumnTypes(asTable, {{"startTimeStamp", type datetime}}), // represent as datetime
-        utcTimeWithoutZone = DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), // remove zone from UTC time for comparison.
-        batchesInPastOneDay = Table.SelectRows(changedTypeForStartTimestamp, each [startTimeStamp] > (utcTimeWithoutZone - #duration(1,0,0,0)) and [progressState] = "inProgress"), // get inprogress batches from past 24 hours
-        inProgress = Table.Sort(batchesInPastOneDay, {{"startTimeStamp", Order.Descending}})
-    in
-        try inProgress{0}?[batchId]? catch (e) => Diagnostics.Trace(
-            TraceLevel.Error,
-            [Name=prefix & "GetInProgress", Data = [], SafeData = [Exception = Utils[Value.ToText](e)]],
-            null),
-
-    getResultStatus = (result, optional originatedFromLockConflict) =>
-    let
-        batchStatus = result[progressState]? ?? "(null)",
-        batchId = result[batchId]?,
-        status = Table.FromList(
-            List.Combine(List.Transform(result[operationInformation], (oi) => oi[progressDetail][tablesSyncStatus])),
-            Splitter.SplitByNothing()),
-        progressDetail =  if batchStatus = "success" then try Table.ExpandRecordColumn(status, "Column1", {"tableName", "error", "tableSyncState", "sqlSyncState", "lastSuccessfulUpdate", "correctiveAction"})
-            catch (e) => ThrowMetadataSyncErrors(prefix & "ProgressDetail", Extension.LoadString("MetadataRefreshParseResponseError"),
-                [], [BatchId = batchId, ResponseForBatch = Utils[Value.ToText](result, 5)], e,
-                {Utils[NonPii](dwId), Utils[NonPii](batchId), e[Message]})
-            else
-                let
-                    errorResult = GenerateErrorCodeAndMessageForDMSBatch(result)
-                in
-                    ThrowMetadataSyncErrors(prefix & "BatchStatusError", Extension.LoadString("MetadataRefreshBatchError"),
-                        [], [BatchId = batchId, ErrorCode = errorResult[ErrorCode], ResponseForBatch = Utils[Value.ToText](result) ], errorResult[ExceptionData] ?? result,
-                        {Utils[NonPii](dwId), Utils[NonPii](batchId), Utils[NonPii](errorResult[ErrorCode]), Utils[NonPii](errorResult[ErrorMessage])}),
-
-        //Calculate DMS Reported Batch Duration so it can be logged.
-        getDMSReportedBatchDuration = (operationInformationDetails as any) => 
-        try
-            let 
-                batchEndTimeUtc = operationInformationDetails{0}[endDateTimeUtc]?,
-                batchStartTimeUtc = operationInformationDetails{0}[startDateTimeUtc]?,
-                dmsReportedDuration = if ReportDMSBatchDuration then DateTime.From(batchEndTimeUtc) - DateTime.From(batchStartTimeUtc)
-                    else -1
-            in 
-                dmsReportedDuration
-        otherwise -1,
-        tableDetail = Table.SelectRows(progressDetail, each [tableName] = finalTableName),
-        withoutTableName = Table.RemoveColumns(tableDetail, {"tableName"}),
-        failureRows = Table.SelectRows(tableDetail, each ([tableSyncState] = "Failure" or [sqlSyncState] = "Failure")),
-        missingTable = finalTableName <> null and Table.IsEmpty(tableDetail),
-        hasFailure = missingTable or Table.RowCount(failureRows) > 0,
-        failureDetails = Table.First(failureRows)[error]?,
-        correctiveAction = Table.First(failureRows)[correctiveAction]?,
-        sqlFailureDetails = if LogSqlErrorCodesFromDMSResponse and failureDetails[details]? <> null then SelectKeysFromListOfRecordsForDMS(failureDetails[details]?, {"RootActivityId", "SqlErrorNumber", "SqlErrorClass", "SqlErrorState"}, true) else [],
-        errorCode = if missingTable then "TableMissingInBatchFailure"
-            else if correctiveAction <> null and targetTableName <> null and Text.Length(targetTableName) > 128 then "TableNameTooLongFailure"
-            else "TableSyncFailure",
-
-        dmsReportedErrorCode = Text.Format("#{0}|#{1}", {failureDetails[code]?, failureDetails[httpStatusCode]?}),
-        failureStatus = if Value.Is(failureDetails, Record.Type) then [DMSReportedErrorCode = dmsReportedErrorCode] else [],
-        failureDetailAsText = Utils[Value.ToText](failureDetails, 5),
-        errorMessageWithoutStackTrace = if missingTable  then errorCode else Text.BeforeDelimiter(failureDetailAsText, "callStack"), // remove stack trace so we can log and raise this to end user.
-
-        tracedFailure = Diagnostics.Trace(
-            TraceLevel.Error,
-            [
-                Name= prefix & "TableSyncFailure",
-                Data =  [],
-                SafeData = [
-                    BatchId = result[batchId]?,
-                    TableName = finalTableName,
-                    ErrorCode = errorCode,
-                    ErrorDetail = failureDetailAsText,
-                    CorrectiveAction = Utils[Value.ToText](correctiveAction),
-                    LakehouseId = dwId
-                ] & failureStatus & sqlFailureDetails
-            ],
-            Text.Format(Extension.LoadString("TableCreationFailureError"),{errorMessageWithoutStackTrace})
-        ),
-        finalResult = if (not originatedFromLockConflict and hasFailure)
-                      then error Error.Record(Utils[NonPii]("DataSource.Error"), Utils[NonPii](Extension.LoadString("MetadataRefreshErrorWithDetail")), failureDetails, {Utils[NonPii](dwId), Utils[NonPii](result[batchId]?), Utils[NonPii](tracedFailure)})
-                      else [Response = try Text.FromBinary(Json.FromValue(withoutTableName)) otherwise "<unable to get status>", Duration = getDMSReportedBatchDuration(result[operationInformation])]
-    in
-        finalResult,
-
-    pollBatch = (batchId, optional originatedFromLockConflict) =>
-    let
-        pollCount = MetadataSyncConfig[PollingCount],
-        exponentialBackoffMultiplier = MetadataSyncConfig[PollingDelayMultiplier],
-        finalPollUrl = 
-            if DMSUseLongPolling then 
-                Diagnostics.Trace(TraceLevel.Information, [Name = prefix & "LongPollBatch", Data = [], 
-                    SafeData = [BatchId = batchId]], rootUrl & "/events/Batch?resourceId=" & batchId & "&batchStateChangeOnly=true")
-            else 
-                Diagnostics.Trace(TraceLevel.Information, [Name = prefix & "PollBatch", Data = [],
-                    SafeData = [BatchId = batchId]], rootUrl & "/batches/" & batchId),
-
-        waitForResultLongPoll = Utils[Value.WaitFor](
-            (iteration) =>
-                let
-                    jsonResponse = Utils[Web.JsonContents](
-                        finalPollUrl,
-                        /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
-                        /*additionalHandlers*/ MetadataRefreshResponseHandlers(true),
-                        /*jsonBody*/ null,
-                        startState,
-                        /*traceContext*/ [Origin = Utils[NonPii]("RefreshMetadata/PollBatch")]
-                    ),
-                    responseStatus = Value.Metadata(jsonResponse)[Response.Status]?,
-                    newState = jsonResponse[event]?[progressState]? ?? "(null)",
-                    continuePolling = if responseStatus = 204 or responseStatus = 500 
-                        then Diagnostics.Trace(TraceLevel.Information, [Name = "LongPoll/Continue", Data = [], SafeData = [LongPollResponse = responseStatus]], true) 
-                    else false,
-                    reponseToParse = jsonResponse[event]?,
-                    finalStatus = try getResultStatus(reponseToParse, originatedFromLockConflict),
-                    unableToSyncError = ThrowMetadataSyncErrors(prefix & "LongPollBatch/UnableToSyncTable", Extension.LoadString("MetadataRefreshUnableToSyncTable"), [],
-                        [PollingIterationCount = iteration, TableName = finalTableName, PolledBatchId = batchId], [BatchId = batchId, LakehouseId = dwId], {Utils[NonPii](dwId), Utils[NonPii](batchId)})
-                in
-                    if iteration >= pollCount then
-                        if UseDmsTableApi and originatedFromLockConflict = false
-                                then unableToSyncError
-                            else Diagnostics.Trace(TraceLevel.Warning,
-                            [
-                                Name = prefix & "LongPollBatch/MaxRetriesExceeded",
-                                Data = [],
-                                SafeData = [PollingIterationCount = iteration, TableName = finalTableName, PolledBatchId = batchId, LakehouseId = dwId]
-                            ],
-                            null)
-                    else if continuePolling
-                        then null
-                    else if finalStatus[HasError]
-                        then error finalStatus[Error]
-                    else Diagnostics.Trace(TraceLevel.Information,
-                        [
-                            Name=prefix & "LongPoll",
-                            Data=[],
-                            SafeData=[
-                                BatchState = newState,
-                                BatchStatus = finalStatus[Value][Response],
-                                IterationCount = iteration,
-                                BatchId = batchId,
-                                TableName = finalTableName,
-                                DMSReportedBatchDuration = finalStatus[Value][Duration]
-                            ]
-                        ],
-                        newState),
-            (iteration) => #duration(0, 0, 0, Number.Power(exponentialBackoffMultiplier, iteration + 1)-1),
-            pollCount),
-
-        waitForResult = Utils[Value.WaitFor](
-            (iteration) =>
-                let
-                    jsonResponse = Utils[Web.JsonContents](
-                        finalPollUrl,
-                        /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
-                        /*additionalHandlers*/ MetadataRefreshResponseHandlers(true),
-                        /*jsonBody*/ null,
-                        startState,
-                        /*traceContext*/ [Origin = Utils[NonPii]("RefreshMetadata/PollBatch")]
-                    ),
-                    responseStatus = Value.Metadata(jsonResponse)[Response.Status]?,
-                    newState = jsonResponse[progressState]? ?? "(null)",
-                    continuePolling = responseStatus = 500 or newState = "inProgress",
-                    reponseToParse = jsonResponse,
-                    finalStatus = try getResultStatus(reponseToParse, originatedFromLockConflict),
-                    unableToSyncError = ThrowMetadataSyncErrors(prefix & "PollBatch/UnableToSyncTable", Extension.LoadString("MetadataRefreshUnableToSyncTable"), [],
-                        [PollingIterationCount = iteration, TableName = finalTableName, PolledBatchId = batchId], [BatchId = batchId, LakehouseId = dwId], {Utils[NonPii](dwId), Utils[NonPii](batchId)})
-                in
-                    if iteration >= pollCount then
-                        if UseDmsTableApi and originatedFromLockConflict = false
-                                then unableToSyncError
-                            else Diagnostics.Trace(TraceLevel.Warning,
-                            [
-                                Name = prefix & "PollBatch/MaxRetriesExceeded",
-                                Data = [],
-                                SafeData = [PollingIterationCount = iteration, TableName = finalTableName, PolledBatchId = batchId, LakehouseId = dwId]
-                            ],
-                            null)
-                    else if continuePolling
-                        then null
-                    else if finalStatus[HasError]
-                        then error finalStatus[Error]
-                    else Diagnostics.Trace(TraceLevel.Information,
-                        [
-                            Name=prefix & "Poll",
-                            Data=[],
-                            SafeData=[
-                                BatchState = newState,
-                                BatchStatus = finalStatus[Value][Response],
-                                IterationCount = iteration,
-                                BatchId = batchId,
-                                TableName = finalTableName,
-                                DMSReportedBatchDuration = finalStatus[Value][Duration]
-                            ]
-                        ],
-                        newState),
-            (iteration) => #duration(0, 0, 0, Number.Power(exponentialBackoffMultiplier, iteration + 1)-1),
-            pollCount)
-    in
-        if DMSUseLongPolling then waitForResultLongPoll else waitForResult,
-
-    // When we submit a request to refresh metadata, there may already be a metadata refresh
-    // underway. If so, we get a LockConflict error. We then get the batchId for the in-progress refresh
-    // and we poll for that refresh to finish. Once it's done, we try to submit another metadata
-    // refresh request. If this, too, fails with a LockConflict then we again wait for the in-progress
-    // refresh to be finished. Once that's done, we stop because our change should have been picked up
-    // by the second refresh cycle.
-
-    // Based on evidence in telemetry, if there's no "in-progress" operation, we'll try the metadata
-    // refresh again without increasing the iteration.
-
-    // The comparison of newState to "expected not to match" is to force evaluation of newState before
-    // we try to submit a second refresh request.
-
-    // DMS has published a new TableLevel API this means when doing metadata sync in case of lock conflicts we
-    // need to try harder to get a lock so we can ensure the table is synced. For this reason we need to increase
-    // the max number of tries to a larger value, currently set at 5
-    // We will also poll a lower number of times as this is expected to be a faster operation.
-
-    Submit = (iteration, optional originatedFromLockConflict) => let result = submitCommand(iteration) in
-        if result[BatchId]? <> null then pollBatch(result[BatchId], originatedFromLockConflict)
-        else if result[ErrorCode]? = "LockConflictException" or result[ErrorCode]? = "LockConflict" then LockConflict(iteration, result[LockingBatchId]?)
-        else error Error.Record(Utils[NonPii]("DataSource.Error"), Utils[NonPii](Text.Format(Extension.LoadString("MetadataRefreshError"), {result[ErrorCode], result[StatusCode]})), ""),
-
-    // 1. Since we encountered a lock conflict, check for any ongoing batch and poll it to completion
-    //    As this batch might not be the one associated with the current request, the 'originatedFromLockConflict' flag
-    //    true suggests that if the specific table isn't found, no error is thrown in getResultStatus.
-
-    // 2. After this completes, we attempt to submit our request again, expecting to get our
-    //    own batch this time, set originatedFromLockConflict = false indicating that the request
-    //    isn't being made as a result of resolving a lock conflict.
-
-    // 3. If no ongoing batches are found after a lock conflict, a brief wait is introduced before trying
-    //    to submit the request again, with 'originatedFromLockConflict' set to false as we expect this
-    //    attempt to be our own batch.
-
-    LockConflict = (iteration, lockConflictBatchId) =>
-        let
-            maxIterationsForLockConflict = MetadataSyncConfig[MaxIterationCount] - 1,
-            maxIterationsForNothingInProgress = MetadataSyncConfig[NothingInProgressIterationCount] - 1,
-            inProgressBatchId = if lockConflictBatchId = null then getInProgressBatch(iteration) else lockConflictBatchId,
-            newState = pollBatch(inProgressBatchId, true),
-            nextIteration = Submit(iteration + 1, false),
-            // Retry recursive and cross fingers.
-            // We increment iteration to avoid infinite recursion and stack overflow.
-            //
-            nothingInProgress =
-                Function.InvokeAfter(() => Submit(iteration + 1, false), Diagnostics.Trace(TraceLevel.Information, [Name = prefix & "LockConflict/NothingInProgress/Retry",
-                Data = [], SafeData = [Iteration = iteration, NothingInProgressIterationCount = maxIterationsForNothingInProgress]], #duration(0, 0, 0, 5))),
-
-            nothingInProgressError = ThrowMetadataSyncErrors(
-                prefix & "LockConflict/NothingInProgress",
-                Extension.LoadString("MetadataRefreshNothingInProgress"),
-                [],
-                [IterationCount = iteration, TableName = finalTableName, lakhouseId = dwId],
-                [TableName = finalTableName, LakehouseId = dwId],
-                {Utils[NonPii](dwId), finalTableName}
-            ),
-            unableToSyncError = ThrowMetadataSyncErrors(
-                prefix & "LockConflict/UnableToSyncTable",
-                Extension.LoadString("MetadataRefreshUnableToSyncTable"),
-                [],
-                [IterationCount = iteration, TableName = finalTableName, PolledBatchId = inProgressBatchId],
-                [BatchId = inProgressBatchId, LakehouseId = dwId],
-                {Utils[NonPii](dwId), Utils[NonPii](inProgressBatchId)}
-            )
-        in
-            // Guard against infinite recursion.
-            if inProgressBatchId = null then if iteration > maxIterationsForNothingInProgress then nothingInProgressError else nothingInProgress
-            else let newState = pollBatch(inProgressBatchId, true) in
-                if newState = "expected not to match" or iteration > maxIterationsForLockConflict then
-                    if UseDmsTableApi then unableToSyncError else newState
-                else nextIteration
-
-in
-    if dwId = null then "N/A" else Submit(0, false);
-
-SelectKeysFromListOfRecordsForDMS = (details, keys, isTableSyncFailure as logical) =>
-    Record.SelectFields(Record.Combine(List.Transform(details, (val) => Record.AddField([],val[code],if isTableSyncFailure then val[message] else val[detail]?[value]))), keys, MissingField.Ignore);
-
-GenerateErrorCodeAndMessageForDMSBatch = (result) =>
-let
-    hasExceptionData = Record.HasFields(result, "exceptionData"),
-    hasErrorData = Record.HasFields(result, "errorData"),
-    exceptionData = result[exceptionData]? ?? result[errorData]?,
-    errorMessage = if exceptionData <> null then Utils[Value.ToText](exceptionData, 5) else Utils[Value.ToText](result, 5),
-    errorCode = if hasExceptionData then exceptionData[code]? else if hasErrorData then exceptionData[error]?[code]? else "UnkownError"
-in
-    [ErrorCode = errorCode, ErrorMessage = errorMessage, ExceptionData = exceptionData];
-
-ThrowMetadataSyncErrors = (logName, errorMessage, data, safedata, errorRecord, variableListForError) =>
-error Diagnostics.Trace(TraceLevel.Error, [Name = logName, Data = data, SafeData = safedata],
-    Error.Record(
-    Utils[NonPii]("DataSource.Error"),
-    Utils[NonPii](errorMessage),
-    errorRecord,
-    variableListForError));
 
 UniqueRequestHeader = "x-ms-client-request-id";
 PrivateLinkCapacityHeader = "x-ms-src-capacity-id";
@@ -2985,6 +2914,34 @@ OneLake.FileContents = (entityUrl as text) =>
                 baseCredential & plCredential,
         () => AzureStorage.DataLakeContents(entityUrl));
 
+OneLake.BlobContents = (entityUrl as text) =>
+    Extension.InvokeWithCredentials(
+        (datasource) =>
+            let
+                baseCredential = GetCredential(AadAdlsStorageResource),
+                capacityId = Extension.CurrentApplication()[PBI_CapacityObjectId]?,
+                s2sToken = GetServiceToken(AadAdlsStorageResource),
+                plCredential = if capacityId <> null and s2sToken <> null
+                    then [CapacityId = capacityId, ServiceAccessToken = s2sToken]
+                    else []
+            in
+                baseCredential & plCredential,
+        () => AzureStorage.BlobContents(entityUrl));
+
+OneLake.ContentsNonHierarchical = (entityUrl as text) =>
+    Extension.InvokeWithCredentials(
+        (datasource) =>
+            let
+                baseCredential = GetCredential(AadAdlsStorageResource),
+                capacityId = Extension.CurrentApplication()[PBI_CapacityObjectId]?,
+                s2sToken = GetServiceToken(AadAdlsStorageResource),
+                plCredential = if capacityId <> null and s2sToken <> null
+                    then [CapacityId = capacityId, ServiceAccessToken = s2sToken]
+                    else []
+            in
+                baseCredential & plCredential,
+        () => AzureStorage.DataLake(entityUrl, [IsOneLake = true]));
+
 // -----------------------------------------------------
 // | 3. TDS Endpoint using SQL Connector
 // -----------------------------------------------------
@@ -2994,12 +2951,8 @@ Sql.Contents = (serverInstance as text, dbname as text, options as record) =>
         (datasource) => GetCredential(AadSqlResource),
         () =>
             let
-                optionsToSelect = {"CommandTimeout", "CreateNavigationProperties"},
-                finalOptionsList = if EnableHierarchicalNavigationSupport then 
-                    optionsToSelect & {"HierarchicalNavigation"} 
-                else 
-                    optionsToSelect,
-                curatedOptions = Record.SelectFields(options, finalOptionsList, MissingField.Ignore)
+                optionsToSelect = {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation"},
+                curatedOptions = Record.SelectFields(options, optionsToSelect, MissingField.Ignore)
             in
                 Sql.Database(serverInstance, dbname, [EnableCrossDatabaseFolding = true] & curatedOptions)
     );
@@ -3017,6 +2970,30 @@ Sql.TestConnection = (database as nullable record, lakehouseId as nullable text)
             in
                 try result catch (e) => error Diagnostics.Trace(TraceLevel.Error, [
                         Name = "SqlTestConnectionFailure",
+                        Data = [ Exception = Utils[Value.ToText](e) ],
+                        SafeData = [ LakehouseId = lakehouseId ]
+                    ], e)
+    );
+
+// Server-only variant of Sql.TestConnection. Returns the descriptor for
+// Sql.Databases(serverInstance) rather than Sql.Database(serverInstance, dbname),
+// so the host probes only "AAD token works AND TDS server is reachable" without
+// requiring the specific lakehouse DB to be enumerable. Used by Lakehouse nav
+// testConnection where a per-lakehouse DB-existence check is too strict — the
+// chosen first-lakehouse may not yet be provisioned on the SQL endpoint, but the
+// workspace's SQL endpoint itself is what we want to validate.
+Sql.TestServerConnection = (database as nullable record, lakehouseId as nullable text) =>
+    Extension.InvokeWithCredentials(
+        (datasource) => GetCredential(AadSqlResource),
+        () =>
+            let
+                serverInstance = database[tdsEndpoint]?,
+                ErrorMessageFormat = Extension.LoadString("NoSqlEndPoint"),
+                result = if (serverInstance <> null) then Diagnostics.Trace(TraceLevel.Information, [Name = "TestServerConnection", Data = []], DataSource.TestConnection(Sql.Databases(serverInstance))) else
+                    error Error.Record(Utils[NonPii]("DataSource.Error"), Utils[NonPii](ErrorMessageFormat), [])
+            in
+                try result catch (e) => error Diagnostics.Trace(TraceLevel.Error, [
+                        Name = "SqlTestServerConnectionFailure",
                         Data = [ Exception = Utils[Value.ToText](e) ],
                         SafeData = [ LakehouseId = lakehouseId ]
                     ], e)
@@ -3040,27 +3017,7 @@ Sql.ValidateInstance = (database as nullable record) =>
 // | 4. Utility
 // -----------------------------------------------------
 
-GetCredential = (resource) =>
-    let
-        currentCredentials = Extension.CurrentCredential(),
-        trimmedResource = Text.TrimEnd(resource, "/"),
-        prop = "AccessToken:" & trimmedResource,
-        propWithSlash = "AccessToken:" & trimmedResource & "/",
-        tokenValue = Record.FieldOrDefault(currentCredentials[Properties], prop, Record.FieldOrDefault(currentCredentials[Properties], propWithSlash, "")),
-        finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,
-        credentialToReturn = currentCredentials & [access_token = finalTokenValue]
-    in
-        credentialToReturn;
-
-Utility.CreateScope = () as text =>
-    let
-        appendix = "user_impersonation",
-        scopeForStorage = Text.Format("#{1}/#{0}", {appendix, AadAdlsStorageResource}),
-        scopeForSql = Text.Format("#{1}/#{0}", {appendix, AadSqlResource}),
-        scopeForWorkspaces = Text.Format("#{1}/#{0}", {appendix, AadWorkspaceApiOAuthResource}),
-        result = Text.Combine({scopeForWorkspaces, scopeForSql, scopeForStorage}, " ")
-    in
-        result;
+GetCredential = Utils[GetCredential];
 
 Value.ConvertToNumber = (a) =>
   try Number.From(a) otherwise 3600;
@@ -3097,6 +3054,8 @@ WithAfterAction = (table, afterAction, partitionedRefreshInput as record) =>
                             )
                         else 
                             PostPublishAction(Value.Versions(tbl))
+                else if Function.EqualsByName(function, "Partition.Table.SupportsPartitionCreation") then 
+                    Diagnostics.Trace(TraceLevel.Information, [Name = "WithAfterAction/Partition.Table.SupportsPartitionCreation", Data = []] , if Table.PartitionKey(tbl) <> null then true else false)
                 else ...,
             OnSelectRows = (condition) => 
                 let
@@ -3107,7 +3066,7 @@ WithAfterAction = (table, afterAction, partitionedRefreshInput as record) =>
                     combinedRecord = partitionedRefreshInput & additionalDetails
                 in 
                     @view(selectedData, (row) => functn(row) and condition(row), combinedRecord),
-            OnInsertRows = (rowsToInsert) => Action.Sequence({TableAction.InsertRows(tbl, rowsToInsert), afterAction}),
+            OnInsertRows = (rowsToInsert) => Action.Sequence({Action.DoNothing, afterAction}),
             OnUpdateRows = (updates, selector) => Action.Sequence({
                 TableAction.UpdateRows(Table.SelectRows(tbl, selector), List.Transform(updates, each {[Name], [Function]})),
                 afterAction
@@ -3125,37 +3084,10 @@ WithAfterAction = (table, afterAction, partitionedRefreshInput as record) =>
     in
         view(table, each true, partitionedRefreshInput);
 
-MetadataRefreshResponseHandlers = (retryOn400 as logical) as record =>
-    let
-        metadataDelayFn = (iteration) => iteration * 5
-    in [
-        400 = if retryOn400 then Utils[RetryHandler](4, metadataDelayFn) else JsonHandler,
-        403 = ErrorOrRefreshTokenHandler,
-        500 = Utils[RetryHandler](4, metadataDelayFn),
-        503 = Utils[RetryHandler](4, metadataDelayFn)
-    ];
-
-ErrorOrRefreshTokenHandler = (state) =>
-    let
-        result = try Utils[Web.DefaultErrorHandler](state),
-        errorCode = result[Error]?[Detail]?[ErrorCode]? ?? ""
-    in
-        if errorCode = "TokenExpired" then AuthHandler(state) else error result[Error];
-
-AuthHandler = (state) =>
-    if state[Refreshed]? = true or not Web.TryRefreshToken() then Utils[Web.DefaultErrorHandler](state)
-    else state & [Refreshed = true];
-
-JsonHandler = (state) => state & [
-    Response = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
-    Complete = true
-];
-
-Web.TryRefreshToken = () as logical =>
-    let
-        forceRefreshOfTokens = true
-    in
-        Extension.CurrentCredential(forceRefreshOfTokens) <> null; // Force refresh of token.
+Function.EqualsByName = (f1, functionName) => let
+    fi1Name = Value.Metadata(Value.Type(f1))[Documentation.Name]?
+in
+    fi1Name = functionName;
 
 Lakehouse = [
     Type = "Custom",
@@ -3166,7 +3098,7 @@ Lakehouse = [
         Aad = [
             AuthorizationUri = AadAuthorizationUri,
             Resource = "",
-            Scope = Utility.CreateScope(),
+            Scope = Utils[Utility.CreateOrderedScope]({AadWorkspaceApiOAuthResource, AadSqlResource, AadAdlsStorageResource}),
             DefaultClientApplication = [
                 ClientId = "a672d62c-fc7b-4e81-a576-e60dc46e951d",
                 ClientSecret = "",
@@ -3187,43 +3119,150 @@ Lakehouse = [
 {"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":null}}
 {"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5"}}
 {"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "table" : "NewTable"}}
+{"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "path" : "NewFolder"}}
+{"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "path" : "NewFolder", "additionalPath": ["file.csv"]}}
+{"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "path" : "NewFolder", "additionalPath": ["subfolder1","file.csv"]}}
+{"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "schema": "test_schema", "table" : "null"}}
+{"protocol":"lakehouse","address":{"workspace":"685d9cf0-e359-48b3-983b-3c4babc37af6","lakehouse":"12345678-e359-48b3-983b-3c4babc37af5", "schema": "test_schema", "table" : "NewTable"}
 */
     DSRHandlers = [
         #"lakehouse" = [
             GetDSR = (optional options, optional navigation) =>
                 let
                     workspace = navigation{0}?[workspaceId]?,
-                    lakehouse = navigation{2}?[lakehouseId]?,
-                    id = navigation{4}?[Id]?,
-                    itemKind = navigation{4}?[ItemKind]?,
+                    isRelativeReference = workspace = ".",
+                    finalWorkspaceId =
+                        let
+                            resolvedWsId = Variable.ValueOrDefault("currentWorkspaceId", "<error>")
+                        in
+                            // return an error to fall back to parent DSR resolution
+                            if resolvedWsId = "<error>" then error "Current Workspace could not be resolved."
+                            else resolvedWsId,
+                    lakehouse = if isRelativeReference then navigation{2}?[lakehouseName]? else navigation{2}?[lakehouseId]?,
+                    lakehouseRecord = if isRelativeReference then [lakehouseName = lakehouse] else [lakehouseId = lakehouse],
+                    lakehouseRenameFields = if isRelativeReference then {"lakehouseName", "lakehouseName"} else {"lakehouseId", "lakehouse"},
                     count = List.Count(navigation),
-                    matchLakehouseWithId = List.FirstN({[workspaceId=workspace], "Data", [lakehouseId=lakehouse], "Data", [Id=id, ItemKind = itemKind], "Data"}, count),
+                    commonNavigationList =
+                    {
+                        [workspaceId = workspace],
+                        "Data",
+                        lakehouseRecord,
+                        "Data",
+                        [Id = navigation{4}?[Id]?, ItemKind = navigation{4}?[ItemKind]?],
+                        "Data"
+                    },
+                    schemaNavigation = 
+                    [
+                        ItemIndex = 6,
+                        Item_Navigation = 
+                        // Schema can have an extra level of navigation for tables
+                        commonNavigationList & 
+                        {
+                            [Id = navigation{ItemIndex}?[Id]?, ItemKind = navigation{ItemIndex}?[ItemKind]?],
+                            "Data"
+                        },
+                        TransformFunction = (_) => if _[ItemKind]? = "Schema" then [Schema = _[Id], ItemKind = _[ItemKind]] else _,
+                        RenameFieldsList = 
+                        {
+                            {"workspaceId", "workspace"},
+                            lakehouseRenameFields,
+                            {"Schema", "schema"},
+                            {"Id", "table"}
+                        }
+                    ],
+                    tableNavigation = 
+                    [
+                        ItemIndex = 4,
+                        Item_Navigation = commonNavigationList,
+                        RenameFieldsList = 
+                        {
+                            {"workspaceId", "workspace"},
+                            lakehouseRenameFields,
+                            {"Id", "table"}
+                        }
+                    ],
+                    //Only use schema navigation if HierarchicalNavigation is enabled and the navigation has ItemKind and it's not a Folder.
+                    useSchemaNavigation = options[HierarchicalNavigation]? = true and navigation{4}?[ItemKind]? <> "Folder",
+                    navigationRecord = if useSchemaNavigation then schemaNavigation else tableNavigation,
+                    itemKind = navigation{navigationRecord[ItemIndex]}?[ItemKind]?,
+
+                    matchLakehouseWithId = List.FirstN(navigationRecord[Item_Navigation], count),
+
+                    isUnderMaxDepth = count <= 10,
                     isMatchValidLakehouseNavigation = List.FirstN(matchLakehouseWithId, count) = navigation,
                     isTableOrFileOrNull = itemKind = null or (itemKind <> null and (itemKind = "Table")),
                     isValid = Number.IsEven(count) and isMatchValidLakehouseNavigation and isTableOrFileOrNull,
+                    removeData = List.RemoveItems(matchLakehouseWithId, {"Data"}),
+                    transformList = if navigationRecord[TransformFunction]? <> null then List.Transform(removeData, navigationRecord[TransformFunction]) else removeData,
+
                     address = if navigation = null then []
+                        else if itemKind = "Folder" and isUnderMaxDepth then
+                            let
+                                baseAddress = Record.Combine(List.RemoveItems(matchLakehouseWithId, {"Data"})),
+                                additionalPathIndices = List.Select({6..count-1}, each Value.Is(navigation{_}, type record) and Record.HasFields(navigation{_}, "Name")),
+                                addressWithPath = if List.Count(additionalPathIndices) > 0 then Record.AddField(baseAddress, "additionalPath", List.Transform(additionalPathIndices, each navigation{_}[Name]))
+                                    else baseAddress
+                            in
+                                Record.RenameFields(addressWithPath, {{"workspaceId", "workspace"}, lakehouseRenameFields, {"Id", "path"}}, MissingField.UseNull)
                         else if not isValid then ...
-                        else Record.RenameFields(Record.Combine(List.RemoveItems(matchLakehouseWithId, {"Data"})), {{"workspaceId", "workspace"}, {"lakehouseId", "lakehouse"}, {"Id", "table"}}, MissingField.UseNull),
-                    addressWithoutItemKind = if itemKind <> null then Record.RemoveFields(address, {"ItemKind"}) else address
+                        else Record.RenameFields(Record.Combine(transformList), navigationRecord[RenameFieldsList], MissingField.UseNull),
+                    addressWithoutItemKind = Record.RemoveFields(address, {"ItemKind"}, MissingField.Ignore),
+                    finalAddressRecord = if isRelativeReference then addressWithoutItemKind & [workspace = finalWorkspaceId]
+                        else addressWithoutItemKind
                 in
-                    if (options[IsModelStorage]? = true) then ... else { [ protocol = "lakehouse", address = addressWithoutItemKind], options ?? [] },
+                    if (options[IsModelStorage]? = true) then ... else { [ protocol = "lakehouse", address = finalAddressRecord ], options ?? [] },
             GetFormula = (dsr, optional options) =>
                 let
                     address = ValidateAddressRecord(dsr[address]),
                     workspace = Record.FieldOrDefault(address, "workspace", null),
                     lakehouse = Record.FieldOrDefault(address, "lakehouse", null),
-                    tableId = Record.FieldOrDefault(address, "table", null)
+                    lakehouseName = Record.FieldOrDefault(address, "lakehouseName", null),
+                    relativeReferenceWorkspaceId = ".",
+                    tableId = Record.FieldOrDefault(address, "table", null),
+                    schema = Record.FieldOrDefault(address, "schema", null),
+                    path = Record.FieldOrDefault(address, "path", null),
+                    additionalPath = Record.FieldOrDefault(address, "additionalPath", null),
+                    totalPathDepth = List.Count(additionalPath ?? {})
                 in
-                        if (workspace <> null) then
-                            if (lakehouse <> null) then
-                                if(tableId <> null) then
-                                    () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=tableId, ItemKind = "Table"]}[Data]
+                    if (workspace <> null) then
+                        if (lakehouse <> null) then
+                                if(schema <> null) then
+                                    if (tableId <> null) then
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=schema, ItemKind = "Schema"]}[Data]{[Id=tableId, ItemKind = "Table"]}[Data]
+                                    else
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=schema, ItemKind = "Schema"]}[Data]
+                                else
+                                    if (tableId <> null) then
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=tableId, ItemKind = "Table"]}[Data]
+                                    else if (path <> null and totalPathDepth = 0) then
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]
+                                    else if (path <> null and totalPathDepth = 1) then
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]{[Name=additionalPath{0}]}[Content]
+                                    else if (path <> null and totalPathDepth = 2) then
+                                        () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]{[Name=additionalPath{0}]}[Content]{[Name=additionalPath{1}]}[Content]
                                 else
                                     () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]{[lakehouseId=lakehouse]}[Data]
-                            else
-                                () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]
+                        else if (lakehouseName <> null) then
+                                if(schema <> null) then
+                                    if (tableId <> null) then
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=schema, ItemKind = "Schema"]}[Data]{[Id=tableId, ItemKind = "Table"]}[Data]
+                                    else
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=schema, ItemKind = "Schema"]}[Data]
+                                else
+                                    if (tableId <> null) then
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=tableId, ItemKind = "Table"]}[Data]
+                                    else if (path <> null and totalPathDepth = 0) then
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]
+                                    else if (path <> null and totalPathDepth = 1) then
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]{[Name=additionalPath{0}]}[Content]
+                                    else if (path <> null and totalPathDepth = 2) then
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data]{[Id=path, ItemKind = "Folder"]}[Data]{[Name=additionalPath{0}]}[Content]{[Name=additionalPath{1}]}[Content]
+                                    else
+                                        () => Lakehouse.Contents(options){[workspaceId=relativeReferenceWorkspaceId]}[Data]{[lakehouseName=lakehouseName]}[Data] 
                         else
-                            () => Lakehouse.Contents(options),
+                            () => Lakehouse.Contents(options){[workspaceId=workspace]}[Data]
+                    else
+                        () => Lakehouse.Contents(options),
 
             GetFriendlyName = (dsr) => "Lakehouse"
         ]
@@ -3244,19 +3283,14 @@ ValidateAddressRecord = (address as record) =>
         validated = ValidateOptions2(address, type [
             workspace = Guid.Type,
             lakehouse = Guid.Type,
-            table = Text.Type
+            table = Text.Type,
+            schema = Text.Type,
+            path = Text.Type,
+            additionalPath = List.Type,
+            lakehouseName = Text.Type
         ])
     in
         validated;
-
-NameIsValid = (inputText as text) as logical =>
-    let
-        // foreach char in inputText, if char not in validCharacters then invalid else valid
-        validCharacters = {"A".."Z","a".."z","0".."9","_"},
-        invalidList = List.Difference(List.Distinct(Text.ToList(inputText)), validCharacters),
-        isValid = List.IsEmpty(invalidList)
-    in
-        if IgnoreTableNameValidation then true else isValid;
 
 ReduceAnd = (ast) => if ast[Kind] = "Binary" and ast[Operator] = "And" then List.Combine({@ReduceAnd(ast[Left]), @ReduceAnd(ast[Right])}) else {ast};
 
@@ -3293,6 +3327,10 @@ MatchIndexForPartitionedRefresh = (ast, typeRecordForTable) =>
         SupportedOperatorsForParitionedRefresh, ast[Operator])
     then 
         GenerateRecordFromAstPartitionedRefresh(ast, ast[Operator], typeRecordForTable)
+    else if ast[Kind] = "Binary" and List.Contains(
+        {"Equals"}, ast[Operator])
+    then 
+        GenerateRecordFromAstPartitionedRefresh(ast, ast[Operator], typeRecordForTable)
     else
         LogAndGenerateErrorForPartitionedRefreshAstValidation(
             [
@@ -3301,6 +3339,21 @@ MatchIndexForPartitionedRefresh = (ast, typeRecordForTable) =>
             ],
             "MatchIndexForPartitionedRefresh",
             "PartitionedRefreshSelectorInvalidOperatorList"
+        );
+
+MatchIndexForAutoPartitioning = (ast, typeRecordForTable) => 
+    if ast[Kind] = "Binary" and List.Contains(
+        {"Equals"}, ast[Operator])
+    then 
+        GenerateRecordFromAstPartitionedRefresh(ast, ast[Operator], typeRecordForTable)
+    else
+        LogAndGenerateErrorForPartitionedRefreshAstValidation(
+            [
+                SupportedOperators = Utils[Value.ToText]({"Equals"}, 5),
+                OperatorName = ast[Operator]
+            ],
+            "MatchIndexForAutoPartitioning",
+            "AutoPartitionedRefreshSelectorInvalidOperatorList"
         );
 
 GenerateRecordFromAstPartitionedRefresh = (ast, operatorName as text, typeRecordForTable as record) =>
@@ -3397,11 +3450,19 @@ GetTextValueForType = (typeVal) =>
         OperatorName - The text representation of the operator from the AST
         <Actual FieldName> - The actual name of the field, which is the value of the 'RecordKey' field.
 
-    The function will process this list and generate a record of the format
-    [ <FieldName>_Start = <value>, <FieldName>_End = <value> ]
+    The function will process this list and generate a record with two possible formats:
+    1. For 'Equals' operator only - This is the pattern for AutoPartitioned Refresh:
+        [ <FieldName> = <value> ]
+    2. For a range pattern using >= followed by < - This is the pattern for Incremental Refresh:
+        [ <FieldName>_Start = <start_value>, <FieldName>_End = <end_value> ]
 
-    This function will only allow a pattern of the form >= followed by <, 
-    for example: if 'LessThan' is used before a 'Equals' then the function will report an error.
+    This function will only only two patterns:
+    1. a pattern of the form >= followed by <
+    2. a pattern where only '=' operator is used.,
+    
+    Possible Error scenarios:
+    1. If 'LessThan' is used before a 'Equals' then the function will report an error.
+    2. If 'Equals' is used more than once for the same field, the function will report an error.
 
     TODO: Add support for 'each [Date] = "2024-02-15" and [Date] = "2024-02-16"' pattern.
 
@@ -3414,10 +3475,17 @@ GetTextValueForType = (typeVal) =>
 
     Input: 'each [Date] >= "2024-02-15" and [Date] >= "2024-02-16"'
     Output: Error
+
+    Input: 'each [Name] = "Test"'
+    Output: [Name = "Test"]
+
+    Input: 'each [Name] = "Test" and [Name] = "Sample"'
+    Output: Error
+    
 */
 ConvertToRecordForPartitionedRefresh = (source as list) =>
     List.Generate(
-        () => [i = 0, value = [], previousFieldName = "", previousOperatorName = ""],
+        () => [i = 0, value = [], previousFieldName = "", previousOperatorName = "", SeenFieldsWithOperators=[]],
         each [i] < List.Count(source) + 1,
         each [
             i = [i] + 1,
@@ -3436,10 +3504,30 @@ ConvertToRecordForPartitionedRefresh = (source as list) =>
                         source)
                 else 
                     source{[i]}[OperatorName],
-            previousFieldName = source{[i]}[RecordKey],
+            // Partitioning only supports Equals operator and should report an error if Equals 
+            // operator is used more than once for the same field.
+            previousFieldName = if (Record.HasFields([SeenFieldsWithOperators], source{[i]}[RecordKey])
+                and Record.Field([SeenFieldsWithOperators],source{[i]}[RecordKey]) = "Equals"
+                and source{[i]}[OperatorName] = "Equals") then
+                    error GenerateAndLogErrorForSelectorConversion(
+                        {
+                            source{[i]}[RecordKey],
+                            source{[i]}[RecordKey],
+                            Record.Field([SeenFieldsWithOperators],source{[i]}[RecordKey]),
+                            source{[i]}[OperatorName]
+                        },
+                        source)
+                else
+                    source{[i]}[RecordKey],
+             SeenFieldsWithOperators =  Record.AddField(
+                [SeenFieldsWithOperators],
+                source{[i]}[RecordKey],
+                source{[i]}[OperatorName]),
             sourceName = source{[i]}[RecordKey],
+            isEquals = source{[i]}[OperatorName] = "Equals",
             suffix = if i = 1 then "_Start" else "_End",
-            value = if previousOperatorName <> null then
+            value = if isEquals and previousFieldName <> null then source{[i]}
+                else if previousOperatorName <> null then
                     Record.RenameFields(source{[i]}, { sourceName, sourceName & suffix })
                 else 
                     error GenerateAndLogErrorForSelectorConversion(null, source)
@@ -3548,11 +3636,12 @@ Table.ToNavigationTable = try Extension.LoadFunction("Table.ToNavigationTable.pq
 Table.NavigationTableView = try Extension.LoadFunction("Table.NavigationTableView.pqm") otherwise error "Emodule not loaded";
 // Load Utils module for common utilities
 Utils = Extension.LoadFunction("Utils.pqm");
-Fabric.GetClusterUrl = Extension.LoadFunction("Fabric.GetClusterUrl.pqm", [Utils = Utils]);
+Utils.Connector.GenerateErrorRecord = if LakehouseSurfaceInnerError then Utils[Connector.SurfaceErrorRecord] else 
+    Utils[Connector.GenerateErrorRecord];
+FabricEnvironment = Extension.LoadFunction("FabricEnvironment.pqm");
 WorkspacePrivateLink = Extension.LoadFunction("Workspace.PrivateLink.pqm", [Utils = Utils]);
 WorkspaceDlp = Extension.LoadFunction("Workspace.DLP.pqm");
 Workspace = Extension.LoadFunction("Workspace.pqm", [
-    Fabric.GetClusterUrl = Fabric.GetClusterUrl, 
     Utils = Utils, 
     Table.NavigationTableView = Table.NavigationTableView,
     WorkspacePrivateLink = WorkspacePrivateLink,
@@ -3562,20 +3651,37 @@ DeltaLake.Table =  try #shared[DeltaLake.Table] otherwise (binary, optional opti
 DeltaLake.Metadata  =  try #shared[DeltaLake.Metadata ] otherwise (binary, optional options) => error Error.Record("DataSource.Error", Extension.LoadString("DeltaMetadataNotSupported"));
 Web.Contents = try #shared[Web.Contents] otherwise (url, optional options) => error Error.Record("DataSource.Error", "system error");
 AzureStorage.DataLake = try #shared[AzureStorage.DataLake] otherwise (url, optional options) => error Error.Record("DataSource.Error", "system error");
+ListAction.ParallelExecute = try #shared[ListAction.ParallelExecute] otherwise (actions) => error Error.Record("DataSource.Error", "system error");
 Sql.Database = try #shared[Sql.Database] otherwise (server, database, optional options) => error Error.Record("DataSource.Error", "system error");
-LakehouseUtils = Extension.LoadFunction("LakehouseUtils.pqm");
 SqlGeneratorIdentifierFunction = () => error "Uninvokeable function.";
+// SQL Generator Setup
+SignatureVal = "LakehouseSparkCompute";
+MakeUniqueIdentifier = () => [Module = SqlGeneratorIdentifierFunction(), Signature = SignatureVal];
+UniqueIdentifier = MakeUniqueIdentifier();
 SqlGenerator = Extension.LoadFunction("SqlGenerator.pqm");
 SqlView.Generator = try #shared[SqlView.Generator] catch(e) => 
     error Diagnostics.Trace(TraceLevel.Error, [Name = "ModuleLoadError", Data = [ExceptionDetails = Utils[Value.ToText](e)]], e);
 DualTable.View = Extension.LoadFunction("DualTable.View.pqm");
 SparkCompute = Extension.LoadFunction("SparkCompute.pqm", [
-    LakehouseUtils = LakehouseUtils,
+    Utils = Utils,
     SqlGenerator = SqlGenerator,
     SqlView.Generator = SqlView.Generator,
     DualTable.View = DualTable.View,
     SparkComputeUtils = SparkComputeUtils
-])(SqlGeneratorIdentifierFunction);
+])(UniqueIdentifier);
 SparkComputeUtils = Extension.LoadFunction("SparkComputeUtils.pqm",[
     Utils = Utils
+]);
+DeltaTableFastCopy = Extension.LoadFunction("DeltaTableFastCopy.pqm", [
+    ListAction.ParallelExecute = ListAction.ParallelExecute,
+    Utils = Utils,
+    OneLake.ContentsNonHierarchical = OneLake.ContentsNonHierarchical,
+    OneLake.BlobContents = OneLake.BlobContents,
+    OneLake.Contents = OneLake.Contents,
+    OneLake.FileContents = OneLake.FileContents,
+    GetWarehouseDatabaseView = GetWarehouseDatabaseView
+])(cloud);
+MDSync = Extension.LoadFunction("MDSync.pqm", [
+    Utils = Utils,
+    WorkspacePrivateLink = WorkspacePrivateLink
 ]);

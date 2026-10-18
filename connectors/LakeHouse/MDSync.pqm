@@ -1,0 +1,697 @@
+/**
+ * MDSync Module
+ * This module provides functions to invoke the Lakehouse SQL metadata sync (DMS) API.
+ * It encapsulates the request/response handling, polling, lock-conflict retries, and
+ * error surface used by `Lakehouse.RefreshSqlMetadata` and related call sites in the
+ * Lakehouse connector.
+ *
+ * Required resource strings (must exist in consuming connectors' resources.resx):
+ *  - MetadataRefreshParseResponseError
+ *  - MetadataRefreshBatchError
+ *  - TableCreationFailureError
+ *  - MetadataRefreshErrorWithDetail
+ *  - MetadataRefreshUnableToSyncTable
+ *  - MetadataRefreshNothingInProgress
+ *  - MetadataRefreshError
+**/
+let
+    Utils = try #shared[Utils] otherwise
+        error "Internal Error: Utils module not found in shared context. Ensure the module is loaded with the correct context.",
+    WorkspacePrivateLink = try #shared[WorkspacePrivateLink] otherwise
+        error "Internal Error: WorkspacePrivateLink module not found in shared context. Ensure the module is loaded with the correct context.",
+
+    ForceMDSyncForODLakehouse = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_ForceMDSyncForODLakehouse", false)),
+    UsePublicAPIForMDSync = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UsePublicAPIForMdSync", false)),
+
+    MaxDMSBatchDuration = 210, // batch duration of 210 seconds.
+
+    // TODO revisit the MaxIterationCount and PollingCount once we have more data from telemetry.
+    // For Long Polling we will poll a max of 5 times without delay.
+    MetadataSyncConfig = [MaxIterationCount = 55, PollingCount = 5, NothingInProgressIterationCount = 55, PollingDelayMultiplier=1],
+
+    GetResponseHeader = (response as any, headerName as text) as nullable text =>
+        let
+            headers = Value.Metadata(response)[Headers]? ?? [],
+            matchingNames = List.Select(Record.FieldNames(headers), each Text.Lower(_) = Text.Lower(headerName)),
+            value = if List.IsEmpty(matchingNames) then null else Record.Field(headers, matchingNames{0})
+        in
+            if value = null then null else Text.From(value),
+
+    GetPublicAPIErrorInfo = (response as any) as nullable text =>
+        GetResponseHeader(response, "x-powerbi-error-info")
+            ?? GetResponseHeader(response, "x-ms-public-api-error-code"),
+
+    PublicAPIErrorHandler = (state) =>
+        let
+            parsedError = try Utils[Web.DefaultErrorHandler](state),
+            originalError = parsedError[Error],
+            headerErrorInfo = GetPublicAPIErrorInfo(state[Response]),
+            originalDetail = originalError[Detail]? ?? [],
+            finalError = if headerErrorInfo = null then
+                originalError
+            else
+                (originalError & [
+                    Detail = originalDetail & [
+                        ErrorCode = Utils[NonPii](headerErrorInfo),
+                        PowerBIErrorInfo = Utils[NonPii](headerErrorInfo)
+                    ]
+                ]) meta Value.Metadata(originalError)
+        in
+            error finalError,
+
+    PublicAPIAuthHandler = (state) =>
+        if state[Refreshed]? = true or not Web.TryRefreshToken() then PublicAPIErrorHandler(state)
+        else state & [Refreshed = true],
+
+    // Only wired into the submit POST when the public API flag is on (see submitCommand). TokenExpired
+    // stays on the legacy refresh path; any other 403 signals the caller to fall back to the public API.
+    LegacySubmit403Handler = (state) =>
+        let
+            parsedError = try Utils[Web.DefaultErrorHandler](state),
+            errorCode = try parsedError[Error]?[Detail]?[ErrorCode]? otherwise "",
+            fallbackResponse = [UsePublicAPIFallback = true] meta Value.Metadata(state[Response]),
+            fallbackState = state & [Response = fallbackResponse, Complete = true]
+        in
+            if errorCode = "TokenExpired" then
+                AuthHandler(state)
+            else
+                Diagnostics.Trace(
+                    TraceLevel.Warning,
+                    [
+                        Name = "MetadataRefresh/SubmitCommand/PublicAPIFallback",
+                        Data = [],
+                        SafeData = [LegacyErrorCode = Utils[NonPii](errorCode)]
+                    ],
+                    fallbackState),
+
+    PublicSubmitAcceptedHandler = (state) =>
+        let
+            operationId = GetResponseHeader(state[Response], "x-ms-operation-id"),
+            response = [OperationId = operationId] meta Value.Metadata(state[Response])
+        in
+            state & [Response = response, Complete = true],
+
+    PublicSubmitResponseHandlers = () as record => [
+        202 = PublicSubmitAcceptedHandler,
+        400 = PublicAPIErrorHandler,
+        401 = PublicAPIAuthHandler,
+        403 = PublicAPIErrorHandler,
+        404 = PublicAPIErrorHandler,
+        409 = JsonHandler,
+        500 = PublicAPIErrorHandler,
+        503 = PublicAPIErrorHandler
+    ],
+
+    DisableMetadataSyncForOutputDestination = (options) =>
+        options[OutputMetadataRefresh]? = false,
+
+    RefreshAction = (baseUrl, workspaceId, dwProperties, options, tableName as text, schemaName as nullable text) =>
+    if dwProperties <> null
+       and options[MetadataRefresh]? = true
+       and not DisableMetadataSyncForOutputDestination(options) then
+        Action.Sequence({
+            () => Action.Return(
+                let
+                    tryRefresh = Diagnostics.Trace(TraceLevel.Information,
+                        [Name = "RefreshMetadata", Data = [], SafeData = [ TableName = tableName, SchemaName = schemaName ]],
+                        () => try RefreshMetadataInternal(baseUrl, workspaceId, dwProperties, options[MetadataRefresh]?, {tableName}, schemaName, options[OutputDestinationSync]?),
+                        true),
+                    refreshFailed = tryRefresh[HasError],
+                    finalStatus = if refreshFailed then "error" else tryRefresh[Value],
+                    level = if refreshFailed
+                        then TraceLevel.Error
+                    else if finalStatus = "success" or finalStatus = "N/A"
+                        then TraceLevel.Information
+                    else TraceLevel.Warning,
+                    statusTraceData = [
+                        Name = "RefreshMetadata/Status",
+                        Data = [],
+                        SafeData = [FinalStatus=finalStatus, ErrorMessage=tryRefresh[Error]?[Message]? ]
+                    ]
+                in
+                    if Diagnostics.Trace(level, statusTraceData, refreshFailed)
+                        then error tryRefresh[Error]
+                        else null),
+            Action.DoNothing
+        })
+    else Action.DoNothing,
+
+    // Submits a single DMS metadata sync batch covering multiple tables. tableNames is a
+    // list of unqualified table names; entries are trimmed, empty/null entries are dropped
+    // (and the dropped count traced).
+    BatchRefreshAction = (baseUrl, workspaceId, dwProperties, options, tableNames as list, schemaName as nullable text) =>
+    if dwProperties <> null
+       and options[MetadataRefresh]? = true
+       and not DisableMetadataSyncForOutputDestination(options) then
+        let
+            rawNames = if tableNames = null then {} else tableNames,
+            trimmedNames = List.Transform(rawNames, (n) => if n = null then "" else Text.Trim(n)),
+            parsedNames = List.Select(trimmedNames, each _ <> ""),
+            droppedCount = List.Count(rawNames) - List.Count(parsedNames),
+            effectiveNames = if droppedCount > 0 then
+                Diagnostics.Trace(
+                    TraceLevel.Information,
+                    [
+                        Name = "BatchRefreshSqlMetadata/EmptyEntriesDropped",
+                        Data = [],
+                        SafeData = [
+                            DroppedCount = Utils[NonPii](Text.From(droppedCount)),
+                            OriginalCount = Utils[NonPii](Text.From(List.Count(rawNames))),
+                            ParsedCount = Utils[NonPii](Text.From(List.Count(parsedNames)))
+                        ]
+                    ],
+                    parsedNames)
+            else
+                parsedNames
+        in
+        Action.Sequence({
+            () => Action.Return(
+                let
+                    tryRefresh = Diagnostics.Trace(TraceLevel.Information,
+                        [Name = "BatchRefreshMetadata", Data = [], SafeData = [ TableNames = Text.Combine(effectiveNames, ","), SchemaName = schemaName, TableCount = Text.From(List.Count(effectiveNames)) ]],
+                        () => try RefreshMetadataInternal(baseUrl, workspaceId, dwProperties, options[MetadataRefresh]?, effectiveNames, schemaName, options[OutputDestinationSync]?),
+                        true),
+                    refreshFailed = tryRefresh[HasError],
+                    finalStatus = if refreshFailed then "error" else tryRefresh[Value],
+                    level = if refreshFailed
+                        then TraceLevel.Error
+                    else if finalStatus = "success" or finalStatus = "N/A"
+                        then TraceLevel.Information
+                    else TraceLevel.Warning,
+                    statusTraceData = [
+                        Name = "BatchRefreshMetadata/Status",
+                        Data = [],
+                        SafeData = [FinalStatus=finalStatus, ErrorMessage=tryRefresh[Error]?[Message]? ]
+                    ]
+                in
+                    if Diagnostics.Trace(level, statusTraceData, refreshFailed)
+                        then error tryRefresh[Error]
+                        else null),
+            Action.DoNothing
+        })
+    else Action.DoNothing,
+
+    // TODO: Consider rewriting to use WebAction.Request instead of Web.Contents
+    // Accepts a list of unqualified table names. Length 1 invocations preserve the
+    // single-table DMS payload shape and per-table trace/error surface used by
+    // Lakehouse.RefreshSqlMetadata; longer lists submit a single batched DMS request
+    // covering all named tables.
+    RefreshMetadataInternal = (
+        baseUrl,
+        workspaceId,
+        dwProperties,
+        delayBackgroundProcessing,
+        targetTableNames as list,
+        schemaName as nullable text,
+        isOutputDestinationSync as nullable logical) =>
+    let
+        dwId = dwProperties[id]?,
+        rootUrl = Uri.Combine(baseUrl, Text.Format("/v1.0/myorg/lhdatamarts/#{0}", {dwId})),
+        prefix = "MetadataRefresh/",
+        startState = [Iteration = 1], // force IsRetry on all requests by claiming we start at a higher iteration
+        targetTableCount = if targetTableNames = null then 0 else List.Count(targetTableNames),
+        tableNamesAreValid = targetTableNames <> null and targetTableCount > 0 and List.MatchesAll(targetTableNames, each _ <> null and Text.Length(_) > 0),
+        isBatch = targetTableCount > 1,
+        finalTableNames = if targetTableNames = null then {} else if schemaName <> null then List.Transform(targetTableNames, (n) => schemaName & "." & n) else targetTableNames,
+        finalTableNamesText = Text.Combine(finalTableNames, ","),
+        targetTableNamesText = if targetTableNames = null then "" else Text.Combine(targetTableNames, ","),
+        publicSubmitUrl = Uri.Combine(
+            baseUrl,
+            Text.Format(
+                "/v1/workspaces/#{0}/sqlEndpoints/#{1}/refreshMetadata?beta=true",
+                {workspaceId, dwId})),
+
+        submitPublicCommand = (iteration) =>
+        let
+            // The public refreshMetadata API requires a schema; default to dbo when the
+            // caller (non-schema lakehouse) does not supply one.
+            publicTables = if tableNamesAreValid then
+                {[schema = schemaName ?? "dbo", tableNames = targetTableNames]}
+            else
+                {},
+            publicRefreshCommand = [
+                timeout = [timeUnit = "Seconds", value = MaxDMSBatchDuration],
+                tables = publicTables,
+                recreateTables = false,
+                partnerId = "DataIntegration_Dataflows"
+            ],
+            publicRefreshContext = [Origin = Utils[NonPii]("RefreshMetadata/PublicMetadataRefreshSubmit"), Iteration = Utils[NonPii](iteration)],
+            response = Utils[Web.JsonContents](
+                publicSubmitUrl,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                /*additionalHandlers*/ PublicSubmitResponseHandlers(),
+                /*jsonBody*/ publicRefreshCommand,
+                startState,
+                /*traceContext*/ publicRefreshContext
+            ),
+            responseStatusCode = Record.FieldOrDefault(Value.Metadata(response), "Response.Status", 0),
+            operationId = response[OperationId]?,
+            lockingBatchId = List.First(
+                List.RemoveNulls(
+                    List.Transform(
+                        response[moreDetails]? ?? {},
+                        (detail) => if Text.Lower(detail[errorCode]? ?? "") = "lockingbatchid" then detail[message]? else null)),
+                null),
+            errorCode = if responseStatusCode = 202 and operationId = null then
+                "MissingOperationId"
+            else
+                response[errorCode]?,
+            result = [
+                StatusCode = responseStatusCode,
+                ErrorCode = errorCode,
+                BatchId = operationId,
+                LockingBatchId = lockingBatchId,
+                PollWithPublicAPI = true
+            ]
+        in
+            Diagnostics.Trace(
+                if responseStatusCode = 202 then TraceLevel.Information else TraceLevel.Warning,
+                [
+                    Name = prefix & "SubmitPublicCommand",
+                    Data = [],
+                    SafeData = result & [Iteration = iteration, TableName = targetTableNamesText]
+                ],
+                result),
+
+        submitCommand = (iteration) =>
+        let
+            // Submit-only fallback: only when the flag is on, a non-TokenExpired 403 on this lhdatamarts POST routes to the public API; polling 403s never fall back.
+            handlers = MetadataRefreshResponseHandlers(false) & (if UsePublicAPIForMDSync then [403 = LegacySubmit403Handler] else []),
+            refreshCommandDetails = [#"$type" = "MetadataRefreshExternalCommand", isDatasetRefreshRequired = false],
+            tableDefinition = [schema = schemaName, tableNames = targetTableNames],
+            refreshCommandWithTableDetails = if schemaName <> null then [tableDefinitions = {tableDefinition}] else [tableNames = targetTableNames],
+            refreshCommandWithTableName = if tableNamesAreValid then
+                refreshCommandDetails & refreshCommandWithTableDetails
+                else
+                Diagnostics.Trace(
+                    TraceLevel.Warning,
+                    [
+                        Name = prefix & "SubmitCommand/FullMetadataSync/TableNameMissing",
+                        Data = [],
+                        SafeData = [TableName = targetTableNamesText, TableNameIsNotNullOrBlank = Text.From(tableNamesAreValid)]
+                    ],
+                    refreshCommandDetails
+                ),
+            batchTimeout = [timeout = Duration.ToText(#duration(0, 0, 0, MaxDMSBatchDuration))],
+            refreshCommand = [datamartVersion = null, commands = {refreshCommandWithTableName}] & batchTimeout,
+            refreshContext = [Origin = Utils[NonPii]("RefreshMetadata/MetadataRefreshSubmit"), Iteration = Utils[NonPii](iteration)],
+            legacyResponse = Utils[Web.JsonContents](
+                rootUrl,
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                handlers,
+                /*jsonBody*/ refreshCommand,
+                startState,
+                /*traceContext*/ refreshContext
+            ),
+            usePublicAPIFallback = legacyResponse[UsePublicAPIFallback]? = true,
+            responseStatusCode = Record.FieldOrDefault(Value.Metadata(legacyResponse), "Response.Status", 0),
+            errorDetails = legacyResponse[error]?[pbi.error]?[details]?,
+            lockConflictBatchId = if errorDetails <> null then try SelectKeysFromListOfRecordsForDMS(errorDetails, {"LockingBatchId"}, false)[LockingBatchId]? otherwise null else null,
+            legacyResult = [
+                StatusCode = responseStatusCode,
+                ErrorCode = legacyResponse[error]?[code]?,
+                BatchId = legacyResponse[batchId]?,
+                LockingBatchId = lockConflictBatchId,
+                PollWithPublicAPI = false
+            ],
+            result = if usePublicAPIFallback then submitPublicCommand(iteration) else legacyResult
+        in
+            Diagnostics.Trace(if responseStatusCode <> 200 then TraceLevel.Warning else TraceLevel.Information,
+                [Name = prefix & "SubmitCommand", Data = [], SafeData = result &
+                [Iteration = iteration, TableName = targetTableNamesText,
+                ApiRoute = if result[PollWithPublicAPI]? = true then "Public" else "Legacy",
+                MetadataSyncConfiguration = Utils[Value.ToText](MetadataSyncConfig)]],
+                result),
+
+        getInProgressBatch = (iteration) =>
+        let
+            getBatchContext = [Origin = Utils[NonPii]("RefreshMetadata/GetInProgressBatch"), Iteration = Utils[NonPii](iteration)],
+            response = Utils[Web.JsonContents](
+                rootUrl & "/batches",
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                /*additionalHandlers*/ [],
+                /*jsonBody*/ null,
+                startState,
+                /*traceContext*/ getBatchContext
+            ),
+            asTable = Table.FromRecords(response[value], {"batchId", "progressState", "startTimeStamp"}, MissingField.Error),
+            changedTypeForStartTimestamp = Table.TransformColumnTypes(asTable, {{"startTimeStamp", type datetime}}), // represent as datetime
+            utcTimeWithoutZone = DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), // remove zone from UTC time for comparison.
+            batchesInPastOneDay = Table.SelectRows(changedTypeForStartTimestamp, each [startTimeStamp] > (utcTimeWithoutZone - #duration(1,0,0,0)) and [progressState] = "inProgress"), // get inprogress batches from past 24 hours
+            inProgress = Table.Sort(batchesInPastOneDay, {{"startTimeStamp", Order.Descending}})
+        in
+            try inProgress{0}?[batchId]? catch (e) => Diagnostics.Trace(
+                TraceLevel.Error,
+                [Name=prefix & "GetInProgress", Data = [], SafeData = [Exception = Utils[Value.ToText](e)]],
+                null),
+
+        getResultStatus = (result, optional originatedFromLockConflict) =>
+        let
+            batchStatus = result[progressState]? ?? "(null)",
+            batchId = result[batchId]?,
+            status = Table.FromList(
+                List.Combine(List.Transform(result[operationInformation], (oi) => oi[progressDetail][tablesSyncStatus])),
+                Splitter.SplitByNothing()),
+            progressDetail =  if batchStatus = "success" then try Table.ExpandRecordColumn(status, "Column1", {"tableName", "error", "tableSyncState", "sqlSyncState", "lastSuccessfulUpdate", "correctiveAction"})
+                catch (e) => ThrowMetadataSyncErrors(prefix & "ProgressDetail", Extension.LoadString("MetadataRefreshParseResponseError"),
+                    [], [BatchId = batchId, ResponseForBatch = Utils[Value.ToText](result, 5)], e,
+                    {Utils[NonPii](dwId), Utils[NonPii](batchId), e[Message]})
+                else
+                    let
+                        errorResult = GenerateErrorCodeAndMessageForDMSBatch(result)
+                    in
+                        ThrowMetadataSyncErrors(prefix & "BatchStatusError", Extension.LoadString("MetadataRefreshBatchError"),
+                            [], [BatchId = batchId, ErrorCode = errorResult[ErrorCode], ResponseForBatch = Utils[Value.ToText](result) ],
+                            (errorResult[ExceptionData] ?? result) & [ErrorCode = Utils[NonPii](errorResult[ErrorCode])],
+                            {Utils[NonPii](dwId), Utils[NonPii](batchId), Utils[NonPii](errorResult[ErrorCode]), Utils[NonPii](errorResult[ErrorMessage])}),
+
+            //Calculate DMS Reported Batch Duration so it can be logged.
+            getDMSReportedBatchDuration = (operationInformationDetails as any) =>
+            try
+                let
+                    batchEndTimeUtc = operationInformationDetails{0}[endDateTimeUtc]?,
+                    batchStartTimeUtc = operationInformationDetails{0}[startDateTimeUtc]?,
+                    dmsReportedDuration = DateTime.From(batchEndTimeUtc) - DateTime.From(batchStartTimeUtc)
+                in
+                    dmsReportedDuration
+            otherwise -1,
+            tableDetail = Table.SelectRows(progressDetail, each List.Contains(finalTableNames, [tableName])),
+            // For single-table invocations, strip the (redundant) tableName column to preserve the
+            // historical Response shape; for batches keep it so callers can see per-table status.
+            withoutTableName = if isBatch then tableDetail else Table.RemoveColumns(tableDetail, {"tableName"}),
+            failureRows = Table.SelectRows(tableDetail, each ([tableSyncState] = "Failure" or [sqlSyncState] = "Failure")),
+            foundFinalNames = Table.Column(tableDetail, "tableName"),
+            missingFinalNames = if targetTableCount > 0 then List.Difference(finalTableNames, foundFinalNames) else {},
+            missingTable = not List.IsEmpty(missingFinalNames),
+            hasFailure = missingTable or Table.RowCount(failureRows) > 0,
+            failureRowRecords = Table.ToRecords(failureRows),
+            // Per-failure trace input list: one entry per failed table (and one per missing table when
+            // missingTable is true). Each entry carries everything needed to build a TableSyncFailure trace
+            // with telemetry shape identical to the historical single-table path.
+            perFailureEntries =
+                List.Transform(failureRowRecords, (row) =>
+                    let
+                        failedFinal = row[tableName]?,
+                        failedIdx = if failedFinal <> null then List.PositionOf(finalTableNames, failedFinal) else -1,
+                        failedOriginal = if failedIdx >= 0 then targetTableNames{failedIdx}? else null,
+                        rowFailureDetails = row[error]?,
+                        rowCorrectiveAction = row[correctiveAction]?,
+                        rowSqlFailureDetails = if rowFailureDetails[details]? <> null then SelectKeysFromListOfRecordsForDMS(rowFailureDetails[details]?, {"RootActivityId", "SqlErrorNumber", "SqlErrorClass", "SqlErrorState", "ClientConnectionId"}, true) else [],
+                        rowErrorCode = if rowCorrectiveAction <> null and failedOriginal <> null and Text.Length(failedOriginal) > 128 then "TableNameTooLongFailure" else "TableSyncFailure",
+                        rowDmsErrorCode = Text.Format("#{0}|#{1}", {rowFailureDetails[code]?, rowFailureDetails[httpStatusCode]?}),
+                        rowFailureStatus = if Value.Is(rowFailureDetails, Record.Type) then [DMSReportedErrorCode = rowDmsErrorCode] else [],
+                        rowFailureDetailAsText = Utils[Value.ToText](rowFailureDetails, 5),
+                        rowMessageNoStack = Text.BeforeDelimiter(rowFailureDetailAsText, "callStack")
+                    in
+                        [
+                            FinalName = failedFinal,
+                            FailureDetails = rowFailureDetails,
+                            ErrorCode = Utils[NonPii](rowErrorCode),
+                            SqlFailureDetails = rowSqlFailureDetails,
+                            FailureStatus = rowFailureStatus,
+                            FailureDetailAsText = rowFailureDetailAsText,
+                            MessageNoStack = rowMessageNoStack,
+                            CorrectiveAction = rowCorrectiveAction,
+                            IsIgnorable = IgnorableSqlErrorCode(rowSqlFailureDetails, result[batchId]?, failedFinal, isOutputDestinationSync)
+                        ])
+                & (if missingTable then List.Transform(missingFinalNames, (n) => [
+                        FinalName = n,
+                        FailureDetails = null,
+                        ErrorCode = Utils[NonPii]("TableMissingInBatchFailure"),
+                        SqlFailureDetails = [],
+                        FailureStatus = [],
+                        FailureDetailAsText = Utils[Value.ToText](null, 5),
+                        MessageNoStack = "TableMissingInBatchFailure",
+                        CorrectiveAction = null,
+                        IsIgnorable = false
+                    ]) else {}),
+            allIgnorable = hasFailure and List.Count(List.Select(perFailureEntries, each [IsIgnorable] = false)) = 0,
+            allFailedNamesText = Text.Combine(List.Transform(perFailureEntries, each [FinalName]), ","),
+            primaryFailure = perFailureEntries{0}?,
+            primaryFailureDetails = if primaryFailure <> null then primaryFailure[FailureDetails] else null,
+            errorCode =
+                if primaryFailureDetails is record then
+                    Record.FieldOrDefault(primaryFailureDetails, "ErrorCode", Record.FieldOrDefault(primaryFailureDetails, "code", "UnknownMetadataSyncError"))
+                else
+                    "UnknownMetadataSyncError",
+            errorDetail = (if primaryFailureDetails is record then primaryFailureDetails else []) & [ ErrorCode = Utils[NonPii](errorCode) ],
+            tracedFailures = List.Transform(perFailureEntries, (entry) =>
+                Diagnostics.Trace(
+                    TraceLevel.Error,
+                    [
+                        Name = prefix & "TableSyncFailure",
+                        Data = [],
+                        SafeData = [
+                            BatchId = result[batchId]?,
+                            TableName = entry[FinalName],
+                            ErrorCode = entry[ErrorCode],
+                            ErrorDetail = entry[FailureDetailAsText],
+                            CorrectiveAction = Utils[Value.ToText](entry[CorrectiveAction]),
+                            LakehouseId = dwId
+                        ] & entry[FailureStatus] & entry[SqlFailureDetails]
+                    ],
+                    Text.Format(Extension.LoadString("TableCreationFailureError"), {entry[MessageNoStack]}))),
+            // Build the error variables list: single-table path retains the historical
+            // {dwId, batchId, tracedFailure} shape; batch path appends a CSV of all failing names so
+            // downstream consumers can surface the full set.
+            errorVariables = {Utils[NonPii](dwId), Utils[NonPii](result[batchId]?), Utils[NonPii](tracedFailures{0}?)}
+                & (if isBatch then {Utils[NonPii](allFailedNamesText)} else {}),
+            finalResult = if (not originatedFromLockConflict and hasFailure and not allIgnorable)
+                then error Error.Record(Utils[NonPii]("DataSource.Error"), Utils[NonPii](Extension.LoadString("MetadataRefreshErrorWithDetail")), errorDetail, errorVariables)
+                else [Response = try Text.FromBinary(Json.FromValue(withoutTableName)) otherwise "<unable to get status>", Duration = getDMSReportedBatchDuration(result[operationInformation])]
+        in
+            finalResult,
+
+        pollBatch = (batchId, optional originatedFromLockConflict, optional pollWithPublicAPI) =>
+        let
+            pollCount = MetadataSyncConfig[PollingCount],
+            exponentialBackoffMultiplier = MetadataSyncConfig[PollingDelayMultiplier],
+            usePublicAPIPoll = pollWithPublicAPI <> null and pollWithPublicAPI = true,
+            pollUrl = if usePublicAPIPoll then
+                Uri.Combine(
+                    baseUrl,
+                    Text.Format(
+                        "/v1/workspaces/#{0}/sqlEndpoints/#{1}/__private/events/#{2}",
+                        {workspaceId, dwId, batchId}))
+            else
+                rootUrl & "/events/Batch?resourceId=" & batchId & "&batchStateChangeOnly=true",
+            finalPollUrl =
+                Diagnostics.Trace(TraceLevel.Information, [Name = prefix & "LongPollBatch", Data = [],
+                        SafeData = [BatchId = batchId, ApiRoute = if usePublicAPIPoll then "Public" else "Legacy"]], pollUrl),
+
+            waitForResultLongPoll = Utils[Value.WaitFor](
+                (iteration) =>
+                    let
+                        jsonResponse = Utils[Web.JsonContents](
+                            finalPollUrl,
+                            /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
+                            /*additionalHandlers*/ MetadataRefreshResponseHandlers(true)
+                                & (if usePublicAPIPoll then [401 = PublicAPIAuthHandler] else []),
+                            /*jsonBody*/ null,
+                            startState,
+                            /*traceContext*/ [Origin = Utils[NonPii]("RefreshMetadata/PollBatch")]
+                        ),
+                        responseStatus = Value.Metadata(jsonResponse)[Response.Status]?,
+                        newState = jsonResponse[event]?[progressState]? ?? "(null)",
+                        continuePolling = if responseStatus = 204 or responseStatus = 500
+                            then Diagnostics.Trace(TraceLevel.Information, [Name = "LongPoll/Continue", Data = [], SafeData = [LongPollResponse = responseStatus]], true)
+                        else false,
+                        reponseToParse = jsonResponse[event]?,
+                        finalStatus = try getResultStatus(reponseToParse, originatedFromLockConflict),
+                        unableToSyncError = ThrowMetadataSyncErrors(
+                            prefix & "LongPollBatch/UnableToSyncTable",
+                            Extension.LoadString("MetadataRefreshUnableToSyncTable"),
+                            [],
+                            [PollingIterationCount = iteration, TableName = finalTableNamesText, PolledBatchId = batchId],
+                            [ErrorCode = Utils[NonPii]("UnableToSyncTable"), BatchId = batchId, LakehouseId = dwId],
+                            {Utils[NonPii](dwId), Utils[NonPii](batchId)})
+                    in
+                        if iteration >= pollCount then
+                            if originatedFromLockConflict = false
+                                    then unableToSyncError
+                                else Diagnostics.Trace(TraceLevel.Warning,
+                                [
+                                    Name = prefix & "LongPollBatch/MaxRetriesExceeded",
+                                    Data = [],
+                                    SafeData = [PollingIterationCount = iteration, TableName = finalTableNamesText, PolledBatchId = batchId, LakehouseId = dwId]
+                                ],
+                                null)
+                        else if continuePolling
+                            then null
+                        else if finalStatus[HasError]
+                            then error finalStatus[Error]
+                        else Diagnostics.Trace(TraceLevel.Information,
+                            [
+                                Name=prefix & "LongPoll",
+                                Data=[],
+                                SafeData=[
+                                    BatchState = newState,
+                                    BatchStatus = finalStatus[Value][Response],
+                                    IterationCount = iteration,
+                                    BatchId = batchId,
+                                    TableName = finalTableNamesText,
+                                    ApiRoute = if usePublicAPIPoll then "Public" else "Legacy",
+                                    DMSReportedBatchDuration = finalStatus[Value][Duration]
+                                ]
+                            ],
+                            newState),
+                (iteration) => #duration(0, 0, 0, Number.Power(exponentialBackoffMultiplier, iteration + 1)-1),
+                pollCount)
+        in
+            waitForResultLongPoll,
+
+        // When we submit a request to refresh metadata, there may already be a metadata refresh
+        // underway. If so, we get a LockConflict error. We then get the batchId for the in-progress refresh
+        // and we poll for that refresh to finish. Once it's done, we try to submit another metadata
+        // refresh request. If this, too, fails with a LockConflict then we again wait for the in-progress
+        // refresh to be finished. Once that's done, we stop because our change should have been picked up
+        // by the second refresh cycle.
+
+        // Based on evidence in telemetry, if there's no "in-progress" operation, we'll try the metadata
+        // refresh again without increasing the iteration.
+
+        // The comparison of newState to "expected not to match" is to force evaluation of newState before
+        // we try to submit a second refresh request.
+
+        // DMS has published a new TableLevel API this means when doing metadata sync in case of lock conflicts we
+        // need to try harder to get a lock so we can ensure the table is synced. For this reason we need to increase
+        // the max number of tries to a larger value, currently set at 5
+        // We will also poll a lower number of times as this is expected to be a faster operation.
+
+        Submit = (iteration, optional originatedFromLockConflict) => let result = submitCommand(iteration) in
+            if result[BatchId]? <> null then pollBatch(result[BatchId], originatedFromLockConflict, result[PollWithPublicAPI]?)
+            else if result[ErrorCode]? = "LockConflictException" or result[ErrorCode]? = "LockConflict" then LockConflict(iteration, result[LockingBatchId]?, result[PollWithPublicAPI]?)
+            else error Error.Record(
+                Utils[NonPii]("DataSource.Error"),
+                Utils[NonPii](Text.Format(Extension.LoadString("MetadataRefreshError"), {result[ErrorCode], result[StatusCode]})),
+                [
+                    ErrorCode = Utils[NonPii](result[ErrorCode]),
+                    StatusCode = Utils[NonPii](result[StatusCode]),
+                    BatchId = result[BatchId]?
+                ]),
+
+        // 1. Since we encountered a lock conflict, check for any ongoing batch and poll it to completion
+        //    As this batch might not be the one associated with the current request, the 'originatedFromLockConflict' flag
+        //    true suggests that if the specific table isn't found, no error is thrown in getResultStatus.
+
+        // 2. After this completes, we attempt to submit our request again, expecting to get our
+        //    own batch this time, set originatedFromLockConflict = false indicating that the request
+        //    isn't being made as a result of resolving a lock conflict.
+
+        // 3. If no ongoing batches are found after a lock conflict, a brief wait is introduced before trying
+        //    to submit the request again, with 'originatedFromLockConflict' set to false as we expect this
+        //    attempt to be our own batch.
+
+        LockConflict = (iteration, lockConflictBatchId, optional pollWithPublicAPI) =>
+            let
+                maxIterationsForLockConflict = MetadataSyncConfig[MaxIterationCount] - 1,
+                maxIterationsForNothingInProgress = MetadataSyncConfig[NothingInProgressIterationCount] - 1,
+                inProgressBatchId = if lockConflictBatchId = null then getInProgressBatch(iteration) else lockConflictBatchId,
+                usePublicAPIPoll = pollWithPublicAPI <> null and pollWithPublicAPI = true and lockConflictBatchId <> null,
+                nextIteration = Submit(iteration + 1, false),
+                // Retry recursive and cross fingers.
+                // We increment iteration to avoid infinite recursion and stack overflow.
+                //
+                nothingInProgress =
+                    Function.InvokeAfter(() => Submit(iteration + 1, false), Diagnostics.Trace(TraceLevel.Information, [Name = prefix & "LockConflict/NothingInProgress/Retry",
+                    Data = [], SafeData = [Iteration = iteration, NothingInProgressIterationCount = maxIterationsForNothingInProgress]], #duration(0, 0, 0, 5))),
+
+                nothingInProgressError = ThrowMetadataSyncErrors(
+                    prefix & "LockConflict/NothingInProgress",
+                    Extension.LoadString("MetadataRefreshNothingInProgress"),
+                    [],
+                    [IterationCount = iteration, TableName = finalTableNamesText, lakhouseId = dwId],
+                    [ErrorCode = Utils[NonPii]("NothingInProgress"), TableName = finalTableNamesText, LakehouseId = dwId],
+                    {Utils[NonPii](dwId), finalTableNamesText}
+                ),
+                unableToSyncError = ThrowMetadataSyncErrors(
+                    prefix & "LockConflict/UnableToSyncTable",
+                    Extension.LoadString("MetadataRefreshUnableToSyncTable"),
+                    [],
+                    [IterationCount = iteration, TableName = finalTableNamesText, PolledBatchId = inProgressBatchId],
+                    [ErrorCode = Utils[NonPii]("UnableToSyncTable"), BatchId = inProgressBatchId, LakehouseId = dwId],
+                    {Utils[NonPii](dwId), Utils[NonPii](inProgressBatchId)}
+                )
+            in
+                // Guard against infinite recursion.
+                if inProgressBatchId = null then if iteration > maxIterationsForNothingInProgress then nothingInProgressError else nothingInProgress
+                else let newState = pollBatch(inProgressBatchId, true, usePublicAPIPoll) in
+                    if newState = "expected not to match" or iteration > maxIterationsForLockConflict then
+                        unableToSyncError
+                    else nextIteration
+
+    in
+        if dwId = null then "N/A" else Submit(0, false),
+
+    //For output destination for MDSync don't fail dataflow refresh runs for
+    // specific sql error codes like 225.
+    IgnorableSqlErrorCode = (failureDetails, batchId, tableName, isOutputDestinationSync as nullable logical) =>
+        Diagnostics.Trace(
+            TraceLevel.Warning,
+            [
+                Name = "BatchFailureDueSqlError",
+                Data = [
+                    BatchId = Utils[NonPii](batchId),
+                    TableName = Utils[NonPii](tableName)
+                ] & failureDetails
+            ],
+            isOutputDestinationSync <> null and isOutputDestinationSync and ForceMDSyncForODLakehouse and failureDetails[SqlErrorNumber]? = "225"),
+
+    SelectKeysFromListOfRecordsForDMS = (details, keys, isTableSyncFailure as logical) =>
+        Record.SelectFields(Record.Combine(List.Transform(details, (val) => Record.AddField([],val[code],if isTableSyncFailure then Utils[NonPii](val[message]) else Utils[NonPii](val[detail]?[value])))), keys, MissingField.Ignore),
+
+    GenerateErrorCodeAndMessageForDMSBatch = (result) =>
+    let
+        hasExceptionData = Record.HasFields(result, "exceptionData"),
+        hasErrorData = Record.HasFields(result, "errorData"),
+        exceptionData = result[exceptionData]? ?? result[errorData]?,
+        errorMessage = if exceptionData <> null then Utils[Value.ToText](exceptionData, 5) else Utils[Value.ToText](result, 5),
+        errorCode = if hasExceptionData then exceptionData[code]? else if hasErrorData then exceptionData[error]?[code]? else "UnkownError"
+    in
+        [ErrorCode = errorCode, ErrorMessage = errorMessage, ExceptionData = exceptionData],
+
+    ThrowMetadataSyncErrors = (logName, errorMessage, data, safedata, errorRecord, variableListForError) =>
+    error Diagnostics.Trace(TraceLevel.Error, [Name = logName, Data = data, SafeData = safedata],
+        Error.Record(
+            Utils[NonPii]("DataSource.Error"),
+            Utils[NonPii](errorMessage),
+            if errorRecord[ErrorCode]? <> null then errorRecord else errorRecord & [ ErrorCode = Utils[NonPii]("UnknownMetadataSyncError") ],
+            variableListForError)),
+
+    MetadataRefreshResponseHandlers = (retryOn400 as logical) as record =>
+        let
+            metadataDelayFn = (iteration) => iteration * 5
+        in [
+            400 = if retryOn400 then Utils[RetryHandler](4, metadataDelayFn) else JsonHandler,
+            403 = ErrorOrRefreshTokenHandler,
+            500 = Utils[RetryHandler](4, metadataDelayFn),
+            503 = Utils[RetryHandler](4, metadataDelayFn)
+        ],
+
+    ErrorOrRefreshTokenHandler = (state) =>
+        let
+            result = try Utils[Web.DefaultErrorHandler](state),
+            errorCode = result[Error]?[Detail]?[ErrorCode]? ?? ""
+        in
+            if errorCode = "TokenExpired" then AuthHandler(state) else error result[Error],
+
+    AuthHandler = (state) =>
+        if state[Refreshed]? = true or not Web.TryRefreshToken() then Utils[Web.DefaultErrorHandler](state)
+        else state & [Refreshed = true],
+
+    JsonHandler = (state) => state & [
+        Response = Json.Document(state[Response]) meta Value.Metadata(state[Response]),
+        Complete = true
+    ],
+
+    Web.TryRefreshToken = () as logical =>
+        let
+            forceRefreshOfTokens = true
+        in
+            Extension.CurrentCredential(forceRefreshOfTokens) <> null // Force refresh of token.
+
+in
+    [
+        RefreshAction = RefreshAction,
+        BatchRefreshAction = BatchRefreshAction
+    ]

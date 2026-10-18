@@ -19,7 +19,7 @@
 
 
 // Indexima Data Connector logic
-[Version = "1.7.5"]
+[Version = "1.7.6", Traits = [GatewayRequired = true]]
 section Indexima;
 
 // ----------------------------------------------------------------------------------------------

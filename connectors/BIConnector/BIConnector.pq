@@ -1,5 +1,5 @@
 //Globals
-[Version = "1.0.4"]
+[Version = "1.1.0", Traits = [GatewayRequired = true]]
 section BIConnector;
 
 ModuleName = "BI Connector";
@@ -38,12 +38,12 @@ BIConnector.ContentsX = (dsnname as text) as table =>
 					 
         OdbcDataSource = Odbc.DataSource(ConnectionString, CommonOptions & [
                 HierarchicalNavigation = true, 
-                HideNativeQuery = true,
+                HideNativeQuery = false,
                 //TolerateConcatOverflow = true,
                 SqlCapabilities = [
                     SupportsTop = true, 
                     GroupByCapabilities = 4,  /* SQL_GB_NO_RELATION */
-                    //FractionalSecondsScale = 3
+                    FractionalSecondsScale = 6,
                     SupportsNumericLiterals = true, 
                     SupportsStringLiterals = true, 
                     SupportsOdbcDateLiterals = true, 

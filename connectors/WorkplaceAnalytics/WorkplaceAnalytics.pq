@@ -1,7 +1,7 @@
 //------------------------------------------------------------
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 //------------------------------------------------------------
-[Version = "2.0.24"]
+[Version = "3.1.0"]
 section WorkplaceAnalytics;
 
 // This is currently pointed at the PPE environment.
@@ -9,20 +9,18 @@ section WorkplaceAnalytics;
 // Local: https://localhost:44300/
 // PROD (Nova): https://api.analysis.insights.svc.cloud.microsoft/
 // GCC (Nova): https://api.gcc.analysis.insights.svc.cloud.microsoft/
+// GCC - High (Nova): https://api.analysis.insights.svc.usgovcloud.microsoft/
+// GCC - DoD (Nova): https://api.analysis.dod.insights.svc.usgovcloud.microsoft/
 // When testing on PPE, make sure to add the tenantId header to the GetHeader definition as well. Also hardcode the Authentication Resource as specified in the code.
 // Nova PPE requires an additional resource string to be added.
 // If you're trying to capture traffic with Fiddler to look at the API results, it wont work with localhost addresses unless you change them to localhost.fiddler
 // Also - at the bottom of this file, there is a resource URI token that must be changed when testing locally. This does not need to be changed for other environments.
-// Resource strings: you only need to change this for Local. Change the return value from GetResourceFromDataSourcePath() with the following string.
+// Resource strings: you only need to change this for Local. Change the Resource value in the VivaInsights Authentication section with the following string.
 // Local: "83649322-5ddc-469b-a1cb-09364798fba8"
 
-// We define 3 "View" functions in this connector:
-// 1. "WorkplaceAnalyticsDirectQueryView": responsible for all requests (Viva or WPA) to the Dashboards API.
-// 2. "RowLevelDataView": responsible for requests to the Dataload API.
-// 3. "WorkplaceAnalyticsNavigation": responsible for listing all FQ jobs when given a query name to search.
-// When a specific query is selected in the navigation view, "WorkplaceAnalyticsDirectQueryView" is called.
-
-WPA_BASE_URL = "https://workplaceanalytics.office.com/";
+// We define 2 "View" functions in this connector:
+// 1. VivaInsightsImpl - Row level data download view that returns incremental data from the service. This is the view that should be used for the majority of use cases and is the one that will be called when users select a query.
+// 2. VivaInsightsGetResultsImpl - This is a more flexible view that allows users to specify their own parameters for the VivaInsights API. This view is used for calling specific viva insights API.
 
 // Enables caching.
 Extension.Cache = try #shared[Extension.Cache] otherwise () => [Metadata = [Serialized = (key, ctor) => ctor()]];
@@ -30,13 +28,17 @@ Extension.Cache = try #shared[Extension.Cache] otherwise () => [Metadata = [Seri
 // List of environments supported
 Environments = [
     global = "global",
-    gcc = "gcc"
+    gcc = "gcc",
+    gcc_high = "gcc_high",
+    gcc_dod = "gcc_dod"
 ];
 
 NovaAPIBaseUri = [
     global      = "https://api.analysis.insights.svc.cloud.microsoft/",
     gcc         = "https://api.gcc.analysis.insights.svc.cloud.microsoft/",
-    ppe         = "https://api.analysis.insights.svc.cloud.microsoft/"
+    ppe         = "https://api.analysis.insights.svc.cloud.microsoft/",
+    gcc_high    = "https://api.analysis.insights.svc.usgovcloud.microsoft/",
+    gcc_dod     = "https://api.analysis.dod.insights.svc.usgovcloud.microsoft/"
 ];
 
 // DebugMode set to true enables diagnostics trace logs
@@ -51,11 +53,20 @@ Utility.GetUrlWithEnv = (baseUrlList as record, env as text, default as text) as
 
 // FeatureSwitch that defaults to the global cloud
 Env = Environment.FeatureSwitch("Cloud", Environments[global]);
-NovaBaseUrl = Utility.GetUrlWithEnv(NovaAPIBaseUri, Env, NovaAPIBaseUri[global]);
 
-// If the env we receive is null or empty we will resort to default environment. Environment override is only allowed if the current pbi environment is not set to GCC. (security purposes)
+// If the env we receive is null or empty we will resort to default environment. 
+// Environment override is safe to allow here because the APIs are all authenticated and the environment only controls the base url, so there is no risk of leaking data between environments.
 SetGetResultsEnvironment = (optional getResultsEnvironment as text) as text => 
-    if (getResultsEnvironment = null or getResultsEnvironment = "") then Env else if Env = Environments[gcc] then Env else getResultsEnvironment;
+    if (getResultsEnvironment = null or getResultsEnvironment = "") then Env else getResultsEnvironment;
+
+// Derives the Nova environment from the scale unit prefix.
+// Falls back to the module-level Env (from FeatureSwitch) if no prefix matches.
+GetEnvFromScaleUnit = (scaleUnit as nullable text) as text =>
+    if scaleUnit = null then Env
+    else if Text.StartsWith(scaleUnit, "novagch", Comparer.OrdinalIgnoreCase) then Environments[gcc_high]
+    else if Text.StartsWith(scaleUnit, "novadod", Comparer.OrdinalIgnoreCase) then Environments[gcc_dod]
+    else if Text.StartsWith(scaleUnit, "novagcc", Comparer.OrdinalIgnoreCase) then Environments[gcc]
+    else Env;
 
 // The getNextPage function takes a single argument and is expected to return a nullable table
 // This function is from: https://docs.microsoft.com/en-us/power-query/helperfunctions#tablegeneratebypage
@@ -85,26 +96,24 @@ Table.GenerateByPage = (getNextPage as function) as table =>
 // --------------------------------------------------------------------
 
 Endpoints = [
-    API_SIMPLE_QUERY_WPA = "api/Dashboard/GetQueryResults",
-    API_SIMPLE_QUERY = (tenantId as text, scopeId as text) => "v1.0/tenants/" & tenantId & "/scopes/" & scopeId & "/databaseQuery",
-    API_JOBS = "api/Jobs/GetJobList?api-Version=1.0&sortColumn=Job.JobExecutionStatus.SubmitTime&isAsc=false&pageSize=25&reportEntityType=undefined", // This should not need all the parameters
-    API_FQ_READY_WPA = "api/Dashboard/IsQueryDatabaseReady?api-Version=1.0",
-    API_FQ_READY = (tenantId as text, scopeId as text, databaseQueryId as text) => "v1.0/tenants/" & tenantId & "/scopes/" & scopeId & "/databaseQuery/" & databaseQueryId & "/ready",
-    API_GET_JOB = "api/Jobs/GetById?api-version=1.0",
-    API_SIGNED_IN_USER = "api/Users/SignedInUser",
+    API_REPORT_SUMMARY = (tenantId as text, scopeId as text) => "v1/tenants/" & tenantId & "/scopes/" & scopeId & "/reports/summary?sortByLatestExecuted=true&searchString=",
+    API_SIGNED_IN_USER =  "api/Users/SignedInUser",
     API_ROW_DATALOAD = (tenantId as text, scopeId as text, reportId as text) => "v1.0/tenants/" & tenantId & "/scopes/" & scopeId & "/reports/" & reportId & "/result",
     API_ROW_DATALOAD_AND_TABLE = (tenantId as text, scopeId as text, reportId as text, tableName as text) => "v1.0/tenants/" & tenantId & "/scopes/" & scopeId & "/reports/" & reportId & "/result/" & tableName 
 ];
 
 CacheKeys = [
     SIGNED_IN_USER = () => "SignedInUser",
-    FQ_READY = (reportId as text) => "FQReady" & reportId,
     DATALOAD_SCHEMA = (reportId as text, optional tableName as text) => if tableName <> null then "DataloadReportSchema" & reportId & "/tableName" & tableName else "DataloadReportSchema" & reportId
 ];
 
 AcceptHeaders = [
     CSV = "text/csv",
-    JSON = "application/json"
+    JSON = "application/json",
+    PARQUET = "application/vnd.apache.parquet",
+    // Multi-value Accept used for data fetches: the connector advertises both formats it can
+    // parse and the server picks one, signaling its choice via the response Content-Type.
+    DATA = "application/vnd.apache.parquet, text/csv"
 ];
 
 // --------------------------------------------------------------------
@@ -113,36 +122,20 @@ AcceptHeaders = [
 
 GetEndpoint = (endpointUri as text, baseUrl as text) as text => baseUrl & endpointUri;
 
-// Dynamically determines which base url to use based on provided scopeId.
-ParseScopeId = (scopeId as text) as record => 
-    let
-        targetingNova = if Text.StartsWith(scopeId, "Viva", Comparer.OrdinalIgnoreCase) then true else false,
-        targetUrl = if targetingNova then NovaBaseUrl else WPA_BASE_URL,
-        parsedScopeId = if targetingNova then Text.AfterDelimiter(scopeId, ":") else scopeId
-
-    in
-        [
-            isNova = targetingNova,
-            Url = targetUrl,
-            ScopeId = parsedScopeId
-        ];
-
 // Dynamically determines which base url to use based on provided scopeId (for VivaInsights.Data function)
 // We also handle the case in which the user passes <scopeId>/<jobId> as the scopeId parameter.
 // And to solve the refresh credential problem, we will also accept an alternativeScopeId parameter to be used when the scopeId is hardcoded to "VivaInsightsEmbedded"
 // Examples of valid calls ParseScopeIdAndPopulateDatasourceViva("<scopeId", null), ParseScopeIdAndPopulateDatasourceViva("<scopeId>/<jobId>", null), ParseScopeIdAndPopulateDatasourceViva("VivaInsightsEmbedded", "<alternativeScopeId>")
 ParseScopeIdAndPopulateDatasourceViva = (scopeId as text, optional alternativeScopeId as text, optional alternativeTenantId, optional alternativeScaleUnit) as record =>
     let 
-        targetingNova = if Text.StartsWith(scopeId, "wpa", Comparer.OrdinalIgnoreCase) then false else true,
-        targetUrl = if targetingNova then NovaBaseUrl else WPA_BASE_URL,
+        targetUrl = Utility.GetUrlWithEnv(NovaAPIBaseUri, GetEnvFromScaleUnit(alternativeScaleUnit), NovaAPIBaseUri[global]),
         actualScope = if scopeId = "VivaInsightsEmbedded" then alternativeScopeId else scopeId,
-        auxiliaryScopeId = if targetingNova then actualScope else Text.AfterDelimiter(actualScope, ":"),
+        auxiliaryScopeId = actualScope,
         hasDelimiter = Text.Contains(auxiliaryScopeId, "/"),
         parsedScopeId  = if hasDelimiter then List.First(Text.Split(auxiliaryScopeId, "/")) else auxiliaryScopeId,
         additionalJobId = if hasDelimiter then List.Last(Text.Split(auxiliaryScopeId, "/")) else null
     in
         [
-            isNova = targetingNova,
             Url = targetUrl,
             ScopeId = parsedScopeId,
             AdditionalJobId = additionalJobId,
@@ -158,6 +151,9 @@ ExtractScopeIdFromDataSourcePath = (jsonString as text) as text =>
     in 
         jsonDataSource[scopeId];
 
+// This function parses the JSON and returns the provided alternativeScaleUnit if present and null otherwise.
+ExtractScaleUnitFromDataSourcePath = (jsonString as text) =>                                                     
+    Json.Document(jsonString)[alternativeScaleUnit]?;
 
 ExtractEnvironmentFromDataSourcePath = (jsonString as text) as text =>
     let
@@ -171,10 +167,7 @@ ExtractEnvironmentFromDataSourcePath = (jsonString as text) as text =>
 
 WPAImplementation  = let
     // Increment version when changing code.
-    CONNECTOR_VERSION = "2.0.24",
-
-    // Value for server side enum
-    Source.PowerBI = "PowerBI",
+    CONNECTOR_VERSION = "3.1.0",
 
     // Helper function for deserializing
     ReadResponseDataType = (apiType as text) as type =>
@@ -214,183 +207,9 @@ WPAImplementation  = let
                     Text.Format("Unsupported date type '#{0}'", {apiType}))
                 ),
 
-    // Convert the schema table into a record of column name -> [OriginalTable: val1, ColumnName: val2, DataType: val3]
-    // then, if this column exists in the schema, return it's column def
-    // if not return [OriginalTable: Source.PowerBI, ColumnName = columnName, DataType = any ]
-    GetColumnDescriptor = (columnName as text, schema as record) =>
-        let
-            labels = schema[Columns],
-            rows = schema[Rows],
-            fieldNames = List.Accumulate(labels, {}, (prev, label) => prev & {label[ColumnName]}), 
-            schemaRecords = List.Transform(rows, (row) => Record.FromList(row, fieldNames)),
-            columnNames = List.Transform(schemaRecords, each [ColumnName]),
-            rec = Record.FromList(schemaRecords, columnNames)
-        in
-            if Record.HasFields(rec, {columnName} ) then
-                Record.Field(rec, columnName)
-            else
-                // TODO: determine these values intelligently (ordinal and datatype) https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1167130
-                [ColumnName = columnName, DataType = Any.Type, OriginalTable = "FlexibleQuery", Ordinal = -1, IsNullable = true],
-
-    GetColumnDescriptorFromTable = (columnName as text, schema as table) =>
-            [
-                ColumnName = columnName, 
-                DataType = if Table.HasColumns(schema, { columnName }) then 
-                Type.TableColumn(Value.Type(schema), ColumnName)
-                else Any.Type, 
-                OriginalTable = Source.PowerBI, 
-                Ordinal = -1, 
-                IsNullable = true
-            ],
-
-    // Columns as { [ Name = x, Function = y, Type = z] }
-    ProcessCreatedColumnDefinitions = (columns as list, schema as record) =>
-        List.Transform(columns, (rec) =>
-            let
-                name = Record.Field(rec, "Name"),
-                withoutName = Record.RemoveFields(rec, {"Name"})
-            in
-                Record.AddField(withoutName, "Column", GetColumnDescriptor(name, schema))
-        ),
-
-    // Serialize an objects into JSON given a valid schema.
-    Serialize = (obj as any, schema) as binary =>
-        let     
-            // Before we check the type, we want to see if it is an object we don't want to break down further
-            // We do this because some objects, like Row.Column, are sometimes considered functions or records, but either way,
-            // we don't gain any information by breaking it down further, only reaching an uninterpretable, unserializable base function
-            SerializableBaseCases = (value) =>
-                if (value = RowExpression.Row) then [Kind = "Constant", Value = "RowExpression.Row", DataType = GetTypeDescriptor(Value.Type("RowExpression.Row"))]
-                else if (value = RowExpression.Column) then [Kind = "Constant", Value = "RowExpression.Column", DataType = GetTypeDescriptor(Value.Type("RowExpression.Row"))]
-                else null,
-
-            // Recursively parses any object, converting any objects which Json.From() cannot serialize
-            // such objects are primarily types and functions
-            //
-            // Returns the object as the same type, but with any children that would cause Json.From() to fail converted
-            // into a friendly primitive type.
-            PrepareForSerialization = (value as any) =>
-                let
-                    base = SerializableBaseCases(value),
-                    result = if (base <> null) then base else
-                        if value is null then null
-                        else if value is function then
-                            try @PrepareForSerialization(RowExpression.From(value))
-                            otherwise GetFunctionDescriptor(value)
-
-                        else if value is table then 
-                            let
-                                headers = Table.ColumnNames(value),
-                                newHeaders = List.Transform(headers, (i) => @PrepareForSerialization(i)),
-
-                                listOfRows = Table.ToRows(value),
-                                newRows = List.Transform(listOfRows, (row) => List.Transform(row, (i) => @PrepareForSerialization(i)))
-                            in
-                                #table(newHeaders, newRows)
-
-                        else if value is list then List.Transform(value, (i) => @PrepareForSerialization(i))
-                        else if value is record then 
-                            let
-                                recordWithDescriptor = 
-                                    if Record.HasFields(value, {"Kind"}) then
-                                        if value[Kind] = "FieldAccess" then
-                                            let  
-                                                name = value[MemberName],
-                                                withoutName = Record.RemoveFields(value, {"MemberName"}),
-                                                newDescriptor = GetColumnDescriptor(name, schema)
-                                            in
-                                                Record.AddField(withoutName, "MemberName", newDescriptor)
-                                        else if value[Kind] = "Constant" then // Add data type
-                                            let
-                                                dataType = GetTypeDescriptor(Value.Type(value[Value]))
-                                            in 
-                                                value & [DataType = dataType]
-                                        else value
-                                    else value,
-
-                                newValues = List.Transform(Record.ToList(recordWithDescriptor), (i) => @PrepareForSerialization(i)),
-                                reconstructedRecord = Record.FromList(newValues, Record.FieldNames(recordWithDescriptor))
-                            in
-                                reconstructedRecord
-
-                        else if value is type then GetTypeDescriptor(value)
-                        else if value is number then value
-                        else if value is logical then value
-                        // There is no json type for dates or anything like that, so just make them all strings
-                        else Text.From(value)
-                in
-                    // TODO: Investigate what would cause this result from the user side https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1130739
-                    try result otherwise Diagnostics.Trace(TraceLevel.Information, "FailureWhenSerializing", () => "<error>", true),
-
-            // Get a string which describes the type passed in
-            GetTypeDescriptor = (t) as text => 
-                // All primitives
-                if (t = Null.Type) then "Null.Type"
-                else if (t = Logical.Type) then "Logical.Type"
-                else if (t = Number.Type) then "Number.Type"
-                else if (t = Double.Type) then "Double.Type"
-                else if (t = Time.Type) then "Time.Type"
-                else if (t = DateTime.Type) then "DateTime.Type"
-                else if (t = DateTimeZone.Type) then "DateTimeZone.Type"
-                else if (t = Duration.Type) then "Duration.Type"
-                else if (t = Text.Type) then "Text.Type"
-                else if (t = Binary.Type) then "Binary.Type"
-                else if (t = Type.Type) then "Type.Type"
-                else if (t = List.Type) then "List.Type"
-                else if (t = Record.Type) then "Record.Type"
-                else if (t = Table.Type) then "Table.Type"
-                else if (t = Function.Type) then "Function.Type"
-                else if (t = Any.Type) then "Any.Type"
-                else if (t = Table.Type) then "Table.Type"
-                else "unknown type",
-
-            // Get a string which desibes the function passed in
-            GetFunctionDescriptor = (func) as text =>
-                let
-                    funcName = Value.Metadata(Value.Type(func))[Documentation.Name]?,
-
-                    newName = if funcName is null then Value.Metadata(func)[Documentation.Name]? else funcName
-                in
-                    if (newName <> null) then newName
-                    else ... // TODO: finalize these mappings https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1122276
-        in
-            Json.FromValue(PrepareForSerialization(obj)),
-
     // --------------------------------------------------------------------
     // Shared Function Parameter Definitions
     // --------------------------------------------------------------------
-    
-    // Defines the parameters for the WorkplaceAnalytics.Data function.
-    ScopeIdType = type function (
-        scopeId as (type text meta [
-            Documentation.FieldCaption = Extension.LoadString("ScopeIdCaption"),
-            Documentation.FieldDescription = Extension.LoadString("ScopeIdDescription"),
-            Documentation.SampleValues = {Extension.LoadString("SampleScopeId")}
-        ]), 
-        optional jobName as (type text meta [
-            Documentation.FieldCaption =  Extension.LoadString("JobNameCaption"),
-            Documentation.FieldDescription = Extension.LoadString("JobNameDescription"),
-            Documentation.SampleValues = {Extension.LoadString("SampleJobName")}
-        ]),
-        optional jobId as (type text meta [
-            Documentation.FieldCaption = Extension.LoadString("JobIdCaption"),
-            Documentation.FieldDescription = Extension.LoadString("JobIdDescription"),
-            Documentation.SampleValues = {Extension.LoadString("SampleJobId")},
-            Formatting.IsMultiLine = true
-        ]),
-        optional schemaType as (type text meta [
-            Documentation.FieldCaption = Extension.LoadString("SchemaTypeCaption"),
-            Documentation.FieldDescription = Extension.LoadString("SchemaTypeDescription"),
-            Documentation.AllowedValues = {Extension.LoadString("SchemaTypePivotedValue"), Extension.LoadString("SchemaTypeUnpivotedValue")}
-        ])) as table meta [
-            Documentation.Name = Extension.LoadString("DocumentationName"),
-            Documentation.LongDescription = Extension.LoadString("LongDescription"),
-            Documentation.Examples = {[
-                Description = Extension.LoadString("ExampleDescription"),
-                Code = Extension.LoadString("ExampleCode"),
-                Result = Extension.LoadString("ExampleResult")
-            ]}
-         ],
     
     // Defines the parameters for the VivaInsights.Data function.
     VivaInsightsParameters = let
@@ -413,12 +232,7 @@ WPAImplementation  = let
         schemaType = type text meta [
             Documentation.FieldCaption = Extension.LoadString("SchemaTypeCaption"),
             Documentation.FieldDescription = Extension.LoadString("SchemaTypeDescription"),
-            Documentation.AllowedValues = {Extension.LoadString("SchemaTypePivotedValue"), Extension.LoadString("SchemaTypeUnpivotedValue")}
-        ],
-        apiType = type text meta [
-            Documentation.FieldCaption = Extension.LoadString("ApiTypeCaption"),
-            Documentation.FieldDescription = Extension.LoadString("ApiTypeDescription"),
-            Documentation.AllowedValues = {Extension.LoadString("ApiTypeAggregatedDataValue"), Extension.LoadString("ApiTypeRowLevelDataValue")}
+            Documentation.AllowedValues = {Extension.LoadString("SchemaTypePivotedValue")}
         ],
         tableName = type text meta [
             Documentation.FieldCaption = Extension.LoadString("TableNameCaption"),
@@ -427,7 +241,6 @@ WPAImplementation  = let
         ],
         options = type [
             optional SchemaType = schemaType,
-            optional APIType = apiType,
             optional TableName = tableName
         ] meta [
             Documentation.FieldCaption = Extension.LoadString("AdvancedParametersValue")
@@ -452,33 +265,61 @@ WPAImplementation  = let
     // Networking, Request Creation, & Response Parsing
     // --------------------------------------------------------------------
 
-    // Executes a web request, forces evaluation and returns the result or the error message
-    ExecuteRequest = (url as text, options as record, optional responseType as text) =>
+    // Executes a web request, forces evaluation and returns the result or the error message.
+    // The parser is selected from the response Content-Type rather than a caller-supplied hint:
+    // the connector advertises which formats it accepts (see AcceptHeaders) and the server
+    // signals its choice on the wire. Today CSV, Parquet, and JSON are supported.
+    ExecuteRequest = (url as text, options as record) =>
         let
             content = Web.Contents(url, options & [ManualStatusHandling = {400}]),
 
-            // We support both CSV and JSON responses, controlled via the "responseType" parameter.
+            // Binary.Buffer forces evaluation of `content` before any metadata access,
+            // otherwise the request can be issued a second time.
             bufferedResponse = Binary.Buffer(content),
-            parsedResponse = try
-                                if responseType = "csv" then [Data = Csv.Document(bufferedResponse), Headers = Value.Metadata(content)[Headers]]
-                                else Json.Document(bufferedResponse)
-                            otherwise error "Invalid response",
+            responseHeaders = Value.Metadata(content)[Headers],
 
-            // We force evaluation of content before checking metadata values to avoid
-            // the request being issued a second time.
+            // Normalize Content-Type to a bare media type. HTTP header names are case-insensitive
+            // on the wire, so look the field up case-insensitively. Strip parameters (e.g.,
+            // "; charset=utf-8"), trim whitespace, and lowercase the media type. Text.Split is used
+            // rather than Text.BeforeDelimiter because the latter returns "" when the delimiter is
+            // absent, which would mis-dispatch parameter-free Content-Type headers (e.g.,
+            // "application/json", "text/csv", "application/vnd.apache.parquet") that the server
+            // emits without a charset parameter.
+            contentTypeHeaderName = List.First(List.Select(Record.FieldNames(responseHeaders), each Comparer.OrdinalIgnoreCase(_, "Content-Type") = 0), null),
+            rawContentType = if contentTypeHeaderName <> null then Record.Field(responseHeaders, contentTypeHeaderName) else "",
+            contentType = Text.Lower(Text.Trim(List.First(Text.Split(rawContentType, ";"), ""))),
+
+            // Wrap only the document parsers in `try`, so an unexpected Content-Type surfaces
+            // its specific error message instead of the generic "Invalid response" fallback.
+            parsedResponse =
+                if contentType = AcceptHeaders[CSV] then
+                    [Data = try Csv.Document(bufferedResponse) otherwise error "Invalid response", Headers = responseHeaders, ContentType = contentType]
+                else if contentType = AcceptHeaders[PARQUET] then
+                    [Data = try Parquet.Document(bufferedResponse) otherwise error "Invalid response", Headers = responseHeaders, ContentType = contentType]
+                else if contentType = AcceptHeaders[JSON] then
+                    try Json.Document(bufferedResponse) otherwise error "Invalid response"
+                else
+                    error "Unexpected Content-Type: " & contentType,
+
             httpStatus = Value.Metadata(content)[Response.Status],
-            
+
             // We specifically handle some errors here and return the error records to the caller.
+            // Server contract: 4xx responses return application/json. The JSON-shape guard is
+            // defensive in case a misbehaving proxy or server returns a non-JSON 400, so we
+            // surface a generic error rather than throwing inside the field accessor.
             errorResponse =
                 if (bufferedResponse <> null and httpStatus = 400) then
-                    error Error.Record(
-                        "Bad request",
-                        parsedResponse[error][message],
-                        [
-                            Error = Record.Field(parsedResponse[error], "@message"),
-                            Code = parsedResponse[error][code]
-                        ]
-                    )
+                    if contentType = AcceptHeaders[JSON] then
+                        error Error.Record(
+                            "Bad request",
+                            parsedResponse[error]?[message]?,
+                            [
+                                Error = try Record.Field(parsedResponse[error], "@message") otherwise null,
+                                Code = parsedResponse[error]?[code]?
+                            ]
+                        )
+                    else
+                        error "Bad request"
                 else
                     if (httpStatus = 400) then
                         error "Invalid response"
@@ -497,55 +338,47 @@ WPAImplementation  = let
     // If no jobs are found with the desired name, return all jobs.
     FilterAndSeparateJobs = (dataSourceInfo as record, optional jobName as text) =>
         let
-            baseQueryMyJobs = AddQueryUrl(GetEndpoint(Endpoints[API_JOBS], dataSourceInfo[Url]), "limitToMyJobs=true", "&"),
-            baseQueryAllJobs = AddQueryUrl(GetEndpoint(Endpoints[API_JOBS], dataSourceInfo[Url]), "limitToMyJobs=false", "&"),
+            tenantId = GetTenantId(dataSourceInfo[Url], dataSourceInfo[ScopeId]),
+            scaleUnit = GetScaleUnit(dataSourceInfo[Url], dataSourceInfo[ScopeId]),
+            baseQueryAllJobs = GetEndpoint(Endpoints[API_REPORT_SUMMARY](tenantId, dataSourceInfo[ScopeId]), dataSourceInfo[Url]),
             searchName = Text.Combine({"searchString", jobName}, "="),
-            queryMyJobs = if jobName = null then baseQueryMyJobs 
-                          else AddQueryUrl(baseQueryMyJobs, searchName, "&"),
             queryAllJobs = if jobName = null then baseQueryAllJobs 
                            else AddQueryUrl(baseQueryAllJobs, searchName, "&"),
-            myJobs = ExecuteRequest(queryMyJobs, [Headers = GetHeaders([scopeId = dataSourceInfo[ScopeId]], not dataSourceInfo[isNova], false), Content = Text.ToBinary("null")]),
-            allJobs = ExecuteRequest(queryAllJobs, [Headers = GetHeaders([scopeId = dataSourceInfo[ScopeId]], not dataSourceInfo[isNova], false), Content = Text.ToBinary("null")]),
-            myJobsRecord = if Value.Type(myJobs[Response]) = Record.Type then myJobs[Response]
-                           else null,
+            allJobs = ExecuteRequest(queryAllJobs, [Headers = GetHeaders([scopeId = dataSourceInfo[ScopeId]], true, scaleUnit), Content = Text.ToBinary("null")]),
             allJobsRecord = if Value.Type(allJobs[Response]) = Record.Type then allJobs[Response] 
                             else null,
-            myJobsList = if myJobsRecord <> null then {myJobsRecord} 
-                         else ExtractListFromJobsJSON(myJobs),
             allJobsList = if allJobsRecord <> null then {allJobsRecord} 
                           else ExtractListFromJobsJSON(allJobs),
-            intersectionJobsList = List.RemoveMatchingItems(allJobsList, myJobsList),
-            jobsResult = if List.Count(myJobsList) = 0 and List.Count(allJobsList) = 0 then @FilterAndSeparateJobs(dataSourceInfo) 
-                         else [MyJobs = myJobsList, AllJobs = intersectionJobsList]
+            jobsResult = [AllJobs = allJobsList]
         in
            jobsResult,
 
     // Executes a request to the SignedInUser API if the value is not already cached.
-    GetSignedInUserData = (baseUrl as text, scopeId as text, isWpa as logical) =>
+    GetSignedInUserData = (baseUrl as text, scopeId as text) =>
         let
             // Defines the network request to get SignedInUser data. 
             // This function is nested inside "GetSignedInUserData" to force all calls to check the cache first.
-            ExecuteSignedInUserQuery = (baseUrl as text, scopeId as text, isWpa as logical) =>
+            ExecuteSignedInUserQuery = (baseUrl as text, scopeId as text) =>
                 let
-                    opts = [Headers = GetHeaders([scopeId = scopeId], isWpa, false)],
+                    opts = [Headers = GetHeaders([scopeId = scopeId], false)],
                     url = GetEndpoint(Endpoints[API_SIGNED_IN_USER], baseUrl),
                     json = try ExecuteRequest(url, opts) otherwise null
                 in
                     if (json = null) then null else json
         in
-            ExecuteCacheRequest(CacheKeys[SIGNED_IN_USER](), () => ExecuteSignedInUserQuery(baseUrl, scopeId, isWpa)),
+            ExecuteCacheRequest(CacheKeys[SIGNED_IN_USER](), () => ExecuteSignedInUserQuery(baseUrl, scopeId)),
 
     // Gets the current scale unit from the SignedInUser API.
-    GetScaleUnit = (baseUrl as text, scopeId as text, isWpa as logical) =>
+    GetScaleUnit = (baseUrl as text, scopeId as text) =>
         let
-            signedInUserResponse = GetSignedInUserData(baseUrl, scopeId, isWpa)
+            signedInUserResponse = GetSignedInUserData(baseUrl, scopeId)
         in
             if (signedInUserResponse = null or signedInUserResponse[ScaleUnit] = null) then null else signedInUserResponse[ScaleUnit],
 
     // Gets the current TenantId from the SignedInUserAPI.
-    GetTenantId = (baseUrl as text, scopeId as text, isWpa as logical) =>
+    GetTenantId = (baseUrl as text, scopeId as text) =>
         let
-            signedInUserResponse = GetSignedInUserData(baseUrl, scopeId, isWpa)
+            signedInUserResponse = GetSignedInUserData(baseUrl, scopeId)
         in
             try
                 List.First(signedInUserResponse[Scopes])[Scope][TenantId]
@@ -560,10 +393,10 @@ WPAImplementation  = let
             activityId,
 
     // Returns headers used on our API calls. Can receive optional extra headers as a separate record to be combined
-    // For testing on PPE, add #"tenantId"=GetTestTenantId(isWpa) to the list of headers and copy the correct tenantId value into the placeholders in GetTestTenantId().
-    GetHeaders = (extraHeaders as record, isWpa as logical, usingRowLevelApi as logical, optional scaleUnit as text) =>
+    // For testing on PPE, add test tenant id header
+    GetHeaders = (extraHeaders as record, usingRowLevelApi as logical, optional scaleUnit as text) =>
     let
-        GetTestTenantId = (isWpa as logical) => if isWpa then "[WPA TenantId]" else "[Nova TenantId]",
+        GetTestTenantId = "[Nova TenantId]",
 
         baseHeaders = Record.Combine({[#"api-Version" = "1.0", #"correlationId" = GetActivityId(), #"x-ms-client-version" = CONNECTOR_VERSION], extraHeaders}),
 
@@ -607,11 +440,9 @@ WPAImplementation  = let
             outerList = json[Response],
             f = (_) =>
                 let
-                    name = _[JobDefinition][Name],
-                    ReportId = _[JobDefinition][ReportId],
-                    JobId = _[Id],
-                    rec = if (_[JobResult][VisualizationsEnabled] = true) then [Name = name, ReportId = ReportId, JobId = JobId, ItemKind = type table] 
-                          else null
+                    name = if _[Name] <> null then _[Name] else "Unknown",
+                    reportId = if _[ReportId] <> null then _[ReportId] else "Unknown",
+                    rec = [Name = name, ReportId = reportId, JobId = reportId, ItemKind = type table] 
                 in
                     rec,
             innerList = List.RemoveMatchingItems(List.Transform(outerList, f), {null})
@@ -628,16 +459,16 @@ WPAImplementation  = let
             // For this function to be called, the request must be in Nova with a valid jobId
             scopeId = datasourceRecord[ScopeId],
             baseUrl = datasourceRecord[Url],
-            isWpa = false,
             usingRowLevelApi = true,
 
             // Get Scale Unit information (unless it is already provided in the datasource record)
-            currentScaleUnit = if datasourceRecord[AlternativeScaleUnit] <> null then datasourceRecord[AlternativeScaleUnit] else GetScaleUnit(baseUrl, scopeId, isWpa),
-            tenantId = if datasourceRecord[AlternativeTenantId] <> null then datasourceRecord[AlternativeTenantId] else GetTenantId(baseUrl, scopeId, isWpa),
+            currentScaleUnit = if datasourceRecord[AlternativeScaleUnit] <> null then datasourceRecord[AlternativeScaleUnit] else GetScaleUnit(baseUrl, scopeId),
+            tenantId = if datasourceRecord[AlternativeTenantId] <> null then datasourceRecord[AlternativeTenantId] else GetTenantId(baseUrl, scopeId),
 
             // Steps:
             // 1. Get "cached schema" since it won't change.
-            // 2. Use Query Folding function to load actual data from a CSV.
+            // 2. Use Query Folding function to load actual data. The server picks Parquet or CSV
+            //    via Accept negotiation; ExecuteRequest dispatches the parser on response Content-Type.
             endpoint = if tableName <> null then GetEndpoint(Endpoints[API_ROW_DATALOAD_AND_TABLE](tenantId, scopeId, jobId, tableName), baseUrl) else GetEndpoint(Endpoints[API_ROW_DATALOAD](tenantId, scopeId, jobId), baseUrl),
             schemaInfo = GetSchema(endpoint, currentScaleUnit, scopeId),
             reportSchema = schemaInfo[SchemaTable]?,
@@ -663,7 +494,7 @@ WPAImplementation  = let
                     // Returns parsed schema.
                     ExecuteSchemaRequest = () =>
                         let
-                            schemaHeaders = GetHeaders([#"Accept" = AcceptHeaders[JSON]], isWpa, usingRowLevelApi, scaleUnit),
+                            schemaHeaders = GetHeaders([#"Accept" = AcceptHeaders[JSON]], usingRowLevelApi, scaleUnit),
                             rawSchema = ExecuteRequest(schemaUrl, [Headers = schemaHeaders])
                         in
                             rawSchema,
@@ -691,38 +522,44 @@ WPAImplementation  = let
                             if availableQueries = "" then baseUrl else baseUrl & "?" & availableQueries,
                     
                     // Executes a Web.Contents() GET request for a single page of the dataset.
+                    // Advertises both Parquet and CSV; the server picks one and signals its choice
+                    // via the response Content-Type, which ParseRawData then dispatches on.
                     ExecuteDataPageRequest = (optional continuationToken as text) =>
                         let
-                            acceptHeader = [#"Accept" = AcceptHeaders[CSV]],
+                            acceptHeader = [#"Accept" = AcceptHeaders[DATA]],
 
-                            headers = GetHeaders(acceptHeader, isWpa, usingRowLevelApi, scaleUnit),
+                            headers = GetHeaders(acceptHeader, usingRowLevelApi, scaleUnit),
                             requestUrl = BuildDataQueryUrl(dataUrl, continuationToken),
-                            response = ExecuteRequest(requestUrl, [Headers = headers], "csv")
+                            response = ExecuteRequest(requestUrl, [Headers = headers])
                         in
                             response,
 
-                    // We need to promote headers for each CSV page and assign proper data types based on the Schema API.
-                    ParseRawData = (rawData) =>
-                        let
-                            promotedHeaders = Table.PromoteHeaders(rawData)
-                        in
-                            if reportSchemaTypes = null then promotedHeaders
-                            else
-                                let
-                                    orderedColumns = List.Transform(reportSchemaTypes, (item) => item{0}),
-                                    orderedDataTable = Table.ReorderColumns(promotedHeaders, orderedColumns, MissingField.Error),
-                                    dataWithTypes = Table.TransformColumnTypes(orderedDataTable, reportSchemaTypes, "")
-                                in
-                                    dataWithTypes,
-                    
+                    // For CSV pages, promote headers and apply schema-driven types.
+                    // For Parquet pages, the table is already fully typed by Parquet.Document and is returned as-is.
+                    ParseRawData = (page as record) =>
+                        if page[ContentType] = AcceptHeaders[PARQUET] then
+                            page[Data]
+                        else
+                            let
+                                promotedHeaders = Table.PromoteHeaders(page[Data])
+                            in
+                                if reportSchemaTypes = null then promotedHeaders
+                                else
+                                    let
+                                        orderedColumns = List.Transform(reportSchemaTypes, (item) => item{0}),
+                                        orderedDataTable = Table.ReorderColumns(promotedHeaders, orderedColumns, MissingField.Error),
+                                        dataWithTypes = Table.TransformColumnTypes(orderedDataTable, reportSchemaTypes, "")
+                                    in
+                                        dataWithTypes,
+
                     // Calls the Dataload API as many times as necessary to fetch the full dataset associated with the provided jobId.
                     ExecuteDataRequest = () =>
                         Table.GenerateByPage((previous) =>
                             let
                                 continuationToken = if previous <> null then Value.Metadata(previous)[ContinuationToken]? else null,
                                 currentPage = if (continuationToken = null and previous <> null) then null else ExecuteDataPageRequest(continuationToken),
-                                
-                                parsedDataPage = if (currentPage <> null) then ParseRawData(currentPage[Data]) else null,
+
+                                parsedDataPage = if (currentPage <> null) then ParseRawData(currentPage) else null,
                                 nextToken = CheckForNextPage(currentPage[Headers]?)
                             in
                                 parsedDataPage meta [ContinuationToken = nextToken]
@@ -829,387 +666,32 @@ WPAImplementation  = let
                                 @DataloadQueryFolding(state & updatedState)
             ])
         in
-            DataloadQueryFolding([StartDate=null, EndDate=null, StartDateOperator=null, EndDateOperator=null]),
+            DataloadQueryFolding([StartDate=null, EndDate=null, StartDateOperator=null, EndDateOperator=null]),       
 
-    // Main view that enables DirectQuery capabilities to the chosen DB
-    WorkplaceAnalyticsDirectQueryView = (datasourceRecord as record, jobId as text, schemaType as text) =>  
+    VivaInsightsNavigation = (datasourceInformation as record, optional jobName as text, optional schemaType as text) =>
         let
-            scopeId = datasourceRecord[ScopeId],
-            baseUrl = datasourceRecord[Url],
-            isWpa = not datasourceRecord[isNova],
-
-            // Using this variable to control the flow between GE and IFQ
-            isGEQuery = if jobId = "4" then true else false,
-
-            // Get Scale Unit information if making a request to Nova
-            currentScaleUnit = if (not isWpa) then (if datasourceRecord[AlternativeScaleUnit] <> null then datasourceRecord[AlternativeScaleUnit] else GetScaleUnit(baseUrl, scopeId, isWpa)) else null,
-            tenantId = if datasourceRecord[AlternativeTenantId] <> null then datasourceRecord[AlternativeTenantId] else GetTenantId(baseUrl, scopeId, isWpa),
-
-            // Handle job ids for FQs
-            jobIdList = Text.Split(Text.Remove(jobId, " "), ","),
-            isMultiTableQuery = if List.Count(jobIdList) > 1 then true else false,
-            jobIdText = Text.Combine(jobIdList, "_"),
-           
-            jobInfo = GetDetailsFromAllJobIds(scopeId, jobIdList),
-            jobName = jobInfo[Name],
-            reportId = if not isGEQuery then (if isWpa then Text.Combine(jobInfo[ReportId], "_") else jobIdText) else null,
-          
-            url = if isWpa then GetEndpoint(Endpoints[API_SIMPLE_QUERY_WPA], baseUrl)
-                  else GetEndpoint(Endpoints[API_SIMPLE_QUERY](tenantId, scopeId), baseUrl),
-
-            // A default max groups to return is required, so it is not potentially set to zero by a json serialize / deserialze
-            defaultQuery = [MaxGroupsToReturn = 100], 
-        
-            // These are the actual schema values that are returned from the APIs
-            // We hold onto these in order to send to the Query API 
-            cachedRawSchema = SchemaRequest(url, defaultQuery, scopeId),
-                          
-            // Empty table with all typed columns, or what Power BI conisders a schema. This is used to type our
-            // tables before we return them to Power BI
-            cachedSchema = ExtractSchemaFromResponse(cachedRawSchema),
-
-            // State is a record of [query = [], schema = #table()]
-            WPAData = (state as record) => if (state[query] <> null) then Table.View(null, Diagnostics.WrapHandlers([
-                        GetExpression = () => [
-                            Kind = "Invocation",
-                            Function =
-                            [
-                                Kind = "Constant",
-                                Value = Value.NativeQuery
-                            ],
-                            Arguments =
-                            {
-                                [
-                                    Kind = "Invocation",
-                                    Function =
-                                    [
-                                        Kind = "Constant",
-                                        Value = VivaInsights.Data
-                                    ],
-                                    Arguments =
-                                    {
-                                        [
-                                            Kind = "Constant",
-                                            Value = scopeId
-                                        ],
-                                        [
-                                            Kind = "Constant",
-                                            Value = jobIdText
-                                        ]
-                                    }
-                                ],
-                                [
-                                    Kind = "NotImplemented"
-                                ]
-                            }
-                        ],
-
-                        // Read up on https://docs.microsoft.com/en-us/power-query/handlingqueryfolding 
-                        // To understand what all these functions are - they're basically substituting normal table functions for this particular table
-                        // You need to implement GetExpression and OnInvoke if you want your table to have directquery capability 
-                        GetSchema = () =>
-                            if (state[schema] <> null) then state[schema]
-                            else cachedSchema,
-
-                        GetType = () => Value.Type(GetSchema()),
-
-                        GetRows = () =>   
-                            let
-                                _requestResults = DataRequest(url, state[query], state[InitialQuery], cachedRawSchema, scopeId),
-                                schemaTable = GetSchema(),
-                                requestResults = Table.ChangeType(_requestResults, Value.Type(schemaTable)),
-                                dateTimeColumns = Table.ColumnsOfType(schemaTable, { type nullable datetime }),
-                                //Convert AS's datetimezone values to PBI's date type
-                                dateFixedResults = Table.TransformColumns(requestResults, List.Transform(dateTimeColumns, (c) => { c, (x) => DateTime.From(x) }))
-                           in                             
-                                if (state[InitialQuery]) then cachedSchema
-                                else dateFixedResults,    
-                           
-                        GetRowCount = () => 
-                            let
-                                // TODO: Consider revisiting and improving https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1127323
-                                dataTable = DataRequest(url, state[query], state[InitialQuery], cachedRawSchema)
-                            in
-                                Table.RowCount(dataTable),
-
-                        OnInvoke = (function, arguments, index) => 
-                            // TODO: Once we add more function maps, and handle them on server side, we should expand this table to reflect our new capabilities. https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1122276
-                            #table({"Name", "Value"}, 
-                            {
-                                {"Core", null},
-                                {"LiteralCount", 1000},
-                    
-                                {"Table.FirstN", null},
-                                {"Table.Sort", null},
-                                {"Table.RowCount", null},
-
-                                {"List.Average", null},
-                                {"List.Sum", null},
-                                {"List.Min", null},
-                                {"List.Max", null},
-                                {"List.StandardDeviation", null}
-                            }),
-                        
-                        CombineFilters = (new_filter as record, current_filter as record) as record => [Kind="Binary", Operator="And", Left = current_filter, Right = new_filter],
-
-                        OnSelectRows = (__selector) => 
-                            let
-                                _selector = Diagnostics.LogValue("Called OnSelectRows", __selector),
-                                boolean = Record.HasFields(state[query], "Aggregates"),
-                                exists_outer_filter = if Record.HasFields(state, "query") then Record.HasFields(state[query], "OuterFilter") else false,
-                                exists_inner_filter = if Record.HasFields(state, "query") then Record.HasFields(state[query], "InnerFilter") else false,
-
-                                selector = if boolean then (if exists_outer_filter = true then CombineFilters(RowExpression.From(_selector), state[query][OuterFilter]) else RowExpression.From(_selector))
-                                           else (if exists_inner_filter = true then CombineFilters(RowExpression.From(_selector), state[query][InnerFilter]) else RowExpression.From(_selector)),
-
-
-                                updated_state_query = if boolean then (if exists_outer_filter then Record.TransformFields(state[query], {{"OuterFilter", each selector}}) else state[query] & [OuterFilter = selector])
-                                                      else (if exists_inner_filter then Record.TransformFields(state[query], {{"InnerFilter", each selector}}) else state[query] & [InnerFilter = selector])                    
-                            in 
-                                @WPAData(state & [query = updated_state_query, InitialQuery = false]),
-
-                        OnSelectColumns = (columns) => 
-                            let
-                                schema = GetSchema(),
-                                newSchema = Table.SelectColumns(schema, columns),
-                            
-                                descriptors = List.Transform(columns, (columnName) => Diagnostics.Trace(TraceLevel.Information, columnName, GetColumnDescriptorFromTable(columnName, schema))),
-
-                                params = state[query] & [ColumnsSelected = descriptors]
-                            in
-                                @WPAData(state & [query = params, schema = newSchema, InitialQuery = false]),
-
-                        OnTake = (count as number) =>
-                            let
-                                // This is the only handler used in the initial query, so we leave the InitialQuery flag at true
-                                params = state[query] & [MaxGroupsToReturn = count]
-                            in
-                                @WPAData(state & [query = params]),
-
-                        OnGroup = (keys, aggregates) =>
-                            let
-                                // Pass the schema on recursively, typing the new columns we're creating at this step, instead of on server side
-                                oldSchema = GetSchema(),
-                                relevantSchema = Table.SelectColumns(oldSchema, keys),
-                                newSchema = List.Accumulate(aggregates, relevantSchema, (t, agg) => Table.AddColumn(t, agg[Name], (row) => null, agg[Type])),
-                               
-                                descriptors = List.Transform(keys, (key) => GetColumnDescriptor(key, cachedRawSchema)),
-                            
-                                params = state[query] & [GroupByKeys = descriptors, Aggregates = ProcessCreatedColumnDefinitions(aggregates, cachedRawSchema)]
-                            in
-                                @WPAData([query = params, schema = newSchema, InitialQuery = false]),
-
-                        OnDistinct = (columns) =>
-                            let
-                                // TODO: pass on new schema https://o365exchange.visualstudio.com/Weve_DA/_workitems/edit/1133079
-                                params = state[query] & [OnDistinctColumns = columns]
-                            in
-                                @WPAData(state & [query = params, InitialQuery = false]),
-
-                        OnAddColumns = (_constructors) =>
-                            let
-                                // In certain scenarios, add columns may be called multiple times with a dependency between them (ex. add column A, then add column B which depends on A).
-                                // We have opted to add all the columns in the same "level" and handle the dependencies on our backend query parsing code.
-                                constructors = Diagnostics.LogValue("OnAddColumns called", _constructors),
-                                exists_add_columns = state[query]?[OnAddColumns]? <> null,
-                                
-                                oldSchema = if Record.HasFields(state, "query") and Record.HasFields(state[query], "schema") then state[query][schema] else GetSchema(),
-                                _newSchema = List.Accumulate(constructors, oldSchema, (t, c) => Table.AddColumn(t, c[Name], each null, c[Type])),
-                                newSchema = Diagnostics.LogValue("OnAddColumns newSchema" & Diagnostics.ValueToText(_newSchema), _newSchema),
-
-                                // If we already have an addColumns object, we should append it to the current OnAddColumns list. Otherwise we'll create a new list with it.
-                                newAddColumns = if exists_add_columns then List.Combine({state[query][OnAddColumns], ProcessCreatedColumnDefinitions(constructors, cachedRawSchema)}) else ProcessCreatedColumnDefinitions(constructors, cachedRawSchema),
-                                params = state[query] & [OnAddColumns = newAddColumns]
-                            in
-                                @WPAData(state & [query = params, schema = newSchema, InitialQuery = false]),
-
-                        OnSkip = (count as number) => 
-                            let
-                                params = state[query] & [OnSkipCount = count]
-                            in
-                                @WPAData(state & [query = params, InitialQuery = false]),
-
-                        OnSort = (order as list) => 
-                            let
-                                withDescriptors = List.Transform(order, (sortDescriptor) =>
-                                    let
-                                        columnName = Record.Field(sortDescriptor, "Name"),
-                                        withoutName = Record.RemoveFields(sortDescriptor, {"Name"})
-                                    in
-                                        Record.AddField(withoutName, "Column", GetColumnDescriptor(columnName, cachedRawSchema))
-                                ),
-                                params = state[query] & [OnSortOrder = withDescriptors]
-                            in
-                                @WPAData(state & [query = params, InitialQuery = false]),
-
-                        OnInsertRows = (rowsToInsert) =>
-                            let
-                                params = state[query] & [OnInsertRows = rowsToInsert]
-                            in
-                                @WPAData(state & [query = params, InitialQuery = false]),
-                                
-                        OnDeleteRows = (selector) =>
-                            let
-                                params = state[query] & [OnDeleteRowsSelector = selector]
-                            in
-                                @WPAData(state & [query = params, InitialQuery = false]),
-                            
-                        // Renames is a list of lists of two strings == {{oldColName, newColName}}
-                        OnRenameColumns = (renames) =>
-                            let
-                                params = state[query] & [OnRenameColumns = renames],
-                                oldSchema = GetSchema(),
-                                renamePairs = List.Transform(renames, each {[OldName], [NewName]}),
-                                newSchema = Table.RenameColumns(oldSchema, renamePairs)
-                            in
-                                @WPAData(state & [query = params, schema = newSchema, InitialQuery = false])
-                    ])) else error Error.Record("DataSource.Error", "Invalid view state", state),
-
-            // Requests details for a jobId from API_GET_JOB and processes the resulting JSON
-            GetDetailsFromJobId = (scopeId as text, currentJobId as text) =>
-                let
-                    myJob = ExecuteRequest(AddQueryUrl(GetEndpoint(Endpoints[API_GET_JOB], baseUrl), Text.Combine({"jobId", currentJobId}, "="), "&"), [Headers = GetHeaders([scopeId = scopeId], isWpa, false)])
-                in
-                    myJob[JobDefinition],
-            
-            // Recursively get details for each provided jobId
-            GetDetailsFromAllJobIds = (scopeId as text, jobIdList as list, optional jobNames as list, optional reportIds as list) =>
-                let
-                    currentJobId = List.First(jobIdList),
-                    remainingJobIds = List.RemoveFirstN(jobIdList),
-                    currentJob = GetDetailsFromJobId(scopeId, currentJobId),
-                    newJobNames = if jobNames <> null then jobNames & { currentJob[Name] } else { currentJob[Name] },
-                    newReportIds = if reportIds <> null then reportIds & { currentJob[ReportId] } else { currentJob[ReportId] }
-                in
-                    if List.IsEmpty(remainingJobIds) then [ JobNames = newJobNames, ReportId = newReportIds ]
-                    else @GetDetailsFromAllJobIds(scopeId, remainingJobIds, newJobNames, newReportIds),
-
-            // Our response will contain multiple tables, and format the response the same
-            // time regardless which piece of data was requested, though some tables may be null.
-            // Thus, the next three functions are designed to extract the desired data out of the 
-            // common response format.
-            ExtractDataFromResponse = (json) as table =>
-                let 
-                    firstTable = json{0},
-                    rows = firstTable[Rows],
-                    headers = firstTable[Columns],
-                    headerStrings = List.Transform(headers, (rec) => rec[ColumnName]),
-                    headerTypes = List.Transform(headers, (rec) => ReadResponseDataType(rec[DataType])),
-                    headersAndTypes = List.Zip({headerStrings, headerTypes}),
-                    tableWithColumns = #table(headerStrings, rows),
-                    tableWithTypedColumns = Table.TransformColumnTypes(tableWithColumns, headersAndTypes, "")
-                in
-                    tableWithTypedColumns,
-
-            // Schema is received from the server as a table, with column headers ColumnName, OriginalTable, DataType, Ordinal
-            // so each row in the table describes a column of the schema.
-            // Note: when variable names here refer to column, they're referring to the column of the schema table (which
-            // will become the column of the data table). Not the column of the json response table.
-            ExtractSchemaFromResponse = (json) as table => 
-                let
-                    columnDescriptors = json[Rows],
-                    columnNames = List.Transform(columnDescriptors, (rowList) => rowList{0}),
-                    columnTypes = List.Transform(columnDescriptors, (rowList) => rowList{1}),
-                    translatedColumnTypes = List.Transform(columnTypes, (stringType) => ReadResponseDataType(Text.From(stringType))),
-                    keyValuePairs = List.Zip({columnNames, translatedColumnTypes}),
-                    tableWithColumns = #table(columnNames, {}),
-                    tableWithTypedColumns = Table.TransformColumnTypes(tableWithColumns, keyValuePairs, "")
-                in 
-                    tableWithTypedColumns,
-                
-
-            // Helper function to create table header for FQs
-            ExtractTableHeaderFromResponse = (json) as list =>
-                let
-                    aggregatableMetrics = json[AggregatableMetrics],
-                    attributes = json[Attributes],
-                    
-                    // For backwards compatibility, make sure FixedAttributes are not null before adding them.
-                    headers = if (json[FixedAttributes] = null) then List.Combine({aggregatableMetrics, attributes})
-                              else
-                                let
-                                    fixedAttributes = json[FixedAttributes]
-                                in
-                                    List.Combine({aggregatableMetrics, attributes, fixedAttributes})
-                in 
-                    headers,
-
-            // Get the raw schema from the web api
-            SchemaRequest = (url as text, query as record, scopeId) as record => 
-                let 
-                    finalQuery = GetFinalQuery(true, query),
-                    opts = [Content = Serialize(finalQuery, null), Headers = GetHeaders([scopeId = scopeId], isWpa, false, currentScaleUnit)],
-
-                    json = ExecuteRequest(url, opts)
-                in
-                    // delaying extraction until GetSchema()
-                    json{1},
-
-            // Checks if the DB is up, queries it and returns the result. This is done when the first query with InitialQuery parameter set to false is made.
-            DataRequest = (url as text, query as record, InitialQuery as logical, cachedRawSchema, scopeId as text) =>
-                let 
-                    isQueryReadyUrl = if isWpa then AddQueryUrl(GetEndpoint(Endpoints[API_FQ_READY_WPA], baseUrl),Text.Combine({"reportIds",reportId},"="),"&")
-                          else GetEndpoint(Endpoints[API_FQ_READY](tenantId, scopeId, jobId), baseUrl),
-
-                    isQueryReady = if (isGEQuery) then true
-                                   else ExecuteCacheRequest(CacheKeys[FQ_READY](reportId), () => WaitAndRetryRequest(isQueryReadyUrl, [Headers = GetHeaders([scopeId = scopeId], isWpa, false, currentScaleUnit)], true)),
-                    finalQuery = GetFinalQuery(InitialQuery, query),
-                    opts = [Content = Serialize(finalQuery, cachedRawSchema), Headers = GetHeaders([scopeId = scopeId], isWpa, false, currentScaleUnit)],
-                    json =  if (isGEQuery or isQueryReady) then ExecuteRequest(url, opts)
-                            else Error.Record("Query DB not ready")
-                in
-                    ExtractDataFromResponse(json),
-        
-            // Builds the query and the request body for it
-            GetFinalQuery = (initialQuery as logical, query) => 
-                let
-                    requestedSchema = if (isGEQuery) then if (schemaType = Extension.LoadString("SchemaTypeUnpivotedValue")) then "GuidedExplorationUnpivoted"
-                                                            else "GuidedExplorationPivoted"
-                                      else if (schemaType = Extension.LoadString("SchemaTypeUnpivotedValue")) then "FlexibleQueryUnpivoted"
-                                           else "FlexibleQueryPivoted",
-                    baseQuery = [InitialQuery = initialQuery, QueryParameters = query, Source = Source.PowerBI, CultureDescriptor = Culture.Current, QuerySchemaType = requestedSchema],
-                    finalQuery = if (isGEQuery) then baseQuery
-                                 else baseQuery & [TargetMetadata = reportId]
-                in
-                    finalQuery
-        in
-            WPAData([query = defaultQuery, schema = null, InitialQuery = true]),                        
-            
-    WorkplaceAnalyticsNavigation = (datasourceInformation as record, optional jobs as record, optional schemaType as text) =>
-        let
-            jobsCache = if jobs <> null then jobs 
-                        else FilterAndSeparateJobs(datasourceInformation),
-
-            GetJobs = (scopeId as text, limitMyJobs as logical) => if limitMyJobs then jobsCache[MyJobs]
-                                                                  else jobsCache[AllJobs],
+            GetJobs = (scopeId as text) => FilterAndSeparateJobs(datasourceInformation, jobName)[AllJobs],
                     
             // In order to have the dropdown where we separate the queries by category, we need to have our main navigation table have navtables
             // as elements (See https://github.com/microsoft/DataConnectors/blob/master/samples/NavigationTable/NavigationTable.pq). So we have 
-            // separate functions to generate the elements, but they route their items to the same DirectQuery view. 
+            // separate functions to generate the elements, but they route their items to the same RowLevelDataView. 
 
             // In order to reuse code, we have to assign an ID (like the reportId) to all elements of the table. This uses 1-2-3-4, assuming these cant be 
             // real job IDs
-
-            GeneratePersonMetricsList = (scopeId as text) => {[Name = "Person Metrics", ItemKind = "Table", ReportId = "4", JobId = "4"]},
-            GenerateMyIFQList = (scopeId as text) => GetJobs(scopeId, true),
-            GenerateAllIFQList = (scopeId as text) => GetJobs(scopeId, false),
+            GenerateAllIFQList = (scopeId as text) => GetJobs(scopeId),
             
             // Generates the first level of items for the Navigation Table
             GenerateClasses = (scopeId as text) =>
                 let
-                    classes = {[Name =  "Standard Metrics", ItemKind = "Folder", ReportId = "1", JobId = "1"],
-                               [Name = "My Custom Queries", ItemKind = "Folder", ReportId = "2", JobId = "2"],
-                               [Name = "All Custom Queries", ItemKind = "Folder", ReportId = "3", JobId = "3"]}
+                    classes = {[Name = "All Custom Queries", ItemKind = "Folder", ReportId = "1", JobId = "1"]}
                 in
                     classes,
 
             // Fills the elements created by GenerateClasses
             PopulateClasses = (datasourceInformation as record, tableId as text, schemaType as text) =>
                 let     
-                    tableElements = if (tableId = "1") then GeneratePersonMetricsList 
-                                else if (tableId = "2") then GenerateMyIFQList
-                                else GenerateAllIFQList,
-                    tableDataSource = WorkplaceAnalyticsDirectQueryView
+                    tableElements = GenerateAllIFQList,
+                    tableDataSource = RowLevelDataView
                 in
                     NavigationTableFromList(tableElements, tableDataSource, datasourceInformation),
 
@@ -1294,12 +776,11 @@ WPAImplementation  = let
                     
             navigationView = NavigationTableFromList(GenerateClasses, PopulateClasses, datasourceInformation, false)
         in
-            navigationView,  
+            navigationView,   
    
     //-------------------------------------------
     // Shared Function Parameter Handlers
     //-------------------------------------------
-    
     
     /* Method for calling a generic API, with customizable options, optional responseType and optional environment (will default to prod).
     *  options: The options desired for the API call. 
@@ -1323,7 +804,7 @@ WPAImplementation  = let
         filteredOptionHeaders = Record.SelectFields(optionsHeaders, {"scopeId", "tenantId", "x-nova-scaleunit"}, MissingField.Ignore),
 
         // Get the headers by calling GetHeaders with scopeId and any extra headers
-        headers = GetHeaders(filteredOptionHeaders, false, true),
+        headers = GetHeaders(filteredOptionHeaders, false),
 
         // Function to combine the headers
         transformHeaders = (old_headers as record) => Record.Combine({old_headers, headers}), 
@@ -1335,24 +816,6 @@ WPAImplementation  = let
         response = Web.Contents(novaUrl, updatedOptions)
     in
         Value.ReplaceMetadata(response, []),
-
-
-    // Responsible for calling the correct "View" function based on the parameters provided by the user. 
-    // It is necessary that ScopeId + null jobId + null jobName takes the user back to GE view, as to assure backwards compatibility with older reports.
-    WorkplaceAnalyticsImpl = (dataSourcePath as text, optional jobName as text, optional jobId as text, optional schemaType as text) =>
-        let
-            dataSourceInformation = ParseScopeId(dataSourcePath),
-            jobs = FilterAndSeparateJobs(dataSourceInformation, jobName),
-            singleMyJob = if List.Count(jobs[MyJobs]) = 1 and List.Count(jobs[AllJobs]) = 0 then jobs[MyJobs]{0} else null,
-            singleAllJob = if List.Count(jobs[AllJobs]) = 1 and List.Count(jobs[MyJobs]) = 0 then jobs[AllJobs]{0} else null,
-            schemaType = if schemaType = null then Extension.LoadString("SchemaTypePivotedValue") else schemaType,
-            finalView = if jobId = null and jobName = null then  WorkplaceAnalyticsDirectQueryView(dataSourceInformation, "4", schemaType)
-            else if jobId <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, jobId, schemaType)
-            else if singleMyJob <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, singleMyJob[JobId], schemaType)
-            else if singleAllJob <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, singleAllJob[JobId], schemaType)
-            else WorkplaceAnalyticsNavigation(dataSourceInformation, jobs, schemaType)
-        in
-            finalView,
     
     // Responsible for calling the correct "View" function based on the parameters provided by the user.
     // This function is intended to parse arguments for the "VivaInsights.Data" shared function.
@@ -1360,38 +823,27 @@ WPAImplementation  = let
         let
             // Parse parameters.
             dataSourceInformation = ParseScopeIdAndPopulateDatasourceViva(scopeId, options[alternativeScopeId]?, options[alternativeTenantId]?, options[alternativeScaleUnit]?),
-            jobs = FilterAndSeparateJobs(dataSourceInformation, jobName),
-            singleMyJob = if List.Count(jobs[MyJobs]) = 1 and List.Count(jobs[AllJobs]) = 0 then jobs[MyJobs]{0} else null,
-            singleAllJob = if List.Count(jobs[AllJobs]) = 1 and List.Count(jobs[MyJobs]) = 0 then jobs[AllJobs]{0} else null,
-            schemaType = if options[SchemaType]? = null then Extension.LoadString("SchemaTypePivotedValue") else options[SchemaType],
+            schemaType = Extension.LoadString("SchemaTypePivotedValue"), // Post 3/23 DQ Is deprecated so only pivoted schema is supported.
             tableName = if options[TableName]? = null then null else options[TableName],
-            useRowLevelApi = if options[APIType]? <> null then 
-                                if options[APIType] = Extension.LoadString("ApiTypeAggregatedDataValue") then false 
-                                else true 
-                            else false,
             
             // In this case, if the user enters a scopeId with the format <scopeId>/<jobId>, we want to use the jobId provided by the user. Unless the jobId parameter has already been provided in the UI.
             jobId = if jobId <> null then jobId else dataSourceInformation[AdditionalJobId],
 
             // Select the correct "View" function depending on the provided parameters. Invalid parameter combinations should throw an error.
             finalView = 
-                if useRowLevelApi and jobId = null then error Extension.LoadString("Error_RowLevelDataWithoutReport")
-                else if useRowLevelApi and dataSourceInformation[isNova] = false then error Extension.LoadString("Error_WpaRowLevelData")
-                else if useRowLevelApi and dataSourceInformation[isNova] then RowLevelDataView(dataSourceInformation, jobId, schemaType, tableName)
-                else if jobId = null and jobName = null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, "4", schemaType)
-                else if jobId <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, jobId, schemaType)
-                else if singleMyJob <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, singleMyJob[JobId], schemaType)
-                else if singleAllJob <> null then WorkplaceAnalyticsDirectQueryView(dataSourceInformation, singleAllJob[JobId], schemaType)
-                else WorkplaceAnalyticsNavigation(dataSourceInformation, jobs, schemaType)
+                // Case 1: No jobId or jobName provided. We want to return the TenantId to show connection is possible, but we don't want to return any data.
+                if jobId = null and jobName = null then GetTenantId(dataSourceInformation[Url], dataSourceInformation[ScopeId])
+                // Case 2: jobName provided but no jobId. This means the user wants to search and select a job.
+                else if jobId = null and jobName <> null then VivaInsightsNavigation(dataSourceInformation, jobName, schemaType)
+                // Case 3: jobId provided (either directly by the user, or selected from the navigation). In this case we want to return the data for the job provided.
+                else RowLevelDataView(dataSourceInformation, jobId, schemaType, tableName)
         in
             finalView
 in
     [
-        WorkplaceAnalyticsImpl = WorkplaceAnalyticsImpl,
         VivaInsightsImpl = VivaInsightsImpl,
         VivaInsightsGetResultsImpl = VivaInsightsGetResultsImpl,
         VivaInsightsGetResultsParameters = VivaInsightsGetResultsParameters,
-        WorkplaceAnalyticsType = ScopeIdType,
         VivaInsightsType = VivaInsightsParameters
     ];
 
@@ -1401,11 +853,6 @@ shared VivaInsights.Data = Value.ReplaceType(WPAImplementation[VivaInsightsImpl]
 
 [DataSource.Kind = "VivaInsightsApi"]
 shared VivaInsightsApi.GetResults = Value.ReplaceType(WPAImplementation[VivaInsightsGetResultsImpl], WPAImplementation[VivaInsightsGetResultsParameters]);
-
-// Entry Point (for WorkplaceAnalytics.Data) - do NOT change this to preserve backwards compatibility with old Argo reports
-// WorkplaceAnalytics.Data is only available when directly called in PBI. All calls from the UI Get Data screen go to VivaInsights.Data (defined above).
-[DataSource.Kind = "WorkplaceAnalytics"]
-shared WorkplaceAnalytics.Data =  Value.ReplaceType(WPAImplementation[WorkplaceAnalyticsImpl], WPAImplementation[WorkplaceAnalyticsType]);
 
 GetAuthorizationUrlFromWwwAuthenticateGetResults = (baseUrl as text) as text => 
     let
@@ -1451,7 +898,7 @@ GetAuthorizationUrlFromWwwAuthenticateGetResults = (baseUrl as text) as text =>
             error Error.Unexpected(Extension.LoadString("Error_UnexpectedAuthorizationUrlDiscovery"));
 
 
-GetAuthorizationUrlFromWwwAuthenticate = (dataSource as text, isViva as logical) as text => 
+GetAuthorizationUrlFromWwwAuthenticate = (dataSource as text) as text => 
     let
         // Sending an unauthenticated request to workplace analytics service root returns
         // a 302 status with WWW-Authenticate header in the response. The value will
@@ -1459,7 +906,7 @@ GetAuthorizationUrlFromWwwAuthenticate = (dataSource as text, isViva as logical)
         // 
         // Example:
         // Bearer authorization_uri="https://login.microsoftonline.com/{tenant_guid}/oauth2/authorize"
-        url = if isViva then ParseScopeIdAndPopulateDatasourceViva(dataSource)[Url] else ParseScopeId(dataSource)[Url],
+        url = ParseScopeIdAndPopulateDatasourceViva(dataSource)[Url],
 
         responseCodes = {302, 401},
         endpointResponse = Web.Contents(url, [
@@ -1496,39 +943,11 @@ GetAuthorizationUrlFromWwwAuthenticate = (dataSource as text, isViva as logical)
         else
             error Error.Unexpected(Extension.LoadString("Error_UnexpectedAuthorizationUrlDiscovery"));
 
-GetResourceFromDataSourcePath = (dataSource as text, isViva as logical) as text => 
-    let
-        resourceUrl = if isViva then ParseScopeIdAndPopulateDatasourceViva(dataSource)[Url] else ParseScopeId(dataSource)[Url]
-    in
-        Text.TrimEnd(resourceUrl, "/"); 
-
 GetResourceFromDataSourcePathGetResults = (baseUrl as text) as text =>
     let
         resourceUrl = baseUrl
     in
         Text.TrimEnd(resourceUrl, "/");
-
-// Data Source Kind description for legacy WorkplaceAnalytics shared function.
-WorkplaceAnalytics = [
-    TestConnection = (dataSource) => {"WorkplaceAnalytics.Data", ExtractScopeIdFromDataSourcePath(dataSource)},
-    Authentication = [
-        Aad = [
-            AuthorizationUri = (dataSource) => 
-                let
-                    parsedDataSource = ExtractScopeIdFromDataSourcePath(dataSource)
-                in
-                    GetAuthorizationUrlFromWwwAuthenticate(parsedDataSource, false),
-            Resource = (dataSource) => 
-                let
-                    parsedDataSource = ExtractScopeIdFromDataSourcePath(dataSource)
-                in
-                    GetResourceFromDataSourcePath(parsedDataSource, false),
-            Label = Extension.LoadString("AuthenticationLabel")
-        ]
-    ],
-    IsKnownEndpoint = (resource) => true,
-    Label = Extension.LoadString("DataSourceLabel")
-];
 
 // Data Source Kind description for VivaInsights shared function.
 VivaInsights = [
@@ -1536,32 +955,36 @@ VivaInsights = [
     // MakeResoucePath allows us to use the alternativeScopeId parameter (that was previously not part of the datasource path).
     MakeResourcePath = (scopeId, optional options) =>
         let
+            scaleUnit = if options <> null then options[alternativeScaleUnit]? else null,
             path =
                 if scopeId = "VivaInsightsEmbedded" then
-                    if (options <> null and options[alternativeScopeId]? <> null) then [scopeId = options[alternativeScopeId]]
+                    if (options <> null and options[alternativeScopeId]? <> null) then
+                        if scaleUnit <> null then
+                            [ scopeId = options[alternativeScopeId], alternativeScaleUnit = scaleUnit ]
+                        else
+                            [ scopeId = options[alternativeScopeId] ]
                     else error Error.Record(
                         "DataSource.Error",
                         "AlternativeScopeId parameter was not provided."
                     )
                 else
-                    [scopeId = scopeId]
+                    if scaleUnit <> null then
+                        [ scopeId = scopeId, alternativeScaleUnit = scaleUnit ]
+                    else
+                        [ scopeId = scopeId ]
         in
             Text.FromBinary(Json.FromValue(path)),
     ParseResourcePath = (resourcePath) => {resourcePath},
-    TestConnection = (dataSourcePath) => {"VivaInsights.Data", ExtractScopeIdFromDataSourcePath(dataSourcePath)},
+    TestConnection = (dataSourcePath) => {"VivaInsights.Data", ExtractScopeIdFromDataSourcePath(dataSourcePath), null, null, [alternativeScaleUnit = ExtractScaleUnitFromDataSourcePath(dataSourcePath)]},
     Authentication = [
         Aad = [
             AuthorizationUri = (dataSource) => 
                 let
                     parsedDataSource = ExtractScopeIdFromDataSourcePath(dataSource)
                 in
-                    GetAuthorizationUrlFromWwwAuthenticate(parsedDataSource, true),
-            Resource = (dataSource) => 
-                // When testing PPE, hardcode the resource to be equal to "01f9d889-ee31-41cb-85fa-3ad7e0981fa1"
-                let
-                    parsedDataSource = ExtractScopeIdFromDataSourcePath(dataSource)
-                in
-                    GetResourceFromDataSourcePath(parsedDataSource, true),
+                    GetAuthorizationUrlFromWwwAuthenticate(parsedDataSource),
+            Resource = (dataSource) => "9d827643-d003-4cca-9dc8-71213a8f1644", // 1P App: Workplace Analytics
+                // When testing PPE, hardcode the resource to be equal to "01f9d889-ee31-41cb-85fa-3ad7e0981fa1"                
             Label = Extension.LoadString("AuthenticationLabel")
         ]
     ],
@@ -1598,7 +1021,7 @@ VivaInsights.Publish = [
     Beta = false,
     Category = Extension.LoadString("Category"),
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    SupportsDirectQuery = true,
+    SupportsDirectQuery = false,
     SourceImage = VivaInsights.Icons,
     SourceTypeImage = VivaInsights.Icons
 ];

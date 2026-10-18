@@ -1,10 +1,10 @@
-[Version = "1.6.4"]
+[Version = "1.8.1"]
 section AutodeskConstructionCloud;
 
 // Forge OAuth2 values
 client_id_us = Extension.LoadString("CLIENT_ID_US");
 client_id_emea = Extension.LoadString("CLIENT_ID_EMEA");
-client_id_apac = Extension.LoadString("CLIENT_ID_APAC");
+client_id_aus = Extension.LoadString("CLIENT_ID_AUS");
 client_id_gbr = Extension.LoadString("CLIENT_ID_GBR");
 client_id_can = Extension.LoadString("CLIENT_ID_CAN");
 client_id_ind = Extension.LoadString("CLIENT_ID_IND");
@@ -22,7 +22,7 @@ code_challenge_method = "S256";
 regions = #table(
     {"ShortName", "FullName","RegionHeader","ClientID"},
     {
-        {"AUS", "Australia", "APAC", client_id_apac},
+        {"AUS", "Australia", "AUS", client_id_aus},
         {"CAN", "Canada", "CAN", client_id_can},
         {"EU", "Europe", "EMEA", client_id_emea},
         {"DEU", "Germany", "DEU", client_id_deu},
@@ -249,7 +249,7 @@ AutodeskConstructionCloudType = type function (
         Documentation.AllowedValues = Table.Column(regions, "FullName")
     ])) 
     as table meta [
-        Documentation.Name = "Autodesk Construction Cloud",
+        Documentation.Name = "Autodesk Forma",
         Documentation.LongDescription = "Version: " & Extension.LoadString("Version")
      ];
 
@@ -727,7 +727,7 @@ Base64Url.Encode = (s) => Text.Replace(Text.Replace(Text.BeforeDelimiter(Binary.
 AutodeskConstructionCloud.Publish = [
     Beta = false,
     Category = "Online Services",
-    ButtonText = { "Autodesk Construction Cloud", "Autodesk Construction Cloud" },
+    ButtonText = { "Autodesk Forma", "Autodesk Forma" },
     LearnMoreUrl = "https://help.autodesk.com/view/BIM360D/ENU/?guid=BIM360D_Insight_data_extractor_html",
     SourceImage = AutodeskConstructionCloud.Icons,
     SourceTypeImage = AutodeskConstructionCloud.Icons

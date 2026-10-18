@@ -1,0 +1,163 @@
+// This module provides helper functions for generating default query tags
+// It includes whitelisted field extraction from correlation ID
+let
+    // Helper function to safely extract a field from nested record structure using a path
+    // path: list of field names to traverse (e.g., {"trctx", "CustomerTenantId"})
+    // Supports both records and arrays with numeric indices (e.g., {"ctx", "Sources", 0, "ReportId"})
+    // Returns null if any intermediate path doesn't exist
+    GetNestedField = (record as any, path as list) as nullable any =>
+        if List.Count(path) = 0 then
+            record
+        else
+            let
+                currentField = path{0},
+                remainingPath = List.Skip(path, 1)
+            in
+                // Handle records
+                if record is record then
+                    if Record.HasFields(record, currentField) then
+                        @GetNestedField(Record.Field(record, currentField), remainingPath)
+                    else
+                        null
+                // Handle text values that may be JSON-encoded strings (e.g., trctx is a serialized JSON string)
+                else if record is text then
+                    let
+                        parsed = try Json.Document(record) otherwise null
+                    in
+                        if parsed <> null then
+                            @GetNestedField(parsed, path)
+                        else
+                            null
+                // Handle lists/arrays with numeric index
+                else if record is list then
+                    if currentField is number then
+                        let
+                            index = currentField,
+                            isValidIndex = index >= 0 and index < List.Count(record)
+                        in
+                            if isValidIndex then
+                                @GetNestedField(record{index}, remainingPath)
+                            else
+                                null
+                    else
+                        null
+                else
+                    null,
+
+    // Helper function to escape restricted characters in query tag values
+    // Escapes backslash, comma, and colon as required by Databricks
+    // Truncates to 128 characters after escaping (adds "..." if truncated)
+    EscapeRestrictedChars = (value as any) as text =>
+        let
+            textValue = Text.Trim(Text.From(value)),                    // Convert to text and trim whitespace
+            escapedBackslash = Text.Replace(textValue, "\", "\\"),      // Escape backslash first
+            escapedComma = Text.Replace(escapedBackslash, ",", "\,"),   // Escape comma
+            escapedColon = Text.Replace(escapedComma, ":", "\:"),       // Escape colon
+            // Truncate to 128 characters after escaping (Databricks limit)
+            finalValue = if Text.Length(escapedColon) > 128 then
+                Text.Start(escapedColon, 125) & "..."                   // Truncate to 125 + "..." = 128 chars
+            else
+                escapedColon
+        in
+            finalValue,
+
+    // Whitelisted query tags configuration
+    // Define tag key and JSON path for each whitelisted field
+    // Tag keys must NOT contain these characters: , (comma) : (colon) - (dash) / (forward slash) = (equal) . (dot)
+    // Paths can include numeric indices for array access (e.g., {"ctx", "Sources", 0, "ReportId"})
+    // Tag keys should include the @@powerbi_ prefix
+    WhitelistedTags = #table(
+        {"TagKey", "Path"},
+        {
+            {"@@powerbi_customer_tenant_id",    {"trctx", "CustomerTenantId"}},
+            {"@@powerbi_workspace_id",          {"trctx", "WorkspaceId"}},
+            {"@@powerbi_dataset_id",            {"ctx", "DatasetId"}},
+            {"@@powerbi_report_id",             {"ctx", "Sources", 0, "ReportId"}},
+            {"@@powerbi_visual_id",             {"ctx", "Sources", 0, "VisualId"}}
+        }
+    ),
+
+    // Extract whitelisted fields from correlation JSON using the mapping table
+    ExtractWhitelistedFields = (correlationJson as record) as list =>
+        let
+            // For each whitelisted tag, try to extract the value
+            extractedTags = List.Transform(
+                Table.ToRecords(WhitelistedTags),
+                (tagConfig) =>
+                    let
+                        tagKey = tagConfig[TagKey],
+                        path = tagConfig[Path],
+                        value = GetNestedField(correlationJson, path)
+                    in
+                        if value <> null then
+                            tagKey & ":" & EscapeRestrictedChars(value)
+                        else
+                            null
+            ),
+            // Remove nulls (fields that weren't present)
+            validTags = List.RemoveNulls(extractedTags)
+        in
+            validTags,
+
+    // Function to generate default query tags from correlation ID and activity ID
+    GetDefaultQueryTags = (correlationId as nullable text, activityId as nullable text) as nullable text =>
+        let
+            result = try
+                let
+                    // Build tags list
+                    tagsList = {},
+
+                    // Add activity ID if present
+                    tagsWithActivityId = if activityId <> null and activityId <> "" then
+                        tagsList & {"@@powerbi_activity_id:" & activityId}
+                    else
+                        tagsList,
+
+                    // Process correlation ID if present
+                    tagsWithCorrelationId = if correlationId <> null and correlationId <> "" then
+                        try
+                            let
+                                // Try to parse correlation id as JSON
+                                parsedJson = Json.Document(correlationId),
+                                whitelistedTags = ExtractWhitelistedFields(parsedJson)
+                            in
+                                tagsWithActivityId & whitelistedTags
+                        otherwise
+                            tagsWithActivityId
+                    else
+                        tagsWithActivityId,
+
+                    // Combine all tags
+                    defaultTags = if List.Count(tagsWithCorrelationId) > 0 then
+                        Text.Combine(tagsWithCorrelationId, ",")
+                    else
+                        null
+                in
+                    defaultTags
+            otherwise
+                null
+        in
+            result,
+
+    // Function to merge user query tags with default diagnostic tags
+    AddDefaultQueryTags = (userQueryTags as nullable text, correlationId as nullable text, activityId as nullable text) as nullable text =>
+        let
+            // Get default diagnostic tags
+            defaultTags = GetDefaultQueryTags(correlationId, activityId),
+
+            // Build list of non-empty tag strings
+            tagsList = List.RemoveNulls({
+                if userQueryTags <> null and userQueryTags <> "" then userQueryTags else null,
+                if defaultTags <> null and defaultTags <> "" then defaultTags else null
+            }),
+
+            // Join all tags with comma
+            combinedTags = if List.Count(tagsList) > 0 then Text.Combine(tagsList, ",") else null
+        in
+            combinedTags
+
+in
+    [
+        GetDefaultQueryTags = GetDefaultQueryTags,
+        AddDefaultQueryTags = AddDefaultQueryTags
+    ]
