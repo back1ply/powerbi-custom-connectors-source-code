@@ -64,17 +64,19 @@ def _record_fields(text: str, start: int) -> set[str]:
     depth, names, segment_start = 0, set(), start + 1
     for index in range(start, len(text)):
         char = text[index]
+        if char in OPEN and depth == 1:
+            names.update(_names_at_top(text[segment_start:index]))
         if char in OPEN:
-            if depth == 1:
-                names.update(_names_at_top(text[segment_start:index]))
             depth += 1
-        elif char in CLOSE:
-            depth -= 1
-            if depth == 1:
-                segment_start = index + 1
-            if depth == 0:
-                names.update(_names_at_top(text[segment_start:index]))
-                return names
+            continue
+        if char not in CLOSE:
+            continue
+        depth -= 1
+        if depth == 1:
+            segment_start = index + 1
+        if depth == 0:
+            names.update(_names_at_top(text[segment_start:index]))
+            return names
     return names
 
 

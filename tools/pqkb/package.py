@@ -41,17 +41,23 @@ def read_resources(resx: Path) -> dict[str, str]:
     values = {}
     for data in ElementTree.parse(resx).getroot().iter("data"):
         name = data.get("name")
-        value = data.findtext("value")
-        if name in RESOURCE_KEYS and value and value.strip():
+        value = data.findtext("value", "").strip()
+        if name in RESOURCE_KEYS and value:
             values[name] = " ".join(value.split())
     return values
 
 
 def remove_noise(root: Path) -> None:
     """Delete images, localization and packaging files, then empty folders."""
-    for path in list(root.rglob("*")):
-        if path.is_file() and path.name.lower().endswith(NOISE_SUFFIXES):
+    files = (path for path in root.rglob("*") if path.is_file())
+    for path in list(files):
+        if path.name.lower().endswith(NOISE_SUFFIXES):
             path.unlink()
+    remove_empty_folders(root)
+
+
+def remove_empty_folders(root: Path) -> None:
+    """Remove empty descendants, starting with the deepest folders."""
     for folder in sorted((p for p in root.rglob("*") if p.is_dir()), key=lambda p: -len(p.parts)):
         if not any(folder.iterdir()):
             folder.rmdir()
