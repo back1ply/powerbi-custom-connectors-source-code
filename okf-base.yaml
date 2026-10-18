@@ -1,0 +1,28 @@
+okf_version: "0.2"
+base:
+  name: Power Query connector reference
+  roots:
+    - path: knowledge
+  reserved_files:
+    index: index.md
+    log: log.md
+  link_resolution:
+    scope: base
+    external_refs: []
+profile:
+  types:
+    Power Query Connector:
+      required: [type, title, description, sources, generated]
+    Power Query Pattern:
+      required: [type, title, description, sources, generated, status, detect]
+      status_values: [draft, stable, deprecated]
+hygiene:
+  broken_links: error
+  # 0.5.0 expects date-only stale_after; the pinned spec requires datetimes.
+  # tests/test_knowledge.py checks timestamp shapes without that restriction.
+  okf_v02_shapes: off
+  unknown_fields: off
+  split_candidates: off
+  reserved_files: error
+  legacy_forms: off
+  stale_content: off

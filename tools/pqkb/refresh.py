@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from pqkb.manifest import Package, fetch_manifest, latest_packages
+from pqkb.manifest import PACKAGE_SUFFIXES, Package, fetch_manifest, latest_packages, unique_names
 from pqkb.package import extract_package
 
 INDEX_FILE = "index.json"
@@ -104,24 +104,69 @@ def _swap(prepared: Path, target: Path, backup: Path) -> None:
     try:
         prepared.rename(target)
     except OSError:
-        if backup.exists():
-            backup.rename(target)
+        try:
+            if backup.exists():
+                backup.rename(target)
+        except OSError as recovery_error:
+            raise OSError(
+                f"Archive recovery failed; previous connectors retained at {backup}"
+            ) from recovery_error
         raise
 
 
-def refresh(repo: Path, manifest: dict | None = None) -> Changes:
-    """Rebuild ``connectors/`` from the latest certified packages and report what changed."""
+def local_source(repo: Path, source_dir: Path) -> Path:
+    source = source_dir.resolve()
+    if not source.is_dir():
+        raise ValueError(f"Package folder not found: {source}")
+    if source.is_relative_to((repo / "connectors").resolve()):
+        raise ValueError("Source directory must be outside connectors/.")
+    return source
+
+
+def local_package_paths(source: Path) -> list[Path]:
+    paths = sorted(
+        p for p in source.rglob("*") if p.is_file() and p.suffix.lower() in PACKAGE_SUFFIXES
+    )
+    if not paths:
+        raise ValueError(f"No .mez or .pqx packages found in {source}")
+    return paths
+
+
+def local_archives(repo: Path, source_dir: Path) -> list[tuple[Package, Path]]:
+    paths = local_package_paths(local_source(repo, source_dir))
+    archives = [(Package(p.name, "", "", ""), p) for p in paths]
+    unique_names([package for package, _ in archives])
+    return archives
+
+
+def replace_archive(repo: Path, archives: list[tuple[Package, Path]]) -> Changes:
     target = repo / "connectors"
-    packages = latest_packages(manifest or fetch_manifest())
     old_index = load_index(target)
-    with tempfile.TemporaryDirectory(prefix=".refresh-", dir=repo) as stage_name:
-        stage = Path(stage_name)
-        downloads = stage / "downloads"
+    stage = Path(tempfile.mkdtemp(prefix=".refresh-", dir=repo)).resolve()
+    installed = False
+    try:
         prepared = stage / "connectors"
-        downloads.mkdir()
         prepared.mkdir()
-        archives = download_all(packages, downloads)
-        records = [_record(p, prepared / p.name, archives[p.name]) for p in packages]
+        records = [_record(package, prepared / package.name, path) for package, path in archives]
         write_index(prepared, records)
         _swap(prepared, target, stage / "previous")
+        installed = True
+    finally:
+        if installed or not (stage / "previous").exists():
+            stage.relative_to(repo.resolve())
+            shutil.rmtree(stage)
     return diff(old_index, {r.name: r for r in records})
+
+
+def refresh(repo: Path, manifest: dict | None = None, *, source_dir: Path | None = None) -> Changes:
+    """Replace the archive from the feed or a complete local package set.
+
+    Local packages have unknown publisher, version and package URL metadata.
+    Both modes finish extraction and redaction before replacing the archive.
+    """
+    if source_dir is not None:
+        return replace_archive(repo, local_archives(repo, source_dir))
+    packages = latest_packages(manifest if manifest is not None else fetch_manifest())
+    with tempfile.TemporaryDirectory(prefix=".refresh-", dir=repo) as stage_name:
+        downloads = download_all(packages, Path(stage_name))
+        return replace_archive(repo, [(package, downloads[package.name]) for package in packages])

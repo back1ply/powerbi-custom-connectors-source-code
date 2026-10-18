@@ -1,0 +1,26 @@
+name: Scan source and knowledge for secrets
+description: Verify a pinned Gitleaks release and scan the current archive and bundle.
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      run: |
+        $version = '8.30.1'
+        $asset = "gitleaks_${version}_windows_x64.zip"
+        $base = "https://github.com/gitleaks/gitleaks/releases/download/v$version"
+        $archive = Join-Path $env:RUNNER_TEMP $asset
+        Invoke-WebRequest "$base/$asset" -OutFile $archive
+        $checksumFile = Join-Path $env:RUNNER_TEMP 'gitleaks-checksums.txt'
+        Invoke-WebRequest "$base/gitleaks_${version}_checksums.txt" -OutFile $checksumFile
+        $checksums = Get-Content -LiteralPath $checksumFile -Raw
+        $expected = (($checksums -split "`n" | Where-Object { $_.Trim().EndsWith($asset) }) -split '\s+')[0]
+        if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) {
+          throw 'Gitleaks checksum mismatch'
+        }
+        $destination = Join-Path $env:RUNNER_TEMP "gitleaks-$version"
+        Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
+        $scanner = Join-Path $destination 'gitleaks.exe'
+        foreach ($folder in @('connectors', 'knowledge')) {
+          & $scanner dir $folder --config .gitleaks.toml --redact --no-banner
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }

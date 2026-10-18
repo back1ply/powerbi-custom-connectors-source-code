@@ -9,7 +9,14 @@ dependencies = ["pyyaml>=6.0"]
 pqkb = "pqkb.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = [
+    "okflint==0.5.0",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+site = [
+    "mkdocs-material>=9.7.7",
+]
 
 [build-system]
 requires = ["hatchling"]

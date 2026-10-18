@@ -20,14 +20,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pqkb", description=__doc__)
     parser.add_argument("--repo", type=_repo, default=".", help="repository root (default: .)")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("refresh", help="download certified connectors, then rebuild the bundle")
+    refresh_parser = commands.add_parser(
+        "refresh", help="refresh connectors, then rebuild the bundle"
+    )
+    refresh_parser.add_argument(
+        "--source-dir", type=Path, help="use a complete local package folder instead of downloading"
+    )
     commands.add_parser("build", help="rebuild the bundle from connectors/ without downloading")
     args = parser.parse_args(argv)
 
     now = datetime.now(UTC)
     if args.command == "refresh":
-        changes = refresh.refresh(args.repo)
+        changes = refresh.refresh(args.repo, source_dir=args.source_dir)
         bundle.build(args.repo, now)
+        bundle.confirm_archive(args.repo, now)
         records = refresh.load_index(args.repo / "connectors")
         bundle.append_log(args.repo / "knowledge" / "log.md", changes, records, now)
         print(

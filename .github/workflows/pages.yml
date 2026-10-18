@@ -1,0 +1,45 @@
+name: Publish reviewed reference
+
+on:
+  workflow_dispatch:
+    inputs:
+      reviewed:
+        description: I reviewed the current pattern pages and approve publishing this reference
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: inputs.reviewed
+    uses: ./.github/workflows/validate.yml
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download validated site
+        uses: actions/download-artifact@v4
+        with:
+          name: reference-site-preview
+          path: public
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy reference
+        id: deployment
+        uses: actions/deploy-pages@v5

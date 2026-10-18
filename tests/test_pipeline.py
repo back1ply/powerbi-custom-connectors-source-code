@@ -1,12 +1,14 @@
 import codecs
 import json
+import urllib.error
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from pqkb import bundle, frontmatter
+from pqkb import bundle, frontmatter, refresh
+from pqkb.cli import main
 from pqkb.manifest import latest_packages
 from pqkb.package import extract_package, safe_extract
 from pqkb.redact import REDACTED, redact_file
@@ -65,12 +67,19 @@ def test_latest_packages_compares_versions_numerically():
     [
         entry("A.pqx", "1", url="https://evil.example.com/A.pqx"),
         entry("../A.pqx", "1"),
+        entry("..\\A.pqx", "1"),
+        entry("C:\\A.pqx", "1"),
         entry("A.exe", "1"),
     ],
 )
 def test_latest_packages_rejects_unexpected_entries(bad):
     with pytest.raises(ValueError):
         latest_packages({"extensions": [bad]})
+
+
+def test_manifest_rejects_connector_names_shared_by_different_package_formats():
+    with pytest.raises(ValueError, match="Duplicate connector name"):
+        latest_packages({"extensions": [entry("Demo.mez", "1"), entry("demo.pqx", "2")]})
 
 
 # redaction --------------------------------------------------------------------------------
@@ -196,11 +205,105 @@ def repo(tmp_path):
     return tmp_path
 
 
+def test_local_refresh_replaces_complete_set_redacts_and_rebuilds(repo):
+    bundle.build(repo)
+    packages = repo / "packages"
+    packages.mkdir()
+    make_package(packages / "New.mez", {"New.pq": M_SOURCE, "resources.resx": RESX})
+    assert main(["--repo", str(repo), "refresh", "--source-dir", str(packages)]) == 0
+    assert not (repo / "connectors" / "Demo").exists()
+    assert REDACTED in (repo / "connectors" / "New" / "New.pq").read_text()
+    assert not (repo / "knowledge" / "connectors" / "Demo.md").exists()
+    assert (repo / "knowledge" / "connectors" / "New.md").is_file()
+    log = (repo / "knowledge" / "log.md").read_text()
+    assert "**Creation**" in log and "**Deletion**: Removed Demo" in log
+    record = refresh.load_index(repo / "connectors")["New"]
+    assert (record.version, record.publisher, record.package_url) == ("", "", "")
+
+
+@pytest.mark.parametrize(
+    "failure", ["empty", "missing", "duplicate", "corrupt", "no-source", "inside"]
+)
+def test_invalid_local_packages_preserve_existing_archive(repo, failure):
+    source = repo / "packages"
+    source.mkdir()
+    if failure == "missing":
+        source = repo / "missing"
+    elif failure == "duplicate":
+        make_package(source / "Demo.mez", {"Demo.pq": M_SOURCE})
+        make_package(source / "demo.pqx", {"Demo.pq": M_SOURCE})
+    elif failure == "corrupt":
+        (source / "Bad.mez").write_text("not an archive")
+    elif failure == "no-source":
+        make_package(source / "Bad.mez", {"icon.png": "image"})
+    elif failure == "inside":
+        source = repo / "connectors"
+    before = {p: p.read_bytes() for p in (repo / "connectors").rglob("*") if p.is_file()}
+    with pytest.raises((ValueError, zipfile.BadZipFile)):
+        refresh.refresh(repo, source_dir=source)
+    assert {p: p.read_bytes() for p in (repo / "connectors").rglob("*") if p.is_file()} == before
+    assert not list(repo.glob(".refresh-*"))
+
+
+@pytest.mark.parametrize(
+    ("manifest", "expected_error"),
+    [({}, ValueError), ({"extensions": [entry("New.mez", "1")]}, urllib.error.URLError)],
+)
+def test_feed_failure_preserves_existing_archive(repo, monkeypatch, manifest, expected_error):
+    def unavailable(url, **kwargs):
+        raise urllib.error.URLError("download unavailable")
+
+    monkeypatch.setattr("urllib.request.urlopen", unavailable)
+    original = (repo / "connectors" / "index.json").read_bytes()
+    with pytest.raises(expected_error):
+        refresh.refresh(repo, manifest)
+    assert (repo / "connectors" / "index.json").read_bytes() == original
+    assert (repo / "connectors" / "Demo" / "Demo.pq").read_text() == M_SOURCE
+    assert not list(repo.glob(".refresh-*"))
+
+
+def test_failed_archive_install_restores_previous_tree(repo, monkeypatch):
+    source = repo / "packages"
+    source.mkdir()
+    make_package(source / "New.mez", {"New.pq": M_SOURCE})
+    rename = Path.rename
+
+    def fail_install(path, target):
+        if path.name == "connectors" and path.parent.name.startswith(".refresh-"):
+            raise OSError("install failed")
+        return rename(path, target)
+
+    monkeypatch.setattr(Path, "rename", fail_install)
+    with pytest.raises(OSError, match="install failed"):
+        refresh.refresh(repo, source_dir=source)
+    assert (repo / "connectors" / "Demo" / "Demo.pq").read_text() == M_SOURCE
+    assert not (repo / "connectors" / "New").exists()
+
+
+def test_failed_rollback_keeps_previous_tree_for_recovery(repo, monkeypatch):
+    source = repo / "packages"
+    source.mkdir()
+    make_package(source / "New.mez", {"New.pq": M_SOURCE})
+    rename = Path.rename
+
+    def fail_install_and_recovery(path, target):
+        if path.parent.name.startswith(".refresh-"):
+            raise OSError("filesystem unavailable")
+        return rename(path, target)
+
+    monkeypatch.setattr(Path, "rename", fail_install_and_recovery)
+    with pytest.raises(OSError, match="previous connectors retained at"):
+        refresh.refresh(repo, source_dir=source)
+    backups = list(repo.glob(".refresh-*/previous/Demo/Demo.pq"))
+    assert len(backups) == 1
+    assert backups[0].read_text() == M_SOURCE
+
+
 def test_build_writes_connector_page_and_seen_in(repo):
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
     page = frontmatter.read(repo / "knowledge" / "connectors" / "Demo.md")
     assert page.meta["type"] == "Power Query Connector"
-    assert page.meta["tags"] == ["oauth", "usernamepassword"]
+    assert page.meta["tags"] == ["oauth", "retries", "usernamepassword"]
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert page.meta["stale_after"] == "2026-10-31T00:00:00Z"
     assert "(../patterns/retries.md)" in page.body
@@ -209,13 +312,31 @@ def test_build_writes_connector_page_and_seen_in(repo):
     assert "Demo.pq#L12" in pattern
     root = (repo / "knowledge" / "index.md").read_text(encoding="utf-8")
     assert "# Data retrieval" in root and "patterns/retries.md" in root
+    assert frontmatter.parse(root).meta == {"okf_version": "0.2"}
+    assert (repo / "knowledge" / "log.md").is_file()
+    tags = (repo / "knowledge" / "tags" / "index.md").read_text()
+    assert "# retries" in tags and "(../connectors/Demo.md)" in tags
 
 
 def test_build_is_stable_when_nothing_changed(repo):
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
-    first = (repo / "knowledge" / "connectors" / "Demo.md").read_text(encoding="utf-8")
+    first = {path: path.read_bytes() for path in (repo / "knowledge").rglob("*.md")}
     bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
-    assert (repo / "knowledge" / "connectors" / "Demo.md").read_text(encoding="utf-8") == first
+    assert {path: path.read_bytes() for path in (repo / "knowledge").rglob("*.md")} == first
+
+
+def test_refresh_confirmation_survives_rebuild_without_regenerating_content(repo):
+    bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
+    bundle.confirm_archive(repo, datetime(2026, 11, 1, tzinfo=UTC))
+    bundle.build(repo, datetime(2026, 11, 2, tzinfo=UTC))
+    page = frontmatter.read(repo / "knowledge" / "connectors" / "Demo.md")
+    assert page.meta["generated"]["at"] == "2026-10-17T00:00:00Z"
+    assert page.meta["verified"] == {"by": "process:pqkb-refresh", "at": "2026-11-01T00:00:00Z"}
+    assert page.meta["stale_after"] == "2026-11-15T00:00:00Z"
+    bundle.append_log(
+        repo / "knowledge" / "log.md", refresh.Changes(), {}, datetime(2026, 11, 1, tzinfo=UTC)
+    )
+    assert "no package version changes" in (repo / "knowledge" / "log.md").read_text()
 
 
 def test_append_log_groups_entries_by_day(repo):
@@ -229,6 +350,8 @@ def test_append_log_groups_entries_by_day(repo):
     text = log.read_text(encoding="utf-8")
     assert text.count("## 2026-10-17") == 1
     assert "**Creation**" in text and "**Deletion**: Removed Old" in text
+    bundle.build(repo, day)
+    assert log.read_text(encoding="utf-8") == text
 
 
 def test_index_json_round_trip(repo):
