@@ -68,9 +68,10 @@ No hand-typed counts, connector lists, or "seen in" claims.
 - Pages publication is automatic for validated master commits. Automated token
   merges explicitly dispatch publication because their push events do not start
   another workflow. Both publication paths require current source-bound reviews.
-- Still open: one-time GitHub activation and initial publication. Optional MCP
-  registration remains out of scope. Remote activation is separate from the
-  requested local source review.
+- GitHub activation is authorized and configured: Actions can create refresh
+  PRs, and Pages uses workflow deployment. Merging the validated activation PR
+  starts initial publication at https://back1ply.github.io/powerbi-custom-connectors-source-code/.
+  Optional MCP registration remains out of scope.
 
 Tool references: [okflint](https://github.com/mattdav/okflint),
 [okf-schema](https://github.com/gsemet/okf-schema),

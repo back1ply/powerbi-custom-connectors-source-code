@@ -2,7 +2,7 @@
 
 An unofficial archive of source extracted from Microsoft's certified Power BI connector packages, with a generated knowledge bundle for browsing implementation patterns.
 
-Start with the [pattern directory](knowledge/patterns/index.md), [connector directory](knowledge/connectors/index.md), [authentication and pattern tags](knowledge/tags/index.md), or [refresh log](knowledge/log.md).
+Browse the [published reference](https://back1ply.github.io/powerbi-custom-connectors-source-code/). In this repository, start with the [pattern directory](knowledge/patterns/index.md), [connector directory](knowledge/connectors/index.md), [authentication and pattern tags](knowledge/tags/index.md), or [refresh log](knowledge/log.md).
 
 The bundle uses [Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/62432a095456147ee71e70ac6e4dc0d2dea3ac30/okf/SPEC.md). Patterns have an explicitly attributed agent source review; the [review report](REVIEW.md) describes its scope and corrections. Each includes a real source excerpt and a generated list of regex matches; matches can include comments or helper definitions and do not establish runtime behavior.
 
