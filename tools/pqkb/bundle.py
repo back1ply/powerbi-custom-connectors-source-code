@@ -241,8 +241,14 @@ def tags_index(pages: Path) -> str:
 def root_index(patterns: list[Pattern], connector_count: int) -> str:
     return (
         '---\nokf_version: "0.2"\n---\n\n'
-        + patterns_index(patterns, prefix="patterns/")
-        + "\n# Archive\n\n"
+        + "# Power Query Connector Source Reference\n\n"
+        + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
+        + index_entry(
+            "Patterns",
+            "patterns/index.md",
+            f"{len(patterns)} implementation patterns, grouped by topic.",
+        )
+        + "\n"
         + index_entry(
             "Connectors",
             "connectors/index.md",

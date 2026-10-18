@@ -311,7 +311,9 @@ def test_build_writes_connector_page_and_seen_in(repo):
     assert "Detected in **1** connector in this archive." in pattern
     assert "Demo.pq#L12" in pattern
     root = (repo / "knowledge" / "index.md").read_text(encoding="utf-8")
-    assert "# Data retrieval" in root and "patterns/retries.md" in root
+    assert "patterns/index.md" in root
+    directory = (repo / "knowledge" / "patterns" / "index.md").read_text(encoding="utf-8")
+    assert "# Data retrieval" in directory and "retries.md" in directory
     assert frontmatter.parse(root).meta == {"okf_version": "0.2"}
     assert (repo / "knowledge" / "log.md").is_file()
     tags = (repo / "knowledge" / "tags" / "index.md").read_text()
