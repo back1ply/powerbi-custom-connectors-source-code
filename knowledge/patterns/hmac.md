@@ -15,14 +15,12 @@ sources:
   title: ShortcutsBI/Function.OAuthSignatureGenerator.pqm
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:38Z'
 review:
-  content_sha256: ee36a1403dfde9602cb6b0bb39f0f4a8ae55e7f960227324b19d5de9c38122ff
+  content_sha256: 245fc4de259f25ee9d24f4cb8111a77e24c90d2deff5c9475cf0a6837f404efe
   sources_sha256:
     example: 386be20de30e6051da9bb4697b0642066f0b23f89af211a953716bb9c1c77f99
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -69,17 +67,3 @@ in
 ```
 
 [^example]: ShortcutsBI/Function.OAuthSignatureGenerator.pqm; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from this page's `detect` expressions. It reports the first matching line per source file, including comments and helper definitions. A match is a source-reading lead, not a runtime or compatibility guarantee.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **1** connector in this archive.
-
-* [Shortcuts Business Insights](../connectors/ShortcutsBI.md): [Function.OAuthSignatureGenerator.pqm line 16](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L16)
-
-<!-- seen-in:end -->

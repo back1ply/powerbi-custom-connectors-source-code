@@ -16,7 +16,9 @@ from pqkb import frontmatter
 from pqkb.provenance import source_path
 
 REVIEW_METADATA = {"generated", "verified", "review", "review_pending", "status"}
-MATCH_LIST = re.compile(r"<!-- seen-in:start -->.*?<!-- seen-in:end -->", re.DOTALL)
+MATCH_LIST = re.compile(
+    r"(?:\n# Seen in\s*)?<!-- seen-in:start -->.*?<!-- seen-in:end -->", re.DOTALL
+)
 
 
 def pattern_paths(repo: Path) -> list[Path]:

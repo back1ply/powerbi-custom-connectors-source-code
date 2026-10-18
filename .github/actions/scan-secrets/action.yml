@@ -20,7 +20,7 @@ runs:
         $destination = Join-Path $env:RUNNER_TEMP "gitleaks-$version"
         Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
         $scanner = Join-Path $destination 'gitleaks.exe'
-        foreach ($folder in @('connectors', 'knowledge')) {
+        foreach ($folder in @('connectors', 'knowledge', 'build/knowledge')) {
           & $scanner dir $folder --config .gitleaks.toml --redact --no-banner
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         }

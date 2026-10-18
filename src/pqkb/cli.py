@@ -41,10 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     now = datetime.now(UTC)
     if args.command == "refresh":
         changes = refresh.refresh(args.repo, source_dir=args.source_dir)
-        bundle.build(args.repo, now)
-        bundle.confirm_archive(args.repo, now)
         records = refresh.load_index(args.repo / "connectors")
         bundle.append_log(args.repo / "knowledge" / "log.md", changes, records, now)
+        bundle.build(args.repo, now)
+        bundle.confirm_archive(args.repo, now)
         print(
             f"Added {len(changes.added)}, updated {len(changes.updated)}, "
             f"removed {len(changes.removed)} connectors."

@@ -15,14 +15,12 @@ sources:
   title: Attio/Attio.pq
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:39Z'
 review:
-  content_sha256: d261dd2b0878ce069dfef265977829c1cee8e975ce713f71e2adcad0576d0e3a
+  content_sha256: 8a8895dc81539d7fedfd7ae25e170234a1c0275d7713d480e1223385afaab5de
   sources_sha256:
     example: 57a398b8b0d14e01888b0484e169d12a946dd076ea8d5166d56b62939a434428
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -58,41 +56,3 @@ The following excerpt is copied from `Attio/Attio.pq`, lines 107–118.[^example
 ```
 
 [^example]: Attio/Attio.pq; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from the `detect` expressions in this page. Detection reports the first matching line per source file, including matches in comments, strings, or helper definitions. Treat each result as a source-reading lead; it is not proof of runtime behavior or a complete implementation.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **25** connectors in this archive.
-
-* [Assemble Views](../connectors/AssembleViews.md): [AssembleViews.m line 635](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AssembleViews/AssembleViews.m#L635)
-* [Attio](../connectors/Attio.md): [Attio.pq line 109](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Attio/Attio.pq#L109)
-* [Autodesk Construction Cloud](../connectors/AutodeskConstructionCloud.md): [AutodeskConstructionCloud.pq line 299](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AutodeskConstructionCloud/AutodeskConstructionCloud.pq#L299)
-* [Azure Cost Management](../connectors/AzureCostManagement.md): [AzureCostManagement.pq line 2451](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureCostManagement/AzureCostManagement.pq#L2451)
-* [Azure Resource Graph](../connectors/AzureResourceGraph.md): [AzureResourceGraph.pq line 53](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L53)
-* [Solver](../connectors/BI360.md): [Solver.m line 71](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/BI360/Solver.m#L71)
-* [Bitbucket](../connectors/Bitbucket.md): [Bitbucket.pq line 146](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Bitbucket/Bitbucket.pq#L146)
-* [Bitsight Security Ratings](../connectors/BitSightSecurityRatings.md): [BitSightSecurityRatings.pq line 1816](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/BitSightSecurityRatings/BitSightSecurityRatings.pq#L1816)
-* [BuildingConnected & TradeTapp](../connectors/BuildingConnected.md): [BuildingConnected.pq line 465](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/BuildingConnected/BuildingConnected.pq#L465)
-* [Cognite Data Fusion (REST API)](../connectors/CogniteDataSource.md): [CogniteDataSource.pq line 696](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L696)
-* [HexagonSmartApi](../connectors/HexagonSmartApi.md): [ParametricFilter.pqm line 786](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/HexagonSmartApi/ParametricFilter.pqm#L786), [SelectList.pqm line 471](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/HexagonSmartApi/SelectList.pqm#L471)
-* [inwink](../connectors/inwink.md): [inwink.pq line 364](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/inwink/inwink.pq#L364)
-* [Kognitwin](../connectors/Kognitwin.md): [Kognitwin.pq line 809](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Kognitwin/Kognitwin.pq#L809)
-* [MicrosoftAzureDataManagerForEnergy](../connectors/MicrosoftAzureDataManagerForEnergy.md): [MicrosoftAzureDataManagerForEnergy.pq line 108](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MicrosoftAzureDataManagerForEnergy/MicrosoftAzureDataManagerForEnergy.pq#L108)
-* [Profisee](../connectors/Profisee.md): [Profisee.m line 130](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Profisee/Profisee.m#L130)
-* [qbconnector](../connectors/QuickBase.md): [qbconnector.m line 285](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/QuickBase/qbconnector.m#L285)
-* [Siteimprove](../connectors/SiteImprove.md): [Siteimprove.pq line 770](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SiteImprove/Siteimprove.pq#L770)
-* [SolarwindsServiceDesk](../connectors/SolarwindsServiceDesk.md): [SolarWindsServiceDesk.pq line 116](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L116)
-* [SumTotal](../connectors/SumTotal.md): [SumTotal.pq line 137](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SumTotal/SumTotal.pq#L137)
-* [SurveyMonkey](../connectors/SurveyMonkey.md): [FetchResource.pqm line 27](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SurveyMonkey/FetchResource.pqm#L27)
-* [Usercube](../connectors/Usercube.md): [Usercube.m line 185](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Usercube/Usercube.m#L185)
-* [PQExtension1](../connectors/Witivio.md): [Witivio.pq line 204](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Witivio/Witivio.pq#L204)
-* [Viva Insights](../connectors/WorkplaceAnalytics.md): [WorkplaceAnalytics.pq line 557](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/WorkplaceAnalytics/WorkplaceAnalytics.pq#L557)
-* [Wrike](../connectors/Wrike.md): [wrike.m line 349](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Wrike/wrike.m#L349)
-* [ZendeskData](../connectors/ZendeskData.md): [zendesk.pq line 211](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ZendeskData/zendesk.pq#L211)
-
-<!-- seen-in:end -->

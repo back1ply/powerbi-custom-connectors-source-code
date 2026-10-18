@@ -15,14 +15,12 @@ sources:
   title: CommonDataService/CommonDataService.pq
 verified:
   by: codex/gpt-6
-  at: '2026-10-18T10:00:47Z'
+  at: '2026-10-18T10:34:39Z'
 review:
-  content_sha256: 96b4dd5141d80148bd76e9ee7cc0bbcac6cb9413ada9cd8e71b21dace6c67120
+  content_sha256: 0fb43b15e45a7b5b3e01b1dd1d537066101d953eed998203b8e1e244c33918b6
   sources_sha256:
     example: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
 ---
-
-**Review scope:** static source review; vendor connector runtime behavior is not tested.
 
 # Mechanism
 
@@ -58,22 +56,3 @@ The following excerpt is copied from `CommonDataService/CommonDataService.pq`, l
 ```
 
 [^example]: CommonDataService/CommonDataService.pq; see the matching `sources` entry.
-
-# Detection limits
-
-The list below is generated from the `detect` expressions in this page. Detection reports the first matching line per source file, including matches in comments, strings, or helper definitions. Treat each result as a source-reading lead; it is not proof of runtime behavior or a complete implementation.
-
-# Seen in
-
-<!-- seen-in:start -->
-
-Detected in **6** connectors in this archive.
-
-* [AmazonAthena](../connectors/AmazonAthena.md): [AmazonAthena.m line 129](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L129)
-* [Dataverse](../connectors/CommonDataService.md): [CommonDataService.pq line 80](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L80)
-* [Indexima](../connectors/Indexima.md): [Indexima.m line 162](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Indexima/Indexima.m#L162)
-* [Lakehouse](../connectors/LakeHouse.md): [DeltaTableFastCopy.pqm line 45](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/DeltaTableFastCopy.pqm#L45), [DualTable.View.pqm line 277](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/DualTable.View.pqm#L277)
-* [Dataflows](../connectors/PowerPlatformDataflows.md): [PowerPlatformDataflows.pq line 1727](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L1727)
-* [SingleStore Direct Query Connector](../connectors/SingleStoreODBC.md): [SingleStoreODBC.m line 395](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SingleStoreODBC/SingleStoreODBC.m#L395)
-
-<!-- seen-in:end -->

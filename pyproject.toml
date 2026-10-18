@@ -23,18 +23,20 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["tools/pqkb"]
+packages = ["src/pqkb"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tools"]
+cache_dir = ".cache/pytest"
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
-src = ["tools", "tests"]
+cache-dir = ".cache/ruff"
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.pyright]
-extraPaths = ["tools"]
+extraPaths = ["src"]

@@ -2,7 +2,7 @@ okf_version: "0.2"
 base:
   name: Power Query connector reference
   roots:
-    - path: knowledge
+    - path: build/knowledge
   reserved_files:
     index: index.md
     log: log.md

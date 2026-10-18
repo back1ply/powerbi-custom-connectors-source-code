@@ -12,16 +12,16 @@ Install Python 3.12 or newer and [uv](https://docs.astral.sh/uv/), then run:
 uv sync --locked --group site
 uv run pqkb build
 uv run pytest -q
-uv run ruff check tools tests
-uv run ruff format --check tools tests
+uv run ruff check src tests
+uv run ruff format --check src tests
 uv run okflint validate --manifest okf-base.yaml
 uv run pqkb verify-reviews
 uv run mkdocs build --strict
 ```
 
-`build` regenerates the reference from `connectors/` without downloading packages. Preview it with `uv run mkdocs serve`; static output goes to `public/`. Power Query highlighting loads Prism from a CDN.
+`build` regenerates the reference from `connectors/` without downloading packages. Preview it with `uv run mkdocs serve`; the generated OKF bundle goes to `build/knowledge/` and static output to `build/site/`. Power Query highlighting loads Prism from a CDN.
 
-The bundle follows [Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/62432a095456147ee71e70ac6e4dc0d2dea3ac30/okf/SPEC.md). The pinned validator's optional shape checks expect date-only `stale_after` values, so those checks are disabled in `okf-base.yaml`; tests verify timezone-aware timestamps. Core, project-profile, and internal-link checks remain enabled.
+The bundle follows [Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/ad30107c31c06aec8a7d5636e0d1058118604e6f/SPEC.md). The pinned validator's optional shape checks expect date-only `stale_after` values, so those checks are disabled in `okf-base.yaml`; tests verify timezone-aware timestamps. Core, project-profile, and internal-link checks remain enabled.
 
 ## Refreshing the archive
 
@@ -29,7 +29,7 @@ The bundle follows [Open Knowledge Format v0.2](https://github.com/GoogleCloudPl
 uv run pqkb refresh
 ```
 
-Refresh selects the highest package version per connector from Microsoft's feed, extracts and redacts source, replaces `connectors/`, and rebuilds the reference. It does not filter by Power BI engine compatibility. Missing connectors are removed; package changes and unchanged checks are logged. Successful refreshes renew connector freshness for 14 days.
+Refresh selects the highest package version per connector from Microsoft's feed, extracts and redacts source, replaces `connectors/`, and rebuilds the reference. It does not filter by Power BI engine compatibility. Missing connectors are removed; package changes and unchanged checks are logged. Successful refreshes record a receipt in `knowledge/refresh.json` and renew connector freshness for 14 days. Rebuilding the site does not renew that receipt.
 
 For local packages, use `uv run pqkb refresh --source-dir 'C:\packages\certified-connectors'`. Supply the complete set of `.mez` and `.pqx` files in a folder outside `connectors/`; absent connectors are removed. Local packages have no inferred publisher, version, or certification.
 
@@ -46,8 +46,9 @@ The [Pages workflow](.github/workflows/pages.yml) validates and publishes `maste
 ## Repository layout
 
 - `connectors/`: extracted vendor source and package metadata.
-- `knowledge/`: maintained patterns, generated directories, and refresh log.
-- `tools/pqkb/`: refresh, redaction, detection, review checks, and generation.
+- `knowledge/`: authored patterns and the refresh log; edit here.
+- `src/pqkb/`: refresh, redaction, detection, review checks, and rendering.
+- `build/`: generated OKF bundle and website; ignored by git and safe to regenerate.
 - `tests/`: pipeline, source-excerpt, and review-validity checks.
 
 ## License

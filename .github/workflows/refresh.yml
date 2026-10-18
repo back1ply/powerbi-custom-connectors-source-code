@@ -45,9 +45,9 @@ jobs:
         id: static
         continue-on-error: true
         run: |
-          uv run ruff check tools tests
+          uv run ruff check src tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run ruff format --check tools tests
+          uv run ruff format --check src tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run okflint validate --manifest okf-base.yaml
       - name: Verify source-bound pattern reviews

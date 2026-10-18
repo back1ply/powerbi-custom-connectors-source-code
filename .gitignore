@@ -1,7 +1,10 @@
+build/
 .venv/
 __pycache__/
 .refresh-*/
+.cache/
 .pytest_cache/
 .ruff_cache/
-public/
+.claude/
 .playwright-mcp/
+public/

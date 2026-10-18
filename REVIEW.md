@@ -25,7 +25,7 @@ security, or certify their behavior in Power BI, Excel, or other hosts.
 
 Stable patterns carry an agent verification event, a fingerprint of their
 authored metadata and prose, and fingerprints of the complete cited files.
-Generated match lists are excluded from the authored-content fingerprint.
+Generated match lists live only in `build/knowledge/` and are excluded from authored review scope.
 CRLF and LF line endings are treated equivalently.
 
 Changing reviewed prose, detection rules, citation metadata, or cited source
@@ -39,3 +39,11 @@ Routine refreshes can merge automatically after all checks pass on the exact PR
 commit. Expired reviews and other failures leave a draft PR for repair. Pages
 publication performs validation again. No workflow creates human-review labels
 or blindly renews pattern source reviews.
+
+## Presentation cleanup
+
+On 2026-10-18, the agent checked the presentation-only diff: behavioral prose,
+source excerpts, citation metadata, and cited source bytes were unchanged.
+Repeated scope notices and generated match lists moved out of authored patterns;
+the shared scope notice appears on the site overview. Review fingerprints were
+updated for these deletions without attributing a human review.

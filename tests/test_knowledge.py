@@ -5,7 +5,7 @@ from urllib.parse import unquote, urlsplit
 
 import pytest
 
-from pqkb import frontmatter
+from pqkb import bundle, frontmatter
 
 ROOT = Path(__file__).resolve().parents[1]
 PATTERNS = sorted((ROOT / "knowledge" / "patterns").glob("*.md"))
@@ -37,7 +37,8 @@ def test_pattern_excerpt_matches_its_cited_source(page):
 
 
 def test_bundle_provenance_timestamps_have_explicit_offsets():
-    for page in (ROOT / "knowledge").rglob("*.md"):
+    bundle.build(ROOT)
+    for page in (ROOT / "build" / "knowledge").rglob("*.md"):
         metadata = frontmatter.read(page).meta
         if "type" not in metadata:
             continue
