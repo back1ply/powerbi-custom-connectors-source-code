@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import html
 import json
 import shutil
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-from pqkb import frontmatter
+from pqkb import frontmatter, match_reviews
 from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
-from pqkb.reviews import digest, invalidate_review
+from pqkb.reviews import authored_digest, digest, invalidate_review
 from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
 PRODUCER = "process:pqkb-build"
@@ -54,9 +55,23 @@ def load_patterns(folder: Path) -> list[Pattern]:
     return [Pattern(p.stem, p, frontmatter.read(p)) for p in paths]
 
 
+def pattern_scope(pattern: Pattern) -> dict:
+    return {
+        "title": pattern.title,
+        "description": pattern.doc.meta["description"],
+        "scope": pattern.doc.body.split("# Examples")[0],
+    }
+
+
 def rules_for(patterns: list[Pattern]) -> list[Rule]:
     return [
-        Rule.build(p.pattern_id, p.doc.meta["detect"]) for p in patterns if p.doc.meta.get("detect")
+        replace(
+            Rule.build(p.pattern_id, p.doc.meta["detect"]),
+            scope_sha256=authored_digest(p.doc),
+            scope=pattern_scope(p),
+        )
+        for p in patterns
+        if p.doc.meta.get("detect")
     ]
 
 
@@ -117,37 +132,57 @@ def connector_body(
         "",
         *[f"* [{f}]({source_url(record.name, f)})" for f in record.files],
         "",
-        "# Detected patterns",
+        "# Pattern evidence",
         "",
     ]
     if not used:
-        lines.append("None of the documented patterns were detected.")
+        lines.append("No implementation candidates were found by the current rules.")
     for pattern_id in sorted(used, key=lambda pid: patterns[pid].title.lower()):
-        refs = ", ".join(
-            f"[{h.file} line {h.line}]({source_url(h.connector, h.file, h.line)})"
-            for h in used[pattern_id]
-        )
-        lines.append(
-            f"* [{link_text(patterns[pattern_id].title)}](../patterns/{pattern_id}.md): {refs}"
-        )
+        lines.append(f"* [{link_text(patterns[pattern_id].title)}](../patterns/{pattern_id}.md)")
+        for hit in used[pattern_id]:
+            lines.extend(evidence_lines(hit, indent="  "))
     return "\n".join(lines)
 
 
-def seen_in_section(hits: list[Hit], records: dict[str, ConnectorRecord]) -> str:
-    by_connector: dict[str, list[Hit]] = defaultdict(list)
-    for hit in hits:
-        by_connector[hit.connector].append(hit)
-    count = len(by_connector)
-    noun = "connector" if count == 1 else "connectors"
-    lines = [SEEN_START, "", f"Detected in **{count}** {noun} in this archive.", ""]
-    for name in sorted(by_connector, key=str.lower):
-        refs = ", ".join(
-            f"[{h.file} line {h.line}]({source_url(name, h.file, h.line)})"
-            for h in by_connector[name]
-        )
+def evidence_lines(hit: Hit, indent: str = "") -> list[str]:
+    labels = {
+        "supported": "Agent-supported",
+        "uncertain": "Uncertain",
+        "pending": "Awaiting review",
+    }
+    state = labels[hit.verdict]
+    confidence = f"; review confidence: {hit.certainty}" if hit.certainty else ""
+    lines = [f"{indent}* **{state}** — static evidence: {hit.confidence}{confidence}."]
+    if hit.reason:
+        lines.append(f"{indent}  {html.escape(link_text(hit.reason))}")
+    if hit.reviewer:
+        lines.append(f"{indent}  Reviewer: {link_text(hit.reviewer)}; source windows only.")
+    for evidence in hit.review_evidence or hit.evidence:
+        url = source_url(hit.connector, evidence.file, evidence.line)
+        code = evidence.code.replace("`", "'")
         lines.append(
-            f"* [{link_text(records[name].title)}](../connectors/{quote(name)}.md): {refs}"
+            f"{indent}  * {evidence.label}: "
+            f"[{evidence.file} line {evidence.line}]({url}) — `{code}`"
         )
+    return lines
+
+
+def seen_in_section(hits: list[Hit], records: dict[str, ConnectorRecord]) -> str:
+    supported = sum(h.verdict == "supported" for h in hits)
+    remaining = len(hits) - supported
+    lines = [
+        SEEN_START,
+        "",
+        f"**{supported} agent-supported; {remaining} uncertain or awaiting review.**",
+        "",
+        "Static signals and agent assessments do not establish runtime behavior. "
+        "Rejected candidates are omitted; no match does not prove absence.",
+        "",
+    ]
+    for hit in sorted(hits, key=lambda h: h.connector.lower()):
+        name = hit.connector
+        lines.append(f"* [{link_text(records[name].title)}](../connectors/{quote(name)}.md)")
+        lines.extend(evidence_lines(hit, indent="  "))
     lines += ["", SEEN_END]
     return "\n".join(lines)
 
@@ -158,7 +193,7 @@ def update_pattern(pattern: Pattern, section: str) -> bool:
         start, end = body.index(SEEN_START), body.index(SEEN_END) + len(SEEN_END)
         new_body = body[:start] + section + body[end:]
     else:
-        new_body = body.rstrip() + "\n\n# Seen in\n\n" + section + "\n"
+        new_body = body.rstrip() + "\n\n# Source evidence\n\n" + section + "\n"
     if new_body == body:
         return False
     pattern.path.write_text(
@@ -241,8 +276,9 @@ def root_index(patterns: list[Pattern], connector_count: int) -> str:
         '---\nokf_version: "0.2"\n---\n\n'
         + "# Power Query Connector Source Reference\n\n"
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
-        + "Reviews check static source, not vendor runtime behavior. Pattern matches are "
-        + "regex leads and can include comments or unused helpers.\n\n"
+        + "Reviews check static source, not vendor runtime behavior. Detection excludes comments "
+        + "and string literals. Candidate evidence and source-bound agent assessments are shown "
+        + "separately; uncertain candidates may include unused helpers.\n\n"
         + "[Download the OKF bundle](https://back1ply.github.io/"
         + "powerbi-custom-connectors-source-code/knowledge.zip).\n\n"
         + index_entry(
@@ -332,7 +368,15 @@ def write_connector_pages(
         auth = set().union(*(auth_kinds(text) for text in sources[name].values()))
         write_if_changed(
             pages / f"{name}.md",
-            connector_meta(record, auth, set(used[name])),
+            connector_meta(
+                record,
+                auth,
+                {
+                    pid
+                    for pid, matches in used[name].items()
+                    if any(h.verdict == "supported" for h in matches)
+                },
+            ),
             connector_body(record, auth, used[name], by_id),
             now,
         )
@@ -395,7 +439,8 @@ def build(repo: Path, now: datetime | None = None) -> None:
     patterns = render_patterns(repo, knowledge)
     by_id = {p.pattern_id: p for p in patterns}
     sources = read_sources(connectors_dir, records)
-    hits = scan(sources, rules_for(patterns))
+    rules = rules_for(patterns)
+    hits = match_reviews.apply_reviews(repo, sources, rules, scan(sources, rules))
 
     write_connector_pages(repo, patterns, hits, now)
     for pattern_id, pattern_hits in hits.items():

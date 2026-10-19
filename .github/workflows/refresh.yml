@@ -24,6 +24,8 @@ jobs:
       head: ${{ steps.pr.outputs.pull-request-head-sha }}
       ready: ${{ steps.readiness.outputs.ready }}
     runs-on: windows-latest
+    env:
+      MATCH_REVIEW_AVAILABLE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +39,18 @@ jobs:
           uv sync --locked --group site
       - name: Refresh from Microsoft
         run: uv run pqkb refresh
+      - name: Review changed implementation candidates
+        if: env.MATCH_REVIEW_AVAILABLE == 'true'
+        id: candidate_agent
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install --global @anthropic-ai/claude-code@2.1.303
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb review-matches
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb build
       - name: Check source excerpts and pipeline
         id: tests
         continue-on-error: true
@@ -53,7 +67,10 @@ jobs:
       - name: Verify source-bound pattern reviews
         id: reviews
         continue-on-error: true
-        run: uv run pqkb verify-reviews
+        run: |
+          uv run pqkb verify-reviews
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb verify-matches
       - name: Build review preview
         id: site
         continue-on-error: true
@@ -83,7 +100,7 @@ jobs:
             Checks run in this refresh workflow:
             - Source excerpts and pipeline: ${{ steps.tests.outcome }}
             - Lint, metadata, and links: ${{ steps.static.outcome }}
-            - Source-bound pattern reviews: ${{ steps.reviews.outcome }}
+            - Pattern prose and candidate reviews: ${{ steps.reviews.outcome }}
             - Site build: ${{ steps.site.outcome }}
             - Secret scan: passed (a failure prevents this PR step)
 

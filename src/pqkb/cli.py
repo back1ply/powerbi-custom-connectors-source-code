@@ -30,13 +30,17 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser(
         "verify-reviews", help="check pattern reviews against prose and cited source"
     )
+    commands.add_parser("review-matches", help="review changed candidates with Claude Haiku")
+    commands.add_parser("verify-matches", help="check source-bound candidate assessments")
     args = parser.parse_args(argv)
 
-    if args.command == "verify-reviews":
-        problems = reviews.check_reviews(args.repo)
-        for problem in problems:
-            print(problem)
-        return int(bool(problems))
+    if args.command == "review-matches":
+        from pqkb.match_agent import review_matches
+
+        review_matches(args.repo)
+        return 0
+    if args.command in ("verify-reviews", "verify-matches"):
+        return verify(args.command, args.repo)
 
     now = datetime.now(UTC)
     if args.command == "refresh":
@@ -53,6 +57,15 @@ def main(argv: list[str] | None = None) -> int:
         bundle.build(args.repo, now)
         print("Bundle rebuilt.")
     return 0
+
+
+def verify(command: str, repo: Path) -> int:
+    from pqkb.match_agent import verify_matches
+
+    problems = verify_matches(repo) if command == "verify-matches" else reviews.check_reviews(repo)
+    for problem in problems:
+        print(problem)
+    return int(bool(problems))
 
 
 if __name__ == "__main__":

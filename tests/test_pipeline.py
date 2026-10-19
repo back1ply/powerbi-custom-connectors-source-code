@@ -305,12 +305,12 @@ def test_build_writes_connector_page_and_seen_in(repo):
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
     page = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
     assert page.meta["type"] == "Power Query Connector"
-    assert page.meta["tags"] == ["oauth", "retries", "usernamepassword"]
+    assert page.meta["tags"] == ["oauth", "usernamepassword"]
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert "stale_after" not in page.meta  # Building is not a source refresh.
     assert "(../patterns/retries.md)" in page.body
     pattern = (repo / "build" / "knowledge" / "patterns" / "retries.md").read_text(encoding="utf-8")
-    assert "Detected in **1** connector in this archive." in pattern
+    assert "**0 agent-supported; 1 uncertain or awaiting review.**" in pattern
     assert "Demo.pq#L12" in pattern
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored
     root = (repo / "build" / "knowledge" / "index.md").read_text(encoding="utf-8")
@@ -320,7 +320,8 @@ def test_build_writes_connector_page_and_seen_in(repo):
     assert frontmatter.parse(root).meta == {"okf_version": "0.2"}
     assert (repo / "knowledge" / "log.md").is_file()
     tags = (repo / "build" / "knowledge" / "tags" / "index.md").read_text()
-    assert "# retries" in tags and "(../connectors/Demo.md)" in tags
+    assert "# retries" not in tags
+    assert "# oauth" in tags and "(../connectors/Demo.md)" in tags
 
 
 def test_build_is_stable_when_nothing_changed(repo):

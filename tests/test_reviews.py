@@ -62,7 +62,7 @@ def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(rev
     original = frontmatter.read(page)
     other = repo / "connectors" / "Other" / "Other.pq"
     other.parent.mkdir()
-    other.write_text("// Demo pattern match\n", encoding="utf-8")
+    other.write_text("section Demo;\n", encoding="utf-8")
     write_index(
         repo / "connectors",
         [
@@ -73,7 +73,7 @@ def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(rev
     bundle.build(repo, DAY)
     updated = frontmatter.read(page)
     generated = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
-    assert "Detected in **2** connectors" in generated.body
+    assert "**0 agent-supported; 2 uncertain or awaiting review.**" in generated.body
     assert reviews.review_reason(repo, generated) == ""
     assert updated.body == original.body
     assert updated.meta["verified"] == original.meta["verified"]
