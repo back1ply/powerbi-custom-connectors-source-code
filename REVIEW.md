@@ -47,3 +47,24 @@ source excerpts, citation metadata, and cited source bytes were unchanged.
 Repeated scope notices and generated match lists moved out of authored patterns;
 the shared scope notice appears on the site overview. Review fingerprints were
 updated for these deletions without attributing a human review.
+
+## Connector candidate assessments
+
+Candidate reviews are separate from the pattern-prose review above. The evidence
+scanner masks comments and literals, then collects labelled signals across each
+connector. Claude Haiku reviews selected source windows and lexical symbol
+mentions; it does not receive a complete parsed call graph. Its supported,
+uncertain, and rejected decisions and exact citations are stored in
+`knowledge/match-reviews.json`. The recorded model is the agent actor.
+
+`pqkb verify-matches` checks every current candidate, full connector-source and
+rule/scope fingerprints, and quotes against the supplied context. It does not
+prove that the model's reasoning is correct. Confidence is qualitative. These
+assessments never certify runtime behavior or renew authored prose reviews.
+
+During the 2026-10-19 corpus pass, Haiku assessed all connector candidates.
+The supervising `codex/gpt-6` agent checked the surrounding HTTP flow in Azure
+Device Registry and paging loop in TeamDesk and added explicit operation
+citations. Those two matches retain Haiku's verdict and have a separate
+`supplemental_review` actor, timestamp, and scope; their displayed reviewer
+attribution includes that contribution.

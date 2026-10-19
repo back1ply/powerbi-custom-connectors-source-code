@@ -49,6 +49,8 @@ jobs:
           uv run okflint validate --manifest okf-base.yaml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run pqkb verify-reviews
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pqkb verify-matches
       - name: Scan archive and bundle for secrets
         uses: ./.github/actions/scan-secrets
       - name: Build review preview

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+from pqkb.signals import SIGNALS, Signal
 
 AUTH_KINDS = ("Aad", "Anonymous", "Implicit", "Key", "OAuth", "UsernamePassword", "Windows")
 AUTH_START = re.compile(r"\bAuthentication\s*=\s*\[")
@@ -18,10 +20,28 @@ class Rule:
 
     pattern_id: str
     regexes: tuple[re.Pattern[str], ...]
+    labels: tuple[str, ...] = ()
+    scope_sha256: str = ""
+    scope: dict = field(default_factory=dict)
 
     @classmethod
     def build(cls, pattern_id: str, expressions: list[str]) -> Rule:
-        return cls(pattern_id, tuple(re.compile(e) for e in expressions))
+        signals = SIGNALS.get(
+            pattern_id, tuple(Signal("pattern expression", e) for e in expressions)
+        )
+        return cls(
+            pattern_id,
+            tuple(re.compile(s.expression) for s in signals),
+            tuple(s.label for s in signals),
+        )
+
+
+@dataclass(frozen=True)
+class Evidence:
+    file: str
+    line: int
+    label: str
+    code: str
 
 
 @dataclass(frozen=True)
@@ -29,34 +49,77 @@ class Hit:
     connector: str
     file: str
     line: int
+    evidence: tuple[Evidence, ...] = ()
+    confidence: str = "partial"
+    verdict: str = "pending"
+    reason: str = ""
+    reviewer: str = ""
+    certainty: str = ""
+    review_evidence: tuple[Evidence, ...] = ()
 
 
 def read_source(path: Path) -> str:
     return path.read_text(encoding="utf-8-sig", errors="replace")
 
 
-def first_hits(rule: Rule, connector: str, file: str, text: str) -> list[Hit]:
-    """Return the first matching line of ``text`` for ``rule`` (one hit per file)."""
-    for number, line in enumerate(text.splitlines(), start=1):
-        if any(regex.search(line) for regex in rule.regexes):
-            return [Hit(connector, file, number)]
-    return []
+def file_evidence(rule: Rule, file: str, text: str, clean: str) -> list[Evidence]:
+    lines = text.split("\n")
+    evidence = []
+    for label, regex in zip(rule.labels, rule.regexes, strict=True):
+        match = regex.search(clean)
+        if match:
+            line = clean.count("\n", 0, match.start()) + 1
+            evidence.append(Evidence(file, line, label, lines[line - 1].strip()))
+    return evidence
+
+
+def candidate_hit(connector: str, rule: Rule, files: dict, cleaned: dict) -> Hit | None:
+    evidence = [
+        e for file, text in files.items() for e in file_evidence(rule, file, text, cleaned[file])
+    ]
+    primary = next((e for e in evidence if e.label == rule.labels[0]), None)
+    if primary is None:
+        return None
+    confidence = "corroborated" if set(rule.labels) <= {e.label for e in evidence} else "partial"
+    return Hit(connector, primary.file, primary.line, tuple(evidence), confidence)
 
 
 def scan(sources: dict[str, dict[str, str]], rules: list[Rule]) -> dict[str, list[Hit]]:
-    """Map each pattern id to its hits. ``sources`` is connector -> file -> text."""
+    """Collect candidates; corroboration is co-occurrence, not data-flow proof."""
     hits: dict[str, list[Hit]] = {rule.pattern_id: [] for rule in rules}
     for connector, files in sources.items():
-        for file, text in files.items():
-            for rule in rules:
-                hits[rule.pattern_id].extend(first_hits(rule, connector, file, text))
+        cleaned = {file: _strip_strings_and_comments(text) for file, text in files.items()}
+        for rule in rules:
+            hit = candidate_hit(connector, rule, files, cleaned)
+            if hit is not None:
+                hits[rule.pattern_id].append(hit)
     return hits
 
 
+def _blank(text: str) -> str:
+    return "".join("\n" if char == "\n" else " " for char in text)
+
+
+def _block_end(text: str, start: int) -> int:
+    # M comments do not nest: https://learn.microsoft.com/powerquery-m/m-spec-lexical-structure
+    end = text.find("*/", start + 2)
+    return len(text) if end == -1 else end + 2
+
+
 def _strip_strings_and_comments(text: str) -> str:
-    """Blank out string literals and comments so brackets inside them are ignored."""
-    pattern = re.compile(r'"(?:[^"]|"")*"|//[^\n]*|/\*.*?\*/', re.DOTALL)
-    return pattern.sub(lambda m: " " * len(m.group()), text)
+    """Preserve offsets/newlines and quoted M identifiers; mask literals/comments."""
+    tokens = re.compile(r'#?"(?:[^"]|"")*"|//[^\r\n\u0085\u2028\u2029]*|/\*', re.DOTALL)
+    result = list(text)
+    offset = 0
+    while match := tokens.search(text, offset):
+        token = match.group()
+        end = _block_end(text, match.start()) if token == "/*" else match.end()
+        replacement = _blank(text[match.start() : end])
+        if token.startswith('#"'):
+            replacement = "  " + token[2:-1] + " "
+        result[match.start() : end] = replacement
+        offset = end
+    return "".join(result)
 
 
 def _record_fields(text: str, start: int) -> set[str]:

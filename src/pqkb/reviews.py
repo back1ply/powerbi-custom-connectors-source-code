@@ -17,7 +17,8 @@ from pqkb.provenance import source_path
 
 REVIEW_METADATA = {"generated", "verified", "review", "review_pending", "status"}
 MATCH_LIST = re.compile(
-    r"(?:\n# Seen in\s*)?<!-- seen-in:start -->.*?<!-- seen-in:end -->", re.DOTALL
+    r"(?:\n# (?:Seen in|Source evidence)\s*)?<!-- seen-in:start -->.*?<!-- seen-in:end -->",
+    re.DOTALL,
 )
 
 
