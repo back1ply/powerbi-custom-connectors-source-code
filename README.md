@@ -2,7 +2,7 @@
 
 [Browse the reference site](https://back1ply.github.io/powerbi-custom-connectors-source-code/): source-reviewed patterns, connector source links, authentication tags, and a refresh log.
 
-This unofficial archive extracts Microsoft's certified Power BI connector packages for studying Power Query (M). Pattern explanations and excerpts live in `knowledge/patterns/`; the Python tools generate the connector directory, indexes, and detection lists. Static evidence finds candidates; source-bound Claude Haiku assessments separate supported, uncertain, and rejected matches. These are source-reading assessments, not runtime verification. See the [source-review record](REVIEW.md) for scope and review validity.
+This unofficial archive extracts Microsoft's certified Power BI connector packages for studying Power Query (M). Pattern explanations and excerpts live in `knowledge/patterns/`; the Python tools generate the connector directory, indexes, and detection lists. Static evidence finds candidates; source-bound Claude Haiku or DeepSeek Flash assessments separate supported, uncertain, and rejected matches. These are source-reading assessments, not runtime verification. See the [source-review record](REVIEW.md) for scope and review validity.
 
 ## Local development
 
@@ -26,13 +26,17 @@ The bundle follows [Open Knowledge Format v0.2](https://github.com/GoogleCloudPl
 
 ## Pattern evidence
 
-The scanner applies evidence requirements for all 20 patterns to every connector. It masks comments and string literals while preserving line numbers and quoted M identifiers. Related calls, callback registrations, and option fields are collected across each connector. “Corroborated” means those signals co-occur; it does not establish control flow or that a helper is used.
+The scanner applies evidence requirements for all 23 patterns to every connector. It masks comments and string literals while preserving line numbers and quoted M identifiers. Related calls, callback registrations, and option fields are collected across each connector. “Corroborated” means those signals co-occur; it does not establish control flow or that a helper is used.
 
 `uv run pqkb review-matches` asks the locally installed, signed-in Claude Code CLI to review changed candidates with its `haiku` model. The reviewer receives source windows, pattern scope, and a lexical symbol inventory, with tools and MCP servers disabled. Its verdicts must cover every candidate and cite exact supplied lines. Unsupported quotes fail validation. Confidence is qualitative, not a measured probability.
+
+For the DeepSeek alternative, run `uv run pqkb review-matches --provider opencode` with OpenCode 2.0.32 and `OPENROUTER_API_KEY` configured. This selects `openrouter/deepseek/deepseek-v4.1-flash-1017`, uses a temporary isolated profile with tools denied and no MCP servers, and confirms the model through OpenCode's exported session metadata. Both providers use the same candidate and quote validation. Existing current reviews are reused across providers; provider-specific protocol fingerprints prevent relabelling a review as another provider's work.
 
 Assessments live in `knowledge/match-reviews.json`, including model identity, reasons, and citations. Full connector source, pattern scope, detection rules, reviewer prompt, and exact supplied context are fingerprinted to invalidate stale results. Supported matches become connector tags; uncertain and pending candidates remain explicitly labelled; rejected matches are omitted from the browsing lists but retained in the review record. No match does not prove that a connector lacks a technique. Candidate assessments never renew the separate pattern-prose review.
 
 Run `uv run pqkb build` after reviewing to update the reference. `uv run pqkb verify-matches` checks coverage, fingerprints, and cited quotes without contacting an LLM. Production evidence rules are in `src/pqkb/signals.py`; pattern `detect` metadata remains a fallback for patterns without a catalog entry.
+
+Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Topics include asynchronous exports, date-range filters, and function-parameter metadata. These are archived source excerpts with explicit dependencies, rather than standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source; the site gives each block its own original line numbers and source link.
 
 ## Refreshing the archive
 

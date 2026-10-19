@@ -6,6 +6,7 @@ from urllib.parse import unquote, urlsplit
 import pytest
 
 from pqkb import bundle, frontmatter
+from pqkb.excerpts import excerpts
 
 ROOT = Path(__file__).resolve().parents[1]
 PATTERNS = sorted((ROOT / "knowledge" / "patterns").glob("*.md"))
@@ -31,9 +32,13 @@ def test_pattern_excerpt_matches_its_cited_source(page):
     citations = {label: cited_source(resource) for label, resource in sources.items()}
     for lines, start in citations.values():
         assert 0 <= start < len(lines)
-    lines, start = citations["example"]
-    excerpt = re.search(r"```powerquery\n(.*?)\n```", document.body, re.DOTALL).group(1)
-    assert excerpt.splitlines() == lines[start : start + len(excerpt.splitlines())]
+    blocks = excerpts(document)
+    assert blocks, page
+    assert len({block.source_id for block in blocks}) == len(blocks)
+    for block in blocks:
+        lines, start = citations[block.source_id]
+        code_lines = block.code.split("\n")
+        assert code_lines == lines[start : start + len(code_lines)]
 
 
 def test_bundle_provenance_timestamps_have_explicit_offsets():

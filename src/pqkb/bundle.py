@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 from collections import defaultdict
 from dataclasses import dataclass, replace
@@ -59,7 +60,7 @@ def pattern_scope(pattern: Pattern) -> dict:
     return {
         "title": pattern.title,
         "description": pattern.doc.meta["description"],
-        "scope": pattern.doc.body.split("# Examples")[0],
+        "scope": re.split(r"(?m)^#{1,2} Examples\b", pattern.doc.body, maxsplit=1)[0],
     }
 
 
@@ -193,7 +194,7 @@ def update_pattern(pattern: Pattern, section: str) -> bool:
         start, end = body.index(SEEN_START), body.index(SEEN_END) + len(SEEN_END)
         new_body = body[:start] + section + body[end:]
     else:
-        new_body = body.rstrip() + "\n\n# Source evidence\n\n" + section + "\n"
+        new_body = body.rstrip() + "\n\n## Source evidence\n\n" + section + "\n"
     if new_body == body:
         return False
     pattern.path.write_text(

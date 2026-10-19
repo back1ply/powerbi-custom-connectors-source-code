@@ -30,14 +30,20 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser(
         "verify-reviews", help="check pattern reviews against prose and cited source"
     )
-    commands.add_parser("review-matches", help="review changed candidates with Claude Haiku")
+    review_parser = commands.add_parser("review-matches", help="review changed pattern candidates")
+    review_parser.add_argument(
+        "--provider",
+        choices=("claude-code", "opencode"),
+        default="claude-code",
+        help="Claude Haiku (default) or OpenCode with DeepSeek Flash",
+    )
     commands.add_parser("verify-matches", help="check source-bound candidate assessments")
     args = parser.parse_args(argv)
 
     if args.command == "review-matches":
         from pqkb.match_agent import review_matches
 
-        review_matches(args.repo)
+        review_matches(args.repo, provider=args.provider)
         return 0
     if args.command in ("verify-reviews", "verify-matches"):
         return verify(args.command, args.repo)
