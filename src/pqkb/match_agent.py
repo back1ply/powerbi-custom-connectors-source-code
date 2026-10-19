@@ -1,4 +1,4 @@
-"""Run a tool-free Claude Haiku reviewer and cache validated source citations."""
+"""Run tool-free agent reviewers and cache validated source citations."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pqkb import match_reviews
 from pqkb.bundle import load_patterns, read_sources, rules_for
+from pqkb.opencode_agent import opencode_review
 from pqkb.refresh import load_index
 from pqkb.scan import scan
 
@@ -98,12 +99,14 @@ class ReviewTask:
     matches: dict
     definitions: dict
     rules: list
+    provider: str = "claude-code"
 
 
 def review_connector(task: ReviewTask) -> tuple[str, dict]:
     packet = match_reviews.review_packet(task.name, task.files, task.matches)
     selected = {pid: task.definitions[pid] for pid in task.matches}
-    assessments, identity = claude_review(packet, selected, task.files)
+    reviewer = {"claude-code": claude_review, "opencode": opencode_review}[task.provider]
+    assessments, identity = reviewer(packet, selected, task.files)
     record = cache_record(task.files, task.rules, assessments, identity)
     record["request_sha256"] = match_reviews.request_fingerprint(packet, selected)
     return task.name, record
@@ -119,12 +122,12 @@ def save_cache(repo: Path, cache: dict) -> None:
     temporary.replace(path)
 
 
-def review_matches(repo: Path, workers: int = 2) -> None:
+def review_matches(repo: Path, workers: int = 2, provider: str = "claude-code") -> None:
     sources, rules, candidates, definitions = review_inputs(repo)
     cache = match_reviews.load_cache(repo)
     prune_removed(repo, cache, sources)
     tasks = [
-        ReviewTask(name, files, candidates[name], definitions, rules)
+        ReviewTask(name, files, candidates[name], definitions, rules, provider)
         for name, files in sources.items()
         if candidates[name]
     ]
@@ -183,7 +186,7 @@ def cache_record(files: dict, rules: list, assessments: list, identity: dict) ->
     return {
         "source_sha256": match_reviews.source_fingerprint(files),
         "rules_sha256": match_reviews.rule_fingerprint(rules),
-        "protocol_sha256": match_reviews.protocol_fingerprint(),
+        "protocol_sha256": match_reviews.protocol_fingerprint(identity.get("provider", "")),
         "reviewer": identity,
         "reviewed_at": datetime.now(UTC).isoformat(),
         "matches": assessments,

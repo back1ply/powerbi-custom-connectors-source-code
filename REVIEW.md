@@ -1,7 +1,7 @@
 # Pattern source review
 
-Reviewed by `codex/gpt-6` on 2026-10-18 at the user's request. The user delegated
-the review to an agent and requested maintenance with minimal manual work.
+Source reviews are performed by agents at the user's request. The user delegated
+the review and requested maintenance with minimal manual work.
 Current per-page verification events and fingerprints are in the pattern
 frontmatter; `uv run pqkb verify-reviews` checks whether they still match.
 
@@ -11,6 +11,26 @@ and configuration. Excerpts are also checked against the archive by pytest.
 The reviewed pages are suitable as a source-reading reference. This review does
 not execute vendor connectors, validate their API registrations, assess their
 security, or certify their behavior in Power BI, Excel, or other hosts.
+
+## Expanded guidance, 2026-10-19
+
+All 20 existing explanations were expanded with execution paths, dependencies,
+failure cases, selection guidance, and adaptation checks. Three topics were added:
+asynchronous exports, date-range request filters, and function-parameter metadata.
+The 23 pages contain 70 archived excerpts. Every excerpt is compared with its
+cited file and line range by tests and receives separate source links on the site.
+
+Claude Haiku (`claude-haiku-5-5`) drafted the expansions and performed separate
+source audits. The drafting CLI also reported `claude-opus-5-5` advisor calls.
+The supervising `codex/gpt-6` agent checked additional source ranges, resolved
+findings, and checked language and host contracts against Microsoft references.
+Verification events identify agent reviewers; they do not imply human approval.
+
+The audit caught incorrect claims about refresh-token handling, URI parameter
+types, current request hosts, option scope, and metadata preservation. It also
+identified unused validation bindings, polling that accepts non-success states,
+and different retry budgets at HTTP and GraphQL levels. These are source findings,
+not results from executing the archived connectors.
 
 ## Corrections made
 
@@ -52,7 +72,7 @@ updated for these deletions without attributing a human review.
 
 Candidate reviews are separate from the pattern-prose review above. The evidence
 scanner masks comments and literals, then collects labelled signals across each
-connector. Claude Haiku reviews selected source windows and lexical symbol
+connector. Claude Haiku or DeepSeek Flash reviews selected source windows and lexical symbol
 mentions; it does not receive a complete parsed call graph. Its supported,
 uncertain, and rejected decisions and exact citations are stored in
 `knowledge/match-reviews.json`. The recorded model is the agent actor.
@@ -62,9 +82,15 @@ rule/scope fingerprints, and quotes against the supplied context. It does not
 prove that the model's reasoning is correct. Confidence is qualitative. These
 assessments never certify runtime behavior or renew authored prose reviews.
 
-During the 2026-10-19 corpus pass, Haiku assessed all connector candidates.
-The supervising `codex/gpt-6` agent checked the surrounding HTTP flow in Azure
-Device Registry and paging loop in TeamDesk and added explicit operation
-citations. Those two matches retain Haiku's verdict and have a separate
-`supplemental_review` actor, timestamp, and scope; their displayed reviewer
-attribution includes that contribution.
+OpenCode's DeepSeek path uses an isolated temporary profile with all tools
+denied and no MCP servers. Its recorded model comes from the exported session,
+not just the requested command-line name. Provider-specific protocol hashes
+bind the CLI version, model, and review policy. Current reviews from either
+provider can be reused without attributing one model's work to another.
+
+For SurveyMonkey, the supervising `codex/gpt-6` agent checked the shared entry,
+domain-selection requests, module loading, and tracing gate, then added the
+underlying `Web.Contents` and `Diagnostics.Trace` citations to Haiku's assessment.
+The original verdicts and reasons remain unchanged. Tracing is disabled by
+default; the assessment describes conditional wiring, not active trace output.
+These citation supplements carry their own actor and timestamp in the ledger.

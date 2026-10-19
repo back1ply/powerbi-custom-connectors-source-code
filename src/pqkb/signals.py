@@ -21,6 +21,22 @@ SIGNALS = {
         ),
         Signal("action type or handler", r"\b(?:type\s+action|On(?:Insert|Update|Delete)Rows\s*=)"),
     ),
+    "async-exports": (
+        Signal("task state inspection", r"\[\s*taskState\s*\]"),
+        Signal("task identifier", r"\btaskId\b"),
+        Signal("delayed status request", call(r"Function\.InvokeAfter")),
+        Signal("HTTP operation", call(r"Web\.Contents")),
+    ),
+    "date-filters": (
+        Signal("range-start parameter", r"\bRangeStart\b"),
+        Signal("range-end parameter", r"\bRangeEnd\b"),
+        Signal("date serialization", call(r"DateTime\.ToText|DateTimeZone\.ToText")),
+    ),
+    "parameter-metadata": (
+        Signal("parameter documentation", r"\bDocumentation\.FieldCaption\s*="),
+        Signal("typed function binding", call(r"Value\.ReplaceType")),
+        Signal("function signature", r"\btype\s+function\s*\("),
+    ),
     "buffering": (Signal("explicit buffer call", call(r"(?:Table|List|Binary)\.Buffer")),),
     "credentials": (
         Signal("credential access", call(r"Extension\.CurrentCredential")),

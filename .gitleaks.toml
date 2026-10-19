@@ -7,3 +7,14 @@ condition = "AND"
 paths = ['^connectors[/\\]ExactOnlinePremium[/\\]ExactOnlinePremium\.m$']
 regexTarget = "match"
 regexes = ['^oauth_client_id\s*=\s*"[^"]+"$']
+
+[[allowlists]]
+description = "Reviewed source SHA-256 fingerprints in pattern review metadata"
+condition = "AND"
+paths = ['^(knowledge|build[/\\]knowledge)[/\\]patterns[/\\](odbc|odata|hmac)\.md$']
+regexTarget = "match"
+regexes = [
+    '^mlcreds: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27$',
+    '^intuneAuth: 3eca7d49bdeab3eaba6e6e0e7bc46c654db5c72d722b220ff571263987d8fcd8$',
+    '^access: 4c5d09ba50fc278be64e369362fc443f27ee3a76c6c3a7f2dec46cdffa1b9d3c$',
+]
