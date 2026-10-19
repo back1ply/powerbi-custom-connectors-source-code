@@ -6,24 +6,28 @@ site_dir: build/site
 theme:
   name: material
   features:
-    - navigation.sections
-    - content.code.copy
+  - navigation.indexes
+  - navigation.tracking
+  - toc.follow
+  - content.code.copy
 plugins:
-  - search
+- search
 markdown_extensions:
-  - tables
-  - footnotes
-  - pymdownx.highlight:
-      use_pygments: false
-  - pymdownx.superfences
+- tables
+- footnotes
+- pymdownx.highlight:
+    use_pygments: false
+- pymdownx.superfences
 extra_javascript:
-  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js
-  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-powerquery.min.js
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-powerquery.min.js
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/line-numbers/prism-line-numbers.min.js
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/line-highlight/prism-line-highlight.min.js
+- assets/source-lines.js
 extra_css:
-  - https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism.min.css
-nav:
-  - Overview: index.md
-  - Patterns: patterns/index.md
-  - Connectors: connectors/index.md
-  - Connector tags: tags/index.md
-  - Refresh log: log.md
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism.min.css
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/line-numbers/prism-line-numbers.min.css
+- https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/line-highlight/prism-line-highlight.min.css
+- assets/source-lines.css
+hooks:
+- src/pqkb/site_hooks.py

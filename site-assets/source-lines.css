@@ -1,0 +1,7 @@
+pre.line-numbers { padding-left: 3.8em !important; overflow: auto !important; }
+pre.line-numbers > code { overflow: visible !important; padding-left: 0 !important; }
+pre.line-numbers .line-numbers-rows { z-index: 2; }
+pre.line-numbers .line-numbers-rows,
+pre.line-numbers .line-numbers-rows > span { pointer-events: auto !important; cursor: pointer; }
+.line-highlight { scroll-margin-top: 5rem; }
+.source-reference a { margin-left: 1em; }
