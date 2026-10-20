@@ -310,7 +310,7 @@ def test_build_writes_connector_page_and_seen_in(repo):
     assert "stale_after" not in page.meta  # Building is not a source refresh.
     assert "(../patterns/retries.md)" in page.body
     pattern = (repo / "build" / "knowledge" / "patterns" / "retries.md").read_text(encoding="utf-8")
-    assert "**0 agent-supported; 1 uncertain or awaiting review.**" in pattern
+    assert "**Unreviewed match**" in pattern
     assert "Demo.pq#L12" in pattern
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored
     root = (repo / "build" / "knowledge" / "index.md").read_text(encoding="utf-8")

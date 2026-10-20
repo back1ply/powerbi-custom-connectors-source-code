@@ -4,6 +4,8 @@
 
 This unofficial archive extracts Microsoft's certified Power BI connector packages for studying Power Query (M). Pattern explanations and excerpts live in `knowledge/patterns/`; the Python tools generate the connector directory, indexes, and detection lists. Static evidence finds candidates; source-bound Claude Haiku or DeepSeek Flash assessments separate supported, uncertain, and rejected matches. These are source-reading assessments, not runtime verification. See the [source-review record](REVIEW.md) for scope and review validity.
 
+See [the roadmap](ROADMAP.md) for coverage gaps, deeper examples, runtime checks, maintenance work, and proposed OKF tool trials.
+
 ## Local development
 
 Install Python 3.12 or newer and [uv](https://docs.astral.sh/uv/), then run:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import json
 import re
 import shutil
@@ -147,37 +146,22 @@ def connector_body(
 
 def evidence_lines(hit: Hit, indent: str = "") -> list[str]:
     labels = {
-        "supported": "Agent-supported",
-        "uncertain": "Uncertain",
-        "pending": "Awaiting review",
+        "supported": "",
+        "uncertain": "Uncertain match",
+        "pending": "Unreviewed match",
     }
     state = labels[hit.verdict]
-    confidence = f"; review confidence: {hit.certainty}" if hit.certainty else ""
-    lines = [f"{indent}* **{state}** — static evidence: {hit.confidence}{confidence}."]
-    if hit.reason:
-        lines.append(f"{indent}  {html.escape(link_text(hit.reason))}")
-    if hit.reviewer:
-        lines.append(f"{indent}  Reviewer: {link_text(hit.reviewer)}; source windows only.")
+    lines = [f"{indent}* **{state}**"] if state else []
     for evidence in hit.review_evidence or hit.evidence:
         url = source_url(hit.connector, evidence.file, evidence.line)
         code = evidence.code.replace("`", "'")
-        lines.append(
-            f"{indent}  * {evidence.label}: "
-            f"[{evidence.file} line {evidence.line}]({url}) — `{code}`"
-        )
+        lines.append(f"{indent}  * [{evidence.file} line {evidence.line}]({url}) — `{code}`")
     return lines
 
 
 def seen_in_section(hits: list[Hit], records: dict[str, ConnectorRecord]) -> str:
-    supported = sum(h.verdict == "supported" for h in hits)
-    remaining = len(hits) - supported
     lines = [
         SEEN_START,
-        "",
-        f"**{supported} agent-supported; {remaining} uncertain or awaiting review.**",
-        "",
-        "Static signals and agent assessments do not establish runtime behavior. "
-        "Rejected candidates are omitted; no match does not prove absence.",
         "",
     ]
     for hit in sorted(hits, key=lambda h: h.connector.lower()):
@@ -277,9 +261,8 @@ def root_index(patterns: list[Pattern], connector_count: int) -> str:
         '---\nokf_version: "0.2"\n---\n\n'
         + "# Power Query Connector Source Reference\n\n"
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
-        + "Reviews check static source, not vendor runtime behavior. Detection excludes comments "
-        + "and string literals. Candidate evidence and source-bound agent assessments are shown "
-        + "separately; uncertain candidates may include unused helpers.\n\n"
+        + "Examples describe archived source and have not been runtime-tested. "
+        + "Uncertain and unreviewed matches are labelled.\n\n"
         + "[Download the OKF bundle](https://back1ply.github.io/"
         + "powerbi-custom-connectors-source-code/knowledge.zip).\n\n"
         + index_entry(

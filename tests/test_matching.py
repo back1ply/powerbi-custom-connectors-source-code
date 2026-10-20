@@ -132,7 +132,16 @@ def test_supported_uncertain_rejected_and_stale_reviews_render_differently(repo)
     bundle.build(repo)
     page = repo / "build/knowledge/connectors/Demo.md"
     assert "retries" in frontmatter.read(page).meta["tags"]
-    assert "Agent-supported" in frontmatter.read(page).body
+    body = frontmatter.read(page).body
+    assert f"{evidence.file} line {evidence.line}" in body
+    for review_text in (
+        "Agent-supported",
+        "static evidence:",
+        "review confidence:",
+        decision["reason"],
+        "test-agent",
+    ):
+        assert review_text not in body
     decision["verdict"] = "uncertain"
     save_cache(repo, cache)
     bundle.build(repo)
@@ -145,7 +154,7 @@ def test_supported_uncertain_rejected_and_stale_reviews_render_differently(repo)
     source = repo / "connectors/Demo/Demo.pq"
     source.write_text(source.read_text() + "\n// source changed\n")
     bundle.build(repo)
-    assert "Awaiting review" in frontmatter.read(page).body
+    assert "Unreviewed match" in frontmatter.read(page).body
     assert verify_matches(repo) == ["Demo: candidate review missing or stale"]
 
 
