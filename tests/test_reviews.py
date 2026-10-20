@@ -73,7 +73,7 @@ def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(rev
     bundle.build(repo, DAY)
     updated = frontmatter.read(page)
     generated = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
-    assert generated.body.count("**Unreviewed match**") == 2
+    assert generated.body == original.body
     assert reviews.review_reason(repo, generated) == ""
     assert updated.body == original.body
     assert updated.meta["verified"] == original.meta["verified"]

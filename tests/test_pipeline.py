@@ -179,10 +179,6 @@ detect: ['Value\\.WaitFor']
 
 Body text.
 
-# Seen in
-
-<!-- seen-in:start -->
-<!-- seen-in:end -->
 """
 
 
@@ -300,7 +296,7 @@ def test_failed_rollback_keeps_previous_tree_for_recovery(repo, monkeypatch):
     assert backups[0].read_text() == M_SOURCE
 
 
-def test_build_writes_connector_page_and_seen_in(repo):
+def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     authored = (repo / "knowledge" / "patterns" / "retries.md").read_bytes()
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
     page = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
@@ -309,9 +305,8 @@ def test_build_writes_connector_page_and_seen_in(repo):
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert "stale_after" not in page.meta  # Building is not a source refresh.
     assert "(../patterns/retries.md)" in page.body
-    pattern = (repo / "build" / "knowledge" / "patterns" / "retries.md").read_text(encoding="utf-8")
-    assert "**Unreviewed match**" in pattern
-    assert "Demo.pq#L12" in pattern
+    pattern = repo / "build" / "knowledge" / "patterns" / "retries.md"
+    assert pattern.read_bytes() == authored
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored
     root = (repo / "build" / "knowledge" / "index.md").read_text(encoding="utf-8")
     assert "patterns/index.md" in root

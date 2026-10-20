@@ -19,7 +19,6 @@ from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
 PRODUCER = "process:pqkb-build"
 STALE_AFTER = timedelta(days=14)
-SEEN_START, SEEN_END = "<!-- seen-in:start -->", "<!-- seen-in:end -->"
 VOLATILE = ("generated", "stale_after", "verified")
 CATEGORY_ORDER = (
     "Authentication",
@@ -157,35 +156,6 @@ def evidence_lines(hit: Hit, indent: str = "") -> list[str]:
         code = evidence.code.replace("`", "'")
         lines.append(f"{indent}  * [{evidence.file} line {evidence.line}]({url}) — `{code}`")
     return lines
-
-
-def seen_in_section(hits: list[Hit], records: dict[str, ConnectorRecord]) -> str:
-    lines = [
-        SEEN_START,
-        "",
-    ]
-    for hit in sorted(hits, key=lambda h: h.connector.lower()):
-        name = hit.connector
-        lines.append(f"* [{link_text(records[name].title)}](../connectors/{quote(name)}.md)")
-        lines.extend(evidence_lines(hit, indent="  "))
-    lines += ["", SEEN_END]
-    return "\n".join(lines)
-
-
-def update_pattern(pattern: Pattern, section: str) -> bool:
-    body = pattern.doc.body
-    if SEEN_START in body and SEEN_END in body:
-        start, end = body.index(SEEN_START), body.index(SEEN_END) + len(SEEN_END)
-        new_body = body[:start] + section + body[end:]
-    else:
-        new_body = body.rstrip() + "\n\n## Source evidence\n\n" + section + "\n"
-    if new_body == body:
-        return False
-    pattern.path.write_text(
-        frontmatter.render(pattern.doc.meta, new_body), encoding="utf-8", newline="\n"
-    )
-    pattern.doc.body = new_body
-    return True
 
 
 def index_entry(title: str, href: str, description: str) -> str:
@@ -421,14 +391,11 @@ def build(repo: Path, now: datetime | None = None) -> None:
     knowledge, connectors_dir = repo / "build" / "knowledge", repo / "connectors"
     records = archive_records(connectors_dir)
     patterns = render_patterns(repo, knowledge)
-    by_id = {p.pattern_id: p for p in patterns}
     sources = read_sources(connectors_dir, records)
     rules = rules_for(patterns)
     hits = match_reviews.apply_reviews(repo, sources, rules, scan(sources, rules))
 
     write_connector_pages(repo, patterns, hits, now)
-    for pattern_id, pattern_hits in hits.items():
-        update_pattern(by_id[pattern_id], seen_in_section(pattern_hits, records))
     apply_confirmation(repo)
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))
