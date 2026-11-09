@@ -313,7 +313,8 @@ let
         in
             result,
 
-    Web.JsonContents = (url as text, optional headers as record, optional additionalHandlers as record, optional jsonBody as any, optional startState as record, optional traceContext as record) =>
+    // timeout: optional Web.Contents Timeout for this request; the default Web.Contents timeout applies when null.
+    Web.JsonContents = (url as text, optional headers as record, optional additionalHandlers as record, optional jsonBody as any, optional startState as record, optional traceContext as record, optional timeout as nullable duration) =>
         let
             capacityId = Extension.CurrentApplication()[PBI_CapacityObjectId]?,
             capacityHeaders = if capacityId <> null then
@@ -338,7 +339,7 @@ let
                     SafeRequestHeaders = {UniqueRequestHeader},
                     SafeResponseHeaders = {"RequestId", "x-ms-public-api-error-code"}, // Trident responses seem to return a new unique value here
                     TraceData = (traceContext ?? []) & [RequestUrl = NonPii(url)]
-                ],
+                ] & (if timeout = null then [] else [Timeout = timeout]),
                 DefaultHandlers & [200 = JsonHandler] & (additionalHandlers ?? []),
                 startState),
 

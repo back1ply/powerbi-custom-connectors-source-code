@@ -1,4 +1,4 @@
-[ Version = "1.0.24" ]
+[ Version = "1.0.26" ]
 section OneLakeSql;
 
 AadSqlResource = "https://database.windows.net/";

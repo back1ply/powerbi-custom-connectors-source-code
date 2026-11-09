@@ -1,159 +1,204 @@
-[Version="1.0.0"]
+[Version="1.0.1"]
 section Bitbucket;
 
 [DataSource.Kind="Bitbucket", Publish="Bitbucket.Publish"]
 shared Bitbucket.Contents = Value.ReplaceType(Bitbucket.ContentsImpl, Bitbucket.ContentsType);
 
-Bitbucket.FetchCollection = (url as text, optional collectionName as text) =>
+Bitbucket.Schemas = [
+    getHookEvents = {
+    },
+    getUser = {
+    },
+    getUserWorkspaces = {
+        [Name = "type", Type = Text.Type],
+        [Name = "administrator", Type = Logical.Type],
+        [Name = "workspace.type", Type = Text.Type]
+    }
+];
+
+Bitbucket.Expansions = [
+    getHookEvents = {},
+    getUser = {},
+    getUserWorkspaces = {
+        [
+            Kind = "Record",
+            Name = "workspace",
+            Fields = {"type"},
+            Names = {"workspace.type"}
+        ]
+    }
+];
+
+Bitbucket.Collections = [
+    getHookEvents = [
+        Name = "HookEvents",
+        Key = "hook_events",
+        OperationId = "getHookEvents",
+        Path = "/hook_events",
+        Fetch = (baseUrl as text) as table =>
+            Bitbucket.FetchCollection(
+                Uri.Combine(baseUrl & "/", "hook_events"),
+                null,
+                [
+                    CollectionPath = {},
+                    Columns = Record.Field(Bitbucket.Schemas, "getHookEvents"),
+                    Expansions = Record.Field(Bitbucket.Expansions, "getHookEvents"),
+                    Paging = [Style = "none"]
+                ]
+            )
+        ],
+    getUser = [
+        Name = "User",
+        Key = "user",
+        OperationId = "getUser",
+        Path = "/user",
+        Fetch = (baseUrl as text) as table =>
+            Bitbucket.FetchCollection(
+                Uri.Combine(baseUrl & "/", "user"),
+                null,
+                [
+                    CollectionPath = {},
+                    Columns = Record.Field(Bitbucket.Schemas, "getUser"),
+                    Expansions = Record.Field(Bitbucket.Expansions, "getUser"),
+                    Paging = [Style = "none"]
+                ]
+            )
+        ],
+    getUserWorkspaces = [
+        Name = "UserWorkspaces",
+        Key = "workspaces",
+        OperationId = "getUserWorkspaces",
+        Path = "/user/workspaces",
+        Fetch = (baseUrl as text) as table =>
+            Bitbucket.FetchCollection(
+                Uri.Combine(baseUrl & "/", "user/workspaces"),
+                "values",
+                [
+                    CollectionPath = {"values"},
+                    Columns = Record.Field(Bitbucket.Schemas, "getUserWorkspaces"),
+                    Expansions = Record.Field(Bitbucket.Expansions, "getUserWorkspaces"),
+                    Paging = [Style = "nextLinkBody", NextField = "next"]
+                ]
+            )
+        ]
+];
+
+Bitbucket.BasePath = "/2.0";
+
+Bitbucket.RequestHeaders = [Accept = "application/json", Authorization = "Bearer " & Extension.CurrentCredential()[Key]];
+
+Bitbucket.Request = (url as text, optional query as nullable record) as binary =>
     let
-            __pageSize = 100,
-            pickCollection = (response as record) as list =>
-                let
-                    explicit = if collectionName <> null and Record.HasFields(response, {collectionName})
-                               then Record.Field(response, collectionName) else null,
-                    reserved = {"next_page", "previous_page", "next", "previous", "nextLink", "@odata.nextLink", "count", "total", "total_count", "page", "per_page", "page_size", "has_more", "hasMore", "meta", "links", "links_meta"},
-                    auto     = List.First(
-                        List.Select(Record.FieldNames(response), each
-                            not List.Contains(reserved, _) and
-                            Value.Is(Record.Field(response, _), type list)),
-                        null),
-                    picked   = if explicit <> null then explicit
-                               else if auto <> null then Record.Field(response, auto)
-                               else null
-                in
-                    if picked is list then picked
-                    else if picked is record then {picked}
-                    else {response},
-            __schemas = [
-                user_workspaces = [PathSuffix = "/user/workspaces", Columns = {[Name = "type", Type = Text.Type], [Name = "administrator", Type = Logical.Type], [Name = "workspace", Type = type nullable record]}]
-            ],
-            __pickSchema = (u as text) as list =>
-                let
-                    matches = List.Select(Record.FieldNames(__schemas), each Text.EndsWith(u, Record.Field(__schemas, _)[PathSuffix])),
-                    sorted  = List.Sort(matches, (a, b) => Value.Compare(Text.Length(Record.Field(__schemas, b)[PathSuffix]), Text.Length(Record.Field(__schemas, a)[PathSuffix]))),
-                    first   = List.First(sorted, null)
-                in
-                    if first = null then {} else Record.Field(__schemas, first)[Columns],
-            __cols = __pickSchema(url),
-            __sizeKnobPaths = {},
-            __sendsLimit = (u as text) as logical =>
-                List.AnyTrue(List.Transform(__sizeKnobPaths, each Text.EndsWith(u, _))),
+        manualRetryStatusCodes = {500, 502},
+        send = (attempt as number) as binary =>
+            let
+                baseOptions = [
+                    ManualStatusHandling = manualRetryStatusCodes,
+                    IsRetry = attempt > 0
+                ],
+                queryOptions = if query = null then baseOptions else Record.AddField(baseOptions, "Query", query),
+                requestOptions = if Record.FieldCount(Bitbucket.RequestHeaders) = 0
+                    then queryOptions else Record.AddField(queryOptions, "Headers", Bitbucket.RequestHeaders),
+                response = Web.Contents(url, requestOptions),
+                status = Record.FieldOrDefault(Value.Metadata(response), "Response.Status", 200)
+            in
+                if List.Contains(manualRetryStatusCodes, status) then
+                    if attempt < 2 then
+                        Function.InvokeAfter(() => @send(attempt + 1), #duration(0, 0, 0, (attempt + 1) * 1))
+                    else error Error.Record(
+                        "HttpRequestFailed",
+                        "HTTP request failed after retries.",
+                        [Status = status])
+                else response
+    in
+        send(0);
+
+Bitbucket.RequestJson = (url as text, optional query as nullable record) as any =>
+    Json.Document(Bitbucket.Request(url, query));
+
+Bitbucket.TestConnectionProbe = (baseUrl as text) as table =>
+    let
+        endpoint = Uri.Combine(baseUrl & "/", "user/workspaces"),
+        response = Binary.Buffer(Bitbucket.Request(endpoint, null))
+    in
+        #table({"Connected"}, {{Binary.Length(response) >= 0}});
+
+Bitbucket.FetchCollection = (url as text, optional collectionName as text, optional options as record) =>
+    let
+            __options = options ?? [],
+            __collectionPath = Record.FieldOrDefault(
+                __options,
+                "CollectionPath",
+                if collectionName = null then {} else Text.Split(collectionName, ".")),
+            __cols = Record.FieldOrDefault(__options, "Columns", {}),
+            __expansions = Record.FieldOrDefault(__options, "Expansions", {}),
+            __paging = Record.FieldOrDefault(__options, "Paging", [Style = "none"]),
+            __style = Record.FieldOrDefault(__paging, "Style", "none"),
+            __pageSize = Record.FieldOrDefault(__options, "PageSize", 100),
+            __readPath = (value as any, path as list) as any =>
+                List.Accumulate(
+                    path,
+                    value,
+                    (state, segment) =>
+                        if state is record and Record.HasFields(state, {segment})
+                        then Record.Field(state, segment)
+                        else null),
+            pickCollection = (response as any) as list =>
+                if response is list then response
+                else if response is record then
+                    let
+                        explicit = if List.IsEmpty(__collectionPath)
+                            then null else __readPath(response, __collectionPath),
+                        auto = if explicit <> null then null else List.First(
+                            List.Select(
+                                Record.FieldNames(response),
+                                each not List.Contains(
+                                    {"next_page", "previous_page", "next", "previous", "nextLink", "@odata.nextLink", "count", "total", "total_count", "page", "per_page", "page_size", "has_more", "hasMore", "meta", "links", "links_meta"},
+                                    _) and Value.Is(Record.Field(response, _), type list)),
+                            null),
+                        picked = if explicit <> null then explicit
+                            else if auto <> null then Record.Field(response, auto)
+                            else null
+                    in
+                        if picked is list then picked
+                        else if picked is record then {picked}
+                        else {response}
+                else {},
             toTable = (items as list) as table =>
-                if List.IsEmpty(items) then #table({}, {})
-                else ApplySchema(Table.FromRecords(List.Select(items, each _ is record)), __cols),
-            __pagingByPath = [
-                hook_events_subject_type = [PathSuffix = "/hook_events/{subject_type}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace = [PathSuffix = "/repositories/{workspace}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_branch_restrictions = [PathSuffix = "/repositories/{workspace}/{repo_slug}/branch-restrictions", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commit_commit_comments = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commit/{commit}/comments", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commit_commit_pullrequests = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests", Style = "pageNumber", PageParam = "page", StartPage = 1],
-                repositories_workspace_repo_slug_commit_commit_reports = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commit/{commit}/reports", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commit_commit_reports_reportId_annotations = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}/annotations", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commit_commit_statuses = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commit/{commit}/statuses", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commits = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commits", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_commits_revision = [PathSuffix = "/repositories/{workspace}/{repo_slug}/commits/{revision}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_default_reviewers = [PathSuffix = "/repositories/{workspace}/{repo_slug}/default-reviewers", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_deploy_keys = [PathSuffix = "/repositories/{workspace}/{repo_slug}/deploy-keys", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_deployments = [PathSuffix = "/repositories/{workspace}/{repo_slug}/deployments", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_deployments_config_environments_environment_uuid_variables = [PathSuffix = "/repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_diffstat_spec = [PathSuffix = "/repositories/{workspace}/{repo_slug}/diffstat/{spec}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_effective_default_reviewers = [PathSuffix = "/repositories/{workspace}/{repo_slug}/effective-default-reviewers", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_environments = [PathSuffix = "/repositories/{workspace}/{repo_slug}/environments", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_file_conflicts_spec = [PathSuffix = "/repositories/{workspace}/{repo_slug}/file-conflicts/{spec}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_filehistory_commit_path = [PathSuffix = "/repositories/{workspace}/{repo_slug}/filehistory/{commit}/{path}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_forks = [PathSuffix = "/repositories/{workspace}/{repo_slug}/forks", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_hooks = [PathSuffix = "/repositories/{workspace}/{repo_slug}/hooks", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_permissions_config_groups = [PathSuffix = "/repositories/{workspace}/{repo_slug}/permissions-config/groups", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_permissions_config_users = [PathSuffix = "/repositories/{workspace}/{repo_slug}/permissions-config/users", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines", Style = "pageNumber", PageParam = "page", StartPage = 1],
-                repositories_workspace_repo_slug_pipelines_config_caches = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines-config/caches", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_config_runners = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines-config/runners", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_pipeline_uuid_steps = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines/{pipeline_uuid}/steps", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_config_schedules = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines_config/schedules", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_config_schedules_schedule_uuid_executions = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines_config/schedules/{schedule_uuid}/executions", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_config_ssh_known_hosts = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pipelines_config_variables = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pipelines_config/variables", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pullrequests = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pullrequests", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pullrequests_pull_request_id_comments = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pullrequests_pull_request_id_statuses = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/statuses", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_pullrequests_pull_request_id_tasks = [PathSuffix = "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_refs = [PathSuffix = "/repositories/{workspace}/{repo_slug}/refs", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_refs_branches = [PathSuffix = "/repositories/{workspace}/{repo_slug}/refs/branches", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_refs_tags = [PathSuffix = "/repositories/{workspace}/{repo_slug}/refs/tags", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_src = [PathSuffix = "/repositories/{workspace}/{repo_slug}/src", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_src_commit_path = [PathSuffix = "/repositories/{workspace}/{repo_slug}/src/{commit}/{path}", Style = "nextLinkBody", NextField = "next"],
-                repositories_workspace_repo_slug_watchers = [PathSuffix = "/repositories/{workspace}/{repo_slug}/watchers", Style = "nextLinkBody", NextField = "next"],
-                snippets_workspace = [PathSuffix = "/snippets/{workspace}", Style = "nextLinkBody", NextField = "next"],
-                snippets_workspace_encoded_id_comments = [PathSuffix = "/snippets/{workspace}/{encoded_id}/comments", Style = "nextLinkBody", NextField = "next"],
-                snippets_workspace_encoded_id_commits = [PathSuffix = "/snippets/{workspace}/{encoded_id}/commits", Style = "nextLinkBody", NextField = "next"],
-                user_workspaces = [PathSuffix = "/user/workspaces", Style = "nextLinkBody", NextField = "next"],
-                user_workspaces_workspace_permissions_repositories = [PathSuffix = "/user/workspaces/{workspace}/permissions/repositories", Style = "nextLinkBody", NextField = "next"],
-                users_selected_user_gpg_keys = [PathSuffix = "/users/{selected_user}/gpg-keys", Style = "nextLinkBody", NextField = "next"],
-                users_selected_user_ssh_keys = [PathSuffix = "/users/{selected_user}/ssh-keys", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_hooks = [PathSuffix = "/workspaces/{workspace}/hooks", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_members = [PathSuffix = "/workspaces/{workspace}/members", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_permissions = [PathSuffix = "/workspaces/{workspace}/permissions", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_permissions_repositories = [PathSuffix = "/workspaces/{workspace}/permissions/repositories", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_permissions_repositories_repo_slug = [PathSuffix = "/workspaces/{workspace}/permissions/repositories/{repo_slug}", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_pipelines_config_runners = [PathSuffix = "/workspaces/{workspace}/pipelines-config/runners", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_pipelines_config_variables = [PathSuffix = "/workspaces/{workspace}/pipelines-config/variables", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_projects = [PathSuffix = "/workspaces/{workspace}/projects", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_projects_project_key_default_reviewers = [PathSuffix = "/workspaces/{workspace}/projects/{project_key}/default-reviewers", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_projects_project_key_deploy_keys = [PathSuffix = "/workspaces/{workspace}/projects/{project_key}/deploy-keys", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_projects_project_key_permissions_config_groups = [PathSuffix = "/workspaces/{workspace}/projects/{project_key}/permissions-config/groups", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_projects_project_key_permissions_config_users = [PathSuffix = "/workspaces/{workspace}/projects/{project_key}/permissions-config/users", Style = "nextLinkBody", NextField = "next"],
-                workspaces_workspace_pullrequests_selected_user = [PathSuffix = "/workspaces/{workspace}/pullrequests/{selected_user}", Style = "nextLinkBody", NextField = "next"]
-            ],
-            __pickPaging = (u as text) as record =>
                 let
-                    matches = List.Select(Record.FieldNames(__pagingByPath), each Text.EndsWith(u, Record.Field(__pagingByPath, _)[PathSuffix])),
-                    sorted  = List.Sort(matches, (a, b) => Value.Compare(Text.Length(Record.Field(__pagingByPath, b)[PathSuffix]), Text.Length(Record.Field(__pagingByPath, a)[PathSuffix]))),
-                    first   = List.First(sorted, null)
+                    records = List.Select(items, each _ is record),
+                    rows = if List.IsEmpty(records)
+                        then #table(List.Transform(__cols, each _[Name]), {})
+                        else Table.FromRecords(records)
                 in
-                    if first = null then [Style = "none"] else Record.Field(__pagingByPath, first),
-            __paging = __pickPaging(url),
-            __style  = __paging[Style],
-            __readPath = (rec, path) =>
-                if path = null then null else
-                List.Accumulate(Text.Split(path, "."), rec, (st, seg) =>
-                    if st is record and Record.HasFields(st, {seg}) then Record.Field(st, seg) else null),
-            getPageNLB = (nextUrl as nullable text) as nullable table =>
-                if nextUrl = null then null else
+                    ApplySchema(rows, __cols, __expansions),
+            getPageNextLinkBody = (nextUrl as nullable text, first as logical) as nullable table =>
+                if nextUrl = null or nextUrl = "" then null else
                 let
-                    response = Json.Document(Web.Contents(nextUrl, [Headers = [Authorization = "Bearer " & Extension.CurrentCredential()[Key]]])),
-                    nextLink = __readPath(response, __paging[NextField]),
-                    items    = if response is record then pickCollection(response)
-                               else if response is list then response
-                               else {},
-                    asTable  = toTable(items)
+                    limitParam = Record.FieldOrDefault(__paging, "LimitParam", null),
+                    query = if first and limitParam <> null
+                        then Record.AddField([], limitParam, Text.From(__pageSize))
+                        else null,
+                    response = Bitbucket.RequestJson(nextUrl, query),
+                    nextField = Record.FieldOrDefault(__paging, "NextField", "next_page"),
+                    nextLink = __readPath(response, Text.Split(nextField, ".")),
+                    page = toTable(pickCollection(response))
                 in
-                    asTable meta [Next = nextLink],
-            getPagePage = (page as number) as nullable table =>
-                let
-                    __ps     = __paging[PageSizeParam]?,
-                    base     = Record.AddField([], __paging[PageParam], Text.From(page)),
-                    query    = if __ps <> null and __sendsLimit(url) then Record.AddField(base, __ps, Text.From(__pageSize)) else base,
-                    response = Json.Document(Web.Contents(url, [Query = query, Headers = [Authorization = "Bearer " & Extension.CurrentCredential()[Key]]])),
-                    items    = if response is record then pickCollection(response)
-                               else if response is list then response
-                               else {},
-                    asTable  = toTable(items),
-                    rowCount = Table.RowCount(asTable),
-                    nextPage = if rowCount < __pageSize then null else page + 1
-                in
-                    if rowCount = 0 then null else asTable meta [NextPage = nextPage],
+                    page meta [Next = nextLink],
             result =
-                if __style = "nextLinkBody" then Table.GenerateByPage((previous) => let next = if previous = null then (let __lim = __paging[LimitParam]? in if __lim <> null and __sendsLimit(url) then url & (if Text.Contains(url, "?") then "&" else "?") & __lim & "=" & Text.From(__pageSize) else url) else Value.Metadata(previous)[Next] in getPageNLB(next))
-                else if __style = "pageNumber" then Table.GenerateByPage((previous) => let pg = if previous = null then __paging[StartPage] else Value.Metadata(previous)[NextPage] in if pg = null then null else getPagePage(pg))
+                if __style = "nextLinkBody" then
+                    Table.GenerateByPage(
+                        (previous) =>
+                            let nextUrl = if previous = null then url else Value.Metadata(previous)[Next]
+                            in getPageNextLinkBody(nextUrl, previous = null),
+                        toTable({}))
                 else
                     let
-                        response = Json.Document(Web.Contents(url, [Headers = [Authorization = "Bearer " & Extension.CurrentCredential()[Key]]])),
-                        items    = if response is record then pickCollection(response)
-                                   else if response is list then response
-                                   else {},
-                        r        = toTable(items)
+                        limitParam = Record.FieldOrDefault(__paging, "LimitParam", null),
+                        query = if limitParam = null then null
+                            else Record.AddField([], limitParam, Text.From(__pageSize))
                     in
-                        r
+                        toTable(pickCollection(Bitbucket.RequestJson(url, query)))
         in
             result;
 
@@ -163,24 +208,36 @@ Bitbucket.ContentsImpl = (url as text, optional options as record) =>
         __testConnection = Record.FieldOrDefault(__options, "TestConnection", false)
     in
         if __testConnection = true then
-            Bitbucket.FetchCollection(url & "/user/workspaces")
+            Bitbucket.TestConnectionProbe(NormalizeUrl(url))
         else
             let
-                    objects = #table(
-                        {"Name",      "Key",        "Data",                            "ItemKind", "ItemName", "IsLeaf"},
-                        {
-                            {"HookEvents", "hook_events", Bitbucket.FetchCollection(url & "/hook_events"), "Table", "Table", true},
-                            {"User", "user", Bitbucket.FetchCollection(url & "/user"), "Table", "Table", true},
-                            {"UserWorkspaces", "workspaces", Bitbucket.FetchCollection(url & "/user/workspaces"), "Table", "Table", true}
-                        }),
+                    baseUrl = NormalizeUrl(url),
+                    definitions = Record.ToTable(Bitbucket.Collections),
+                    withDisplayName = Table.AddColumn(definitions, "DisplayName", each [Value][Name], type text),
+                    withKey = Table.AddColumn(withDisplayName, "Key", each [Value][Key], type text),
+                    withData = Table.AddColumn(withKey, "Data", each [Value][Fetch](baseUrl), type table),
+                    withItemKind = Table.AddColumn(withData, "ItemKind", each "Table", type text),
+                    withItemName = Table.AddColumn(withItemKind, "ItemName", each "Table", type text),
+                    withIsLeaf = Table.AddColumn(withItemName, "IsLeaf", each true, type logical),
+                    selected = Table.SelectColumns(
+                        withIsLeaf,
+                        {"DisplayName", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}),
+                    objects = Table.RenameColumns(selected, {{"DisplayName", "Name"}}),
                     nav = Table.ToNavigationTable(objects, {"Key"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
                 in
                     nav;
 
 Bitbucket.ContentsType =
     let
-        url = (type text) meta [Documentation.FieldCaption = Extension.LoadString("bitbucket.Contents.Parameter.url.FieldCaption"), Documentation.FieldDescription = Extension.LoadString("bitbucket.Contents.Parameter.url.FieldDescription"), Documentation.SampleValues = {"https://api.bitbucket.org/2.0"}],
-        options = (type record) meta [Documentation.FieldCaption = Extension.LoadString("bitbucket.Contents.Parameter.options.FieldCaption"), Documentation.FieldDescription = Extension.LoadString("bitbucket.Contents.Parameter.options.FieldDescription")],
+        url = (type text) meta [
+            Documentation.FieldCaption = Extension.LoadString("bitbucket.Contents.Parameter.url.FieldCaption"),
+            Documentation.FieldDescription = Extension.LoadString("bitbucket.Contents.Parameter.url.FieldDescription"),
+            Documentation.SampleValues = {"https://api.bitbucket.org/2.0"}
+        ],
+        options = (type record) meta [
+            Documentation.FieldCaption = Extension.LoadString("bitbucket.Contents.Parameter.options.FieldCaption"),
+            Documentation.FieldDescription = Extension.LoadString("bitbucket.Contents.Parameter.options.FieldDescription")
+        ],
         t = type function (url as url, optional options as options) as table
     in
         t meta [
@@ -190,7 +247,6 @@ Bitbucket.ContentsType =
         ];
 
 Bitbucket = [
-    Description = "Bitbucket OpenAPI connector.",
     Type = "Custom",
     MakeResourcePath = (url) => url,
     ParseResourcePath = (url) => {url},
@@ -198,13 +254,13 @@ Bitbucket = [
     Authentication = [
         Key = [Label = Extension.LoadString("BearerTokenAuthLabel"), KeyLabel = Extension.LoadString("TokenLabel")]
     ],
-    Label = "Bitbucket"
+    Label = Extension.LoadString("ResourceLabel")
 ];
 
 Bitbucket.Publish = [
     Beta = true,
     Category = "Online Services",
-    ButtonText = { "Bitbucket", "Connect to Bitbucket." },
+    ButtonText = { Extension.LoadString("FormulaTitle"), Extension.LoadString("FormulaHelp") },
     SourceImage = Bitbucket.Icons,
     SourceTypeImage = Bitbucket.Icons
 ];
@@ -214,28 +270,83 @@ Bitbucket.Icons = [
     Icon32 = { Extension.Contents("Bitbucket32.png"), Extension.Contents("Bitbucket40.png"), Extension.Contents("Bitbucket48.png"), Extension.Contents("Bitbucket64.png") }
 ];
 
-Table.GenerateByPage = (getNextPage as function) as table =>
+NormalizeUrl = (url as text) as text =>
+    let
+        parts = Uri.Parts(url),
+        scheme = Text.Lower(parts[Scheme]),
+        host = Text.Lower(parts[Host]),
+        rawPort = parts[Port]?,
+        port = if rawPort = null or rawPort = 443 then ""
+               else ":" & Text.From(rawPort),
+        basePathTemplate = Bitbucket.BasePath,
+        templateSegments = List.Select(
+            Text.Split(Text.Trim(basePathTemplate, "/"), "/"),
+            each _ <> ""),
+        callerSegments = List.Select(
+            Text.Split(Text.Trim(Record.FieldOrDefault(parts, "Path", ""), "/"), "/"),
+            each _ <> ""),
+        isVariable = (segment as text) as logical =>
+            Text.StartsWith(segment, "{") and Text.EndsWith(segment, "}"),
+        hasVariables = List.Contains(List.Transform(templateSegments, isVariable), true),
+        pathMatches = List.Count(callerSegments) >= List.Count(templateSegments)
+            and List.AllTrue(List.Transform(
+                List.Positions(templateSegments),
+                (index) => isVariable(templateSegments{index})
+                    or templateSegments{index} = callerSegments{index})),
+        resolvedSegments =
+            if List.IsEmpty(templateSegments) then {}
+            else if not hasVariables then templateSegments
+            else if pathMatches then List.FirstN(callerSegments, List.Count(templateSegments))
+            else error "endpoint path does not match OpenAPI server URL pattern",
+        basePath = if List.IsEmpty(resolvedSegments)
+            then "" else "/" & Text.Combine(resolvedSegments, "/")
+    in
+        if scheme <> "https" then error "https scheme required"
+        else "https://" & host & port & basePath;
+
+Table.GenerateByPage = (getNextPage as function, optional emptyTable as nullable table) as table =>
     let
         listOfPages = List.Generate(() => getNextPage(null), (lastPage) => lastPage <> null, (lastPage) => getNextPage(lastPage)),
         tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
         firstRow = tableOfPages{0}?
     in
-        if (firstRow = null) then Table.FromRows({})
+        if (firstRow = null) then (emptyTable ?? Table.FromRows({}))
         else Value.ReplaceType(
             Table.ExpandTableColumn(tableOfPages, "Column1", Table.ColumnNames(firstRow[Column1])),
             Value.Type(firstRow[Column1]));
 
-ApplySchema = (rows as table, columns as list) as table =>
+ApplySchema = (rows as table, columns as list, expansions as list) as table =>
     let
-        present     = List.Select(columns, each List.Contains(Table.ColumnNames(rows), _[Name])),
+        normalizeList = (value as any, name as text) as list =>
+            if value is list then value
+            else if value = null then {null}
+            else error Error.Record("OpenAPI projection", "Expected a list while expanding '" & name & "'.", null),
+        normalizeRecord = (value as any, fields as list, name as text) as record =>
+            if value is record then Record.SelectFields(value, fields, MissingField.UseNull)
+            else if value = null then Record.FromList(List.Repeat({null}, List.Count(fields)), fields)
+            else error Error.Record("OpenAPI projection", "Expected a record while expanding '" & name & "'.", null),
+        applyExpansion = (state as table, expansion as record) as table =>
+            if not List.Contains(Table.ColumnNames(state), expansion[Name]) then state
+            else if expansion[Kind] = "List" then
+                Table.ExpandListColumn(
+                    Table.TransformColumns(state, {{expansion[Name], each normalizeList(_, expansion[Name])}}),
+                    expansion[Name])
+            else
+                Table.ExpandRecordColumn(
+                    Table.TransformColumns(state, {{expansion[Name], each normalizeRecord(_, expansion[Fields], expansion[Name])}}),
+                    expansion[Name],
+                    expansion[Fields],
+                    expansion[Names]),
+        projected = List.Accumulate(expansions, rows, applyExpansion),
+        present = List.Select(columns, each List.Contains(Table.ColumnNames(projected), _[Name])),
         isStructured = (column as record) as logical =>
             let columnType = Type.NonNullable(column[Type])
             in columnType = type record or columnType = type list,
         conversions = List.Select(present, each not isStructured(_)),
-        structured  = List.Select(present, each isStructured(_)),
-        pairs        = List.Transform(conversions, each {_[Name], _[Type]}),
-        converted    = if List.IsEmpty(pairs) then rows else Table.TransformColumnTypes(rows, pairs),
-        operations   = List.Transform(structured, each {_[Name], (value) => value, _[Type]})
+        structured = List.Select(present, each isStructured(_)),
+        pairs = List.Transform(conversions, each {_[Name], _[Type]}),
+        converted = if List.IsEmpty(pairs) then projected else Table.TransformColumnTypes(projected, pairs),
+        operations = List.Transform(structured, each {_[Name], (value) => value, _[Type]})
     in
         if List.IsEmpty(operations) then converted
         else Table.TransformColumns(converted, operations);

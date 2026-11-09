@@ -4,7 +4,7 @@ title: PKCE and URL-safe encoding
 description: PKCE verifier transport, SHA-256, and URL-safe encoding.
 category: Authentication
 tags: [authentication]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -29,9 +29,7 @@ review:
     caller: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     callback: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     anaplan: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # PKCE and URL-safe encoding

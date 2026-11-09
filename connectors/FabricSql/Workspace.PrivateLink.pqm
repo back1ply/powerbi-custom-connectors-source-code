@@ -7,11 +7,8 @@
     2. Once the connector detects PL is enabled on the workspace, GenerateWorkspacePLUrl is called
        to generate a workspace specific URL.
     3. This base URL is passed around for all downstream connector calls.
-    4. For GC based scenarios, the connector needs to pass in a 'x-ms-fabric-s2s-access-context' header.
-       this header is built in the GetWorkspaceBaseUrl method and set in metadata of the BaseUrl so it can be
-       accessed in the Web.JsonContents which sets headers on the http calls.
-       Once Current workspace id is available to the connector, the creation logic for x-ms-fabric-s2s-access-context
-       can move to PBIRequestHeaders method.
+    4. For GC based scenarios, GetPrivateLinkS2SHeader builds the required service-to-service headers
+       when a ServiceAccessToken is available. Callers pass those headers to Web.JsonContents.
 **/
 let            
     Utils = try #shared[Utils] otherwise 
@@ -19,7 +16,6 @@ let
     
     PBIBaseUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
     AadWorkspaceApiOAuthResource = Environment.FeatureSwitch("PowerBiAadResource", "https://analysis.windows.net/powerbi/api"),
-    UseWorkspacePL = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseWorkspacePL", false)),
     WorkspacePLUrlFormat = "https://#{0}.z#{1}.w.#{2}.fabric.microsoft.com",
         
     cloud = Environment.FeatureSwitch("Cloud", "global"),
@@ -122,7 +118,7 @@ let
             else
                 false
         in
-            if UseWorkspacePL and publicAccessDeny then
+            if publicAccessDeny then
                 workspacePLUrl
             else baseUrl,
 
@@ -132,7 +128,7 @@ let
             _tenantId = tenantId ?? GetTenantIdFromToken(),
             serviceAccessContext = GenerateS2SAccessContextHeaderValue(workspaceId, _tenantId)
         in
-            if UseWorkspacePL and serviceAccessToken <> null then 
+            if serviceAccessToken <> null then
                 [
                     // Fabric S2S Access: "x-ms-s2s-actor-authorization" and "x-ms-fabric-s2s-access-context" must go together
                     #"x-ms-s2s-actor-authorization" = serviceAccessToken,

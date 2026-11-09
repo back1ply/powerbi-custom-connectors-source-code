@@ -4,7 +4,7 @@ title: Navigation tables and connection checks
 description: Navigation-column mappings and connection-test entry points.
 category: Navigation and UI
 tags: [navigation-and-ui]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -41,9 +41,7 @@ review:
     contrast: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
     json-path: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
     split-path: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Navigation tables and connection checks

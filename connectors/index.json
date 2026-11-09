@@ -2,11 +2,11 @@
   "connectors": [
     {
       "name": "Acterys",
-      "title": "Acterys : Model Automation & Planning",
+      "title": "Acterys: Model Automation & Planning",
       "description": "Connect to Acterys",
       "publisher": "Managility",
-      "version": "1.0.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Acterys/1.0.0/Acterys_1.0.0.pqx",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Acterys/1.0.1/Acterys_1.0.1.pqx",
       "files": [
         "Acterys.pq"
       ]
@@ -89,8 +89,8 @@
       "title": "Asana",
       "description": "Connect to Asana",
       "publisher": "Asana",
-      "version": "1.0.2",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Asana/1.0.2/Asana_1.0.2.pqx",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Asana/1.0.3/Asana_1.0.3.pqx",
       "files": [
         "Asana.m",
         "Table.ToNavigationTable.pqm"
@@ -123,8 +123,8 @@
       "title": "Attio",
       "description": "",
       "publisher": "Microsoft",
-      "version": "1.0.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Attio/1.0.0/Attio_1.0.0.pqx",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Attio/1.0.1/Attio_1.0.1.pqx",
       "files": [
         "Attio.pq"
       ]
@@ -282,8 +282,8 @@
       "title": "Bitbucket",
       "description": "",
       "publisher": "Microsoft",
-      "version": "1.0.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitbucket/1.0.0/Bitbucket_1.0.0.pqx",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitbucket/1.0.1/Bitbucket_1.0.1.pqx",
       "files": [
         "Bitbucket.pq"
       ]
@@ -293,8 +293,8 @@
       "title": "Bitly",
       "description": "",
       "publisher": "Microsoft",
-      "version": "1.0.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitly/1.0.0/Bitly_1.0.0.pqx",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Bitly/1.0.1/Bitly_1.0.1.pqx",
       "files": [
         "Bitly.pq"
       ]
@@ -333,8 +333,8 @@
       "title": "BQE CORE",
       "description": "Connect to BQE CORE",
       "publisher": "BQE",
-      "version": "12.0.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BQECore/12.0.0/BQECore_12.0.0.pqx",
+      "version": "12.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BQECore/12.0.1/BQECore_12.0.1.pqx",
       "files": [
         "BQECore.pq"
       ]
@@ -344,8 +344,8 @@
       "title": "BuildingConnected & TradeTapp",
       "description": "Connect to BuildingConnected & TradeTapp",
       "publisher": "Autodesk",
-      "version": "1.0.6",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BuildingConnected/1.0.6/BuildingConnected_1.0.6.pqx",
+      "version": "1.0.7",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BuildingConnected/1.0.7/BuildingConnected_1.0.7.pqx",
       "files": [
         "BuildingConnected.pq",
         "Diagnostics.pqm",
@@ -421,6 +421,22 @@
         "ClickHouseConnector.pq",
         "Diagnostics.pqm",
         "OdbcConstants.pqm"
+      ]
+    },
+    {
+      "name": "ClickHouseArrowFlight",
+      "title": "ClickHouse Arrow Flight",
+      "description": "Connect to ClickHouse over Arrow Flight SQL",
+      "publisher": "ClickHouse",
+      "version": "1.0.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/ClickHouseArrowFlight/1.0.0/ClickHouseArrowFlight_1.0.0.pqx",
+      "files": [
+        "ClickHouseArrowFlight.pq",
+        "ClickHouseSqlGenerator.pqm",
+        "Diagnostics.pqm",
+        "FlightSqlAdbcConfig.pqm",
+        "SqlGeneratorCommon.pqm",
+        "TypeInfo.pqm"
       ]
     },
     {
@@ -528,8 +544,8 @@
       "title": "Digital Construction Works Insights",
       "description": "Get Help",
       "publisher": "Microsoft",
-      "version": "1.0.2",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DCWInsights/1.0.2/DCWInsights_1.0.2.pqx",
+      "version": "1.0.3",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DCWInsights/1.0.3/DCWInsights_1.0.3.pqx",
       "files": [
         "DCWInsights.m"
       ]
@@ -595,8 +611,8 @@
       "title": "Eduframe",
       "description": "",
       "publisher": "Eduframe",
-      "version": "2.3.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Eduframe/2.3.0/Eduframe_2.3.0.pqx",
+      "version": "2.4.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Eduframe/2.4.0/Eduframe_2.4.0.pqx",
       "files": [
         "EduFrame.pq",
         "Requests.pqm"
@@ -673,11 +689,11 @@
     },
     {
       "name": "FabricSql",
-      "title": "SQL database",
-      "description": "Import data from SQL database instances in Fabric",
+      "title": "SQL database in Fabric",
+      "description": "Import data from SQL database items in Fabric",
       "publisher": "Microsoft",
-      "version": "1.2.43",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FabricSql/1.2.43/FabricSql_1.2.43.pqx",
+      "version": "1.2.47",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FabricSql/1.2.47/FabricSql_1.2.47.pqx",
       "files": [
         "FabricEnvironment.pqm",
         "FabricSql.pq",
@@ -752,6 +768,17 @@
         "STU3-FhirTypes.pqm",
         "STU3-SearchParameterFoldingPatterns.pqm",
         "Table.ToNavigationTable.pqm"
+      ]
+    },
+    {
+      "name": "FifteenFive",
+      "title": "FifteenFive",
+      "description": "",
+      "publisher": "Microsoft",
+      "version": "1.0.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FifteenFive/1.0.1/FifteenFive_1.0.1.pqx",
+      "files": [
+        "FifteenFive.pq"
       ]
     },
     {
@@ -935,8 +962,8 @@
       "title": "Kognitwin",
       "description": "Connect to Kognitwin",
       "publisher": "Kongsberg",
-      "version": "2.5.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kognitwin/2.5.0/Kognitwin_2.5.0.pqx",
+      "version": "2.5.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kognitwin/2.5.1/Kognitwin_2.5.1.pqx",
       "files": [
         "Kognitwin.pq"
       ]
@@ -960,8 +987,8 @@
       "title": "KylinDirectQuery",
       "description": "Connect to KylinDirectQuery",
       "publisher": "Kyligence",
-      "version": "1.0.5",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kyligence/1.0.5/Kyligence_1.0.5.pqx",
+      "version": "1.0.6",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kyligence/1.0.6/Kyligence_1.0.6.pqx",
       "files": [
         "Diagnostics.pqm",
         "Kyligence.m"
@@ -985,8 +1012,8 @@
       "title": "Lakehouse",
       "description": "Import data from a Lakehouse",
       "publisher": "Microsoft",
-      "version": "1.0.264",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/LakeHouse/1.0.264/LakeHouse_1.0.264.pqx",
+      "version": "1.0.267",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/LakeHouse/1.0.267/LakeHouse_1.0.267.pqx",
       "files": [
         "DeltaTableFastCopy.pqm",
         "DualTable.View.pqm",
@@ -1116,8 +1143,8 @@
       "title": "OneLake Files",
       "description": "",
       "publisher": "Microsoft",
-      "version": "1.2.11",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeFile/1.2.11/OneLakeFile_1.2.11.pqx",
+      "version": "1.2.13",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeFile/1.2.13/OneLakeFile_1.2.13.pqx",
       "files": [
         "OneLakeFile.pq",
         "Table.NavigationTableView.pqm",
@@ -1131,8 +1158,8 @@
       "title": "OneLakeSql",
       "description": "",
       "publisher": "Microsoft",
-      "version": "1.0.24",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeSql/1.0.24/OneLakeSql_1.0.24.pqx",
+      "version": "1.0.26",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/OneLakeSql/1.0.26/OneLakeSql_1.0.26.pqx",
       "files": [
         "OneLakeSql.pq",
         "Table.NavigationTableView.pqm",
@@ -1215,8 +1242,8 @@
       "title": "Dataflows",
       "description": "Import data from a dataflow",
       "publisher": "Microsoft",
-      "version": "3.1.33",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerPlatformDataflows/3.1.33/PowerPlatformDataflows_3.1.33.pqx",
+      "version": "3.1.35",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerPlatformDataflows/3.1.35/PowerPlatformDataflows_3.1.35.pqx",
       "files": [
         "Cdsa.Workspace.pqm",
         "Fabric.GetClusterUrl.pqm",
@@ -1466,8 +1493,8 @@
       "title": "Supermetrics",
       "description": "",
       "publisher": "Supermetrics",
-      "version": "3.3.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Supermetrics/3.3.0/Supermetrics_3.3.0.pqx",
+      "version": "3.4.0",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Supermetrics/3.4.0/Supermetrics_3.4.0.pqx",
       "files": [
         "Icons.pqm",
         "Supermetrics.m"
@@ -1501,9 +1528,9 @@
       "name": "TeamDesk.PowerBI.DataConnector",
       "title": "TeamDesk.PowerBI.DataConnector",
       "description": "",
-      "publisher": "ForeSoft",
-      "version": "1.0.1",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TeamDesk/1.0.1/TeamDesk_1.0.1.pqx",
+      "publisher": "Microsoft",
+      "version": "1.0.2",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/TeamDesk/1.0.2/TeamDesk_1.0.2.pqx",
       "files": [
         "TeamDesk.m"
       ]
@@ -1610,8 +1637,8 @@
       "title": "Warehouse",
       "description": "Import Warehouse",
       "publisher": "Microsoft",
-      "version": "1.2.45",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Warehouse/1.2.45/Warehouse_1.2.45.pqx",
+      "version": "1.2.48",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Warehouse/1.2.48/Warehouse_1.2.48.pqx",
       "files": [
         "FabricEnvironment.pqm",
         "OutputInterceptor.pqm",
@@ -1687,8 +1714,8 @@
       "title": "Wrike",
       "description": "Connect to Wrike",
       "publisher": "Microsoft",
-      "version": "1.1.0",
-      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.0/Wrike_1.1.0.pqx",
+      "version": "1.1.1",
+      "package_url": "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.1/Wrike_1.1.1.pqx",
       "files": [
         "Table.EmptyTable.pqm",
         "Table.GenerateByPage.pqm",
