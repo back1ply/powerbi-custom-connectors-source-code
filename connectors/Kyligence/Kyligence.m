@@ -1,5 +1,5 @@
 ﻿// This file contains your Data Connector logic
-[Version = "1.0.5", Traits = [GatewayRequired = true]]
+[Version = "1.0.6", Traits = [GatewayRequired = true]]
 section Kyligence;
 
 EnableTraceOutput = true;
@@ -11,22 +11,22 @@ shared Kyligence.Database = Value.ReplaceType(KyligenceImpl, KyligenceType);
 KyligenceType = type function (
     Server as (type text meta [
         Documentation.FieldCaption = "Server",
-        Documentation.FieldDescription = "Your Kylingece service host address."
+        Documentation.FieldDescription = "Your Kyligence service host address."
     ]),
     Port as (type text meta [
         Documentation.FieldCaption = "Port",
-        Documentation.FieldDescription = "Your Kylingece service port."
+        Documentation.FieldDescription = "Your Kyligence service port."
     ]),
     Project as (type text meta [
         Documentation.FieldCaption = "Project",
-        Documentation.FieldDescription = "Your Kylingece project."
+        Documentation.FieldDescription = "Your Kyligence project."
     ]),
     optional options as (type record meta [
         Documentation.FieldCaption = "Options",
         Documentation.FieldDescription = "Options"
     ])) as table meta [
         Documentation.Name = "Kyligence",
-        Documentation.LongDescription = "Connect your Kyligence"
+        Documentation.LongDescription = "Connect to Kyligence"
     ];
 
 KyligenceImpl = (Server as text, Port as text, Project as text, optional options as record) as table =>
@@ -107,7 +107,7 @@ Kyligence = [
     Authentication = [
         UsernamePassword = []
     ],
-    Label = "Connect your Kyligence",
+    Label = "Connect to Kyligence",
 	Description = "Kyligence"
 ];
 
@@ -116,8 +116,8 @@ Kyligence.Publish = [
     Beta = false,
 	SupportsDirectQuery = true,
     Category = "Database",
-    ButtonText = { "Kyligence", "Connect your Kyligence" },
-    LearnMoreUrl = "http://kyligence.io/",
+    ButtonText = { "Kyligence", "Connect to Kyligence" },
+    LearnMoreUrl = "https://support.kyligence.io/",
     SourceImage = Kyligence.Icons,
     SourceTypeImage = Kyligence.Icons
 ];

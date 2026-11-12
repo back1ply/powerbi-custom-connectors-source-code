@@ -4,7 +4,7 @@ title: Schema and type enforcement
 description: Function metadata, returned table types, and dynamic expansion.
 category: Schema and errors
 tags: [schema-and-errors]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -25,9 +25,7 @@ review:
     example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     contrast: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Schema and type enforcement

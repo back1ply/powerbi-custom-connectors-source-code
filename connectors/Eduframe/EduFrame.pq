@@ -1,11 +1,16 @@
 ﻿// This file contains your Data Connector logic.
-[Version = "2.3.0"]
+[Version = "2.4.0"]
 section EduFrame;
 
 client_id = Text.FromBinary(Extension.Contents("client_id"));
 client_secret = Text.FromBinary(Extension.Contents("client_secret"));
 redirect_uri = "https://oauth.powerbi.com/views/oauthredirect.html";
-eduframe_api_url = "https://api.eduframe.nl/api/";
+// Base domain of the Eduframe instance, read from the `eduframe_domain` file so a different environment
+// (e.g. testing.eduframe.dev) can be targeted by swapping that file. Production is eduframe.nl.
+// The customer portal is expected at <slug>.<domain> and the API at api.<domain>.
+eduframe_domain = Text.Trim(Text.FromBinary(Extension.Contents("eduframe_domain")));
+eduframe_api_url = "https://api." & eduframe_domain & "/api/";
+eduframe_token_url = "https://api." & eduframe_domain & "/login/oauth2/token";
 windowWidth = 600;
 windowHeight = 600;
 scopes = "courses:read invoices:read payments:read relations:read teachers:read orders:read leads:read settings:read authentications:read enrollments:read";
@@ -13,9 +18,9 @@ scopes = "courses:read invoices:read payments:read relations:read teachers:read 
 [DataSource.Kind="EduFrame", Publish="EduFrame.Publish"]
 shared EduFrame.Contents = Value.ReplaceType(NavTable, NavTableType);
 
-// ############################################################################################################################################################
-// ######### TABLE DEFINITIONS AND SCHEMAS ####################################################################################################################
-// ############################################################################################################################################################
+// ##################################################################
+// ######### TABLE DEFINITIONS AND SCHEMAS ##########################
+// ##################################################################
 
 RELATIONS = {
     {"organizations", LoadTable("v1/organizations")},
@@ -69,7 +74,8 @@ MEETINGS = {
     {"attendances", LoadTable("v1/attendances")},
     {"meetings", LoadTable("v1/meetings")},
     {"meeting_locations", LoadTable("v1/meeting_locations")},
-    {"planning/events", LoadTable("v1/planning/events")}
+    {"planning/events", LoadTable("v1/planning/events")},
+    {"planning/availability_blocks", AvailabilityBlocksTable()}
 };
 
 MATERIALS = {
@@ -112,9 +118,9 @@ labels = Value.ReplaceType(
         ) as table
     );
 
-// ############################################################################################################################################################
-// ######### NAV TABLE CREATION ###############################################################################################################################
-// ############################################################################################################################################################
+// ##################################################################
+// ######### NAV TABLE CREATION #####################################
+// ##################################################################
 
 // Setup your connector at first load.
 // We allow the option to include or exclude personal data of users.
@@ -168,9 +174,96 @@ SubTableEducation =
 SubTable = (table as list) as table =>
     Table.ToNavigationTable(#table({"Name", "Data", "ItemKind", "ItemName", "IsLeaf"}, List.Transform(table, each {_{0}, _{1}, "Table", "Table", true})), {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf");
 
-// ############################################################################################################################################################
-// ######### DATA QUERY FUNCTIONS #############################################################################################################################
-// ############################################################################################################################################################
+// ##################################################################
+// ######### QUERY FOLDING ##########################################
+// ##################################################################
+
+AvailabilityBlocksColumns = {"availability", "teacher_id", "course_location_id", "start_date_time", "end_date_time"};
+
+AvailabilityBlocksType = type table [
+    availability = Text.Type,
+    teacher_id = Int64.Type,
+    course_location_id = Int64.Type,
+    start_date_time = DateTimeZone.Type,
+    end_date_time = DateTimeZone.Type
+];
+
+AvailabilityBlocksTable = () as table =>
+    let
+        View = (state as record) => Table.View(null, [
+            GetType = () => AvailabilityBlocksType,
+            GetRows = () =>
+                let
+                    query = Record.AddField(AvailabilityBlocksQuery(state), "per_page", "100"),
+                    raw = Table.FromRecords(Requests.PagedList(eduframe_api_url & "v1/planning/availability_blocks", query), null, MissingField.UseNull),
+                    selected = Table.SelectColumns(raw, AvailabilityBlocksColumns, MissingField.UseNull),
+                    typed = Table.TransformColumnTypes(selected, {{"start_date_time", type datetimezone}, {"end_date_time", type datetimezone}}),
+                    ascribed = Value.ReplaceType(typed, AvailabilityBlocksType),
+                    filtered = List.Accumulate(state[Conditions]? ?? {}, ascribed, (t, c) => Table.SelectRows(t, c))
+                in
+                    filtered,
+            OnSelectRows = (condition as function) =>
+                let
+                    bounds = AvailabilityBlocksBounds(RowExpression.From(condition))
+                in
+                    if bounds = null then error "Filter cannot be folded to /availability_blocks"
+                    else @View(AvailabilityBlocksMergeBounds(state, bounds) & [Conditions = (state[Conditions]? ?? {}) & {condition}])
+        ])
+    in
+        View([]);
+
+EduFrame.AvailabilityBlocksFoldedQuery = (filter as function) as nullable record =>
+    let bounds = AvailabilityBlocksBounds(RowExpression.From(filter))
+    in if bounds = null then null else AvailabilityBlocksQuery(bounds);
+
+AvailabilityBlocksQuery = (state as record) as record =>
+    let
+        fmt = (v as datetimezone) => DateTimeZone.ToText(v, "yyyy-MM-dd'T'HH:mm:sszzz"),
+        // Bounds with fractional seconds are widened outward to whole seconds so the server
+        // returns a superset; the retained residual filter removes any extra rows locally.
+        floor = (v as datetimezone) => let t = fmt(v) in if DateTimeZone.FromText(t) <= v then t else fmt(v - #duration(0, 0, 0, 1)),
+        ceil = (v as datetimezone) => let t = fmt(v) in if DateTimeZone.FromText(t) >= v then t else fmt(v + #duration(0, 0, 0, 1)),
+        lower = if state[lower]? <> null then [start = floor(DateTimeZone.From(state[lower]))] else [],
+        upper = if state[upper]? <> null then [end = ceil(DateTimeZone.From(state[upper]))] else []
+    in
+        lower & upper;
+
+// Merges two bound records: the tightest lower bound (largest) and the tightest upper bound (smallest) win.
+AvailabilityBlocksMergeBounds = (a as record, b as record) as record =>
+    let
+        pick = (name as text, choose as function) =>
+            let x = Record.Field([lower = null, upper = null] & a, name), y = Record.Field([lower = null, upper = null] & b, name)
+            in if x = null then y else if y = null then x else choose(x, y),
+        lower = pick("lower", (x, y) => if x > y then x else y),
+        upper = pick("upper", (x, y) => if x < y then x else y)
+    in
+        a & [lower = lower, upper = upper];
+
+AvailabilityBlocksBounds = (ast as record) as nullable record =>
+    let
+        dateColumns = {"start_date_time", "end_date_time"},
+        isDateColumn = (e as record) => e[Kind] = "FieldAccess" and e[Expression] = RowExpression.Row and List.Contains(dateColumns, e[MemberName]),
+        isConst = (e as record) => e[Kind] = "Constant" and (try DateTimeZone.From(e[Value]))[HasError] = false,
+        toDtz = (e as record) => DateTimeZone.From(e[Value]),
+        greater = {"GreaterThan"},
+        lesser = {"LessThan"}
+    in
+        if ast[Kind] = "Binary" and ast[Operator] = "And" then
+            let l = @AvailabilityBlocksBounds(ast[Left]), r = @AvailabilityBlocksBounds(ast[Right])
+            in if l = null or r = null then null else AvailabilityBlocksMergeBounds(l, r)
+        else if ast[Kind] = "Binary" and isDateColumn(ast[Left]) and isConst(ast[Right]) then
+            if List.Contains(greater, ast[Operator]) then [lower = toDtz(ast[Right])]
+            else if List.Contains(lesser, ast[Operator]) then [upper = toDtz(ast[Right])]
+            else null
+        else if ast[Kind] = "Binary" and isConst(ast[Left]) and isDateColumn(ast[Right]) then
+            if List.Contains(greater, ast[Operator]) then [upper = toDtz(ast[Left])]
+            else if List.Contains(lesser, ast[Operator]) then [lower = toDtz(ast[Left])]
+            else null
+        else null;
+
+// ##################################################################
+// ######### DATA QUERY FUNCTIONS ###################################
+// ##################################################################
 
 /*
 *   This function fetches all records from the Eduframe API and transforms them into a table.
@@ -182,9 +275,9 @@ QueryRecords = (resource as text, optional removals as list, optional query as n
     let resource_table = Table.FromRecords(Requests.PagedList(request_url, query_params), null, MissingField.UseNull) in
     if removals <> null then Table.RemoveColumns(resource_table, removals, MissingField.Ignore) else resource_table;
 
-// ############################################################################################################################################################
-// ######### HELPER FUNCTIONS #################################################################################################################################
-// ############################################################################################################################################################
+// ##################################################################
+// ######### HELPER FUNCTIONS #######################################
+// ##################################################################
 
 //######################################## LOADING ADDITIONAL FILES ########################################
 Extension.LoadFunction = (fileName as text) =>
@@ -207,9 +300,16 @@ Requests = Extension.LoadFunction("Requests.pqm");
 Requests.PagedList = Requests[PagedList];
 Requests.Fetch = Requests[Fetch];
 
-// ############################################################################################################################################################
-// ######### COMMON FUNCTIONS #################################################################################################################################
-// ############################################################################################################################################################
+EduFrame.Internals = [
+    Fetch = Requests.Fetch,
+    PagedList = Requests.PagedList,
+    NextLink = Requests[NextLink],
+    ApiUrl = eduframe_api_url
+];
+
+// ##################################################################
+// ######### COMMON FUNCTIONS #######################################
+// ##################################################################
 
 // Basic fuction that will convert a given table into a navigation table.
 Table.ToNavigationTable = (
@@ -235,9 +335,9 @@ Table.ToNavigationTable = (
     in
         navigationTable;
 
-// ############################################################################################################################################################
-// ######### CONNECTOR SETTINGS AND AUTHENTICATION ############################################################################################################
-// ############################################################################################################################################################
+// ##################################################################
+// ######### CONNECTOR SETTINGS AND AUTHENTICATION ##################
+// ##################################################################
 
 // Data Source Kind description.
 EduFrame = [
@@ -281,7 +381,7 @@ EduFrame.Icons = [
 // Helper method for starting the OAuth flow.
 StartLogin = (dataSourcePath, state, display) =>
         let
-            AuthorizeUrl = "https://" & Json.Document(dataSourcePath)[domainSlug] & ".eduframe.nl/login/oauth2/auth?" & Uri.BuildQueryString([
+            AuthorizeUrl = "https://" & Json.Document(dataSourcePath)[domainSlug] & "." & eduframe_domain & "/login/oauth2/auth?" & Uri.BuildQueryString([
                 client_id = client_id,
                 state = state,
                 response_type = "code",
@@ -317,7 +417,7 @@ TokenMethod = (code, grant_type, optional verifier) =>
             redirect_uri = redirect_uri
         ],
 
-        Response = Web.Contents("https://api.eduframe.nl/login/oauth2/token", [
+        Response = Web.Contents(eduframe_token_url, [
             Content = Json.FromValue(query),
             Headers = [
                 #"Content-type" = "application/json",

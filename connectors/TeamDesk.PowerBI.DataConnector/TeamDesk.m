@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2017-2018 ForeSoft Corporation
 
-[Version = "1.0.1"]
+[Version = "1.0.2"]
 section TeamDesk;
 
 // Max numbers of records API can return

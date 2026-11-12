@@ -1,4 +1,4 @@
-[ Version = "1.2.11" ]
+[ Version = "1.2.13" ]
 section OneLakeFile;
 
 apiUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com");
