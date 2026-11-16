@@ -436,15 +436,15 @@ wheels = [
 
 [[package]]
 name = "okflint"
-version = "0.5.0"
+version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/65/13/81335a898850b9e4f78db31afb825f083e2f965d5455f5e62f03fa336225/okflint-0.5.0.tar.gz", hash = "sha256:ad27033e97a1f05cad1d3d075f1a1da25425ca70f5a4b0c8e02a7fe411e7ffab", size = 182920, upload-time = "2026-10-03T11:31:33.714Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/b5/275a67ce55bd11fd6da3d120ec21311b327af36c34dd491ca5f11aa99ba7/okflint-0.5.1.tar.gz", hash = "sha256:3246931902c0fd22bb6da669a1a74179836264a9886d0785cbb9ff794e15fb97", size = 187769, upload-time = "2026-10-23T17:14:38.885Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/79/636a61f269fea31b2751e2305e901752a058ea8b01d7cd50681a44774d7f/okflint-0.5.0-py3-none-any.whl", hash = "sha256:89b98518d059ffb08096fbe293824db2ee13473eb4f6af0c4ea6eec1968041fd", size = 41966, upload-time = "2026-10-03T11:31:32.142Z" },
+    { url = "https://files.pythonhosted.org/packages/69/c0/5d5349e824d7ca0e9f17da0653c59f6a348f227d939f041c6c35dd67ee58/okflint-0.5.1-py3-none-any.whl", hash = "sha256:b6af62e0b888999ced09d4dfeb9492d9f02076c4484057e6a3c0724b7c1cfe4e", size = 44085, upload-time = "2026-10-23T17:14:37.684Z" },
 ]
 
 [[package]]
@@ -515,7 +515,7 @@ requires-dist = [{ name = "pyyaml", specifier = ">=6.0" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "okflint", specifier = "==0.5.0" },
+    { name = "okflint", specifier = "==0.5.1" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },
 ]
