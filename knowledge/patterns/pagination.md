@@ -4,7 +4,7 @@ title: Page generation and cursor traversal
 description: Cursor and offset pagination through table metadata.
 category: Data retrieval
 tags: [data-retrieval]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -53,9 +53,7 @@ review:
     contrast: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
     arg: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
     generator: 12d4a8d36904f9684d52a2d82fc67fdf565ebe7be8aa01bf14b5750f78f05637
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Page generation and cursor traversal

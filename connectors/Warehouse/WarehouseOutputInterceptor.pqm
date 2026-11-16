@@ -24,6 +24,17 @@ let
         in
             expression[Kind] = "Constant" and expression[Value] = true,
 
+    IsConstantEmptyTable = (value as table) as logical =>
+        let
+            expression = Value.Expression(Value.Optimize(value))
+        in
+            try
+                expression[Kind] = "Constant"
+                and expression[Value] is table
+                and Table.IsEmpty(expression[Value])
+            otherwise
+                false,
+
     WithCleanup = (operation as action, cleanup as function) as action =>
         Action.Sequence({
             Action.Try(operation),
@@ -298,10 +309,18 @@ let
                         Action.Sequence(
                             List.Combine(Table.TransformRows(
                                 rowsToInsert,
-                                (row) => {
-                                    interceptor[OnContainerInsertRow](version, tableId(row), Value.Type(row[Data])),
-                                    () => interceptor[OnTableInsertRows](version, tableId(row), row[Data])
-                                }))
+                                (row) =>
+                                    let
+                                        data = row[Data]
+                                    in
+                                        {
+                                            interceptor[OnContainerInsertRow](version, tableId(row), Value.Type(data)),
+                                            () =>
+                                                if IsConstantEmptyTable(data) then
+                                                    Action.DoNothing
+                                                else
+                                                    interceptor[OnTableInsertRows](version, tableId(row), data)
+                                        }))
                             & {Action.DoNothing})
                     else
                         TableAction.InsertRows(physicalContainer, rowsToInsert),

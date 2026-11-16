@@ -4,7 +4,7 @@ title: Table.View handlers
 description: Stateful Table.View handlers and request parameter generation.
 category: Query folding
 tags: [query-folding]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:42Z'
@@ -33,9 +33,7 @@ review:
     schema: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     config: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     config-value: b99f40ec06d0136f9a8a8ab5230aba848e74fd5d5d91055a39a90c9a64bddbb4
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Table.View handlers

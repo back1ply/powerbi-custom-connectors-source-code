@@ -1,4 +1,4 @@
-﻿[Version = "12.0.0"]
+﻿[Version = "12.0.1"]
 section BQECore;
 BaseUrl = Extension.LoadString("BaseUrl"); 
 //"https://api.bqecore.com/api/";
@@ -2602,7 +2602,7 @@ BQECore.Publish = [
 Beta = false,
 Category = "Other",
 ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-LearnMoreUrl = "https://corehelpcenter.bqe.com/hc/en-us/articles/360061565354-Core-Microsoft-Power-BI-integration",
+LearnMoreUrl = "https://corehelpcenter.bqe.com/hc/en-us/articles/360061565354-CORE-Microsoft-Power-BI-integration",
 SourceImage = BQECore.Icons,
 SourceTypeImage =BQECore.Icons
 ];

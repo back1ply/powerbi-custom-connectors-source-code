@@ -1,4 +1,4 @@
-﻿[Version = "1.1.0"]
+﻿[Version = "1.1.1"]
 section Wrike;
 
 //
@@ -29,7 +29,7 @@ shared Wrike.Contents = Value.ReplaceType(Contents, ContentsType);
 ContentsType = type function ()
     as table meta [
         Documentation.Name = "Wrike",
-        Documentation.LongDescription = " Shared function and first entry point to Connector. Display initial Navigation hierarchy.",
+        Documentation.LongDescription = " Shared function and first entry point to Connector. Displays initial Navigation hierarchy.",
         Documentation.Examples = {}
     ];
 Contents = () =>
