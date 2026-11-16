@@ -1,5 +1,5 @@
 [
-    Version = "1.0.264",
+    Version = "1.0.267",
     Requires = [
         Core = "[0.0,)",
         DataSource = "[0.0,)",
@@ -153,13 +153,9 @@ GetNavTableForLakehouses = (options as nullable record) as nullable table =>
         nonNullOptions = options ?? [],
         testConnection = () =>
             let
-                firstLakehouse = Workspace[GetFirstLakehouse](Extension.LoadString("NoLakehousesFound")),
-                lakehouseDbId = firstLakehouse[lakehouseDbId]?,
-                lakehouseArtifactId = firstLakehouse[lakehouseId]?,
-                workspaceId = firstLakehouse[workspaceId]?,
-                database = GetLakehouseDatabase(PBIBaseUrl, workspaceId, lakehouseDbId, lakehouseArtifactId)
+                endpoint = Workspace[FindTestConnectionEndpoint]("Lakehouse", Extension.LoadString("NoLakehousesFound"))
             in
-                Sql.TestServerConnection(database, lakehouseDbId)
+                Sql.TestServerConnection(endpoint, endpoint[artifactId])
     in
         Workspace[GetWorkspacesNavTable](GetNavTableForWorkspace, nonNullOptions, testConnection);
 
@@ -2951,7 +2947,7 @@ Sql.Contents = (serverInstance as text, dbname as text, options as record) =>
         (datasource) => GetCredential(AadSqlResource),
         () =>
             let
-                optionsToSelect = {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation"},
+                optionsToSelect = {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation", "EnableBulkInsert"},
                 curatedOptions = Record.SelectFields(options, optionsToSelect, MissingField.Ignore)
             in
                 Sql.Database(serverInstance, dbname, [EnableCrossDatabaseFolding = true] & curatedOptions)

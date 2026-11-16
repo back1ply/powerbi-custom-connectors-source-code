@@ -1,5 +1,5 @@
 // This file contains your Data Connector logic
-[Version = "1.0.6"]
+[Version = "1.0.7"]
 section BuildingConnected;
 
 // Forge OAuth2 values
@@ -541,7 +541,7 @@ BuildingConnected.Publish = [
     Beta = false,
     Category = "Online",
     ButtonText = {Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp")},
-    LearnMoreUrl = "https://www.autodesk.com/",
+    LearnMoreUrl = "https://support.buildingconnected.com/hc/en-us/articles/360010119534-How-to-contact-Customer-Support",
     SourceImage = BuildingConnected.Icons,
     SourceTypeImage = BuildingConnected.Icons
 ];

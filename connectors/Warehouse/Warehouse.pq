@@ -1,4 +1,4 @@
-[ Version = "1.2.45" ]
+[ Version = "1.2.48" ]
 section Warehouse;
 
 Extension.LoadFunction = (name as text, optional additionalContext as nullable record) =>
@@ -197,15 +197,11 @@ WarehouseImpl = (optional options as record) =>
     let
         nonNullOptions = options ?? [],
         
-        testConnection = () => let
-            firstWarehouse = Workspace[GetFirstWarehouse](Extension.LoadString("NoWarehousesFound")),
-            warehouseId = firstWarehouse[warehouseId]?,
-            workspaceId = firstWarehouse[workspaceId]?,
-            result = Workspace[GetTDSEndPoint](workspaceId, warehouseId, "Warehouse", null),
-            tdsEndPoint = result[tdsEndpoint]?,
-            displayName = result[name]?
-        in
-            Sql.TestServerConnection(tdsEndPoint, displayName, warehouseId),
+        testConnection = () =>
+            let
+                endpoint = Workspace[FindTestConnectionEndpoint]("Warehouse", Extension.LoadString("NoWarehousesFound"))
+            in
+                Sql.TestServerConnection(endpoint[tdsEndpoint], endpoint[name]?, endpoint[artifactId]),
 
         result = Workspace[GetWorkspacesNavTable](GetWarehouses, nonNullOptions, testConnection)
     in
@@ -356,7 +352,7 @@ GetWarehouse = (tdsEndPoint as text, warehouseName as text, options as record, o
         (datasource) => Utils[GetCredential](AadSqlResource),
         () =>
             let
-                curatedOptions = Record.SelectFields(options, {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation"}, MissingField.Ignore),
+                curatedOptions = Record.SelectFields(options, {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation", "EnableBulkInsert"}, MissingField.Ignore),
                 warehouse = Sql.Database(tdsEndPoint, warehouseName, curatedOptions & [EnableCrossDatabaseFolding=true]),
                 outputDestination =
                     if UseOutputInterceptorVersionedWrites then

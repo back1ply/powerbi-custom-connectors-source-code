@@ -4,7 +4,7 @@ title: Actions and table mutation handlers
 description: Actions and table mutation handlers in extracted connector implementations.
 category: Actions
 tags: [actions]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -37,9 +37,7 @@ review:
     cachetable: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
     wrapper: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
     flag: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Actions and table mutation handlers

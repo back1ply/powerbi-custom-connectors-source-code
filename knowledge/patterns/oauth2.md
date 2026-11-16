@@ -4,7 +4,7 @@ title: OAuth2 login and token refresh
 description: OAuth2 callbacks and refresh-token exchange.
 category: Authentication
 tags: [authentication]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -33,9 +33,7 @@ review:
     callback: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
     anaplan-refresh: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     asana-refresh: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # OAuth2 login and token refresh

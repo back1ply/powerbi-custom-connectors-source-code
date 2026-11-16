@@ -4,7 +4,7 @@ title: Resources and modular source loading
 description: Configuration resources, localization calls, and extracted archives.
 category: Packaging
 tags: [packaging]
-status: stable
+status: draft
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
@@ -49,9 +49,7 @@ review:
     configComma: b99f40ec06d0136f9a8a8ab5230aba848e74fd5d5d91055a39a90c9a64bddbb4
     variant: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     inlineNav: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
-verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+review_pending: Cited source content changed
 ---
 
 # Resources and modular source loading
