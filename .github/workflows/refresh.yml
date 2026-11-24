@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -87,7 +87,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: automation/certified-connectors
-          base: master
+          base: main
           add-paths: |
             connectors/
             knowledge/
@@ -144,6 +144,6 @@ jobs:
           $state = gh pr view $env:PR_NUMBER --json state --jq .state
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($state -eq 'MERGED') {
-            gh workflow run pages.yml --ref master
+            gh workflow run pages.yml --ref main
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }

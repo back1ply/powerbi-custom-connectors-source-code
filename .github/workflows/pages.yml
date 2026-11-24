@@ -2,7 +2,7 @@ name: Publish reference
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   validate:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/validate.yml
   deploy:
     needs: validate
