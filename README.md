@@ -58,7 +58,7 @@ Recognized secret values become `<redacted>`; public OAuth client IDs remain. Re
 
 The [weekly refresh](.github/workflows/refresh.yml) runs Mondays at 03:23 UTC and supports manual dispatch. It opens a PR, validates its exact commit, and merges passing updates without bypassing repository restrictions. If an `ANTHROPIC_API_KEY` repository Actions secret is configured, the refresh installs the pinned Claude Code CLI and reviews changed candidates automatically. Without that secret, unchanged assessments are reused and new or stale assessments leave a draft PR. The local Claude subscription login is not transferred to GitHub. Failed content checks or expired pattern-prose reviews also leave a draft PR; a failed secret scan prevents PR creation.
 
-The [Pages workflow](.github/workflows/pages.yml) validates and publishes `master`. Bot merges explicitly dispatch publication because their push events do not trigger another workflow. GitHub Pages and Actions PR permissions are already configured.
+The [Pages workflow](.github/workflows/pages.yml) validates and publishes `main`. Bot merges explicitly dispatch publication because their push events do not trigger another workflow. GitHub Pages and Actions PR permissions are already configured.
 
 ## Repository layout
 
