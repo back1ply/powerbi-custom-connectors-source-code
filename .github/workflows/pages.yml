@@ -26,14 +26,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Download validated site
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: reference-site-preview
           path: build/site
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build/site
       - name: Deploy reference
