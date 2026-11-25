@@ -27,7 +27,7 @@ uv run mkdocs build --strict
 uv run pqkb viz
 ```
 
-`build` regenerates the reference from `connectors/` without downloading packages and writes the OKF bundle to `bundle/`, which is committed. Preview the site with `uv run mkdocs serve`; static output goes to `build/site/`, including `viz.html` (the official OKF graph viewer) and `llms.txt`. `pqkb viz` writes the viewer to `build/viz.html` locally. Power Query highlighting loads Prism from a CDN.
+`build` regenerates the reference from `connectors/` without downloading packages and writes the OKF bundle to `bundle/`, which is committed. Preview the site with `uv run mkdocs serve`; static output goes to `build/site/`, including `viz.html` (the official OKF graph viewer) and `llms.txt`. `pqkb viz` writes the viewer to `build/viz.html` locally. The site's "Graph" navigation link always points at the published viewer, because MkDocs strict mode rejects a relative link to a file it does not build; when previewing locally, open `build/site/viz.html` or `build/viz.html`. Power Query highlighting loads Prism from a CDN.
 
 The bundle follows [Open Knowledge Format v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md) and is checked by the official validator vendored in `skills/okf-generate`. `verify-reviews` and `verify-matches` report drift and coverage; they do not fail CI.
 
@@ -43,7 +43,7 @@ Assessments live in `knowledge/match-reviews.json`, including model identity, re
 
 Run `uv run pqkb build` after reviewing to update the reference. `uv run pqkb verify-matches` checks coverage, fingerprints, and cited quotes without contacting an LLM; CI runs it as a report and never blocks on it. Production evidence rules are in `src/pqkb/signals.py`; pattern `detect` metadata remains a fallback for patterns without a catalog entry.
 
-Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Topics include asynchronous exports, date-range filters, and function-parameter metadata. These are archived source excerpts with explicit dependencies, rather than standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source while the page's review is current; the site gives each block its own original line numbers and source link. When the cited source changes, the page is frozen rather than blocking: its bundle copy gets OKF `stale_after` and a "Source changed since review" banner until an agent renews the review.
+Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Topics include asynchronous exports, date-range filters, and function-parameter metadata. These are archived source excerpts with explicit dependencies, rather than standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source while the page's review is current; the site gives each block its own original line numbers and source link. When the cited source changes, the page is frozen rather than blocking: its bundle copy gets OKF `stale_after` and a "Changed since review" banner until an agent renews the review.
 
 ## Refreshing the archive
 

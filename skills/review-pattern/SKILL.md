@@ -1,6 +1,6 @@
 ---
 name: review-pattern
-description: Renew the source review of a pattern page in this repository after the connector code it quotes has changed, by checking every claim against the current source, repairing excerpts and line references, and recording the review honestly. Use this skill when a pattern page shows "Source changed since review", when `pqkb verify-reviews` lists drifted pages, or when asked to update or re-review knowledge/patterns/*.md.
+description: Renew the source review of a pattern page in this repository after the connector code it quotes has changed, by checking every claim against the current source, repairing excerpts and line references, and recording the review honestly. Use this skill when a pattern page shows "Changed since review", when `pqkb verify-reviews` lists drifted pages, or when asked to update or re-review knowledge/patterns/*.md.
 license: MIT
 metadata:
   version: "0.1.0"
@@ -38,14 +38,15 @@ skill clears the flag properly.
    - **Code changed inside a cited range:** re-read the function and its callers,
      rewrite the affected claims, and copy excerpts again from the file exactly.
 4. Check every remaining claim against the source, including footnotes.
-5. Verify: `uv run pytest -q tests/test_knowledge.py` (excerpts must match the
-   cited lines exactly once the review is current).
-6. Record the review:
+5. Record the review:
 
    ```bash
    uv run python -c "from datetime import datetime, UTC; from pathlib import Path; from pqkb.reviews import record_review; record_review(Path.cwd(), Path('knowledge/patterns/<id>.md'), '<tool>/<model>', datetime.now(UTC))"
    ```
 
+6. Verify the excerpts: `uv run pytest -q tests/test_knowledge.py`. The test
+   skips drifted pages, so it only checks this page once the review is recorded.
+   If it fails, fix the excerpts or line references and record the review again.
 7. Rebuild and confirm: `uv run pqkb build && uv run pqkb verify-reviews`, then run
    the full test suite. Commit the page and the regenerated `bundle/` together,
    and summarize per page what changed and what you checked.

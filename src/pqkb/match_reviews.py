@@ -72,7 +72,7 @@ def rule_fingerprint(rules: list[Rule]) -> str:
     return digest(json.dumps([REVIEW_VERSION, definitions], sort_keys=True).encode())
 
 
-def current_review(cache: dict, connector: str, files: dict[str, str], rules: list[Rule]) -> dict:
+def current_review(cache: dict, connector: str, files: dict[str, str]) -> dict:
     """Return the cached review when its source and protocol still match.
 
     ``rules_sha256`` is recorded but not compared: it hashes every pattern page, so one
@@ -80,7 +80,6 @@ def current_review(cache: dict, connector: str, files: dict[str, str], rules: li
     ``review_is_usable``) already binds the candidates and pattern scope this
     connector's reviewer actually saw.
     """
-    del rules  # Kept in the signature for callers; see the docstring.
     review = cache.get(connector, {})
     provider = review.get("reviewer", {}).get("provider", "")
     if review.get("protocol_sha256") != protocol_fingerprint(provider):
@@ -255,7 +254,7 @@ def connector_reviews(repo: Path, sources: dict, rules: list[Rule], hits: dict) 
     definitions = {rule.pattern_id: rule.scope for rule in rules}
     current = {}
     for connector, files in sources.items():
-        review = current_review(cache, connector, files, rules)
+        review = current_review(cache, connector, files)
         if not review:
             continue
         candidates = {

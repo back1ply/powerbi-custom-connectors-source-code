@@ -43,7 +43,7 @@ runtime-tested; say so when it matters.
    match can sit inside an unused helper. Open the whole top-level binding around
    the match, and follow what calls it (the `shared` entry point, the navigation
    table, the `Authentication` record) before claiming a connector uses it.
-3. **Check freshness.** A pattern page with a "Source changed since review"
+3. **Check freshness.** A pattern page with a "Changed since review"
    banner, or a past `stale_after`, may quote outdated lines; confirm against the
    file in `connectors/`. The `okf-consume` skill explains trust tiers and
    staleness if the user asks how far to trust a page.

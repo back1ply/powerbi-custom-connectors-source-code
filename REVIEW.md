@@ -51,8 +51,8 @@ CRLF and LF line endings are treated equivalently.
 Changing reviewed prose, detection rules, citation metadata, or cited source
 expires the review. Since 2026-11-25 an expired review is reported, not
 enforced: the authored page is left unchanged (frozen), and its copy in
-`bundle/` gets OKF `stale_after` (the refresh receipt time) and a "Source changed
-since review" banner. OKF treats stale content as "check again", not as false.
+`bundle/` gets OKF `stale_after` (the refresh receipt time) and a "Changed since
+review" banner. OKF treats stale content as "check again", not as false.
 The excerpt test enforces exact quotes only on pages whose review is current.
 A new source review must check and, where necessary, repair the page before
 recording replacement fingerprints (`skills/review-pattern`). Hashes detect

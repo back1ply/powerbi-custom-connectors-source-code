@@ -33,7 +33,7 @@ pythonpath = ["src"]
 line-length = 100
 cache-dir = ".cache/ruff"
 src = ["src", "tests"]
-# Vendored unmodified from open-knowledge-format; see src/pqkb/viz/VENDORED.md.
+# Vendored from open-knowledge-format (viz: import-path edits only); see VENDORED.md files.
 extend-exclude = ["src/pqkb/viz", "skills/okf-generate", "skills/okf-consume"]
 
 [tool.ruff.lint]

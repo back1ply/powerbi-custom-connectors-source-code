@@ -1,3 +1,5 @@
+import json
+import zipfile
 from datetime import UTC, datetime
 
 import pytest
@@ -74,6 +76,48 @@ def test_drifted_page_gets_the_refresh_time_as_stale_after_and_rebuilds_identica
     assert built.meta["stale_after"] == "2026-10-18T00:00:00Z"
     assert built.body.lstrip().startswith(bundle.DRIFT_BANNER)
     first = built_path.read_bytes()
+    bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
+    assert built_path.read_bytes() == first
+
+
+def test_refresh_marks_drift_with_its_own_receipt_and_a_later_build_changes_nothing(
+    reviewed_repo,
+):
+    repo, page, _ = reviewed_repo
+    packages = repo.parent / f"{repo.name}-packages"
+    packages.mkdir()
+    with zipfile.ZipFile(packages / "Demo.mez", "w") as package:
+        package.writestr("Demo.pq", "section Demo;\nshared Demo.Contents = 2;\n")
+    assert main(["--repo", str(repo), "refresh", "--source-dir", str(packages)]) == 0
+    receipt = json.loads((repo / "knowledge" / "refresh.json").read_text("utf-8"))
+    built = frontmatter.read(repo / "bundle" / "patterns" / page.name)
+    assert bundle.DRIFT_BANNER in built.body
+    assert built.meta["stale_after"] == receipt["verified_at"]
+    first = {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")}
+    assert main(["--repo", str(repo), "build"]) == 0
+    assert {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")} == first
+
+
+def test_drift_banner_follows_the_page_title():
+    text = '---\ntitle: "Demo"\n---\n\n# Demo\n\nBody text.\n'
+    marked = bundle.mark_drift(text, "2026-10-18T00:00:00Z")
+    header, body = marked.split("\n---\n", 1)
+    assert header.endswith('\nstale_after: "2026-10-18T00:00:00Z"')
+    assert body == f"\n# Demo\n\n{bundle.DRIFT_BANNER}\n\nBody text.\n"
+
+
+def test_drifted_page_with_windows_line_endings_keeps_them_and_rebuilds_identically(
+    reviewed_repo,
+):
+    repo, page, source = reviewed_repo
+    page.write_bytes(page.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+    source.write_text(source.read_text() + "// Changed source context.\n", encoding="utf-8")
+    bundle.confirm_archive(repo, DAY)
+    bundle.build(repo, DAY)
+    built_path = repo / "bundle" / "patterns" / page.name
+    first = built_path.read_bytes()
+    assert bundle.DRIFT_BANNER.encode() in first
+    assert b"\r\n" in first and b"\n" not in first.replace(b"\r\n", b"")
     bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
     assert built_path.read_bytes() == first
 

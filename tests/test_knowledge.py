@@ -1,4 +1,5 @@
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -32,7 +33,7 @@ def test_pattern_excerpt_matches_its_cited_source(page):
     blocks = excerpts(document)
     assert blocks, page
     assert len({block.source_id for block in blocks}) == len(blocks)
-    if reviews.review_reason(ROOT, document):
+    if document.meta.get("review") and reviews.review_reason(ROOT, document):
         # Drifted pages are frozen and shown as stale in the bundle; their excerpts are
         # checked again when the page's review is renewed.
         return
@@ -45,9 +46,13 @@ def test_pattern_excerpt_matches_its_cited_source(page):
         assert code_lines == lines[start : start + len(code_lines)]
 
 
-def test_bundle_provenance_timestamps_have_explicit_offsets():
-    bundle.build(ROOT)
-    for page in (ROOT / "bundle").rglob("*.md"):
+def test_bundle_provenance_timestamps_have_explicit_offsets(tmp_path):
+    # Build a copy so the test never rewrites the committed bundle/ that CI diffs.
+    for name in ("connectors", "knowledge"):
+        shutil.copytree(ROOT / name, tmp_path / name)
+    shutil.copy2(ROOT / "pyproject.toml", tmp_path)
+    bundle.build(tmp_path)
+    for page in (tmp_path / "bundle").rglob("*.md"):
         metadata = frontmatter.read(page).meta
         if "type" not in metadata:
             continue

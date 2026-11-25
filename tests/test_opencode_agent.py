@@ -91,6 +91,6 @@ def test_review_protocol_is_bound_to_its_actual_provider(provider):
     files = {"Demo.pq": "shared Demo.Contents = () => OData.Feed(url);"}
     rules = [Rule.build("odata", [])]
     record = cache_record(files, rules, [], {"provider": provider, "models": ["reviewer"]})
-    assert match_reviews.current_review({"Demo": record}, "Demo", files, rules) == record
+    assert match_reviews.current_review({"Demo": record}, "Demo", files) == record
     record["reviewer"]["provider"] = "opencode" if provider == "claude-code" else "claude-code"
-    assert not match_reviews.current_review({"Demo": record}, "Demo", files, rules)
+    assert not match_reviews.current_review({"Demo": record}, "Demo", files)

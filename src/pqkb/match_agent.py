@@ -143,7 +143,7 @@ def review_matches(repo: Path, workers: int = 2, provider: str = "claude-code") 
 
 
 def task_review_current(cache: dict, task: ReviewTask) -> bool:
-    review = match_reviews.current_review(cache, task.name, task.files, task.rules)
+    review = match_reviews.current_review(cache, task.name, task.files)
     if not review:
         return False
     packet = match_reviews.review_packet(task.name, task.files, task.matches)
@@ -198,7 +198,7 @@ def verify_matches(repo: Path) -> list[str]:
     cache = match_reviews.load_cache(repo)
     problems = []
     for name, files in sources.items():
-        review = match_reviews.current_review(cache, name, files, rules)
+        review = match_reviews.current_review(cache, name, files)
         if not candidates[name]:
             continue
         if not review:

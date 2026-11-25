@@ -63,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         bundle.append_log(args.repo / "knowledge" / "log.md", changes, records, now)
         bundle.build(args.repo, now)
         bundle.confirm_archive(args.repo, now)
+        # Rebuild so drifted pattern copies take stale_after from the new receipt.
+        bundle.build(args.repo, now)
         print(
             f"Added {len(changes.added)}, updated {len(changes.updated)}, "
             f"removed {len(changes.removed)} connectors."

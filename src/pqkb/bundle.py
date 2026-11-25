@@ -427,8 +427,8 @@ def build(repo: Path, now: datetime | None = None) -> None:
 
 
 DRIFT_BANNER = (
-    "**Source changed since review:** the connector code this page quotes has changed "
-    "since the page was last reviewed. Quoted lines and line numbers may be out of date."
+    "**Changed since review:** this page or the source it cites has changed since it "
+    "was last reviewed. Quoted lines and line numbers may be out of date."
 )
 
 
