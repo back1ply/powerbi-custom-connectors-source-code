@@ -47,8 +47,10 @@ jobs:
           git diff --exit-code -- knowledge
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run okflint validate --manifest okf-base.yaml
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run pqkb verify-reviews
+      # Report only: drifted pattern pages are marked stale in the bundle, never blocking.
+      - name: Report pattern review drift
+        continue-on-error: true
+        run: uv run pqkb verify-reviews
       # Report only: stale candidate reviews keep their last verdict, labelled as older.
       - name: Report candidate review coverage
         continue-on-error: true

@@ -14,7 +14,7 @@ from urllib.parse import quote
 from pqkb import frontmatter, match_reviews
 from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
-from pqkb.reviews import authored_digest, digest, invalidate_review
+from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
 PRODUCER = "process:pqkb-build"
@@ -416,12 +416,54 @@ def build(repo: Path, now: datetime | None = None) -> None:
     shutil.copyfile(log, knowledge / "log.md")
 
 
+DRIFT_BANNER = (
+    "**Source changed since review:** the connector code this page quotes has changed "
+    "since the page was last reviewed. Quoted lines and line numbers may be out of date."
+)
+
+
+def receipt_time(repo: Path) -> str | None:
+    """Time of the last successful refresh, or None when no receipt exists."""
+    receipt = repo / "knowledge" / "refresh.json"
+    if not receipt.is_file():
+        return None
+    return iso(datetime.fromisoformat(json.loads(receipt.read_text("utf-8"))["verified_at"]))
+
+
+def mark_drift(text: str, stale_after: str | None) -> str:
+    """Flag a drifted page in its built copy without re-serializing its frontmatter.
+
+    OKF marks content to check again with ``stale_after`` (spec section 5.5). The
+    refresh receipt time keeps rebuilds byte-identical; without a receipt no date
+    is invented and only the banner is added.
+    """
+    header_end = text.index("\n---", 3)
+    header, body = text[:header_end], text[header_end + 4 :].lstrip("\n")
+    if stale_after:
+        header += f'\nstale_after: "{stale_after}"'
+    # Keep the page's H1 first so the title still renders as the heading.
+    if body.startswith("# "):
+        title, _, rest = body.partition("\n")
+        body = f"{title}\n\n{DRIFT_BANNER}\n\n{rest.lstrip()}"
+    else:
+        body = f"{DRIFT_BANNER}\n\n{body}"
+    return f"{header}\n---\n\n{body}"
+
+
 def render_patterns(repo: Path, destination: Path) -> list[Pattern]:
+    """Copy authored patterns into the bundle; authored files are never modified."""
     folder = destination / "patterns"
     folder.mkdir(parents=True, exist_ok=True)
     sources = load_patterns(repo / "knowledge" / "patterns")
     remove_stale_pages(folder, {pattern.pattern_id for pattern in sources})
+    stale_after = receipt_time(repo)
     for pattern in sources:
-        invalidate_review(repo, pattern.path)
-        shutil.copyfile(pattern.path, folder / pattern.path.name)
+        content = pattern.path.read_bytes()  # Byte copy keeps the author's line endings.
+        if pattern.doc.meta.get("review") and review_reason(repo, pattern.doc):
+            crlf = b"\r\n" in content
+            text = mark_drift(content.decode("utf-8").replace("\r\n", "\n"), stale_after)
+            content = (text.replace("\n", "\r\n") if crlf else text).encode("utf-8")
+        target = folder / pattern.path.name
+        if not target.is_file() or target.read_bytes() != content:
+            target.write_bytes(content)
     return load_patterns(folder)

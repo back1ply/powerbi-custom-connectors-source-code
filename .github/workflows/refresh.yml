@@ -64,7 +64,8 @@ jobs:
           uv run ruff format --check src tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run okflint validate --manifest okf-base.yaml
-      - name: Verify source-bound pattern reviews
+      # Report only: drifted pattern pages are marked stale in the bundle, never blocking.
+      - name: Report pattern review drift
         id: reviews
         continue-on-error: true
         run: uv run pqkb verify-reviews
@@ -82,7 +83,7 @@ jobs:
       - name: Determine refresh readiness
         id: readiness
         env:
-          READY: ${{ steps.tests.outcome == 'success' && steps.static.outcome == 'success' && steps.reviews.outcome == 'success' && steps.site.outcome == 'success' }}
+          READY: ${{ steps.tests.outcome == 'success' && steps.static.outcome == 'success' && steps.site.outcome == 'success' }}
         run: '"ready=$env:READY" >> $env:GITHUB_OUTPUT'
       - name: Open or update refresh PR
         id: pr
@@ -102,12 +103,12 @@ jobs:
             Checks run in this refresh workflow:
             - Source excerpts and pipeline: ${{ steps.tests.outcome }}
             - Lint, metadata, and links: ${{ steps.static.outcome }}
-            - Pattern prose reviews: ${{ steps.reviews.outcome }}
+            - Pattern review drift (report only, does not block): ${{ steps.reviews.outcome }}
             - Candidate review coverage (report only, does not block): ${{ steps.matches.outcome }}
             - Site build: ${{ steps.site.outcome }}
             - Secret scan: passed (a failure prevents this PR step)
 
-            Routine refreshes merge automatically only when every check passes. Changed reviewed prose or cited source invalidates its review; failures leave this PR for repair and a renewed agent or human source review.
+            Refreshes merge automatically when tests, lint, metadata and the site build pass. Pattern pages whose cited source changed are marked stale in the bundle and listed above; renew them with the review-pattern skill when convenient.
 
             Checks above run in this refresh workflow. After repairs, dispatch Validate reference on this branch. This workflow explicitly dispatches publication after a successful merge because GITHUB_TOKEN merges do not trigger push workflows.
   validate-refresh:

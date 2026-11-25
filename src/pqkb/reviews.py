@@ -85,23 +85,6 @@ def record_review(repo: Path, path: Path, reviewer: str, now: datetime) -> None:
     )
 
 
-def invalidate_review(repo: Path, path: Path) -> None:
-    document = frontmatter.read(path)
-    if not document.meta.get("review"):
-        return
-    reason = review_reason(repo, document)
-    if not reason:
-        return
-    if document.meta.get("status") == "draft" and "verified" not in document.meta:
-        return
-    document.meta["status"] = "draft"
-    document.meta["review_pending"] = reason
-    document.meta.pop("verified", None)
-    path.write_text(
-        frontmatter.render(document.meta, document.body), encoding="utf-8", newline="\n"
-    )
-
-
 def check_reviews(repo: Path) -> list[str]:
     paths = pattern_paths(repo)
     if not paths:

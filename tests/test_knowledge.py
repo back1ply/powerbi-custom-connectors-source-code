@@ -5,7 +5,7 @@ from urllib.parse import unquote, urlsplit
 
 import pytest
 
-from pqkb import bundle, frontmatter
+from pqkb import bundle, frontmatter, reviews
 from pqkb.excerpts import excerpts
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,12 +29,16 @@ def test_pattern_excerpt_matches_its_cited_source(page):
     sources = {source["id"]: source["resource"] for source in document.meta["sources"]}
     assert len(sources) == len(document.meta["sources"])
     assert set(re.findall(r"\[\^([^\]]+)\]", document.body)) <= sources.keys()
-    citations = {label: cited_source(resource) for label, resource in sources.items()}
-    for lines, start in citations.values():
-        assert 0 <= start < len(lines)
     blocks = excerpts(document)
     assert blocks, page
     assert len({block.source_id for block in blocks}) == len(blocks)
+    if reviews.review_reason(ROOT, document):
+        # Drifted pages are frozen and shown as stale in the bundle; their excerpts are
+        # checked again when the page's review is renewed.
+        return
+    citations = {label: cited_source(resource) for label, resource in sources.items()}
+    for lines, start in citations.values():
+        assert 0 <= start < len(lines)
     for block in blocks:
         lines, start = citations[block.source_id]
         code_lines = block.code.split("\n")

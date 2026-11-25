@@ -35,7 +35,9 @@ def reviewed_repo(tmp_path):
 
 
 @pytest.mark.parametrize("change", ["source", "prose", "detect", "citation"])
-def test_changed_review_scope_returns_to_draft_and_blocks_publication(reviewed_repo, change):
+def test_changed_review_scope_is_reported_and_marked_stale_without_editing_the_page(
+    reviewed_repo, change
+):
     repo, page, source = reviewed_repo
     if change == "source":
         source.write_text(source.read_text() + "// Changed source context.\n", encoding="utf-8")
@@ -48,13 +50,32 @@ def test_changed_review_scope_returns_to_draft_and_blocks_publication(reviewed_r
         else:
             document.meta["sources"][0]["resource"] = source_url("Demo", "missing.pq", 1)
         page.write_text(frontmatter.render(document.meta, document.body), encoding="utf-8")
+    authored = page.read_bytes()
     assert main(["--repo", str(repo), "verify-reviews"]) == 1
     bundle.build(repo, DAY)
-    metadata = frontmatter.read(page).meta
-    assert metadata["status"] == "draft"
-    assert "verified" not in metadata
-    assert metadata["review_pending"]
+    # The authored page is never rewritten by a build.
+    assert page.read_bytes() == authored
+    built = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
+    assert bundle.DRIFT_BANNER in built.body
+    assert built.meta["status"] == "stable"
+    assert "stale_after" not in built.meta  # No refresh receipt yet: no date is invented.
     assert reviews.check_reviews(repo)
+
+
+def test_drifted_page_gets_the_refresh_time_as_stale_after_and_rebuilds_identically(
+    reviewed_repo,
+):
+    repo, page, source = reviewed_repo
+    source.write_text(source.read_text() + "// Changed source context.\n", encoding="utf-8")
+    bundle.confirm_archive(repo, DAY)
+    bundle.build(repo, DAY)
+    built_path = repo / "build" / "knowledge" / "patterns" / page.name
+    built = frontmatter.read(built_path)
+    assert built.meta["stale_after"] == "2026-10-18T00:00:00Z"
+    assert built.body.lstrip().startswith(bundle.DRIFT_BANNER)
+    first = built_path.read_bytes()
+    bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
+    assert built_path.read_bytes() == first
 
 
 def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(reviewed_repo):
@@ -88,7 +109,7 @@ def test_windows_line_endings_do_not_expire_a_source_review(reviewed_repo):
 
 
 @pytest.mark.parametrize("field", ["verified", "status"])
-def test_fingerprints_without_a_stable_verification_cannot_publish(reviewed_repo, field):
+def test_fingerprints_without_a_stable_verification_are_reported(reviewed_repo, field):
     repo, page, _ = reviewed_repo
     document = frontmatter.read(page)
     document.meta.pop(field)
@@ -96,5 +117,5 @@ def test_fingerprints_without_a_stable_verification_cannot_publish(reviewed_repo
     assert reviews.check_reviews(repo)
 
 
-def test_empty_pattern_directory_cannot_pass_publication_checks(tmp_path):
+def test_empty_pattern_directory_is_reported(tmp_path):
     assert reviews.check_reviews(tmp_path)
