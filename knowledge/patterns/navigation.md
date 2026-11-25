@@ -11,28 +11,28 @@ generated:
 detect: ['\b(?:Table\.ToNavigationTable\s*\(|TestConnection\s*=)']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L26
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L26
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L81
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L81
   title: Asana/Asana.m
 - id: loader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L243
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L243
   title: Asana/Asana.m
 - id: pqm
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Table.ToNavigationTable.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Table.ToNavigationTable.pqm#L1
   title: Asana/Table.ToNavigationTable.pqm
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L134
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L134
   title: CommonDataService/CommonDataService.pq
 - id: json-path
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L347
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L347
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: split-path
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L218
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L218
   title: AmazonAthena/AmazonAthena.m
 review:
-  content_sha256: 8982946507965c4289154cbfaf4365755654763ef846b0580cf67e8b18a495e4
+  content_sha256: b87f97414b479561db79bb240e4c7f5c7b7d603e95f38abce6c69d810b6235ce
   sources_sha256:
     example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
@@ -42,7 +42,9 @@ review:
     json-path: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
     split-path: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

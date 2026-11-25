@@ -14,7 +14,7 @@ PATTERNS = sorted((ROOT / "knowledge" / "patterns").glob("*.md"))
 
 def cited_source(resource):
     source = urlsplit(resource)
-    relative = unquote(source.path.split("/blob/master/", 1)[1])
+    relative = unquote(source.path.split("/blob/main/", 1)[1])
     path = (ROOT / relative).resolve()
     assert path.is_relative_to((ROOT / "connectors").resolve())
     start = int(source.fragment.removeprefix("L")) - 1

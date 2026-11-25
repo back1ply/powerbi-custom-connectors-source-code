@@ -11,22 +11,22 @@ generated:
 detect: [\bTable\.View\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L37
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L37
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L173
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: schema
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L208
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L208
   title: Asana/Asana.m
 - id: config
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L4
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L4
   title: Asana/Asana.m
 - id: config-value
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Config.json#L6
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L6
   title: Asana/Config.json
 review:
-  content_sha256: 89462112834f71c3e3115afc70d913d288563c4fb17b9883c01e51e1bfa3536c
+  content_sha256: f2e58a43013218762bc4a3ad37af3ecb8d961d9991f54683db399ec45bd2cda2
   sources_sha256:
     example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
@@ -34,7 +34,9 @@ review:
     config: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     config-value: b99f40ec06d0136f9a8a8ab5230aba848e74fd5d5d91055a39a90c9a64bddbb4
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

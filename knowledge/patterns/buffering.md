@@ -11,25 +11,25 @@ generated:
 detect: ['\b(?:Table|List|Binary)\.Buffer\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L590
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L590
   title: Anaplan/Anaplan.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L316
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L316
   title: Anaplan/Anaplan.pq
 - id: traceRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L592
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L592
   title: Anaplan/Anaplan.pq
 - id: serviceBuffer
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L153
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L153
   title: Anaplan/Anaplan.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/EQuIS/EQuIS.m#L93
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/EQuIS/EQuIS.m#L93
   title: EQuIS/EQuIS.m
 - id: deltaRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/DeltaSharing/DeltaSharing.pq#L462
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
-  content_sha256: 9681ec0b751e0db94f7f37af2388918bd747c272db9983fcf40614ca53e5081c
+  content_sha256: 38cfdb66fb565d47477ff8896311da0a27b1947cf3a90f94d1b706b35254d820
   sources_sha256:
     example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     caller: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
@@ -38,7 +38,9 @@ review:
     variant: 4222a9a4f2c6bdc3e5b80ec12420f7e0915afe1a7950f55b385ce927e71b7796
     deltaRead: aae79f0dc3f8db7e72f897197af3fac23cadb4ed969505e303138ca13e82654d
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

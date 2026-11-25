@@ -11,25 +11,25 @@ generated:
 detect: ['\b(?:Action\.(?:Sequence|Return)|TableAction\.(?:InsertRows|UpdateRows|DeleteRows))\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L998
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L998
   title: LakeHouse/LakeHouse.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L962
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L962
   title: LakeHouse/LakeHouse.pq
 - id: builder
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L2806
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2806
   title: LakeHouse/LakeHouse.pq
 - id: cachetable
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L2776
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2776
   title: LakeHouse/LakeHouse.pq
 - id: wrapper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L2867
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2867
   title: LakeHouse/LakeHouse.pq
 - id: flag
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/LakeHouse/LakeHouse.pq#L57
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L57
   title: LakeHouse/LakeHouse.pq
 review:
-  content_sha256: 0225d63f9a11ba64b180f56124dcb75b2468b27b5f9cab61cb5a9df48adbcfcd
+  content_sha256: d0e124b9b91f5c395f81b8b2b92aa5b323fe2e04c7be1b02158d8038a8ce85dc
   sources_sha256:
     example: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
     caller: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
@@ -38,7 +38,9 @@ review:
     wrapper: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
     flag: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

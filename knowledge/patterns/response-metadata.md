@@ -11,28 +11,28 @@ generated:
 detect: [\bValue\.Metadata\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L64
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L64
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: option
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L32
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L32
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: status
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: skipReader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L153
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L153
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: postContent
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AzureResourceGraph/AzureResourceGraph.pq#L120
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L120
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/DeltaSharing/DeltaSharing.pq#L462
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
-  content_sha256: f4772bcaa130e54125e809debfeaa406274da3811148f19a51e95202a82f8670
+  content_sha256: b227b277545fe7ef2db7591fbf547bd150d1ddd28bdb1edc0e697cc2b7576d77
   sources_sha256:
     example: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
     caller: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
@@ -42,7 +42,9 @@ review:
     postContent: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
     variant: aae79f0dc3f8db7e72f897197af3fac23cadb4ed969505e303138ca13e82654d
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

@@ -11,22 +11,22 @@ generated:
 detect: [\bDiagnostics\.Trace\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Diagnostics.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Diagnostics.pqm#L1
   title: Actian/Diagnostics.pqm
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L178
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L178
   title: Actian/Actian.m
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L371
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L371
   title: Actian/Actian.m
 - id: anaplan
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Diagnostics.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Diagnostics.pqm#L1
   title: Anaplan/Diagnostics.pqm
 - id: anaplan-registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L810
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L810
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 272becb53d833f04c5debf9947a8fa9ca55cca9ab9cd638871c3512b9c13624d
+  content_sha256: 0bc10f7b92e6835ad76a327b2e1dd5301526dead0191a1f53797bb1897e94f02
   sources_sha256:
     example: ec0852823d563e91e08f72d06f4a06d577be886c373775390d775409ac8319df
     caller: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7
@@ -34,7 +34,9 @@ review:
     anaplan: 07760d2ccdc44bf7d0d6ef11ce4b3e92588c7e97630e327af9ad0aa6b89b2fd8
     anaplan-registration: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

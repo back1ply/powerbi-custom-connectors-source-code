@@ -103,8 +103,9 @@ def connector_meta(record: ConnectorRecord, auth: set[str], pattern_ids: set[str
         "title": record.title,
         "description": " ".join(description.split()),
         "tags": sorted({a.lower() for a in auth} | pattern_ids),
-        "publisher": record.publisher,
-        "version": record.version,
+        # Not OKF fields: extension keys use the x- prefix (OKF 0.3 section 4.1).
+        "x-pqkb-publisher": record.publisher,
+        "x-pqkb-version": record.version,
         "sources": [
             {"id": f"file-{i}", "resource": source_url(record.name, f), "title": f}
             for i, f in enumerate(record.files, start=1)
@@ -230,7 +231,15 @@ def tags_index(pages: Path) -> str:
 
 def root_index(patterns: list[Pattern], connector_count: int) -> str:
     return (
-        '---\nokf_version: "0.2"\n---\n\n'
+        '---\nokf_version: "0.3"\n'
+        "title: Power Query Connector Source Reference\n"
+        "description: >-\n"
+        "  Source of Microsoft's certified Power BI and Excel Power Query connectors, with\n"
+        "  pattern guides that cite it. Use it to see how real connectors implement\n"
+        "  authentication, paging, navigation, query folding, and error handling.\n"
+        "  Original text and tools are MIT; extracted connector source keeps its owners'\n"
+        "  rights.\n"
+        "---\n\n"
         + "# Power Query Connector Source Reference\n\n"
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
         + "Examples describe archived source and have not been runtime-tested. "

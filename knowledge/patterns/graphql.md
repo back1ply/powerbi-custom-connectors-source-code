@@ -11,52 +11,52 @@ generated:
 detect: [\bGetGraphQLPage\s*=]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L312
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L312
   title: CogniteDataSource/CogniteDataSource.pq
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L311
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L311
   title: CogniteDataSource/CogniteDataSource.pq
 - id: navEntry
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L287
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L287
   title: CogniteDataSource/CogniteDataSource.pq
 - id: callback
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L739
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L739
   title: CogniteDataSource/CogniteDataSource.pq
 - id: branch
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L1039
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1039
   title: CogniteDataSource/CogniteDataSource.pq
 - id: getgraphql
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L987
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L987
   title: CogniteDataSource/CogniteDataSource.pq
 - id: validate
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L997
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L997
   title: CogniteDataSource/CogniteDataSource.pq
 - id: transient
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L1047
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1047
   title: CogniteDataSource/CogniteDataSource.pq
 - id: shape
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L1082
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1082
   title: CogniteDataSource/CogniteDataSource.pq
 - id: cursorRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L1150
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1150
   title: CogniteDataSource/CogniteDataSource.pq
 - id: defaults
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/CogniteDataSource.pq#L5
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L5
   title: CogniteDataSource/CogniteDataSource.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ProductInsights/ProductInsightsConnector.m#L213
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L213
   title: ProductInsights/ProductInsightsConnector.m
 - id: productQuery
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ProductInsights/ProductInsightsConnector.m#L466
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L466
   title: ProductInsights/ProductInsightsConnector.m
 - id: productData
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ProductInsights/ProductInsightsConnector.m#L352
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L352
   title: ProductInsights/ProductInsightsConnector.m
 - id: generator
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
   title: CogniteDataSource/Table.GenerateByPage.pqm
 review:
-  content_sha256: 4106885409c76ff73426829455534e4cdebb40592df9ecd7da0a4e5194ca0dc4
+  content_sha256: 06e96dfefd43b9665541e57ddbe800074683844cc33a812edcdfca435dbe306e
   sources_sha256:
     example: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
     registration: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
@@ -74,7 +74,9 @@ review:
     productData: 7989bc4c862e26b6901709a67005d73756ffa3ff2f32da4316d5636e1fa6bdcc
     generator: 12d4a8d36904f9684d52a2d82fc67fdf565ebe7be8aa01bf14b5750f78f05637
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

@@ -11,22 +11,22 @@ generated:
 detect: [\bValue\.NativeQuery\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L61
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L61
   title: CommonDataService/CommonDataService.pq
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L298
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L298
   title: CommonDataService/CommonDataService.pq
 - id: wrapper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L152
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L152
   title: CommonDataService/CommonDataService.pq
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SingleStoreODBC/SingleStoreODBC.m#L375
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L375
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: hide
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SingleStoreODBC/SingleStoreODBC.m#L308
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L308
   title: SingleStoreODBC/SingleStoreODBC.m
 review:
-  content_sha256: 66809a04ac39a5b64253f14f9ecddea1f826a33c23b8be15dd73ff85f0d9b3a2
+  content_sha256: 5815467c4837f79bf45e6d7fa6836dad06d0b4ad7eac45099322ac2d986e2da7
   sources_sha256:
     example: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
     helper: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
@@ -34,7 +34,9 @@ review:
     contrast: 593c578f7107251b6c2c6ccac6235a10a07971d3e2ecaad0ff6b44b2befca1ff
     hide: 593c578f7107251b6c2c6ccac6235a10a07971d3e2ecaad0ff6b44b2befca1ff
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

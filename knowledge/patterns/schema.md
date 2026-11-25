@@ -11,22 +11,24 @@ generated:
 detect: ['\b(?:SchemaTransformTable|Table\.ChangeType|Value\.ReplaceType)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L11
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L11
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L200
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L200
   title: Asana/Asana.m
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/CommonDataService/CommonDataService.pq#L283
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L283
   title: CommonDataService/CommonDataService.pq
 review:
-  content_sha256: 26f17b3ffecbcbffb730d79d1dc1a160733f416de56e645d7661b2e191bc37b1
+  content_sha256: 8601126655d9b5cea648c65aedf777603f3aadf428f947e1567e5143d96d2f0d
   sources_sha256:
     example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     contrast: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

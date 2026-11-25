@@ -11,28 +11,28 @@ generated:
 detect: [\bRangeStart\b]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/InformationGrid/InformationGrid.pq#L71
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L71
   title: InformationGrid/InformationGrid.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L32
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L32
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: defaults
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L58
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L58
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/InformationGrid/InformationGrid.pq#L47
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L47
   title: InformationGrid/InformationGrid.pq
 - id: paging
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L115
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L115
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: query
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/InformationGrid/InformationGrid.pq#L89
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L89
   title: InformationGrid/InformationGrid.pq
 verified:
   by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 review:
-  content_sha256: 51985b7dae1067dfa5bfdc8efce7acbae17e898984c0e70b2ec634c7885259a3
+  content_sha256: 1fa9994df1559dbc1e65032b920fdd780d939653bd16518f2b0f6ee5865c06a6
   sources_sha256:
     example: 57692c235ea7f33763489154d14c500f2a1a0885e77178b72cdcf4874e8f89a9
     variant: 370dc5d1abea6ed13ba0ee182c5b03038cc7a8add2896d3fff3937b3158d7f26

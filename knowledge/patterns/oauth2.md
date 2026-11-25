@@ -11,22 +11,22 @@ generated:
 detect: ['\b(?:StartLogin|FinishLogin|Refresh)\s*=']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/GoogleSheets/GoogleSheets.pq#L48
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L48
   title: GoogleSheets/GoogleSheets.pq
 - id: start
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/GoogleSheets/GoogleSheets.pq#L9
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L9
   title: GoogleSheets/GoogleSheets.pq
 - id: callback
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/GoogleSheets/GoogleSheets.pq#L28
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L28
   title: GoogleSheets/GoogleSheets.pq
 - id: anaplan-refresh
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L92
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L92
   title: Anaplan/Anaplan.pq
 - id: asana-refresh
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L173
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 review:
-  content_sha256: 0d69eb74af9dbd6b0622f0b1eb6f519c6180fd7efe6f5ad8c6062e24798eba3e
+  content_sha256: 21f369f3e5b4e2b5281d14547fed5e419746e06406b32093e7f016186631e638
   sources_sha256:
     example: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
     start: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
@@ -34,7 +34,9 @@ review:
     anaplan-refresh: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     asana-refresh: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

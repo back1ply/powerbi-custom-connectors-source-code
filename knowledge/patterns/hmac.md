@@ -11,22 +11,22 @@ generated:
 detect: [\bCrypto\.CreateHmac\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
   title: ShortcutsBI/Function.OAuthSignatureGenerator.pqm
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/ShortcutsBI.pq#L28
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/ShortcutsBI.pq#L28
   title: ShortcutsBI/ShortcutsBI.pq
 - id: timestamp
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.TimestampGenerator.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.TimestampGenerator.pqm#L1
   title: ShortcutsBI/Function.TimestampGenerator.pqm
 - id: nonce
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.RandomStringGenerator.pqm#L1
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.RandomStringGenerator.pqm#L1
   title: ShortcutsBI/Function.RandomStringGenerator.pqm
 - id: access
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/ShortcutsBI/Function.GetAccessCode.pqm#L3
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.GetAccessCode.pqm#L3
   title: ShortcutsBI/Function.GetAccessCode.pqm
 review:
-  content_sha256: c381dd9588a7f379c28075b72234eaec95eb414a56461829538ce70f355b7f66
+  content_sha256: e4d2a0d8d5b8e3b55e4eae032f6a79acc456638a32219e36d14e13506ffcf9c6
   sources_sha256:
     example: 386be20de30e6051da9bb4697b0642066f0b23f89af211a953716bb9c1c77f99
     caller: 60f0e7fdd1a7b966a9b819e82aadb58f8512646b72518e32cd26d416b548db8d
@@ -34,7 +34,9 @@ review:
     nonce: 6d58761083c7439cc739a5740e5309c5cbda49277fe4bb491f73e949c3ffe822
     access: 4c5d09ba50fc278be64e369362fc443f27ee3a76c6c3a7f2dec46cdffa1b9d3c
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

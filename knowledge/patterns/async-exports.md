@@ -11,25 +11,25 @@ generated:
 detect: [\btaskState\b]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L618
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L618
   title: Anaplan/Anaplan.pq
 - id: chunks
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L563
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L563
   title: Anaplan/Anaplan.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L550
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L550
   title: Anaplan/Anaplan.pq
 - id: entry
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L478
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L478
   title: Anaplan/Anaplan.pq
 - id: errors
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L735
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L735
   title: Anaplan/Anaplan.pq
 verified:
   by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 review:
-  content_sha256: 7eea54a26a4555bf8f38e6343e45e4cadc5c30718008d58e7559d409cb80af97
+  content_sha256: 6a82f4954afac856375583a50e429fac0df96b9d872ffdcef997f575fd3f8ae8
   sources_sha256:
     example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     chunks: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f

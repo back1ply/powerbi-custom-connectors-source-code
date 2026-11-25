@@ -11,26 +11,28 @@ generated:
 detect: [\bExtension\.CurrentCredential\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L111
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L111
   title: Actian/Actian.m
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Actian.m#L218
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L218
   title: Actian/Actian.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L316
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L316
   title: Anaplan/Anaplan.pq
 - id: trace
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Actian/Diagnostics.pqm#L101
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Diagnostics.pqm#L101
   title: Actian/Diagnostics.pqm
 review:
-  content_sha256: ce29a8b374f2485822016e54b031bef923b5091c5722e278a296c8032ee387e8
+  content_sha256: 8909da767fa982d6f0df9d1d2eed5d33b7520840d2f5f0c3d56dcf0f11f6eb9e
   sources_sha256:
     example: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7
     caller: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7
     variant: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     trace: ec0852823d563e91e08f72d06f4a06d577be886c373775390d775409ac8319df
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

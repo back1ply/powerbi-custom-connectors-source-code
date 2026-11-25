@@ -11,22 +11,22 @@ generated:
 detect: [\bOData\.Feed\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AptixInsights/AptixInsights.pq#L37
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L37
   title: AptixInsights/AptixInsights.pq
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AptixInsights/AptixInsights.pq#L11
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L11
   title: AptixInsights/AptixInsights.pq
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AptixInsights/AptixInsights.pq#L55
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L55
   title: AptixInsights/AptixInsights.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IntuneV2/IntuneV2.pq#L33
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/IntuneV2/IntuneV2.pq#L33
   title: IntuneV2/IntuneV2.pq
 - id: intuneAuth
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/IntuneV2/IntuneV2.pq#L62
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/IntuneV2/IntuneV2.pq#L62
   title: IntuneV2/IntuneV2.pq
 review:
-  content_sha256: e02fccb818c74e5870a40bb1f0d652557703d3b15796611839e3f5955e5c8c86
+  content_sha256: e798530f90b0f1c1e697ba575463cb449d87e9f6cf543d1009d6206f7eafa2aa
   sources_sha256:
     example: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75
     helper: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75
@@ -34,7 +34,9 @@ review:
     variant: 3eca7d49bdeab3eaba6e6e0e7bc46c654db5c72d722b220ff571263987d8fcd8
     intuneAuth: 3eca7d49bdeab3eaba6e6e0e7bc46c654db5c72d722b220ff571263987d8fcd8
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

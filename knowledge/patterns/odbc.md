@@ -11,37 +11,37 @@ generated:
 detect: ['\bOdbc\.(?:DataSource|Query)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L67
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L67
   title: AmazonAthena/AmazonAthena.m
 - id: athena-connect
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L123
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L123
   title: AmazonAthena/AmazonAthena.m
 - id: athena-sqlcolumns
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L145
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L145
   title: AmazonAthena/AmazonAthena.m
 - id: athena-capabilities
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L163
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L163
   title: AmazonAthena/AmazonAthena.m
 - id: athena-ui
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/AmazonAthena/AmazonAthena.m#L240
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L240
   title: AmazonAthena/AmazonAthena.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L303
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L303
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: directquery
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L362
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L362
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlcreds
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L132
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L132
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlcall
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L315
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L315
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlbuild
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/MarkLogicODBC/MarkLogicODBC.m#L380
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L380
   title: MarkLogicODBC/MarkLogicODBC.m
 review:
-  content_sha256: 17cffa79c464e582e6896db644c83be9b1e9cb005e4b16daab0f33be0016a0cf
+  content_sha256: b0a8e50e8bb746981941a7bec8def960a3b9c56af416f31a14d45040d290c512
   sources_sha256:
     example: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
     athena-connect: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
@@ -54,7 +54,9 @@ review:
     mlcall: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
     mlbuild: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 

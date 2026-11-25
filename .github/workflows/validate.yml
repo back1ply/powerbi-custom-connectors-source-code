@@ -46,7 +46,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git diff --exit-code -- knowledge
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run okflint validate --manifest okf-base.yaml
+          uv run python skills/okf-generate/scripts/validate.py build/knowledge
       # Report only: drifted pattern pages are marked stale in the bundle, never blocking.
       - name: Report pattern review drift
         continue-on-error: true

@@ -63,7 +63,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           uv run ruff format --check src tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run okflint validate --manifest okf-base.yaml
+          uv run python skills/okf-generate/scripts/validate.py build/knowledge
       # Report only: drifted pattern pages are marked stale in the bundle, never blocking.
       - name: Report pattern review drift
         id: reviews

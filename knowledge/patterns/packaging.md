@@ -11,34 +11,34 @@ generated:
 detect: ['\b(?:Extension\.Contents|Extension\.LoadString|Expression\.Evaluate)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L2
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L2
   title: Asana/Asana.m
 - id: loader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L243
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L243
   title: Asana/Asana.m
 - id: publish
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L93
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L93
   title: Asana/Asana.m
 - id: icons
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L102
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L102
   title: Asana/Asana.m
 - id: hardcoded
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Asana.m#L173
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: config
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Config.json#L2
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L2
   title: Asana/Config.json
 - id: configComma
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Asana/Config.json#L6
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L6
   title: Asana/Config.json
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L802
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L802
   title: Anaplan/Anaplan.pq
 - id: inlineNav
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/connectors/Anaplan/Anaplan.pq#L754
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L754
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 01cb80b53aaf605c7cf4253fa7f6bb639d4ace40ec7e1746ca5b784f226ff4ad
+  content_sha256: 835861c0563f15191475800b04896fe508663c31436420de83e421bd38338367
   sources_sha256:
     example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
     loader: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
@@ -50,7 +50,9 @@ review:
     variant: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     inlineNav: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
 verified:
-  by: claude/claude-haiku-5-5 + codex/gpt-6
+- by: claude/claude-haiku-5-5
+  at: '2026-10-19T10:10:51Z'
+- by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 ---
 
@@ -64,7 +66,7 @@ verified:
 
 `Asana.Publish` takes its button text from `Extension.LoadString` (line 96). The function's type takes its captions and descriptions from `Extension.LoadString` as well (lines 14–23). `Asana.Icons` names PNG files (lines 102–105).[^publish][^icons]
 
-The Asana folder holds `Asana.m`, `Config.json`, and `Table.ToNavigationTable.pqm`, without the named PNG or string-resource files. The [archive extractor](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master/src/pqkb/package.py#L50) removes localization, images, and packaging noise after extraction. A source archive therefore has different dependencies from an installable connector package.
+The Asana folder holds `Asana.m`, `Config.json`, and `Table.ToNavigationTable.pqm`, without the named PNG or string-resource files. The [archive extractor](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/src/pqkb/package.py#L50) removes localization, images, and packaging noise after extraction. A source archive therefore has different dependencies from an installable connector package.
 
 `Extension.LoadFunction` (lines 243–248) reads a named file with `Extension.Contents`, decodes it with `Text.FromBinary`, and evaluates it with `Expression.Evaluate(asText, #shared)`. Line 250 binds `Table.ToNavigationTable` to the module `Table.ToNavigationTable.pqm`, which is in the folder.[^loader] Anaplan uses the same loader for `TraceContext.pqm` and `Diagnostics.pqm` (lines 802–811), and both files are present in its folder. Anaplan also defines `Table.ToNavigationTable` inline (line 754).[^variant][^inlineNav]
 

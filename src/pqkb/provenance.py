@@ -3,7 +3,7 @@
 from pathlib import Path
 from urllib.parse import quote, unquote, urldefrag
 
-REPO_BLOB = "https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/master"
+REPO_BLOB = "https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main"
 
 
 def source_url(connector: str, file: str, line: int | None = None) -> str:

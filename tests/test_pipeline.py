@@ -312,7 +312,9 @@ def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     assert "patterns/index.md" in root
     directory = (repo / "build" / "knowledge" / "patterns" / "index.md").read_text(encoding="utf-8")
     assert "# Data retrieval" in directory and "retries.md" in directory
-    assert frontmatter.parse(root).meta == {"okf_version": "0.2"}
+    meta = frontmatter.parse(root).meta
+    assert meta["okf_version"] == "0.3"
+    assert meta["title"] and meta["description"]  # OKF 0.3 section 8.1 bundle metadata
     assert (repo / "knowledge" / "log.md").is_file()
     tags = (repo / "build" / "knowledge" / "tags" / "index.md").read_text()
     assert "# retries" not in tags
