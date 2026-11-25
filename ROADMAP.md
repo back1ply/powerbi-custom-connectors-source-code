@@ -1,6 +1,6 @@
 # Connector reference roadmap
 
-Updated: 2026-10-19. This is planned work, not a claim that the reference is
+Updated: 2026-11-25. This is planned work, not a claim that the reference is
 exhaustive or that archived connectors have been runtime-tested.
 
 ## Current baseline
@@ -11,8 +11,9 @@ The reference has 23 source-reviewed patterns, 70 exact archived excerpts, and
 distinct connectors. Counts describe this baseline and will change on refresh.
 
 Authored explanations live in `knowledge/patterns/`. Connector pages, indexes,
-and match lists are generated into ignored `build/knowledge/`. MkDocs publishes
-the site. The current review scope and limitations are recorded in [REVIEW.md](REVIEW.md).
+and match lists are generated into the committed OKF v0.3 bundle `bundle/`.
+MkDocs publishes the site, with the official OKF graph viewer (`viz.html`) and
+`llms.txt`. Review drift is reported and shown as stale; it never blocks. The current review scope and limitations are recorded in [REVIEW.md](REVIEW.md).
 
 ## Work sequence
 
@@ -44,8 +45,9 @@ questions to investigate, not confirmed missing patterns or promised additions.
 3. Add per-run spending/token limits, bounded retries, and a stop condition for
    quota or billing errors before running bulk external reviews again. Reuse
    completed results and report which records remain pending.
-4. Trial the two tools below in isolation. Record compatibility findings and
-   adopt them only if they add a capability the existing pipeline lacks.
+4. Evaluate further OKF tools below in isolation. Record compatibility
+   findings and adopt them only if they add a capability the existing pipeline
+   lacks.
 
 ## OKF tooling decisions
 
@@ -58,9 +60,11 @@ been installed or compatibility-tested as part of this documentation change.
 | Tool | Decision | Fit and adoption condition |
 | --- | --- | --- |
 | MkDocs Material | Keep | The current publisher already provides search, navigation, and per-excerpt source line links. Improve its content discovery before considering another publishing engine. |
-| okflint 0.5.0 | Keep | Already pinned in `pyproject.toml` and used by CI. Retain the project profile and existing excerpt/review checks; another validator cannot establish factual correctness. |
-| `@mfdaves/okf-mcp` 0.9.1 | First trial | Serve the generated bundle to agents with search, graph navigation, and provenance lookup. Start with local read-only consumption and verify that custom types and review fields are preserved. |
-| `@fcmam5/okph` 0.9.0 | Second trial | Produce targeted dependency and change-impact reports for reviewers. Determine how to seed changes from tracked sources into the generated bundle before making it a CI dependency. |
+| Official OKF validator (`skills/okf-generate/scripts/validate.py`) | Adopted 2026-11-25 | CI gate for OKF v0.3 conformance; vendored with the official skills. |
+| okflint 0.5.x | Removed 2026-11-25 | 0.5.0 and 0.5.1 reject `okf_version` 0.3. Reconsider if a release supports 0.3 and adds checks the official validator lacks. |
+| `@mfdaves/okf-mcp` 0.9.1 | Adopted 2026-11-25 | `.mcp.json` serves `bundle/` read-only. Search, neighbors, provenance, and the stdio server work on the 0.3 bundle; its `validate` still applies v0.2 rules (root frontmatter, date-only `stale_after`). |
+| Official OKF viewer (`viz.html`) | Adopted 2026-11-25 | Vendored in `src/pqkb/viz`; generated with the site. |
+| `@fcmam5/okph` 0.9.0 | Dropped | Its value is change-impact feeds, which this project does not need. |
 | OKF-Schema | Conditional | Evaluate explicit schemas for `Power Query Pattern` and `Power Query Connector` only when they catch metadata errors that the current profile and tests miss. Avoid a second parallel knowledge lifecycle. |
 | Obsidian | Optional reader | A local way to browse a copy of the generated bundle. Edits to generated pages are temporary; authored pattern changes must go through `knowledge/patterns/`. No CI dependency needed. |
 | OKF-Runtime | Defer | Reconsider if deterministic bundle querying/composition is needed and the MCP trial does not cover it. Avoid adding another indexing layer without a demonstrated use case. |
@@ -68,48 +72,17 @@ been installed or compatibility-tested as part of this documentation change.
 | kcmd, kcenrich, Google Cloud Knowledge Catalog | Defer | Catalog synchronization and cloud infrastructure are outside this static source-reference project's current requirements. |
 | Groma, Roteiro, other repository generators | Defer | Architecture mapping is a different output from reviewed Power Query technique explanations. Require a demonstrated source-understanding benefit before another generator is added. |
 
-Keep Superops OKF, OpenWiki, and `viz.html` out of the plan, as previously
-requested. Keep MkDocs as the publisher; Kiso remains a possible future
+Keep Superops OKF and OpenWiki out of the plan. Keep MkDocs as the publisher; Kiso remains a possible future
 compatibility target rather than a parallel site to maintain.
 
-### Trial A: agent retrieval with okf-mcp
+### Agent retrieval with okf-mcp (adopted)
 
-Upstream documents local bundle consumption, BM25+ search, provenance queries,
-and a stdio MCP interface. Its write and producer features are separate from
-the read-only trial proposed here.
-[Source: okf-mcp v0.9.1 README](https://github.com/mfdaves/okf-mcp/blob/v0.9.1/README.md).
-
-Build the bundle first, then point a pinned local consumer at `build/knowledge/`.
-Test a fixed set of questions spanning authentication, paging, errors, schema,
-and exports. Check that answers can retrieve the relevant concepts and original
-citations, and that uncertainty, agent verification, and freshness remain
-visible. Rebuild and confirm the consumer can reload the changed bundle.
-
-Adopt only if retrieval improves over the current browsing workflow and the
-trial leaves authored files, review events, and generated output unchanged.
-Document startup/rebuild behavior and runtime requirements before enabling it
-for normal agent sessions. Do not register a producer or enable authoring for
-this trial.
-
-### Trial B: review impact with OKPH
-
-Upstream provides dependency traversal and Git-seeded impact analysis. Its
-results identify documents that may be affected through links; they do not
-establish semantic impact.
-[Source: OKPH v0.9.0 README](https://github.com/Fcmam5/okph/blob/v0.9.0/README.md).
-
-This repository's generated bundle is ignored by Git. A Git diff scoped to
-`build/knowledge/` therefore cannot represent the tracked source changes that
-caused a rebuild. Also, connector source links use GitHub URLs; a Markdown link
-graph alone does not prove which local source edits invalidate a review.
-
-Trial dependency reports on the built bundle and map changed tracked files to
-affected concepts using existing source fingerprints and citation metadata.
-Compare the result against known source/prose changes, an unrelated change,
-and a deletion. Adopt only if the report identifies the expected review work
-without treating generated-list changes as new prose review requirements.
-Keep the existing fingerprint checks authoritative. Use focused PR reports,
-not another full-site graph viewer.
+Adopted on 2026-11-25 as a read-only server in `.mcp.json`
+([okf-mcp v0.9.1 README](https://github.com/mfdaves/okf-mcp/blob/v0.9.1/README.md)).
+Next: test a fixed set of questions spanning authentication, paging, errors,
+schema, and exports, and check that answers retrieve the relevant concepts and
+original citations with freshness visible. Do not register a producer or enable
+authoring.
 
 ### Conditional schema validation
 
@@ -119,10 +92,8 @@ for this project.
 [Source: OKF-Schema README](https://github.com/gsemet/okf-schema#readme).
 
 If evaluated, define schemas for the project's actual custom types, source
-records, timestamps, and review metadata. Compare diagnostics with okflint and
-the existing tests before adding a gate. Resolve the known timestamp-shape
-limitation documented in [README.md](README.md) through a tested validator
-change; do not silently broaden disabled checks or let a formatter rewrite
+records, timestamps, and review metadata. Compare diagnostics with the official
+OKF validator and the existing tests before adding a gate; do not silently broaden disabled checks or let a formatter rewrite
 reviewed content and fingerprints.
 
 ## Completion standard

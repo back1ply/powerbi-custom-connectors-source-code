@@ -45,20 +45,33 @@ not results from executing the archived connectors.
 
 Stable patterns carry an agent verification event, a fingerprint of their
 authored metadata and prose, and fingerprints of the complete cited files.
-Generated match lists live only in `build/knowledge/` and are excluded from authored review scope.
+Generated match lists are excluded from authored review scope.
 CRLF and LF line endings are treated equivalently.
 
 Changing reviewed prose, detection rules, citation metadata, or cited source
-expires the review. A build returns an affected page to draft and removes its
-current verification event. The recorded baseline remains available for drift
-diagnosis. A new source review must check and, where necessary, repair the page
-before recording replacement fingerprints. Hashes detect changes; they do not
-perform the review or authenticate a reviewer.
+expires the review. Since 2026-11-25 an expired review is reported, not
+enforced: the authored page is left unchanged (frozen), and its copy in
+`bundle/` gets OKF `stale_after` (the refresh receipt time) and a "Source changed
+since review" banner. OKF treats stale content as "check again", not as false.
+The excerpt test enforces exact quotes only on pages whose review is current.
+A new source review must check and, where necessary, repair the page before
+recording replacement fingerprints (`skills/review-pattern`). Hashes detect
+changes; they do not perform the review or authenticate a reviewer.
 
-Routine refreshes can merge automatically after all checks pass on the exact PR
-commit. Expired reviews and other failures leave a draft PR for repair. Pages
+Refreshes merge automatically when tests, lint, the official OKF validator, the
+secret scan, and the site build pass on the exact PR commit; review drift and
+candidate coverage are listed in the PR body without blocking. Pages
 publication performs validation again. No workflow creates human-review labels
 or blindly renews pattern source reviews.
+
+## Link and actor migration, 2026-11-25
+
+The repository's default branch was renamed from `master` to `main`, so every
+source URL in the pattern pages moved from `blob/master` to `blob/main`. For the
+23 pages whose reviews were current, `content_sha256` was recomputed for the new
+URLs; `verified` events were not changed and no claim was re-reviewed. In 20
+pages the combined verifier `claude/claude-haiku-5-5 + codex/gpt-6` was split into
+two `verified` events with the same time, so each names one valid OKF actor.
 
 ## Presentation cleanup
 

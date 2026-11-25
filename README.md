@@ -6,6 +6,10 @@ This unofficial archive extracts Microsoft's certified Power BI connector packag
 
 See [the roadmap](ROADMAP.md) for coverage gaps, deeper examples, runtime checks, maintenance work, and proposed OKF tool trials.
 
+## For agents and LLMs
+
+Start at [`bundle/index.md`](bundle/index.md): the generated [Open Knowledge Format v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md) bundle, committed so it can be browsed directly. [`AGENTS.md`](AGENTS.md) maps the repository. The `skills/` folder holds agent skills for using the archive (`find-connector-code`), maintaining it (`refresh-archive`, `review-pattern`, `run-candidate-reviews`), and the official OKF skills (`okf-generate`, `okf-consume`); it installs as a plugin from this repository's marketplace. [`.mcp.json`](.mcp.json) runs [okf-mcp](https://github.com/mfdaves/okf-mcp) on the bundle for search and link navigation. The site publishes [`llms.txt`](https://back1ply.github.io/powerbi-custom-connectors-source-code/llms.txt) and an interactive [graph view](https://back1ply.github.io/powerbi-custom-connectors-source-code/viz.html).
+
 ## Local development
 
 Install Python 3.12 or newer and [uv](https://docs.astral.sh/uv/), then run:
@@ -16,15 +20,16 @@ uv run pqkb build
 uv run pytest -q
 uv run ruff check src tests
 uv run ruff format --check src tests
-uv run okflint validate --manifest okf-base.yaml
+uv run python skills/okf-generate/scripts/validate.py bundle
 uv run pqkb verify-reviews
 uv run pqkb verify-matches
 uv run mkdocs build --strict
+uv run pqkb viz
 ```
 
-`build` regenerates the reference from `connectors/` without downloading packages. Preview it with `uv run mkdocs serve`; the generated OKF bundle goes to `build/knowledge/` and static output to `build/site/`. Power Query highlighting loads Prism from a CDN.
+`build` regenerates the reference from `connectors/` without downloading packages and writes the OKF bundle to `bundle/`, which is committed. Preview the site with `uv run mkdocs serve`; static output goes to `build/site/`, including `viz.html` (the official OKF graph viewer) and `llms.txt`. `pqkb viz` writes the viewer to `build/viz.html` locally. Power Query highlighting loads Prism from a CDN.
 
-The bundle follows [Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/ad30107c31c06aec8a7d5636e0d1058118604e6f/SPEC.md). The pinned validator's optional shape checks expect date-only `stale_after` values, so those checks are disabled in `okf-base.yaml`; tests verify timezone-aware timestamps. Core, project-profile, and internal-link checks remain enabled.
+The bundle follows [Open Knowledge Format v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md) and is checked by the official validator vendored in `skills/okf-generate`. `verify-reviews` and `verify-matches` report drift and coverage; they do not fail CI.
 
 ## Pattern evidence
 
@@ -38,7 +43,7 @@ Assessments live in `knowledge/match-reviews.json`, including model identity, re
 
 Run `uv run pqkb build` after reviewing to update the reference. `uv run pqkb verify-matches` checks coverage, fingerprints, and cited quotes without contacting an LLM; CI runs it as a report and never blocks on it. Production evidence rules are in `src/pqkb/signals.py`; pattern `detect` metadata remains a fallback for patterns without a catalog entry.
 
-Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Topics include asynchronous exports, date-range filters, and function-parameter metadata. These are archived source excerpts with explicit dependencies, rather than standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source; the site gives each block its own original line numbers and source link.
+Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Topics include asynchronous exports, date-range filters, and function-parameter metadata. These are archived source excerpts with explicit dependencies, rather than standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source while the page's review is current; the site gives each block its own original line numbers and source link. When the cited source changes, the page is frozen rather than blocking: its bundle copy gets OKF `stale_after` and a "Source changed since review" banner until an agent renews the review.
 
 ## Refreshing the archive
 
@@ -56,7 +61,7 @@ Recognized secret values become `<redacted>`; public OAuth client IDs remain. Re
 
 ## Automation
 
-The [weekly refresh](.github/workflows/refresh.yml) runs Mondays at 03:23 UTC and supports manual dispatch. It opens a PR, validates its exact commit, and merges passing updates without bypassing repository restrictions. If an `ANTHROPIC_API_KEY` repository Actions secret is configured, the refresh installs the pinned Claude Code CLI and reviews changed candidates automatically. Without that secret, unchanged assessments are reused and stale ones keep their last verdict, labelled as older; candidate coverage is reported in the PR but does not block the merge. The local Claude subscription login is not transferred to GitHub. Failed content checks or expired pattern-prose reviews also leave a draft PR; a failed secret scan prevents PR creation.
+The [weekly refresh](.github/workflows/refresh.yml) runs Mondays at 03:23 UTC and supports manual dispatch. It opens a PR, validates its exact commit, and merges passing updates without bypassing repository restrictions. If an `ANTHROPIC_API_KEY` repository Actions secret is configured, the refresh installs the pinned Claude Code CLI and reviews changed candidates automatically. Without that secret, unchanged assessments are reused and stale ones keep their last verdict, labelled as older; candidate coverage is reported in the PR but does not block the merge. The local Claude subscription login is not transferred to GitHub. Drifted pattern reviews are reported in the PR and marked stale in the bundle, but do not block the merge. Failed tests, lint, OKF validation, or site build leave a draft PR; a failed secret scan prevents PR creation.
 
 The [Pages workflow](.github/workflows/pages.yml) validates and publishes `main`. Bot merges explicitly dispatch publication because their push events do not trigger another workflow. GitHub Pages and Actions PR permissions are already configured.
 
@@ -64,10 +69,12 @@ The [Pages workflow](.github/workflows/pages.yml) validates and publishes `main`
 
 - `connectors/`: extracted vendor source and package metadata.
 - `knowledge/`: authored patterns, source-bound candidate assessments, and the refresh log.
-- `src/pqkb/`: refresh, redaction, detection, review checks, and rendering.
-- `build/`: generated OKF bundle and website; ignored by git and safe to regenerate.
-- `tests/`: pipeline, source-excerpt, and review-validity checks.
+- `bundle/`: generated OKF bundle (connector pages, pattern copies, indexes, log); committed, never edited by hand.
+- `skills/`: agent skills and plugin manifests, including the vendored official OKF skills.
+- `src/pqkb/`: refresh, redaction, detection, review checks, rendering, and the vendored OKF viewer (`viz/`).
+- `build/`: website and local viewer output; ignored by git and safe to regenerate.
+- `tests/`: pipeline, source-excerpt, review-validity, and site checks.
 
 ## License
 
-Tools and original documentation use the [MIT license](LICENSE). Extracted source, quoted excerpts, trademarks, and other vendor material retain their owners' rights. This project is not affiliated with Microsoft or the connector vendors.
+Tools and original documentation use the [MIT license](LICENSE). The vendored OKF skills and viewer are Apache-2.0 ([notice](skills/OKF-LICENSE.md)). Extracted source, quoted excerpts, trademarks, and other vendor material retain their owners' rights. This project is not affiliated with Microsoft or the connector vendors.
