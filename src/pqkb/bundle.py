@@ -356,10 +356,15 @@ def archive_records(connectors_dir: Path) -> dict[str, ConnectorRecord]:
     return records
 
 
-def confirm_archive(repo: Path, now: datetime) -> None:
-    """Record a successful refresh without changing the content-generation timestamp."""
+def write_receipt(repo: Path, now: datetime) -> None:
+    """Record a successful refresh of ``connectors/``; ``build`` applies it to the bundle."""
     receipt = {"verified_at": iso(now), "archive_sha256": archive_digest(repo)}
     (repo / "knowledge" / "refresh.json").write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+
+
+def confirm_archive(repo: Path, now: datetime) -> None:
+    """Record a successful refresh without changing the content-generation timestamp."""
+    write_receipt(repo, now)
     apply_confirmation(repo)
 
 

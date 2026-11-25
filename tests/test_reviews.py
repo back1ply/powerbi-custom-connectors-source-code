@@ -84,6 +84,8 @@ def test_refresh_marks_drift_with_its_own_receipt_and_a_later_build_changes_noth
     reviewed_repo,
 ):
     repo, page, _ = reviewed_repo
+    bundle.confirm_archive(repo, DAY)  # An earlier refresh whose time must not be reused.
+    bundle.build(repo, DAY)
     packages = repo.parent / f"{repo.name}-packages"
     packages.mkdir()
     with zipfile.ZipFile(packages / "Demo.mez", "w") as package:
@@ -92,7 +94,7 @@ def test_refresh_marks_drift_with_its_own_receipt_and_a_later_build_changes_noth
     receipt = json.loads((repo / "knowledge" / "refresh.json").read_text("utf-8"))
     built = frontmatter.read(repo / "bundle" / "patterns" / page.name)
     assert bundle.DRIFT_BANNER in built.body
-    assert built.meta["stale_after"] == receipt["verified_at"]
+    assert built.meta["stale_after"] == receipt["verified_at"] != "2026-10-18T00:00:00Z"
     first = {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")}
     assert main(["--repo", str(repo), "build"]) == 0
     assert {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")} == first
@@ -110,14 +112,19 @@ def test_drifted_page_with_windows_line_endings_keeps_them_and_rebuilds_identica
     reviewed_repo,
 ):
     repo, page, source = reviewed_repo
-    page.write_bytes(page.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+    document = frontmatter.read(page)
+    body = "# Demo\n\nReviewed source explanation."
+    page.write_text(frontmatter.render(document.meta, body), encoding="utf-8")
+    reviews.record_review(repo, page, "codex/gpt-6", DAY)
+    authored = page.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    page.write_bytes(authored.replace("\n", "\r\n").encode("utf-8"))
     source.write_text(source.read_text() + "// Changed source context.\n", encoding="utf-8")
     bundle.confirm_archive(repo, DAY)
     bundle.build(repo, DAY)
     built_path = repo / "bundle" / "patterns" / page.name
     first = built_path.read_bytes()
-    assert bundle.DRIFT_BANNER.encode() in first
-    assert b"\r\n" in first and b"\n" not in first.replace(b"\r\n", b"")
+    expected = bundle.mark_drift(authored, "2026-10-18T00:00:00Z").replace("\n", "\r\n")
+    assert first == expected.encode("utf-8")
     bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
     assert built_path.read_bytes() == first
 

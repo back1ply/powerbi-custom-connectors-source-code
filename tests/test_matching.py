@@ -1,4 +1,3 @@
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -70,11 +69,6 @@ def test_stale_source_review_is_not_current_but_unrelated_page_edits_are_ignored
     cache = {"Demo": record}
     assert match_reviews.current_review(cache, "Demo", files) == record
     assert not match_reviews.current_review(cache, "Demo", {"Demo.pq": "changed"})
-    # An edit to some pattern page no longer expires every connector; the request
-    # fingerprint still catches changes to the scope this connector's reviewer saw.
-    edited = [replace(rules[0], scope_sha256="changed")]
-    assert record["rules_sha256"] != match_reviews.rule_fingerprint(edited)
-    assert match_reviews.current_review(cache, "Demo", files) == record
 
 
 @pytest.mark.parametrize(

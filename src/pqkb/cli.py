@@ -61,9 +61,9 @@ def main(argv: list[str] | None = None) -> int:
         changes = refresh.refresh(args.repo, source_dir=args.source_dir)
         records = refresh.load_index(args.repo / "connectors")
         bundle.append_log(args.repo / "knowledge" / "log.md", changes, records, now)
-        bundle.build(args.repo, now)
-        bundle.confirm_archive(args.repo, now)
-        # Rebuild so drifted pattern copies take stale_after from the new receipt.
+        # Write the receipt before building so connector pages and drifted pattern
+        # copies take their freshness from this refresh.
+        bundle.write_receipt(args.repo, now)
         bundle.build(args.repo, now)
         print(
             f"Added {len(changes.added)}, updated {len(changes.updated)}, "
