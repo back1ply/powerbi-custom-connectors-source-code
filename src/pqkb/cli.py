@@ -71,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
     eval_parser.add_argument("--profiles", type=Path, default=Path("knowledge/profiles"))
     eval_parser.add_argument("--save", type=Path, help="write the full result JSON here")
     eval_parser.add_argument("--json", action="store_true", help="print the full result as JSON")
+    cert_parser = commands.add_parser(
+        "certification", help="check connectors against Microsoft's certification rules"
+    )
+    cert_parser.add_argument("connectors", nargs="*", help="connector names (default: all)")
+    cert_parser.add_argument("--json", action="store_true", help="print JSON")
     viz_parser = commands.add_parser("viz", help="write the OKF graph viewer for bundle/")
     viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
     args = parser.parse_args(argv)
@@ -84,6 +89,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_profile_command(args)
     if args.command == "eval":
         return run_eval_command(args)
+    if args.command == "certification":
+        return run_certification(args.repo, args.connectors, as_json=args.json)
     if args.command == "check-profiles":
         return check_profiles(args.repo, args.repo / args.folder)
     if args.command == "functions":
@@ -144,6 +151,37 @@ def run_eval_command(args) -> int:
         target.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(result, indent=2) if args.json else "\n".join(report_lines(result)))
     return 0 if result["connectors_scored"] else 1
+
+
+def run_certification(repo: Path, names: list[str], *, as_json: bool) -> int:
+    import json
+    from collections import Counter
+    from dataclasses import asdict
+
+    from pqkb.certification import check_connector
+
+    records = refresh.load_index(repo / "connectors")
+    unknown = [n for n in names if n not in records]
+    if unknown:
+        print(f"Unknown connectors: {', '.join(unknown)}.")
+        return 2
+    selected = {n: records[n] for n in (names or sorted(records))}
+    sources = bundle.read_sources(repo / "connectors", selected)
+    results = {n: check_connector(n, sources[n]) for n in selected}
+    if as_json:
+        print(json.dumps({n: [asdict(f) for f in fs] for n, fs in results.items()}, indent=2))
+        return 0
+    if len(names) == 1:
+        for f in next(iter(results.values())):
+            where = f" ({f.file}:{f.line})" if f.file else ""
+            print(f"{f.status:7} {f.rule:24} {f.detail}{where}")
+        return 0
+    tally = Counter((f.rule, f.status) for fs in results.values() for f in fs)
+    for rule in dict.fromkeys(rule for rule, _ in tally):
+        counts = ", ".join(f"{s} {c}" for (r, s), c in sorted(tally.items()) if r == rule)
+        print(f"{rule:24} {counts}")
+    print(f"{len(results)} connectors checked.")
+    return 0
 
 
 def check_profiles(repo: Path, folder: Path) -> int:

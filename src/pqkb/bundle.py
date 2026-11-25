@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from pqkb import frontmatter
+from pqkb.certification import CERTIFICATION_SOURCE, RULES, Finding, check_connector
 from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.reviews import authored_digest, digest, review_reason
@@ -117,7 +118,32 @@ def connector_meta(record: ConnectorRecord, auth: set[str]) -> dict:
     return meta
 
 
-def connector_body(record: ConnectorRecord, auth: set[str]) -> str:
+STATUS_LABELS = {"pass": "Pass", "fail": "Fail", "review": "Review", "n/a": "N/A", "info": "Info"}
+
+
+def certification_lines(record: ConnectorRecord, findings: list[Finding]) -> list[str]:
+    rules = {rule.id: rule for rule in RULES}
+    lines = [
+        "# Certification checklist",
+        "",
+        "Microsoft's published certification rules, checked by reading this version's source"
+        f" ([archived rules]({CERTIFICATION_SOURCE})). Review means the code needs judgement;"
+        " this is not Microsoft's review.",
+        "",
+        "| Rule | Level | Status | Details |",
+        "| --- | --- | --- | --- |",
+    ]
+    for finding in findings:
+        rule = rules[finding.rule]
+        detail = finding.detail.replace("|", "\\|")
+        if finding.file:
+            url = source_url(record.name, finding.file, finding.line)
+            detail += f" [{finding.file} line {finding.line}]({url})"
+        lines.append(f"| {rule.text} | {rule.level} | {STATUS_LABELS[finding.status]} | {detail} |")
+    return lines
+
+
+def connector_body(record: ConnectorRecord, auth: set[str], findings: list[Finding]) -> str:
     auth_text = ", ".join(sorted(auth)) or "Not declared"
     lines = [
         "| Publisher | Version | Authentication |",
@@ -127,6 +153,8 @@ def connector_body(record: ConnectorRecord, auth: set[str]) -> str:
         "# Source files",
         "",
         *[f"* [{f}]({source_url(record.name, f)})" for f in record.files],
+        "",
+        *certification_lines(record, findings),
     ]
     return "\n".join(lines)
 
@@ -292,7 +320,7 @@ def write_connector_pages(repo: Path, now: datetime) -> None:
         write_if_changed(
             pages / f"{name}.md",
             connector_meta(record, auth),
-            connector_body(record, auth),
+            connector_body(record, auth, check_connector(name, sources[name])),
             now,
         )
     remove_stale_pages(pages, set(records))

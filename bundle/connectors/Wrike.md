@@ -120,7 +120,7 @@ sources:
 resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.1/Wrike_1.1.1.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T20:59:46Z'
+  at: '2026-11-25T22:15:39Z'
 verified:
   by: process:pqkb-refresh
   at: '2026-11-25T17:23:17Z'
@@ -170,3 +170,23 @@ stale_after: '2026-12-09T17:23:17Z'
 * [Table.ToWorkSchedulesTable.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/Table.ToWorkSchedulesTable.pqm)
 * [Table.ToWorkflowsTable.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/Table.ToWorkflowsTable.pqm)
 * [wrike.m](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m)
+
+# Certification checklist
+
+Microsoft's published certification rules, checked by reading this version's source ([archived rules](https://web.archive.org/web/20240809185021/https://learn.microsoft.com/en-us/power-query/connector-certification)). Review means the code needs judgement; this is not Microsoft's review.
+
+| Rule | Level | Status | Details |
+| --- | --- | --- | --- |
+| Use section document format. | MUST | Pass | Section document. [wrike.m line 2](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L2) |
+| Contain a version header above the section document. | MUST | Pass | Version header present. [wrike.m line 1](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L1) |
+| Provide function documentation metadata. | MUST | Pass | Documentation metadata present. [wrike.m line 31](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L31) |
+| Have a TestConnection handler. | MUST | Pass | TestConnection defined for Wrike. [wrike.m line 324](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L324) |
+| Name shared functions DataSourceKind.FunctionName, without 'Power BI', 'Connector', or 'API'. | MUST | Pass | Shared functions: Wrike.Contents. [wrike.m line 27](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L27) |
+| Set the Beta flag to true on the initial release. | MUST | Info | Beta = true in this version. [wrike.m line 467](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L467) |
+| Have icons. | SHOULD | Pass | Publish record sets icons. [wrike.m line 471](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L471) |
+| Provide a navigation table. | SHOULD | Pass | Builds a navigation table. [Table.ToNavigationTable.pqm line 14](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/Table.ToNavigationTable.pqm#L14) |
+| Place UI strings in resources.resx. | SHOULD | Pass | Uses Extension.LoadString. [wrike.m line 9](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L9) |
+| Send credentials only over HTTPS. | SECURITY | N/A | No Extension.CurrentCredential use. |
+| Pass credentials in a GET query only through CredentialQueryString. | SECURITY | N/A | No Extension.CurrentCredential use. |
+| Gate tracing behind a flag that is off at submission. | SECURITY | N/A | No Diagnostics tracing. |
+| Never evaluate user-provided or fetched expressions. | SECURITY | Pass | Only the module loader evaluates packaged files. [wrike.m line 486](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m#L486) |

@@ -93,7 +93,7 @@ sources:
 resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Samsara/2.2.8/Samsara_2.2.8.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T20:59:46Z'
+  at: '2026-11-25T22:15:39Z'
 verified:
   by: process:pqkb-refresh
   at: '2026-11-25T17:23:17Z'
@@ -134,3 +134,23 @@ stale_after: '2026-12-09T17:23:17Z'
 * [Samsara.Table.Fetch.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Table.Fetch.pqm)
 * [Samsara.Table.Navigate.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Table.Navigate.pqm)
 * [Samsara.pq](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq)
+
+# Certification checklist
+
+Microsoft's published certification rules, checked by reading this version's source ([archived rules](https://web.archive.org/web/20240809185021/https://learn.microsoft.com/en-us/power-query/connector-certification)). Review means the code needs judgement; this is not Microsoft's review.
+
+| Rule | Level | Status | Details |
+| --- | --- | --- | --- |
+| Use section document format. | MUST | Pass | Section document. [Samsara.pq line 2](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L2) |
+| Contain a version header above the section document. | MUST | Pass | Version header present. [Samsara.pq line 1](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L1) |
+| Provide function documentation metadata. | MUST | Pass | Documentation metadata present. [Samsara.Input.Parameters.pqm line 5](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Input.Parameters.pqm#L5) |
+| Have a TestConnection handler. | MUST | Pass | TestConnection defined for Samsara. [Samsara.pq line 58](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L58) |
+| Name shared functions DataSourceKind.FunctionName, without 'Power BI', 'Connector', or 'API'. | MUST | Pass | Shared functions: Samsara.Records. [Samsara.pq line 19](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L19) |
+| Set the Beta flag to true on the initial release. | MUST | Info | Beta = false in this version. [Samsara.pq line 78](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L78) |
+| Have icons. | SHOULD | Pass | Publish record sets icons. [Samsara.pq line 85](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L85) |
+| Provide a navigation table. | SHOULD | Pass | Builds a navigation table. [Samsara.Table.Navigate.pqm line 40](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Table.Navigate.pqm#L40) |
+| Place UI strings in resources.resx. | SHOULD | Pass | Uses Extension.LoadString. [Samsara.Client.Depage.pqm line 42](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Client.Depage.pqm#L42) |
+| Send credentials only over HTTPS. | SECURITY | Review | Credentials used; no explicit https check found. [Samsara.Credentials.pqm line 4](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.Credentials.pqm#L4) |
+| Pass credentials in a GET query only through CredentialQueryString. | SECURITY | Pass | No credential in a Query record. |
+| Gate tracing behind a flag that is off at submission. | SECURITY | Review | Tracing without a recognised flag. [Diagnostics.pqm line 3](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Diagnostics.pqm#L3) |
+| Never evaluate user-provided or fetched expressions. | SECURITY | Pass | Only the module loader evaluates packaged files. [Samsara.pq line 24](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Samsara/Samsara.pq#L24) |
