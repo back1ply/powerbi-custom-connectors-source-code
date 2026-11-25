@@ -1,121 +1,324 @@
 connector: Anaplan
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read Anaplan.pq (811), TraceContext.pqm (59), Diagnostics.pqm (164); 1034 lines total. No .resx or .png files are in the folder."
+source_note: Read Anaplan.pq (811), TraceContext.pqm (59), Diagnostics.pqm (164); 1034 lines total. No
+  .resx or .png files are in the folder.
 answers:
   auth:
-    values: [oauth, username-password]
+    values:
+    - oauth
+    - username-password
     evidence:
-      - {file: Anaplan.pq, lines: "226-233", function: Anaplan, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Refresh], UsernamePassword = []]"}
-      - {file: Anaplan.pq, lines: "322-332", function: Anaplan.Connect, note: "if the credential has Username: GetApiToken (Basic) -> AnaplanAuthToken; else uses Extension.CurrentCredential()[access_token]"}
-      - {file: Anaplan.pq, lines: "655-676", function: GetApiToken, note: "POST to authUrl + AuthTokenPath with the engine-applied Basic credential; 201 -> tokenInfo, 401 -> Extension.CredentialError"}
+    - file: Anaplan.pq
+      lines: 226-233
+      function: Anaplan
+      note: Authentication = [OAuth = [StartLogin, FinishLogin, Refresh], UsernamePassword = []]
+    - file: Anaplan.pq
+      lines: 322-332
+      function: Anaplan.Connect
+      note: 'if the credential has Username: GetApiToken (Basic) -> AnaplanAuthToken; else uses Extension.CurrentCredential()[access_token]'
+    - file: Anaplan.pq
+      lines: 655-676
+      function: GetApiToken
+      note: POST to authUrl + AuthTokenPath with the engine-applied Basic credential; 201 -> tokenInfo,
+        401 -> Extension.CredentialError
     sub:
       oauth-pkce:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: Anaplan.pq, lines: "54-78", function: StartLogin, note: "code_challenge_method = \"plain\", code_challenge = codeVerifier (two GUIDs); verifier kept in Context"}
-          - {file: Anaplan.pq, lines: "99-108", function: TokenMethod, note: "code_verifier = context[codeVerifier] added to the token request"}
+        - file: Anaplan.pq
+          lines: 54-78
+          function: StartLogin
+          note: code_challenge_method = "plain", code_challenge = codeVerifier (two GUIDs); verifier kept
+            in Context
+        - file: Anaplan.pq
+          lines: 99-108
+          function: TokenMethod
+          note: code_verifier = context[codeVerifier] added to the token request
       oauth-refresh:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: Anaplan.pq, lines: "92-97", function: Refresh, note: "TokenMethod(oldCredential[refresh_token], \"refresh_token\", token_host)"}
-          - {file: Anaplan.pq, lines: "230", function: Anaplan, note: "Refresh=Refresh wired in the OAuth record"}
+        - file: Anaplan.pq
+          lines: 92-97
+          function: Refresh
+          note: TokenMethod(oldCredential[refresh_token], "refresh_token", token_host)
+        - file: Anaplan.pq
+          lines: '230'
+          function: Anaplan
+          note: Refresh=Refresh wired in the OAuth record
   transport:
-    values: [web-contents]
+    values:
+    - web-contents
     evidence:
-      - {file: Anaplan.pq, lines: "590-611", function: GetWebContents, note: "main GET helper using Web.Contents"}
-      - {file: Anaplan.pq, lines: "618-649", function: GetWebContentsExportRunSuccess, note: "Web.Contents POST to run the export, then GETs for task status"}
+    - file: Anaplan.pq
+      lines: 590-611
+      function: GetWebContents
+      note: main GET helper using Web.Contents
+    - file: Anaplan.pq
+      lines: 618-649
+      function: GetWebContentsExportRunSuccess
+      note: Web.Contents POST to run the export, then GETs for task status
     sub: {}
-  http-errors:
-    values: [manual-status-handling, structured-error-records]
+  user-inputs:
+    values:
+    - url-or-server
     evidence:
-      - {file: Anaplan.pq, lines: "603-609", function: GetWebContents, note: "ManualStatusHandling = {401, 404, 500, 501, 502, 503}; non-200 returned as [err = [status = ...]]"}
-      - {file: Anaplan.pq, lines: "625-626", function: GetWebContentsExportRunSuccess, note: "ManualStatusHandling = {500, 501, 502, 503} on the export POST"}
-      - {file: Anaplan.pq, lines: "664-672", function: GetApiToken, note: "ManualStatusHandling = {401}; 401 -> Extension.CredentialError"}
-      - {file: Anaplan.pq, lines: "153-211", function: PickClientId, note: "config service call with ManualStatusHandling = {401, 500, 501, 502, 503}; raises Error.Record per status (Unauthorized, Server Error, Config API Error)"}
-      - {file: Anaplan.pq, lines: "116-122", function: TokenMethod, note: "raises Error.Record(Parts[error], Parts[message]) from the token response body"}
-      - {file: Anaplan.pq, lines: "735-749", function: ErrorTable, note: "maps status codes to Error.Record-based reason/message rows returned as a table"}
+    - file: Anaplan.pq
+      lines: 292-306
+      function: AnaplanType
+      note: apiUrl and authUrl text parameters
+    - file: Anaplan.pq
+      lines: 316-332
+      function: Anaplan.Connect
+      note: trimmed, validated by IsValidUrl, fallback to prod hosts
     sub: {}
   paging:
-    values: [next-link-url]
+    values:
+    - next-link-url
     evidence:
-      - {file: Anaplan.pq, lines: "366-389", function: GetModelsTable, note: "models?limit=4999, then follows resp[meta][paging][next] URL"}
+    - file: Anaplan.pq
+      lines: 366-389
+      function: GetModelsTable
+      note: models?limit=4999, then follows resp[meta][paging][next] URL
     sub:
       paging-generator:
-        values: [recursion]
+        values:
+        - recursion
         evidence:
-          - {file: Anaplan.pq, lines: "370-386", function: GetModelsTable, note: "GetAllModels calls @GetAllModels(nextUrl, combined)"}
+        - file: Anaplan.pq
+          lines: 370-386
+          function: GetModelsTable
+          note: GetAllModels calls @GetAllModels(nextUrl, combined)
       paging-stop:
-        text: "Stops when the response has no meta.paging.next field or it is null; the accumulated model list is then returned. Only the models list is paged; workspaces and exports are single requests."
+        text: Stops when the response has no meta.paging.next field or it is null; the accumulated model
+          list is then returned. Only the models list is paged; workspaces and exports are single requests.
         evidence:
-          - {file: Anaplan.pq, lines: "375-384", function: GetModelsTable, note: "nextUrl = null unless meta.paging.next is present and non-null"}
-  navigation:
-    values: [hierarchical, discovered-from-api]
+        - file: Anaplan.pq
+          lines: 375-384
+          function: GetModelsTable
+          note: nextUrl = null unless meta.paging.next is present and non-null
+  data-formats:
+    values:
+    - json
+    - csv
     evidence:
-      - {file: Anaplan.pq, lines: "341-361", function: GetWorkspacesTable, note: "workspaces from the API -> Folder rows, Data = GetModelsTable"}
-      - {file: Anaplan.pq, lines: "400-414", function: GetModelsTable, note: "models filtered by workspace -> Data = GetLabelTable"}
-      - {file: Anaplan.pq, lines: "421-429", function: GetLabelTable, note: "fixed \"Exports\" folder"}
-      - {file: Anaplan.pq, lines: "435-456", function: GetExportsTable, note: "exports from the API (csv/plain only) -> ExportOptions"}
-      - {file: Anaplan.pq, lines: "464-473", function: ExportOptions, note: "\"Run Export Action\" leaf"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: Anaplan.pq, lines: "219-225", function: Anaplan, note: "TestConnection parses dataSourcePath JSON and returns {\"Anaplan.Contents\", apiUrl, authUrl}"}
+    - file: Anaplan.pq
+      lines: 606-608
+      function: GetWebContents
+      note: Json.Document(buffered) for API responses
+    - file: Anaplan.pq
+      lines: '583'
+      function: DownloadFileListAccumulate
+      note: Csv.Document of the combined chunks
   schema:
-    values: [inferred-from-data]
+    values:
+    - inferred-from-data
     evidence:
-      - {file: Anaplan.pq, lines: "583", function: DownloadFileListAccumulate, note: "Csv.Document(binaryCombined, [Delimiter = separator, Columns = columnCount]) - Column1..N, no header promotion, no types"}
+    - file: Anaplan.pq
+      lines: '583'
+      function: DownloadFileListAccumulate
+      note: Csv.Document(binaryCombined, [Delimiter = separator, Columns = columnCount]) - Column1..N,
+        no header promotion, no types
     sub: {}
+  http-errors:
+    values:
+    - manual-status-handling
+    - structured-error-records
+    evidence:
+    - file: Anaplan.pq
+      lines: 603-609
+      function: GetWebContents
+      note: ManualStatusHandling = {401, 404, 500, 501, 502, 503}; non-200 returned as [err = [status
+        = ...]]
+    - file: Anaplan.pq
+      lines: 625-626
+      function: GetWebContentsExportRunSuccess
+      note: ManualStatusHandling = {500, 501, 502, 503} on the export POST
+    - file: Anaplan.pq
+      lines: 664-672
+      function: GetApiToken
+      note: ManualStatusHandling = {401}; 401 -> Extension.CredentialError
+    - file: Anaplan.pq
+      lines: 153-211
+      function: PickClientId
+      note: config service call with ManualStatusHandling = {401, 500, 501, 502, 503}; raises Error.Record
+        per status (Unauthorized, Server Error, Config API Error)
+    - file: Anaplan.pq
+      lines: 116-122
+      function: TokenMethod
+      note: raises Error.Record(Parts[error], Parts[message]) from the token response body
+    - file: Anaplan.pq
+      lines: 735-749
+      function: ErrorTable
+      note: maps status codes to Error.Record-based reason/message rows returned as a table
+    sub: {}
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: Anaplan.pq
+      lines: '287'
+      function: Anaplan.Contents
+      note: 'shared Anaplan.Contents = Value.ReplaceType(Anaplan.Connect, AnaplanType)'
+    - file: Anaplan.pq
+      lines: 292-302
+      function: AnaplanType
+      note: 'apiUrl and authUrl: FieldCaption, FieldDescription, SampleValues'
+    - file: Anaplan.pq
+      lines: 304-306
+      function: AnaplanType
+      note: 'function type meta Documentation.Name only'
+  navigation:
+    values:
+    - hierarchical
+    - discovered-from-api
+    evidence:
+    - file: Anaplan.pq
+      lines: 341-361
+      function: GetWorkspacesTable
+      note: workspaces from the API -> Folder rows, Data = GetModelsTable
+    - file: Anaplan.pq
+      lines: 400-414
+      function: GetModelsTable
+      note: models filtered by workspace -> Data = GetLabelTable
+    - file: Anaplan.pq
+      lines: 421-429
+      function: GetLabelTable
+      note: fixed "Exports" folder
+    - file: Anaplan.pq
+      lines: 435-456
+      function: GetExportsTable
+      note: exports from the API (csv/plain only) -> ExportOptions
+    - file: Anaplan.pq
+      lines: 464-473
+      function: ExportOptions
+      note: '"Run Export Action" leaf'
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: Anaplan.pq
+      lines: 219-225
+      function: Anaplan
+      note: TestConnection parses dataSourcePath JSON and returns {"Anaplan.Contents", apiUrl, authUrl}
   folding:
-    values: [none]
+    values:
+    - none
     evidence:
-      - {file: Anaplan.pq, lines: "563-586", function: DownloadFileListAccumulate, note: "downloads the whole export file and parses it locally; no Table.View or native query"}
+    - file: Anaplan.pq
+      lines: 563-586
+      function: DownloadFileListAccumulate
+      note: downloads the whole export file and parses it locally; no Table.View or native query
     sub: {}
-  long-running:
-    values: [async-export-polling]
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
     evidence:
-      - {file: Anaplan.pq, lines: "547-558", function: DownloadFileChunks, note: "on metadata status 200 calls GetWebContentsExportRunSuccess; forced by the exportRun <> null check"}
-      - {file: Anaplan.pq, lines: "618-649", function: GetWebContentsExportRunSuccess, note: "POST exports/{id}/tasks, then polls tasks/{taskId} until not in progress, then downloads file chunks"}
+    - file: Anaplan.pq
+      lines: 802-811
+      function: Extension.LoadFunction
+      note: TraceContext.pqm and Diagnostics.pqm loaded via Expression.Evaluate
+    - file: Anaplan.pq
+      lines: '319'
+      function: Anaplan.Connect
+      note: TraceContext[CreateContext] used, so the module is live
+    - file: Anaplan.pq
+      lines: 274-284
+      function: TaskInProgressMessage
+      note: Extension.LoadString used for messages (also APIVersionPath, AuthTokenPath, RequestTimeoutMinutes,
+        etc.)
+    - file: Anaplan.pq
+      lines: 238-250
+      function: Anaplan.Publish
+      note: SourceImage = AnaplanPowerBIConnector.Icons (AnaplanConnector16..64.png); Beta = false, so
+        no beta flag
+  diagnostics:
+    values:
+    - none
+    evidence:
+    - file: Anaplan.pq
+      lines: 810-811
+      function: Diagnostics
+      note: Diagnostics.pqm loaded and Diagnostics.LogValue bound, but only referenced in commented-out
+        code (line 707), so never evaluated
+    - file: TraceContext.pqm
+      lines: 40-52
+      function: InjectHeaders
+      note: adds W3C traceparent/X-Trace-Id headers to requests; this is server-side correlation, not
+        Power Query tracing
+  long-running:
+    values:
+    - async-export-polling
+    evidence:
+    - file: Anaplan.pq
+      lines: 547-558
+      function: DownloadFileChunks
+      note: on metadata status 200 calls GetWebContentsExportRunSuccess; forced by the exportRun <> null
+        check
+    - file: Anaplan.pq
+      lines: 618-649
+      function: GetWebContentsExportRunSuccess
+      note: POST exports/{id}/tasks, then polls tasks/{taskId} until not in progress, then downloads file
+        chunks
     sub:
       polling-rule:
-        text: "After POSTing the export task, it polls GET .../exports/{id}/tasks/{taskId} up to 200 times. The first attempt is immediate and later attempts come after Function.InvokeAfter with a 10 second delay, about 33 minutes max. A NoCache header with a random value defeats caching. It is terminal when task.taskState differs from the TaskInProgress resource string (literal value in a .resx that is not in the repo). On a terminal state it downloads the file chunks. If all attempts stay in progress it returns ErrorTable(2, taskId)."
+        text: After POSTing the export task, it polls GET .../exports/{id}/tasks/{taskId} up to 200 times.
+          The first attempt is immediate and later attempts come after Function.InvokeAfter with a 10
+          second delay, about 33 minutes max. A NoCache header with a random value defeats caching. It
+          is terminal when task.taskState differs from the TaskInProgress resource string (literal value
+          in a .resx that is not in the repo). On a terminal state it downloads the file chunks. If all
+          attempts stay in progress it returns ErrorTable(2, taskId).
         evidence:
-          - {file: Anaplan.pq, lines: "631-645", function: GetWebContentsExportRunSuccess, note: "getTaskStatusLoop(200, #duration(0,0,0,10)); List.Select for taskState <> TaskInProgress; List.First"}
-  packaging:
-    values: [pqm-modules, localized-strings, icons]
-    evidence:
-      - {file: Anaplan.pq, lines: "802-811", function: Extension.LoadFunction, note: "TraceContext.pqm and Diagnostics.pqm loaded via Expression.Evaluate"}
-      - {file: Anaplan.pq, lines: "319", function: Anaplan.Connect, note: "TraceContext[CreateContext] used, so the module is live"}
-      - {file: Anaplan.pq, lines: "274-284", function: TaskInProgressMessage, note: "Extension.LoadString used for messages (also APIVersionPath, AuthTokenPath, RequestTimeoutMinutes, etc.)"}
-      - {file: Anaplan.pq, lines: "238-250", function: Anaplan.Publish, note: "SourceImage = AnaplanPowerBIConnector.Icons (AnaplanConnector16..64.png); Beta = false, so no beta flag"}
-  diagnostics:
-    values: [none]
-    evidence:
-      - {file: Anaplan.pq, lines: "810-811", function: Diagnostics, note: "Diagnostics.pqm loaded and Diagnostics.LogValue bound, but only referenced in commented-out code (line 707), so never evaluated"}
-      - {file: TraceContext.pqm, lines: "40-52", function: InjectHeaders, note: "adds W3C traceparent/X-Trace-Id headers to requests; this is server-side correlation, not Power Query tracing"}
+        - file: Anaplan.pq
+          lines: 631-645
+          function: GetWebContentsExportRunSuccess
+          note: 'getTaskStatusLoop(200, #duration(0,0,0,10)); List.Select for taskState <> TaskInProgress;
+            List.First'
   writes:
-    values: [none]
+    values:
+    - none
     evidence:
-      - {file: Anaplan.pq, lines: "618-626", function: GetWebContentsExportRunSuccess, note: "the only live POST starts an export job (read); no data is written back"}
-  user-inputs:
-    values: [url-or-server]
-    evidence:
-      - {file: Anaplan.pq, lines: "292-306", function: AnaplanType, note: "apiUrl and authUrl text parameters"}
-      - {file: Anaplan.pq, lines: "316-332", function: Anaplan.Connect, note: "trimmed, validated by IsValidUrl, fallback to prod hosts"}
-    sub: {}
-  data-formats:
-    values: [json, csv]
-    evidence:
-      - {file: Anaplan.pq, lines: "606-608", function: GetWebContents, note: "Json.Document(buffered) for API responses"}
-      - {file: Anaplan.pq, lines: "583", function: DownloadFileListAccumulate, note: "Csv.Document of the combined chunks"}
-notes: |
-  - RunExportAction (478-496): the binding `status` (HasInProgressTasks / PostAction) is never referenced, so because of lazy evaluation neither runs. Only DownloadFileChunks runs. The live export POST and polling are in GetWebContentsExportRunSuccess. DownloadFileListAccumulate is called twice: once inside the polling result (640) and again at 556.
-  - Excel: line 583 branches to Excel.Workbook when exportFormat = application/vnd.ms-excel. GetExportsTable (445), however, keeps only text/csv and text/plain exports, so the Excel branch is effectively unreachable. Excel is therefore left out of data-formats.
-  - Chunk download (569-581) lists chunk ids and fetches each one. That is a file download, not result paging.
-  - The polling loop is labelled long-running, not http-errors retry-with-delay, because it waits for job state and does not retry failed requests.
-  - Value.WaitFor (777-791) is never called. GetExportTasks (518-542) is commented out, as are RefreshTokenInfo and IsValidApiUrl (688-719). Never-used definitions: GetApiTokenValue, Date.CurrentEpoch, ExportsMinId, MinExpirationTime, ErrorStatus, logout_uri, scopes, scope_prefix, Base64UrlEncodeWithoutPadding. The top-level codeVerifier (41) is shadowed by the local one in StartLogin (57). HasClientError is only reached on a branch that cannot trigger, because resp is always a record with models.
-  - GetApiToken sends Query=[Authorization="Basic encoded_username:password"], a literal placeholder. The real Basic credential is applied by the engine from the UsernamePassword credential.
-  - In Refresh, the fallback when tokenHost is missing is TokenHostNotFoundMessage, which is a record, not text. That is a bug, but the path is still wired.
+    - file: Anaplan.pq
+      lines: 618-626
+      function: GetWebContentsExportRunSuccess
+      note: the only live POST starts an export job (read); no data is written back
+notes: '- RunExportAction (478-496): the binding `status` (HasInProgressTasks / PostAction) is never referenced,
+  so because of lazy evaluation neither runs. Only DownloadFileChunks runs. The live export POST and polling
+  are in GetWebContentsExportRunSuccess. DownloadFileListAccumulate is called twice: once inside the polling
+  result (640) and again at 556.
+
+  - Excel: line 583 branches to Excel.Workbook when exportFormat = application/vnd.ms-excel. GetExportsTable
+  (445), however, keeps only text/csv and text/plain exports, so the Excel branch is effectively unreachable.
+  Excel is therefore left out of data-formats.
+
+  - Chunk download (569-581) lists chunk ids and fetches each one. That is a file download, not result
+  paging.
+
+  - The polling loop is labelled long-running, not http-errors retry-with-delay, because it waits for
+  job state and does not retry failed requests.
+
+  - Value.WaitFor (777-791) is never called. GetExportTasks (518-542) is commented out, as are RefreshTokenInfo
+  and IsValidApiUrl (688-719). Never-used definitions: GetApiTokenValue, Date.CurrentEpoch, ExportsMinId,
+  MinExpirationTime, ErrorStatus, logout_uri, scopes, scope_prefix, Base64UrlEncodeWithoutPadding. The
+  top-level codeVerifier (41) is shadowed by the local one in StartLogin (57). HasClientError is only
+  reached on a branch that cannot trigger, because resp is always a record with models.
+
+  - GetApiToken sends Query=[Authorization="Basic encoded_username:password"], a literal placeholder.
+  The real Basic credential is applied by the engine from the UsernamePassword credential.
+
+  - In Refresh, the fallback when tokenHost is missing is TokenHostNotFoundMessage, which is a record,
+  not text. That is a bug, but the path is still wired.
+
   - OAuth uses PKCE with code_challenge_method = plain, not S256.
+
   - Table.ToNavigationTable is defined inline (754-775), not in a .pqm.
+
   - Localized strings and icons are referenced, but the .resx and .png files are not in the repo folder.
+
+  '

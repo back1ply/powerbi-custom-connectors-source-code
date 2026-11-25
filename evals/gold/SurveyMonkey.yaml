@@ -1,110 +1,271 @@
 connector: SurveyMonkey
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read SurveyMonkey.m (169), FetchResource.pqm (63), Diagnostics.pqm (274); 506 lines total. No .resx/.png files in the archive folder."
+source_note: Read SurveyMonkey.m (169), FetchResource.pqm (63), Diagnostics.pqm (274); 506 lines total.
+  No .resx/.png files in the archive folder.
 answers:
   auth:
-    values: [key]
+    values:
+    - key
     evidence:
-      - {file: SurveyMonkey.m, lines: "127-136", function: SurveyMonkey, note: "Authentication = [Key = [Label = \"Access Token\", KeyLabel = ...]]"}
-      - {file: SurveyMonkey.m, lines: "66-66", function: SurveyMonkeyNavTable, note: "access_token = Extension.CurrentCredential()[Key]"}
+    - file: SurveyMonkey.m
+      lines: 127-136
+      function: SurveyMonkey
+      note: Authentication = [Key = [Label = "Access Token", KeyLabel = ...]]
+    - file: SurveyMonkey.m
+      lines: 66-66
+      function: SurveyMonkeyNavTable
+      note: access_token = Extension.CurrentCredential()[Key]
     sub:
       key-placement:
-        values: [header]
+        values:
+        - header
         evidence:
-          - {file: FetchResource.pqm, lines: "39-40", function: GetPage, note: "Headers=[Authorization = \"bearer \" & access_token]"}
-          - {file: SurveyMonkey.m, lines: "28-31", function: SurveyMonkey.GetDomain, note: "same bearer Authorization header on the region probe request"}
+        - file: FetchResource.pqm
+          lines: 39-40
+          function: GetPage
+          note: Headers=[Authorization = "bearer " & access_token]
+        - file: SurveyMonkey.m
+          lines: 28-31
+          function: SurveyMonkey.GetDomain
+          note: same bearer Authorization header on the region probe request
   transport:
-    values: [web-contents]
+    values:
+    - web-contents
     evidence:
-      - {file: FetchResource.pqm, lines: "37-45", function: GetPage, note: "Web.Contents(url, [Headers=...]) then Json.Document"}
-      - {file: SurveyMonkey.m, lines: "26-59", function: SurveyMonkey.GetDomain, note: "Web.Contents probes US then EU API hosts"}
+    - file: FetchResource.pqm
+      lines: 37-45
+      function: GetPage
+      note: Web.Contents(url, [Headers=...]) then Json.Document
+    - file: SurveyMonkey.m
+      lines: 26-59
+      function: SurveyMonkey.GetDomain
+      note: Web.Contents probes US then EU API hosts
     sub: {}
-  http-errors:
-    values: [default, manual-status-handling]
+  user-inputs:
+    values:
+    - none
     evidence:
-      - {file: SurveyMonkey.m, lines: "28-31", function: SurveyMonkey.GetDomain, note: "region probe uses ManualStatusHandling={401,403,503}; 403 with surveymonkey.ca message -> CA host, 401 -> try EU, 503 -> error \"SurveyMonkey is under maintenance\""}
-      - {file: SurveyMonkey.m, lines: "38-57", function: SurveyMonkey.GetDomain, note: "EU request uses ManualStatusHandling={503}; non-200 statuses raise plain-text errors (no Error.Record)"}
-      - {file: FetchResource.pqm, lines: "37-45", function: GetPage, note: "all data/paging requests have no ManualStatusHandling: engine default handling"}
+    - file: SurveyMonkey.m
+      lines: 15-23
+      function: SurveyMonkeyNavTableType
+      note: type function () - no parameters; region host is auto-detected and token comes from the credential
+    - file: SurveyMonkey.m
+      lines: 63-67
+      function: SurveyMonkeyNavTable
+      note: () as table; token from Extension.CurrentCredential()
     sub: {}
   paging:
-    values: [next-link-url]
+    values:
+    - next-link-url
     evidence:
-      - {file: FetchResource.pqm, lines: "2-2", function: GetNextLink, note: "next URL read from response body links.next"}
-      - {file: FetchResource.pqm, lines: "26-35", function: GetAllPagesByNextLink, note: "first call uses the initial url, later calls use Value.Metadata(previous)[NextLink]"}
-      - {file: FetchResource.pqm, lines: "37-45", function: GetPage, note: "data meta [NextLink = nextLink]"}
-      - {file: FetchResource.pqm, lines: "47-58", function: SurveyMonkey.GetSurveys, note: "per_page=1000 for surveys, per_page=200 for responses (page size only; paging driven by next link)"}
+    - file: FetchResource.pqm
+      lines: 2-2
+      function: GetNextLink
+      note: next URL read from response body links.next
+    - file: FetchResource.pqm
+      lines: 26-35
+      function: GetAllPagesByNextLink
+      note: first call uses the initial url, later calls use Value.Metadata(previous)[NextLink]
+    - file: FetchResource.pqm
+      lines: 37-45
+      function: GetPage
+      note: data meta [NextLink = nextLink]
+    - file: FetchResource.pqm
+      lines: 47-58
+      function: SurveyMonkey.GetSurveys
+      note: per_page=1000 for surveys, per_page=200 for responses (page size only; paging driven by next
+        link)
     sub:
       paging-generator:
-        values: [table-generatebypage]
+        values:
+        - table-generatebypage
         evidence:
-          - {file: FetchResource.pqm, lines: "5-24", function: Table.GenerateByPage, note: "standard Table.GenerateByPage helper built on List.Generate"}
-          - {file: FetchResource.pqm, lines: "26-35", function: GetAllPagesByNextLink, note: "calls Table.GenerateByPage"}
+        - file: FetchResource.pqm
+          lines: 5-24
+          function: Table.GenerateByPage
+          note: standard Table.GenerateByPage helper built on List.Generate
+        - file: FetchResource.pqm
+          lines: 26-35
+          function: GetAllPagesByNextLink
+          note: calls Table.GenerateByPage
       paging-stop:
-        text: "Stops when the response has no links.next (Record.FieldOrDefault returns null), so the next getNextPage call returns null and List.Generate's condition lastPage <> null ends the loop."
+        text: Stops when the response has no links.next (Record.FieldOrDefault returns null), so the next
+          getNextPage call returns null and List.Generate's condition lastPage <> null ends the loop.
         evidence:
-          - {file: FetchResource.pqm, lines: "2-2", function: GetNextLink, note: "null when links/next missing"}
-          - {file: FetchResource.pqm, lines: "30-32", function: GetAllPagesByNextLink, note: "page = null when nextLink is null"}
-          - {file: FetchResource.pqm, lines: "7-11", function: Table.GenerateByPage, note: "(lastPage) => lastPage <> null"}
-  navigation:
-    values: [discovered-from-api]
+        - file: FetchResource.pqm
+          lines: 2-2
+          function: GetNextLink
+          note: null when links/next missing
+        - file: FetchResource.pqm
+          lines: 30-32
+          function: GetAllPagesByNextLink
+          note: page = null when nextLink is null
+        - file: FetchResource.pqm
+          lines: 7-11
+          function: Table.GenerateByPage
+          note: (lastPage) => lastPage <> null
+  data-formats:
+    values:
+    - json
     evidence:
-      - {file: SurveyMonkey.m, lines: "63-80", function: SurveyMonkeyNavTable, note: "one leaf per survey returned by GetSurveys (/v3/surveys); Data = that survey's responses"}
-      - {file: SurveyMonkey.m, lines: "103-124", function: Table.ToNavigationTable, note: "flat nav table, ItemKind Table, IsLeaf true"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: SurveyMonkey.m, lines: "128-128", function: SurveyMonkey, note: "TestConnection = (access_token) => {\"SurveyMonkey.Contents\"}"}
+    - file: FetchResource.pqm
+      lines: 41-41
+      function: GetPage
+      note: Json.Document(response)
+    - file: SurveyMonkey.m
+      lines: 33-33
+      function: SurveyMonkey.GetDomain
+      note: Json.Document on probe response
   schema:
-    values: [inferred-from-data]
+    values:
+    - inferred-from-data
     evidence:
-      - {file: FetchResource.pqm, lines: "43-43", function: GetPage, note: "Table.FromRecords(body[data]): columns from JSON fields"}
-      - {file: FetchResource.pqm, lines: "18-23", function: Table.GenerateByPage, note: "result type taken from first page's Value.Type"}
-      - {file: SurveyMonkey.m, lines: "73-73", function: SurveyMonkeyNavTable, note: "survey Data = Table.FromRecords(response records)"}
+    - file: FetchResource.pqm
+      lines: 43-43
+      function: GetPage
+      note: 'Table.FromRecords(body[data]): columns from JSON fields'
+    - file: FetchResource.pqm
+      lines: 18-23
+      function: Table.GenerateByPage
+      note: result type taken from first page's Value.Type
+    - file: SurveyMonkey.m
+      lines: 73-73
+      function: SurveyMonkeyNavTable
+      note: survey Data = Table.FromRecords(response records)
     sub: {}
+  http-errors:
+    values:
+    - default
+    - manual-status-handling
+    evidence:
+    - file: SurveyMonkey.m
+      lines: 28-31
+      function: SurveyMonkey.GetDomain
+      note: region probe uses ManualStatusHandling={401,403,503}; 403 with surveymonkey.ca message ->
+        CA host, 401 -> try EU, 503 -> error "SurveyMonkey is under maintenance"
+    - file: SurveyMonkey.m
+      lines: 38-57
+      function: SurveyMonkey.GetDomain
+      note: EU request uses ManualStatusHandling={503}; non-200 statuses raise plain-text errors (no Error.Record)
+    - file: FetchResource.pqm
+      lines: 37-45
+      function: GetPage
+      note: 'all data/paging requests have no ManualStatusHandling: engine default handling'
+    sub: {}
+  documentation:
+    values:
+    - function-documentation
+    evidence:
+    - file: SurveyMonkey.m
+      lines: '13'
+      function: SurveyMonkey.Contents
+      note: 'shared SurveyMonkey.Contents = Value.ReplaceType(SurveyMonkeyNavTable, SurveyMonkeyNavTableType)'
+    - file: SurveyMonkey.m
+      lines: 15-23
+      function: SurveyMonkeyNavTableType
+      note: 'type function () with no parameters, so no parameter metadata; meta Documentation.Name, LongDescription, Examples'
+  navigation:
+    values:
+    - discovered-from-api
+    evidence:
+    - file: SurveyMonkey.m
+      lines: 63-80
+      function: SurveyMonkeyNavTable
+      note: one leaf per survey returned by GetSurveys (/v3/surveys); Data = that survey's responses
+    - file: SurveyMonkey.m
+      lines: 103-124
+      function: Table.ToNavigationTable
+      note: flat nav table, ItemKind Table, IsLeaf true
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: SurveyMonkey.m
+      lines: 128-128
+      function: SurveyMonkey
+      note: TestConnection = (access_token) => {"SurveyMonkey.Contents"}
   folding:
-    values: [none]
+    values:
+    - none
     evidence:
-      - {file: FetchResource.pqm, lines: "26-45", function: GetAllPagesByNextLink, note: "plain paged fetch into Table.FromRecords; no Table.View or native query"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: FetchResource.pqm, lines: "37-45", function: GetPage, note: "synchronous GET per page; no polling"}
+    - file: FetchResource.pqm
+      lines: 26-45
+      function: GetAllPagesByNextLink
+      note: plain paged fetch into Table.FromRecords; no Table.View or native query
     sub: {}
   packaging:
-    values: [pqm-modules, localized-strings, icons]
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
     evidence:
-      - {file: SurveyMonkey.m, lines: "155-169", function: Extension.LoadFunction, note: "FetchResource.pqm and Diagnostics.pqm loaded via Extension.Contents + Expression.Evaluate"}
-      - {file: SurveyMonkey.m, lines: "142-142", function: SurveyMonkey.Publish, note: "ButtonText uses Extension.LoadString (resx not present in archive)"}
-      - {file: SurveyMonkey.m, lines: "148-151", function: SurveyMonkey.Icons, note: "Icon16/Icon32 via Extension.Contents png (png files not present in archive)"}
+    - file: SurveyMonkey.m
+      lines: 155-169
+      function: Extension.LoadFunction
+      note: FetchResource.pqm and Diagnostics.pqm loaded via Extension.Contents + Expression.Evaluate
+    - file: SurveyMonkey.m
+      lines: 142-142
+      function: SurveyMonkey.Publish
+      note: ButtonText uses Extension.LoadString (resx not present in archive)
+    - file: SurveyMonkey.m
+      lines: 148-151
+      function: SurveyMonkey.Icons
+      note: Icon16/Icon32 via Extension.Contents png (png files not present in archive)
   diagnostics:
-    values: [tracing-gated]
+    values:
+    - tracing-gated
     evidence:
-      - {file: SurveyMonkey.m, lines: "5-5", function: EnableTraceOutput, note: "EnableTraceOutput = false"}
-      - {file: SurveyMonkey.m, lines: "168-168", function: Diagnostics.LogValue, note: "uses Diagnostics[LogValue] (Diagnostics.Trace) only if EnableTraceOutput, else identity"}
-      - {file: Diagnostics.pqm, lines: "2-2", function: Diagnostics.LogValue, note: "Diagnostics.Trace(TraceLevel.Information, ...)"}
-      - {file: SurveyMonkey.m, lines: "32-32", function: SurveyMonkey.GetDomain, note: "LogValue call on the probe response code (also lines 42, 59)"}
-  writes:
-    values: [none]
+    - file: SurveyMonkey.m
+      lines: 5-5
+      function: EnableTraceOutput
+      note: EnableTraceOutput = false
+    - file: SurveyMonkey.m
+      lines: 168-168
+      function: Diagnostics.LogValue
+      note: uses Diagnostics[LogValue] (Diagnostics.Trace) only if EnableTraceOutput, else identity
+    - file: Diagnostics.pqm
+      lines: 2-2
+      function: Diagnostics.LogValue
+      note: Diagnostics.Trace(TraceLevel.Information, ...)
+    - file: SurveyMonkey.m
+      lines: 32-32
+      function: SurveyMonkey.GetDomain
+      note: LogValue call on the probe response code (also lines 42, 59)
+  long-running:
+    values:
+    - none
     evidence:
-      - {file: FetchResource.pqm, lines: "37-45", function: GetPage, note: "GET only"}
-  user-inputs:
-    values: [none]
-    evidence:
-      - {file: SurveyMonkey.m, lines: "15-23", function: SurveyMonkeyNavTableType, note: "type function () - no parameters; region host is auto-detected and token comes from the credential"}
-      - {file: SurveyMonkey.m, lines: "63-67", function: SurveyMonkeyNavTable, note: "() as table; token from Extension.CurrentCredential()"}
+    - file: FetchResource.pqm
+      lines: 37-45
+      function: GetPage
+      note: synchronous GET per page; no polling
     sub: {}
-  data-formats:
-    values: [json]
+  writes:
+    values:
+    - none
     evidence:
-      - {file: FetchResource.pqm, lines: "41-41", function: GetPage, note: "Json.Document(response)"}
-      - {file: SurveyMonkey.m, lines: "33-33", function: SurveyMonkey.GetDomain, note: "Json.Document on probe response"}
-notes: |
-  - SurveyMonkey.ParseSurvey (SurveyMonkey.m 84-101) is never called; dead code.
-  - Diagnostics.LogFailure (SurveyMonkey.m 169) is bound but never called. Only LogValue is used, and it is gated by EnableTraceOutput = false, hence tracing-gated.
-  - http-errors: ManualStatusHandling exists only on the GetDomain region-detection probes (US first; EU on 401; CA if the 403 message mentions surveymonkey.ca). The data paging requests use default handling, so both default and manual-status-handling are listed. Errors raised are plain text, not Error.Record. No retry.
+    - file: FetchResource.pqm
+      lines: 37-45
+      function: GetPage
+      note: GET only
+notes: '- SurveyMonkey.ParseSurvey (SurveyMonkey.m 84-101) is never called; dead code.
+
+  - Diagnostics.LogFailure (SurveyMonkey.m 169) is bound but never called. Only LogValue is used, and
+  it is gated by EnableTraceOutput = false, hence tracing-gated.
+
+  - http-errors: ManualStatusHandling exists only on the GetDomain region-detection probes (US first;
+  EU on 401; CA if the 403 message mentions surveymonkey.ca). The data paging requests use default handling,
+  so both default and manual-status-handling are listed. Errors raised are plain text, not Error.Record.
+  No retry.
+
   - Region (US/EU/CA) is detected automatically, not a user input.
-  - The icon list references "SurveyMonke220.png" / "SurveyMonke240.png" (typo-looking filenames). Resource files (.resx, .png) are not in the archive, so localized-strings/icons are labelled from the code references.
+
+  - The icon list references "SurveyMonke220.png" / "SurveyMonke240.png" (typo-looking filenames). Resource
+  files (.resx, .png) are not in the archive, so localized-strings/icons are labelled from the code references.
+
   - Publish Beta = false, so beta-flag is not listed.
-  - FetchResource.pqm is a let-expression returning a record [GetSurveys, GetSurveyResponses], not a section document.
+
+  - FetchResource.pqm is a let-expression returning a record [GetSurveys, GetSurveyResponses], not a section
+  document.
+
+  '

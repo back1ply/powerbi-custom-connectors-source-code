@@ -1,162 +1,662 @@
 connector: LakeHouse
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read all 16 files in full: LakeHouse.pq (3682), MDSync.pqm (697), SqlGenerator.pqm (1002), SqlGeneratorCommon.pqm (704), Utils.pqm (581), DeltaTableFastCopy.pqm (575), Workspace.pqm (568), SparkCompute.pqm (475), DualTable.View.pqm (290), SparkComputeUtils.pqm (289), Workspace.PrivateLink.pqm (163), Workspace.DLP.pqm (100), Table.NavigationTableView.pqm (90), FabricEnvironment.pqm (52), Table.ToNavigationTable.pqm (34), TypeInfo.pqm (27); 9,329 lines total. The folder has no .resx or icon files."
+source_note: 'Read all 16 files in full: LakeHouse.pq (3682), MDSync.pqm (697), SqlGenerator.pqm (1002),
+  SqlGeneratorCommon.pqm (704), Utils.pqm (581), DeltaTableFastCopy.pqm (575), Workspace.pqm (568), SparkCompute.pqm
+  (475), DualTable.View.pqm (290), SparkComputeUtils.pqm (289), Workspace.PrivateLink.pqm (163), Workspace.DLP.pqm
+  (100), Table.NavigationTableView.pqm (90), FabricEnvironment.pqm (52), Table.ToNavigationTable.pqm (34),
+  TypeInfo.pqm (27); 9,329 lines total. The folder has no .resx or icon files.'
 answers:
   auth:
-    values: [aad]
+    values:
+    - aad
     evidence:
-      - {file: LakeHouse.pq, lines: "3093-3104", function: Lakehouse, note: "Authentication = [Aad = [AuthorizationUri, Resource = \"\", Scope = PowerBI + SQL + Storage user_impersonation, DefaultClientApplication]]"}
-      - {file: Utils.pqm, lines: "486-496", function: GetCredential, note: "Picks the per-resource AAD token from Extension.CurrentCredential()[Properties] (AccessToken:<resource>), falling back to access_token"}
-      - {file: LakeHouse.pq, lines: "2885-2897", function: OneLake.Contents, note: "Extension.InvokeWithCredentials passes the AAD storage token (plus an optional S2S ServiceAccessToken) to AzureStorage.DataLake"}
+    - file: LakeHouse.pq
+      lines: 3093-3104
+      function: Lakehouse
+      note: Authentication = [Aad = [AuthorizationUri, Resource = "", Scope = PowerBI + SQL + Storage
+        user_impersonation, DefaultClientApplication]]
+    - file: Utils.pqm
+      lines: 486-496
+      function: GetCredential
+      note: Picks the per-resource AAD token from Extension.CurrentCredential()[Properties] (AccessToken:<resource>),
+        falling back to access_token
+    - file: LakeHouse.pq
+      lines: 2885-2897
+      function: OneLake.Contents
+      note: Extension.InvokeWithCredentials passes the AAD storage token (plus an optional S2S ServiceAccessToken)
+        to AzureStorage.DataLake
     sub: {}
   transport:
-    values: [web-contents, sql-database, other]
+    values:
+    - web-contents
+    - sql-database
+    - other
     evidence:
-      - {file: Utils.pqm, lines: "292-314", function: Http.Request, note: "Web.Contents(url, moreOptions & [IsRetry = ...]) at line 303, used for every Fabric/Power BI REST call"}
-      - {file: Utils.pqm, lines: "317-344", function: Web.JsonContents, note: "JSON REST wrapper used for workspaces, lakehouses, warehouses, TDS endpoint, MDSync and Livy calls"}
-      - {file: LakeHouse.pq, lines: "2945-2954", function: Sql.Contents, note: "Sql.Database(serverInstance, dbname, [EnableCrossDatabaseFolding = true] & curatedOptions) against the lakehouse/warehouse SQL endpoint"}
-      - {file: LakeHouse.pq, lines: "2885-2897", function: OneLake.Contents, note: "other: AzureStorage.DataLake(entityUrl, [HierarchicalNavigation=true, IsOneLake=true]) for OneLake storage; OneLake.FileContents/BlobContents/ContentsNonHierarchical (2899-2939) wrap AzureStorage.DataLakeContents / BlobContents"}
-      - {file: LakeHouse.pq, lines: "1527-1551", function: GenerateNavTableUsingDeltaTable, note: "other: DeltaLake.Table([Data], DeltaLake.Options(options)) reads OneLake Delta tables directly; used when there is no SQL endpoint, EnableFolding=false, or for versioned writes"}
+    - file: Utils.pqm
+      lines: 292-314
+      function: Http.Request
+      note: Web.Contents(url, moreOptions & [IsRetry = ...]) at line 303, used for every Fabric/Power
+        BI REST call
+    - file: Utils.pqm
+      lines: 317-344
+      function: Web.JsonContents
+      note: JSON REST wrapper used for workspaces, lakehouses, warehouses, TDS endpoint, MDSync and Livy
+        calls
+    - file: LakeHouse.pq
+      lines: 2945-2954
+      function: Sql.Contents
+      note: Sql.Database(serverInstance, dbname, [EnableCrossDatabaseFolding = true] & curatedOptions)
+        against the lakehouse/warehouse SQL endpoint
+    - file: LakeHouse.pq
+      lines: 2885-2897
+      function: OneLake.Contents
+      note: 'other: AzureStorage.DataLake(entityUrl, [HierarchicalNavigation=true, IsOneLake=true]) for
+        OneLake storage; OneLake.FileContents/BlobContents/ContentsNonHierarchical (2899-2939) wrap AzureStorage.DataLakeContents
+        / BlobContents'
+    - file: LakeHouse.pq
+      lines: 1527-1551
+      function: GenerateNavTableUsingDeltaTable
+      note: 'other: DeltaLake.Table([Data], DeltaLake.Options(options)) reads OneLake Delta tables directly;
+        used when there is no SQL endpoint, EnableFolding=false, or for versioned writes'
     sub: {}
-  http-errors:
-    values: [manual-status-handling, structured-error-records, retry-with-delay]
-    evidence:
-      - {file: Utils.pqm, lines: "292-311", function: Http.Request, note: "moreOptions = options & [ManualStatusHandling = handledStatuses] (line 296); the handler is picked by status code"}
-      - {file: Utils.pqm, lines: "276-285", function: DefaultHandlers, note: "302/400/404/500/503 -> DefaultErrorHandler, 401/403 -> AuthHandler (one forced token refresh)"}
-      - {file: Utils.pqm, lines: "349-398", function: DefaultErrorHandler, note: "Parses the JSON error body into Error.Record with ErrorCode, RequestId, RequestUrl, HttpStatusCode, ErrorMessage and traces it"}
-      - {file: Utils.pqm, lines: "404-408", function: RetryHandler, note: "Re-issues the request through Function.InvokeAfter with delay(iteration) until count is reached, then DefaultErrorHandler"}
-      - {file: LakeHouse.pq, lines: "333-344", function: GetLakehousePublicAPIWitoutData, note: "Lakehouse listing adds [503 = Utils[RetryHandler](maxRetryCount)] with maxRetryCount = 5"}
-      - {file: MDSync.pqm, lines: "661-669", function: MetadataRefreshResponseHandlers, note: "500/503 (and 400 while polling) -> RetryHandler(4, iteration*5 s)"}
-      - {file: Workspace.pqm, lines: "487-518", function: GetTDSEndPoint, note: "Custom 403 handler falls back to the public Fabric API (GetTDSEndPointViaFabricApi)"}
-    sub:
-      retry-rule:
-        text: "Utils.Http.Request increments Iteration before the handler runs, and RetryHandler(count, delay) retries while Iteration < count, waiting delay(Iteration) (default Iteration*0.2 s). Lakehouse listing (/v1/workspaces/{id}/lakehouses, no startState): 503 RetryHandler(5) = 4 retries at 0.2, 0.4, 0.6, 0.8 s. MDSync DMS calls (startState Iteration=1): 500/503, and 400 only when polling batch events, use RetryHandler(4, i*5) = 2 retries at 10 s and 15 s. MDSync LockConflict: polls the blocking batch and resubmits; if no batch is in progress it waits 5 s and resubmits, up to about 55 iterations. Livy (Spark compute, feature-gated): statement submit 409 RetryHandler(3, i+5) with startState Iteration=1 = 1 retry after 7 s. The RetryHandler(1) on session list/create/state and statement-status 503 never retries (1<1 / 2<1 is false). A session state that is not idle is re-requested about 5 times, at 4, 8, 12, 16, 20 s (JsonRetryHandler(10) adds its own increment). A failed statement with [TABLE_OR_VIEW_NOT_FOUND] is re-run once after 15 s. DeltaTableFastCopy OneLake listing: 404/503 retried up to 14 times, 5 s apart. 401/403 trigger one forced token refresh and then error. Nothing handles 429 or Retry-After."
-        evidence:
-          - {file: Utils.pqm, lines: "404-408", function: RetryHandler, note: "delay = delayFunction ?? ((i) => i * 0.2); Function.InvokeAfter while state[Iteration] < count"}
-          - {file: LakeHouse.pq, lines: "335-340", function: GetLakehousePublicAPIWitoutData, note: "maxRetryCount = 5; [503 = Utils[RetryHandler](maxRetryCount)]"}
-          - {file: MDSync.pqm, lines: "661-669", function: MetadataRefreshResponseHandlers, note: "metadataDelayFn = iteration * 5; 400 (poll only), 500, 503 -> RetryHandler(4, ...)"}
-          - {file: SparkComputeUtils.pqm, lines: "138-143", function: RunSparkSqlStatement, note: "[409 = Utils[RetryHandler](3, ((i) => i+1 * 5))]"}
-          - {file: SparkComputeUtils.pqm, lines: "159-172", function: RunSparkSqlStatement, note: "RetryOperation (TABLE_OR_VIEW_NOT_FOUND) re-run after #duration(0,0,0,15)"}
-          - {file: SparkComputeUtils.pqm, lines: "260-278", function: JsonRetryHandler, note: "Re-polls Livy session state when it is not idle, delay (i+1)*2 s, up to 10 times"}
-          - {file: DeltaTableFastCopy.pqm, lines: "49-85", function: RetryOneLakeContents, note: "MaxOneLakeContentsRetryCount = 14, OneLakeContentsRetryDelay = 5 s, retries only HttpStatusCode 404/503"}
-  paging:
-    values: [none]
-    evidence:
-      - {file: Workspace.pqm, lines: "32-48", function: GetWorkspacesNavTable, note: "A single GET /v1/workspaces; jsonResponse[value] is used directly, no continuationToken follow-up"}
-      - {file: LakeHouse.pq, lines: "333-345", function: GetLakehousePublicAPIWitoutData, note: "A single GET /v1/workspaces/{id}/lakehouses; reads response[value] only"}
-      - {file: LakeHouse.pq, lines: "382-394", function: GetWarehouses, note: "A single GET /v1/workspaces/{id}/warehouses; reads response[value] only"}
-      - {file: LakeHouse.pq, lines: "2945-2954", function: Sql.Contents, note: "Table data comes from Sql.Database / DeltaLake.Table, which stream rows themselves; the connector does no paging"}
-    sub: {}
-  navigation:
-    values: [hierarchical, discovered-from-api]
-    evidence:
-      - {file: Workspace.pqm, lines: "26-84", function: GetWorkspacesNavTable, note: "Level 1: workspaces from GET /v1/workspaces (DLP-filtered), built with Table.NavigationTableView; each row's Data calls workspaceViewGenerator"}
-      - {file: LakeHouse.pq, lines: "200-277", function: GetNavTableForWorkspace, note: "Level 2: lakehouses (plus warehouses when IncludeWarehouses) from the Fabric API, in a Table.View nav table"}
-      - {file: LakeHouse.pq, lines: "558-735", function: GenerateLakeHouseTablesView, note: "Level 3: tables (from the SQL endpoint or OneLake Delta folders) plus a Files folder node"}
-      - {file: LakeHouse.pq, lines: "464-520", function: GenerateLakeHouseTablesViewWithFullHierarchy, note: "Optional schema level when HierarchicalNavigation=true and EnableFolding=false"}
-      - {file: LakeHouse.pq, lines: "1403-1448", function: GenerateFilesViewForLakeHouse, note: "Files folder tree from OneLake.Contents (Binary/Folder items)"}
-    sub:
-      test-connection:
-        values: [dedicated-probe]
-        evidence:
-          - {file: LakeHouse.pq, lines: "151-160", function: GetNavTableForLakehouses, note: "testConnection = Workspace[FindTestConnectionEndpoint](\"Lakehouse\", ...) then Sql.TestServerConnection(endpoint, ...), passed to GetWorkspacesNavTable"}
-          - {file: Workspace.pqm, lines: "71-82", function: GetWorkspacesNavTable, note: "additionalHandler = [OnTestConnection = testConnectionFn] on the root nav table"}
-          - {file: LakeHouse.pq, lines: "2981-2996", function: Sql.TestServerConnection, note: "DataSource.TestConnection(Sql.Databases(serverInstance))"}
-          - {file: LakeHouse.pq, lines: "142-149", function: LakehouseView, note: "The root view forwards OnTestConnection to the invoked nav table"}
-  schema:
-    values: [declared-schema, driver-provided]
-    evidence:
-      - {file: LakeHouse.pq, lines: "162-180", function: LakehouseNavTableType, note: "Declared nav table types LakehouseNavTableType and LakehouseTableDetailType"}
-      - {file: LakeHouse.pq, lines: "209-213", function: GetNavTableForWorkspace, note: "GetType = Value.Type(emptyTable), built from #table(LakehouseNavTableType, {})"}
-      - {file: LakeHouse.pq, lines: "2945-2954", function: Sql.Contents, note: "Table data columns and types come from Sql.Database (SQL endpoint)"}
-      - {file: LakeHouse.pq, lines: "1534-1551", function: GenerateNavTableUsingDeltaTable, note: "Or from DeltaLake.Table over OneLake (Delta schema)"}
-    sub:
-      empty-result-columns:
-        values: [yes]
-        evidence:
-          - {file: LakeHouse.pq, lines: "209-212", function: GetNavTableForWorkspace, note: "emptyTable = AddLakehouseTrivia(#table(LakehouseNavTableType, {}), ...) provides the type"}
-          - {file: LakeHouse.pq, lines: "331", function: GetLakehouses, note: "if lakehouesWithoutData = null then #table(LakehouseNavTableType, {})"}
-          - {file: LakeHouse.pq, lines: "399", function: GetWarehouses, note: "if response = null then #table(LakehouseNavTableType, {})"}
-  folding:
-    values: [table-view-handlers, custom-sql-generator]
-    evidence:
-      - {file: LakeHouse.pq, lines: "3569-3594", function: Handlers, note: "Root Table.View handler set: GetExpression, GetRows, GetRowCount, GetType, OnAddColumns, OnCombine, OnDistinct, OnGroup, OnInvoke, OnPivot, OnRenameColumns, OnSelectColumns, OnSelectRows, OnSkip, OnSort, OnTake, OnUnpivot, OnTestConnection"}
-      - {file: LakeHouse.pq, lines: "1701-1760", function: GenerateViewForSqlTableData, note: "Per-table Table.View over the Sql.Database table: GetExpression = Value.Expression(Value.Optimize(content2)) so queries fold through the SQL connector; plus OnInvoke and OnSelectRows"}
-      - {file: LakeHouse.pq, lines: "215-265", function: GetNavTableForWorkspace, note: "OnSelectRows uses key lookups (lakehouseId/lakehouseName/databaseId) to skip full listing"}
-      - {file: SparkCompute.pqm, lines: "84-131", function: SparkSqlGenerator, note: "custom-sql-generator: SqlView.Generator(uniqueIdentifier, SqlGenerator, GetData) builds Spark SQL over abfss Delta paths"}
-      - {file: SqlGenerator.pqm, lines: "56-75", function: Override, note: "Spark SQL generator: SqlCapabilities (backtick quoting, LimitOffset) + AdbcFunctionOverrides merged over SqlGeneratorCommon Sql92 base"}
-      - {file: LakeHouse.pq, lines: "1468-1513", function: GenerateOneLakeTable, note: "Uses the SQL endpoint view when available, SparkCompute nav when IsSparkComputeEnabled(options) (feature switch + options[UseSparkCompute]), else raw Delta"}
-    sub:
-      table-view-handlers:
-        values: [on-take, on-skip, on-select-rows, on-select-columns, on-sort, on-group, on-add-columns, get-row-count, get-expression, other]
-        evidence:
-          - {file: LakeHouse.pq, lines: "3570-3572", function: Handlers, note: "GetExpression, GetRows, GetRowCount (returns the constant 5)"}
-          - {file: LakeHouse.pq, lines: "3575-3578", function: Handlers, note: "OnAddColumns"}
-          - {file: LakeHouse.pq, lines: "3581", function: Handlers, note: "OnGroup"}
-          - {file: LakeHouse.pq, lines: "3586-3590", function: Handlers, note: "OnSelectColumns, OnSelectRows, OnSkip, OnSort, OnTake"}
-          - {file: LakeHouse.pq, lines: "3579-3585", function: Handlers, note: "other: OnCombine, OnDistinct, OnInvoke, OnPivot, OnRenameColumns; also OnUnpivot (3591-3592) and OnTestConnection (3593)"}
-          - {file: LakeHouse.pq, lines: "736-820", function: GenerateLakeHouseTablesView, note: "other: OnInvoke intercepts Value.Versions, Lakehouse.RefreshSqlMetadata, Lakehouse.BatchRefreshSqlMetadata, Lakehouse.TrimCache, Lakehouse.IsModelStorage; OnSelectRows short-circuits the Files node"}
-  long-running:
-    values: [other]
-    evidence:
-      - {file: MDSync.pqm, lines: "561-571", function: Submit, note: "other: submits a DMS SQL-endpoint metadata-refresh batch (POST lhdatamarts/{id} or public refreshMetadata) and then polls it; runs on writes (OnInsertRows -> tableMDSync) and Lakehouse.RefreshSqlMetadata, not on data export"}
-      - {file: MDSync.pqm, lines: "465-541", function: pollBatch, note: "Utils[Value.WaitFor] long-poll of batch events: keep polling on 204/500, up to PollingCount = 5, delay 1^(i+1)-1 = 0 s; at the limit raises UnableToSyncTable (or returns null when called after a lock conflict)"}
-      - {file: MDSync.pqm, lines: "585-621", function: LockConflict, note: "On LockConflict, polls the blocking batch then resubmits; if nothing is in progress, waits 5 s and retries, up to 54 iterations"}
-      - {file: SparkComputeUtils.pqm, lines: "179-233", function: PollStatementForResult, note: "Livy Spark statement polling while state is waiting/running, up to 55 polls, delay 1.1^(i+1)-1 s (Spark compute path, feature-gated)"}
-    sub: {}
-  packaging:
-    values: [pqm-modules, localized-strings, icons]
-    evidence:
-      - {file: LakeHouse.pq, lines: "3612-3629", function: Extension.LoadFunction, note: "Expression.Evaluate(Text.FromBinary(Extension.Contents(name)), #shared & context)"}
-      - {file: LakeHouse.pq, lines: "3631-3683", function: Utils, note: "Loads Table.ToNavigationTable, Table.NavigationTableView, Utils, FabricEnvironment, Workspace.PrivateLink, Workspace.DLP, Workspace, SqlGenerator, DualTable.View, SparkCompute, SparkComputeUtils, DeltaTableFastCopy, MDSync .pqm modules"}
-      - {file: LakeHouse.pq, lines: "114-138", function: LakehouseType, note: "Extension.LoadString for field captions and Documentation.* (the .resx itself is not in the repo folder)"}
-      - {file: LakeHouse.pq, lines: "3597-3609", function: Lakehouse.Publish, note: "SourceImage/SourceTypeImage = Lakehouse.Icons (Lakehouse16..64.png via Extension.Contents); no Beta flag"}
-  diagnostics:
-    values: [tracing-always]
-    evidence:
-      - {file: LakeHouse.pq, lines: "42-52", function: IncludeFabricSensitivityLabels, note: "Diagnostics.Trace(TraceLevel.Information, ...) with no enable flag"}
-      - {file: LakeHouse.pq, lines: "1489-1498", function: GenerateOneLakeTable, note: "LogNavTableViewType traces the chosen view type on every call"}
-      - {file: Utils.pqm, lines: "381-385", function: DefaultErrorHandler, note: "Connector.WebError warning trace on every handled HTTP error"}
-  writes:
-    values: [table-view-mutations]
-    evidence:
-      - {file: LakeHouse.pq, lines: "822-898", function: GenerateLakeHouseTablesView, note: "OnInsertRows creates the table folder in OneLake, ValueAction.Replace on DeltaLake.Table, then MDSync"}
-      - {file: LakeHouse.pq, lines: "900-952", function: GenerateLakeHouseTablesView, note: "OnDeleteRows / DeleteRows -> TableAction.DeleteRows on OneLake table folders"}
-      - {file: LakeHouse.pq, lines: "1128-1208", function: GetLakehouseTableVersions, note: "Versions table: OnInsertRows (new version), OnUpdateRows (commit/publish), OnDeleteRows"}
-      - {file: LakeHouse.pq, lines: "1030-1035", function: GenerateViewForWarehouseSqlTableData, note: "Staging warehouse OnInsertRows/OnUpdateRows/OnDeleteRows via TableAction on Sql.Database"}
   user-inputs:
-    values: [options-record]
+    values:
+    - options-record
     evidence:
-      - {file: LakeHouse.pq, lines: "111-112", function: Lakehouse.Contents, note: "shared Lakehouse.Contents = Value.ReplaceType(LakehouseView, LakehouseType)"}
-      - {file: LakeHouse.pq, lines: "127-132", function: LakehouseType, note: "type function (optional options as LakehouseOptions); no server/URL parameter, the workspace and lakehouse are picked by navigation"}
+    - file: LakeHouse.pq
+      lines: 111-112
+      function: Lakehouse.Contents
+      note: shared Lakehouse.Contents = Value.ReplaceType(LakehouseView, LakehouseType)
+    - file: LakeHouse.pq
+      lines: 127-132
+      function: LakehouseType
+      note: type function (optional options as LakehouseOptions); no server/URL parameter, the workspace
+        and lakehouse are picked by navigation
     sub:
       options-fields:
-        text: "Documented options: HierarchicalNavigation (logical), EnableVorder (logical, default true), OutputMetadataRefresh (logical, default true). The code also reads undocumented fields from the same record: IncludeWarehouses, EnableFolding, IsModelStorage, StagingWorkspaceId, StagingLakehouseId, StagingWarehouseId, MetadataRefresh, OutputDestinationSync, UseSparkCompute, EnableOptimizedCopyToLakehouse, DeltaTableFastCopyMaxConcurrency, plus CommandTimeout, CreateNavigationProperties, HierarchicalNavigation and EnableBulkInsert, which are passed through to Sql.Database."
+        text: 'Documented options: HierarchicalNavigation (logical), EnableVorder (logical, default true),
+          OutputMetadataRefresh (logical, default true). The code also reads undocumented fields from
+          the same record: IncludeWarehouses, EnableFolding, IsModelStorage, StagingWorkspaceId, StagingLakehouseId,
+          StagingWarehouseId, MetadataRefresh, OutputDestinationSync, UseSparkCompute, EnableOptimizedCopyToLakehouse,
+          DeltaTableFastCopyMaxConcurrency, plus CommandTimeout, CreateNavigationProperties, HierarchicalNavigation
+          and EnableBulkInsert, which are passed through to Sql.Database.'
         evidence:
-          - {file: LakeHouse.pq, lines: "114-131", function: LakehouseType, note: "LakehouseOptions = [optional HierarchicalNavigation, optional EnableVorder, optional OutputMetadataRefresh]"}
-          - {file: LakeHouse.pq, lines: "54", function: DeltaLake.Options, note: "EnableVorder -> PreserveOrder"}
-          - {file: LakeHouse.pq, lines: "206", function: GetNavTableForWorkspace, note: "options[IncludeWarehouses]"}
-          - {file: LakeHouse.pq, lines: "568-572", function: GenerateLakeHouseTablesView, note: "options[StagingWorkspaceId], options[StagingLakehouseId]"}
-          - {file: LakeHouse.pq, lines: "2950-2953", function: Sql.Contents, note: "optionsToSelect = CommandTimeout, CreateNavigationProperties, HierarchicalNavigation, EnableBulkInsert"}
-          - {file: MDSync.pqm, lines: "105-111", function: RefreshAction, note: "options[MetadataRefresh], options[OutputMetadataRefresh]"}
-  data-formats:
-    values: [json, driver-rows, parquet]
+        - file: LakeHouse.pq
+          lines: 114-131
+          function: LakehouseType
+          note: LakehouseOptions = [optional HierarchicalNavigation, optional EnableVorder, optional OutputMetadataRefresh]
+        - file: LakeHouse.pq
+          lines: '54'
+          function: DeltaLake.Options
+          note: EnableVorder -> PreserveOrder
+        - file: LakeHouse.pq
+          lines: '206'
+          function: GetNavTableForWorkspace
+          note: options[IncludeWarehouses]
+        - file: LakeHouse.pq
+          lines: 568-572
+          function: GenerateLakeHouseTablesView
+          note: options[StagingWorkspaceId], options[StagingLakehouseId]
+        - file: LakeHouse.pq
+          lines: 2950-2953
+          function: Sql.Contents
+          note: optionsToSelect = CommandTimeout, CreateNavigationProperties, HierarchicalNavigation,
+            EnableBulkInsert
+        - file: MDSync.pqm
+          lines: 105-111
+          function: RefreshAction
+          note: options[MetadataRefresh], options[OutputMetadataRefresh]
+  paging:
+    values:
+    - none
     evidence:
-      - {file: Utils.pqm, lines: "287-290", function: JsonHandler, note: "Json.Document on 200 responses for every REST call"}
-      - {file: LakeHouse.pq, lines: "2945-2954", function: Sql.Contents, note: "Rows from the SQL endpoint via Sql.Database"}
-      - {file: LakeHouse.pq, lines: "1534-1551", function: GenerateNavTableUsingDeltaTable, note: "DeltaLake.Table over OneLake (Delta/Parquet files)"}
-      - {file: DeltaTableFastCopy.pqm, lines: "396-407", function: UpdateDeltaLogWithFileReference, note: "Parquet.Document(parquetContent, [TypeMapping = \"Sql\"]); Parquet.Metadata at line 424"}
-notes: |
-  - Parquet covers Delta tables read through DeltaLake.Table plus explicit Parquet.Document / Parquet.Metadata in the fast-copy write path. Items in the Files folder come back as raw binary (no parsing). The connector also reads JSON from its own OneLake file cache (GetDataFromCacheTable, LakeHouse.pq 2748-2770), which only runs when the MashupFlight_UseFileCache flag is on.
-  - Transport "other" = OneLake via AzureStorage.DataLake / DataLakeContents / BlobContents together with DeltaLake.Table. Folding to the lakehouse SQL endpoint mostly comes from the built-in Sql.Database connector; the connector's Table.View layers return Value.Expression(Value.Optimize(...)) so that folding passes through.
-  - Root Handlers GetRowCount returns the constant 5 (LakeHouse.pq 3572). LakehouseView routes GetRowCount to that transform, so a row count on the root nav table returns 5 instead of a real count.
-  - custom-sql-generator (Spark SQL through SqlView.Generator / SqlGenerator.pqm) is wired. It only takes effect when the MashupFlight_UseSparkCompute feature switch is on and options[UseSparkCompute] = true (SparkCompute.pqm 466). DeltaTableFastCopy needs options[EnableOptimizedCopyToLakehouse] = true. Partitioned refresh needs MashupFlight_EnablePartitionedRefresh.
-  - Native query: DualTable.View defines OnNativeQuery as a passthrough, and DeltaTableFastCopy runs an internal Value.NativeQuery (sys.databases check). Neither is a user-facing native query, so native-query is not counted.
-  - long-running: labelled "other", not "async-export-polling", because the submit-then-poll jobs are DMS metadata-sync batches and Livy Spark statements on write paths, not data exports. If the scorer treats any submit/poll job as async-export-polling, this is the borderline item.
-  - writes: Action/ValueAction sequences are also used heavily (versions, Value.Versions publish, cache actions). The single answer chosen is table-view-mutations because every write enters through OnInsertRows/OnUpdateRows/OnDeleteRows handlers.
-  - The Fabric list APIs (/v1/workspaces, /lakehouses, /warehouses, /items) can return continuationToken. The connector ignores it and reads only the first response's value array, so large tenants may be truncated. Answered paging = none.
-  - Helpers that are defined but never called: GetMissingTable (LakeHouse.pq 1692), GetPlatformVersion (68), BaseCacheKeyFormat (88), OneLakeUriFormat (105), PrivateLinkCapacityHeader/PublicApiSystemCallHeader (2733-2734), and LakeHouse.pq's own GetTenantIdFromToken (279; Workspace.PrivateLink.pqm uses its own copy). In Utils.pqm, Web.JsonContentsWithCaching and Web.RefreshToken are never called. SparkComputeUtils exports Utils[Connector.EvaluateQueryAndActionsForErrors], which does not exist in Utils (lazy, never accessed).
-  - Utils[RetryHandler](1) is used for the Livy 503s and for SparkComputeUtils statement-status polling, but it never retries: Http.Request increments Iteration before the handler runs, so `Iteration < 1` is never true. Only the retry sites with count >= 2 are real.
-  - Bug: in the RunSparkSqlStatement retry (SparkComputeUtils.pqm 165-171), the recursive call omits apiUrl, so the arguments are shifted.
-  - Utils.Connector.GenerateErrorRecord switches between GenerateErrorRecord and SurfaceErrorRecord via the MashupFlight_LakehouseSurfaceInnerError feature switch.
-  - TryFileCreationActions (LakeHouse.pq 1818-1849) treats 409/PathAlreadyExists as success and retries PathNotFound up to 3 times with no delay. That is action-level handling, not HTTP retry-with-delay.
+    - file: Workspace.pqm
+      lines: 32-48
+      function: GetWorkspacesNavTable
+      note: A single GET /v1/workspaces; jsonResponse[value] is used directly, no continuationToken follow-up
+    - file: LakeHouse.pq
+      lines: 333-345
+      function: GetLakehousePublicAPIWitoutData
+      note: A single GET /v1/workspaces/{id}/lakehouses; reads response[value] only
+    - file: LakeHouse.pq
+      lines: 382-394
+      function: GetWarehouses
+      note: A single GET /v1/workspaces/{id}/warehouses; reads response[value] only
+    - file: LakeHouse.pq
+      lines: 2945-2954
+      function: Sql.Contents
+      note: Table data comes from Sql.Database / DeltaLake.Table, which stream rows themselves; the connector
+        does no paging
+    sub: {}
+  data-formats:
+    values:
+    - json
+    - driver-rows
+    - parquet
+    evidence:
+    - file: Utils.pqm
+      lines: 287-290
+      function: JsonHandler
+      note: Json.Document on 200 responses for every REST call
+    - file: LakeHouse.pq
+      lines: 2945-2954
+      function: Sql.Contents
+      note: Rows from the SQL endpoint via Sql.Database
+    - file: LakeHouse.pq
+      lines: 1534-1551
+      function: GenerateNavTableUsingDeltaTable
+      note: DeltaLake.Table over OneLake (Delta/Parquet files)
+    - file: DeltaTableFastCopy.pqm
+      lines: 396-407
+      function: UpdateDeltaLogWithFileReference
+      note: Parquet.Document(parquetContent, [TypeMapping = "Sql"]); Parquet.Metadata at line 424
+  schema:
+    values:
+    - declared-schema
+    - driver-provided
+    evidence:
+    - file: LakeHouse.pq
+      lines: 162-180
+      function: LakehouseNavTableType
+      note: Declared nav table types LakehouseNavTableType and LakehouseTableDetailType
+    - file: LakeHouse.pq
+      lines: 209-213
+      function: GetNavTableForWorkspace
+      note: 'GetType = Value.Type(emptyTable), built from #table(LakehouseNavTableType, {})'
+    - file: LakeHouse.pq
+      lines: 2945-2954
+      function: Sql.Contents
+      note: Table data columns and types come from Sql.Database (SQL endpoint)
+    - file: LakeHouse.pq
+      lines: 1534-1551
+      function: GenerateNavTableUsingDeltaTable
+      note: Or from DeltaLake.Table over OneLake (Delta schema)
+    sub:
+      empty-result-columns:
+        values:
+        - true
+        evidence:
+        - file: LakeHouse.pq
+          lines: 209-212
+          function: GetNavTableForWorkspace
+          note: emptyTable = AddLakehouseTrivia(#table(LakehouseNavTableType, {}), ...) provides the type
+        - file: LakeHouse.pq
+          lines: '331'
+          function: GetLakehouses
+          note: 'if lakehouesWithoutData = null then #table(LakehouseNavTableType, {})'
+        - file: LakeHouse.pq
+          lines: '399'
+          function: GetWarehouses
+          note: 'if response = null then #table(LakehouseNavTableType, {})'
+  http-errors:
+    values:
+    - manual-status-handling
+    - structured-error-records
+    - retry-with-delay
+    evidence:
+    - file: Utils.pqm
+      lines: 292-311
+      function: Http.Request
+      note: moreOptions = options & [ManualStatusHandling = handledStatuses] (line 296); the handler is
+        picked by status code
+    - file: Utils.pqm
+      lines: 276-285
+      function: DefaultHandlers
+      note: 302/400/404/500/503 -> DefaultErrorHandler, 401/403 -> AuthHandler (one forced token refresh)
+    - file: Utils.pqm
+      lines: 349-398
+      function: DefaultErrorHandler
+      note: Parses the JSON error body into Error.Record with ErrorCode, RequestId, RequestUrl, HttpStatusCode,
+        ErrorMessage and traces it
+    - file: Utils.pqm
+      lines: 404-408
+      function: RetryHandler
+      note: Re-issues the request through Function.InvokeAfter with delay(iteration) until count is reached,
+        then DefaultErrorHandler
+    - file: LakeHouse.pq
+      lines: 333-344
+      function: GetLakehousePublicAPIWitoutData
+      note: Lakehouse listing adds [503 = Utils[RetryHandler](maxRetryCount)] with maxRetryCount = 5
+    - file: MDSync.pqm
+      lines: 661-669
+      function: MetadataRefreshResponseHandlers
+      note: 500/503 (and 400 while polling) -> RetryHandler(4, iteration*5 s)
+    - file: Workspace.pqm
+      lines: 487-518
+      function: GetTDSEndPoint
+      note: Custom 403 handler falls back to the public Fabric API (GetTDSEndPointViaFabricApi)
+    sub:
+      retry-rule:
+        text: 'Utils.Http.Request increments Iteration before the handler runs, and RetryHandler(count,
+          delay) retries while Iteration < count, waiting delay(Iteration) (default Iteration*0.2 s).
+          Lakehouse listing (/v1/workspaces/{id}/lakehouses, no startState): 503 RetryHandler(5) = 4 retries
+          at 0.2, 0.4, 0.6, 0.8 s. MDSync DMS calls (startState Iteration=1): 500/503, and 400 only when
+          polling batch events, use RetryHandler(4, i*5) = 2 retries at 10 s and 15 s. MDSync LockConflict:
+          polls the blocking batch and resubmits; if no batch is in progress it waits 5 s and resubmits,
+          up to about 55 iterations. Livy (Spark compute, feature-gated): statement submit 409 RetryHandler(3,
+          i+5) with startState Iteration=1 = 1 retry after 7 s. The RetryHandler(1) on session list/create/state
+          and statement-status 503 never retries (1<1 / 2<1 is false). A session state that is not idle
+          is re-requested about 5 times, at 4, 8, 12, 16, 20 s (JsonRetryHandler(10) adds its own increment).
+          A failed statement with [TABLE_OR_VIEW_NOT_FOUND] is re-run once after 15 s. DeltaTableFastCopy
+          OneLake listing: 404/503 retried up to 14 times, 5 s apart. 401/403 trigger one forced token
+          refresh and then error. Nothing handles 429 or Retry-After.'
+        evidence:
+        - file: Utils.pqm
+          lines: 404-408
+          function: RetryHandler
+          note: delay = delayFunction ?? ((i) => i * 0.2); Function.InvokeAfter while state[Iteration]
+            < count
+        - file: LakeHouse.pq
+          lines: 335-340
+          function: GetLakehousePublicAPIWitoutData
+          note: maxRetryCount = 5; [503 = Utils[RetryHandler](maxRetryCount)]
+        - file: MDSync.pqm
+          lines: 661-669
+          function: MetadataRefreshResponseHandlers
+          note: metadataDelayFn = iteration * 5; 400 (poll only), 500, 503 -> RetryHandler(4, ...)
+        - file: SparkComputeUtils.pqm
+          lines: 138-143
+          function: RunSparkSqlStatement
+          note: '[409 = Utils[RetryHandler](3, ((i) => i+1 * 5))]'
+        - file: SparkComputeUtils.pqm
+          lines: 159-172
+          function: RunSparkSqlStatement
+          note: 'RetryOperation (TABLE_OR_VIEW_NOT_FOUND) re-run after #duration(0,0,0,15)'
+        - file: SparkComputeUtils.pqm
+          lines: 260-278
+          function: JsonRetryHandler
+          note: Re-polls Livy session state when it is not idle, delay (i+1)*2 s, up to 10 times
+        - file: DeltaTableFastCopy.pqm
+          lines: 49-85
+          function: RetryOneLakeContents
+          note: MaxOneLakeContentsRetryCount = 14, OneLakeContentsRetryDelay = 5 s, retries only HttpStatusCode
+            404/503
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    evidence:
+    - file: LakeHouse.pq
+      lines: '112'
+      function: Lakehouse.Contents
+      note: 'shared Lakehouse.Contents = Value.ReplaceType(LakehouseView, LakehouseType)'
+    - file: LakeHouse.pq
+      lines: 116-131
+      function: LakehouseType
+      note: 'options record fields HierarchicalNavigation, EnableVorder, OutputMetadataRefresh carry Documentation.FieldCaption (plus Documentation.DefaultValue = true on the last two); no FieldDescription, SampleValues or AllowedValues'
+    - file: LakeHouse.pq
+      lines: 132-138
+      function: LakehouseType
+      note: 'function type meta Documentation.Name, Caption, Description, LongDescription'
+  navigation:
+    values:
+    - hierarchical
+    - discovered-from-api
+    evidence:
+    - file: Workspace.pqm
+      lines: 26-84
+      function: GetWorkspacesNavTable
+      note: 'Level 1: workspaces from GET /v1/workspaces (DLP-filtered), built with Table.NavigationTableView;
+        each row''s Data calls workspaceViewGenerator'
+    - file: LakeHouse.pq
+      lines: 200-277
+      function: GetNavTableForWorkspace
+      note: 'Level 2: lakehouses (plus warehouses when IncludeWarehouses) from the Fabric API, in a Table.View
+        nav table'
+    - file: LakeHouse.pq
+      lines: 558-735
+      function: GenerateLakeHouseTablesView
+      note: 'Level 3: tables (from the SQL endpoint or OneLake Delta folders) plus a Files folder node'
+    - file: LakeHouse.pq
+      lines: 464-520
+      function: GenerateLakeHouseTablesViewWithFullHierarchy
+      note: Optional schema level when HierarchicalNavigation=true and EnableFolding=false
+    - file: LakeHouse.pq
+      lines: 1403-1448
+      function: GenerateFilesViewForLakeHouse
+      note: Files folder tree from OneLake.Contents (Binary/Folder items)
+  test-connection:
+    values:
+    - dedicated-probe
+    evidence:
+    - file: LakeHouse.pq
+      lines: 151-160
+      function: GetNavTableForLakehouses
+      note: testConnection = Workspace[FindTestConnectionEndpoint]("Lakehouse", ...) then Sql.TestServerConnection(endpoint,
+        ...), passed to GetWorkspacesNavTable
+    - file: Workspace.pqm
+      lines: 71-82
+      function: GetWorkspacesNavTable
+      note: additionalHandler = [OnTestConnection = testConnectionFn] on the root nav table
+    - file: LakeHouse.pq
+      lines: 2981-2996
+      function: Sql.TestServerConnection
+      note: DataSource.TestConnection(Sql.Databases(serverInstance))
+    - file: LakeHouse.pq
+      lines: 142-149
+      function: LakehouseView
+      note: The root view forwards OnTestConnection to the invoked nav table
+    - file: LakeHouse.pq
+      lines: 3088-3091
+      function: Lakehouse
+      note: The data source kind record has no TestConnection field; it is Type = "Custom" with MakeResourcePath/ParseResourcePath
+        (ParseResourcePath returns {}, i.e. Lakehouse.Contents()), so the gateway test goes through the
+        OnTestConnection handler above
+  folding:
+    values:
+    - table-view-handlers
+    - custom-sql-generator
+    - source-function-folding
+    evidence:
+    - file: LakeHouse.pq
+      lines: 2945-2954
+      function: Sql.Contents
+      note: 'source-function-folding: Sql.Database(serverInstance, dbname, [EnableCrossDatabaseFolding
+        = true] & curatedOptions) against the lakehouse/warehouse SQL endpoint'
+    - file: LakeHouse.pq
+      lines: 1711-1714
+      function: GenerateViewForSqlTableData
+      note: 'GetExpression = () => Value.Expression(Value.Optimize(content2)) hands folding back to the
+        Sql.Database table'
+    - file: LakeHouse.pq
+      lines: 3569-3594
+      function: Handlers
+      note: 'Root Table.View handler set: GetExpression, GetRows, GetRowCount, GetType, OnAddColumns,
+        OnCombine, OnDistinct, OnGroup, OnInvoke, OnPivot, OnRenameColumns, OnSelectColumns, OnSelectRows,
+        OnSkip, OnSort, OnTake, OnUnpivot, OnTestConnection'
+    - file: LakeHouse.pq
+      lines: 1701-1760
+      function: GenerateViewForSqlTableData
+      note: 'Per-table Table.View over the Sql.Database table: GetExpression = Value.Expression(Value.Optimize(content2))
+        so queries fold through the SQL connector; plus OnInvoke and OnSelectRows'
+    - file: LakeHouse.pq
+      lines: 215-265
+      function: GetNavTableForWorkspace
+      note: OnSelectRows uses key lookups (lakehouseId/lakehouseName/databaseId) to skip full listing
+    - file: SparkCompute.pqm
+      lines: 84-131
+      function: SparkSqlGenerator
+      note: 'custom-sql-generator: SqlView.Generator(uniqueIdentifier, SqlGenerator, GetData) builds Spark
+        SQL over abfss Delta paths'
+    - file: SqlGenerator.pqm
+      lines: 56-75
+      function: Override
+      note: 'Spark SQL generator: SqlCapabilities (backtick quoting, LimitOffset) + AdbcFunctionOverrides
+        merged over SqlGeneratorCommon Sql92 base'
+    - file: LakeHouse.pq
+      lines: 1468-1513
+      function: GenerateOneLakeTable
+      note: Uses the SQL endpoint view when available, SparkCompute nav when IsSparkComputeEnabled(options)
+        (feature switch + options[UseSparkCompute]), else raw Delta
+    sub:
+      table-view-handlers:
+        values:
+        - on-take
+        - on-skip
+        - on-select-rows
+        - on-select-columns
+        - on-sort
+        - on-group
+        - on-add-columns
+        - get-row-count
+        - get-expression
+        - other
+        evidence:
+        - file: LakeHouse.pq
+          lines: 3570-3572
+          function: Handlers
+          note: GetExpression, GetRows, GetRowCount (returns the constant 5)
+        - file: LakeHouse.pq
+          lines: 3575-3578
+          function: Handlers
+          note: OnAddColumns
+        - file: LakeHouse.pq
+          lines: '3581'
+          function: Handlers
+          note: OnGroup
+        - file: LakeHouse.pq
+          lines: 3586-3590
+          function: Handlers
+          note: OnSelectColumns, OnSelectRows, OnSkip, OnSort, OnTake
+        - file: LakeHouse.pq
+          lines: 3579-3585
+          function: Handlers
+          note: 'other: OnCombine, OnDistinct, OnInvoke, OnPivot, OnRenameColumns; also OnUnpivot (3591-3592)
+            and OnTestConnection (3593)'
+        - file: LakeHouse.pq
+          lines: 736-820
+          function: GenerateLakeHouseTablesView
+          note: 'other: OnInvoke intercepts Value.Versions, Lakehouse.RefreshSqlMetadata, Lakehouse.BatchRefreshSqlMetadata,
+            Lakehouse.TrimCache, Lakehouse.IsModelStorage; OnSelectRows short-circuits the Files node'
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
+    evidence:
+    - file: LakeHouse.pq
+      lines: 3612-3629
+      function: Extension.LoadFunction
+      note: 'Expression.Evaluate(Text.FromBinary(Extension.Contents(name)), #shared & context)'
+    - file: LakeHouse.pq
+      lines: 3631-3683
+      function: Utils
+      note: Loads Table.ToNavigationTable, Table.NavigationTableView, Utils, FabricEnvironment, Workspace.PrivateLink,
+        Workspace.DLP, Workspace, SqlGenerator, DualTable.View, SparkCompute, SparkComputeUtils, DeltaTableFastCopy,
+        MDSync .pqm modules
+    - file: LakeHouse.pq
+      lines: 114-138
+      function: LakehouseType
+      note: Extension.LoadString for field captions and Documentation.* (the .resx itself is not in the
+        repo folder)
+    - file: LakeHouse.pq
+      lines: 3597-3609
+      function: Lakehouse.Publish
+      note: SourceImage/SourceTypeImage = Lakehouse.Icons (Lakehouse16..64.png via Extension.Contents);
+        no Beta flag
+  diagnostics:
+    values:
+    - tracing-always
+    evidence:
+    - file: LakeHouse.pq
+      lines: 42-52
+      function: IncludeFabricSensitivityLabels
+      note: Diagnostics.Trace(TraceLevel.Information, ...) with no enable flag
+    - file: LakeHouse.pq
+      lines: 1489-1498
+      function: GenerateOneLakeTable
+      note: LogNavTableViewType traces the chosen view type on every call
+    - file: Utils.pqm
+      lines: 381-385
+      function: DefaultErrorHandler
+      note: Connector.WebError warning trace on every handled HTTP error
+  long-running:
+    values:
+    - other
+    evidence:
+    - file: MDSync.pqm
+      lines: 561-571
+      function: Submit
+      note: 'other: submits a DMS SQL-endpoint metadata-refresh batch (POST lhdatamarts/{id} or public
+        refreshMetadata) and then polls it; runs on writes (OnInsertRows -> tableMDSync) and Lakehouse.RefreshSqlMetadata,
+        not on data export'
+    - file: MDSync.pqm
+      lines: 465-541
+      function: pollBatch
+      note: 'Utils[Value.WaitFor] long-poll of batch events: keep polling on 204/500, up to PollingCount
+        = 5, delay 1^(i+1)-1 = 0 s; at the limit raises UnableToSyncTable (or returns null when called
+        after a lock conflict)'
+    - file: MDSync.pqm
+      lines: 585-621
+      function: LockConflict
+      note: On LockConflict, polls the blocking batch then resubmits; if nothing is in progress, waits
+        5 s and retries; up to 55 resubmits (guard iteration > 54)
+    - file: SparkComputeUtils.pqm
+      lines: 179-233
+      function: PollStatementForResult
+      note: Livy Spark statement polling while state is waiting/running, up to 56 polls (iterations 0-55,
+        maxPollCount = 55), delay 1.1^(i+1)-1 s (Spark compute path, feature-gated)
+    sub:
+      polling-rule:
+        text: 'Two polling loops, both built on Utils[Value.WaitFor], which calls the producer for iterations
+          0..count and waits delay(i) before each call. (1) MDSync metadata-refresh batch (pollBatch): long-polls
+          the batch events URL (legacy /events/Batch?resourceId=...&batchStateChangeOnly=true or the public
+          /sqlEndpoints/{id}/__private/events/{batchId}). Interval: Number.Power(PollingDelayMultiplier
+          = 1, i+1) - 1 = 0 s, so there is no client-side wait between long polls. Limit: PollingCount
+          = 5, i.e. polls at iterations 0-4; at iteration 5 it raises UnableToSyncTable, or returns null
+          when the poll was started by a lock conflict. A 204 response means keep polling. 400, 500 and
+          503 are retried by the response handler (RetryHandler(4, i*5) with startState Iteration = 1:
+          two retries, 10 s and 15 s) and then raise, so the `responseStatus = 500` keep-polling branch
+          is never reached. Any other response is terminal. progressState "success" reads the per-table tablesSyncStatus; a
+          table with tableSyncState or sqlSyncState "Failure", or a table missing from the batch, raises
+          MetadataRefreshErrorWithDetail (unless it came from a lock conflict or the failure is SQL error 225 during
+          a feature-gated output-destination sync). Any other progressState raises MetadataRefreshBatchError. There is no client
+          wall-clock timeout; the submit body asks DMS for a server-side batch timeout of MaxDMSBatchDuration
+          = 210 s. On LockConflict it polls the blocking batch and resubmits, up to 55 resubmits
+          (guard iteration > MaxIterationCount - 1 = 54; a lock conflict at iteration 55 raises UnableToSyncTable);
+          if nothing is in progress it waits 5 s and resubmits, with the same 55-resubmit limit (NothingInProgressIterationCount
+          - 1 = 54), then raises NothingInProgress. (2) Spark/Livy statement (feature-gated Spark compute):
+          polls the statement status URL while state is "waiting" or "running". Interval: 1.1^(i+1)-1
+          s (0.1 s, 0.21 s, ... growing; about 37 min in total if it never finishes). Limit: maxPollCount
+          = 55, so up to 56 polls (iterations 0-55). The `iteration > maxPollCount` branch is never reached,
+          so a statement still running after the last poll returns null rather than an error. Any other
+          state is terminal; output.status = "error" raises LakehouseSparkStatementExecutionError, and
+          [TABLE_OR_VIEW_NOT_FOUND] re-runs the statement once after 15 s.'
+        evidence:
+        - file: Utils.pqm
+          lines: 224-235
+          function: Value.WaitFor
+          note: List.Generate continues while state{0} <= count + 1; Function.InvokeAfter(() => producer(i),
+            delay(i))
+        - file: MDSync.pqm
+          lines: '30'
+          function: MetadataSyncConfig
+          note: MaxIterationCount = 55, PollingCount = 5, NothingInProgressIterationCount = 55, PollingDelayMultiplier
+            = 1
+        - file: MDSync.pqm
+          lines: 494-498
+          function: pollBatch
+          note: continuePolling when Response.Status is 204 (or 500, but see the next citation)
+        - file: MDSync.pqm
+          lines: 661-669
+          function: MetadataRefreshResponseHandlers
+          note: 400 (retryOn400 = true while polling), 500, 503 -> Utils[RetryHandler](4, iteration*5);
+            RetryHandler falls through to DefaultErrorHandler, which raises (Utils.pqm 404-408, 398)
+        - file: MDSync.pqm
+          lines: 509-539
+          function: pollBatch
+          note: iteration >= pollCount -> UnableToSyncTable (or null after a lock conflict); HasError ->
+            error; delay Number.Power(multiplier, iteration + 1) - 1
+        - file: MDSync.pqm
+          lines: 348-366
+          function: getResultStatus
+          note: progressState "success" -> per-table status; any other state -> MetadataRefreshBatchError
+        - file: MDSync.pqm
+          lines: 459-461
+          function: getResultStatus
+          note: table failure raises MetadataRefreshErrorWithDetail unless lock conflict or all ignorable
+        - file: MDSync.pqm
+          lines: '26'
+          function: MaxDMSBatchDuration
+          note: MaxDMSBatchDuration = 210, sent as the batch timeout at lines 233 and 295
+        - file: MDSync.pqm
+          lines: 585-621
+          function: LockConflict
+          note: resubmit loop guarded by MaxIterationCount - 1; nothing-in-progress waits #duration(0,0,0,5)
+        - file: SparkComputeUtils.pqm
+          lines: 152-172
+          function: RunSparkSqlStatement
+          note: maxPollCount = 55; RetryOperation re-runs once after #duration(0,0,0,15)
+        - file: SparkComputeUtils.pqm
+          lines: 191-231
+          function: PollStatementForResult
+          note: continuePolling on waiting/running; output.status "error" raises; delay 1.1^(iteration+1)-1
+  writes:
+    values:
+    - table-view-mutations
+    evidence:
+    - file: LakeHouse.pq
+      lines: 822-898
+      function: GenerateLakeHouseTablesView
+      note: OnInsertRows creates the table folder in OneLake, ValueAction.Replace on DeltaLake.Table,
+        then MDSync
+    - file: LakeHouse.pq
+      lines: 900-952
+      function: GenerateLakeHouseTablesView
+      note: OnDeleteRows / DeleteRows -> TableAction.DeleteRows on OneLake table folders
+    - file: LakeHouse.pq
+      lines: 1128-1208
+      function: GetLakehouseTableVersions
+      note: 'Versions table: OnInsertRows (new version), OnUpdateRows (commit/publish), OnDeleteRows'
+    - file: LakeHouse.pq
+      lines: 1030-1035
+      function: GenerateViewForWarehouseSqlTableData
+      note: Staging warehouse OnInsertRows/OnUpdateRows/OnDeleteRows via TableAction on Sql.Database
+notes: '- Parquet covers Delta tables read through DeltaLake.Table plus explicit Parquet.Document / Parquet.Metadata
+  in the fast-copy write path. Items in the Files folder come back as raw binary (no parsing). The connector
+  also reads JSON from its own OneLake file cache (GetDataFromCacheTable, LakeHouse.pq 2748-2770), which
+  only runs when the MashupFlight_UseFileCache flag is on.
+
+  - Transport "other" = OneLake via AzureStorage.DataLake / DataLakeContents / BlobContents together with
+  DeltaLake.Table. Folding to the lakehouse SQL endpoint mostly comes from the built-in Sql.Database connector;
+  the connector''s Table.View layers return Value.Expression(Value.Optimize(...)) so that folding passes
+  through.
+
+  - v2 changes: folding gained source-function-folding (Sql.Database in Sql.Contents 2945-2954), per the
+  v2 delegation rule. long-running polling-rule added (required now that other needs it). The Spark evidence
+  note was corrected from 55 to 56 polls: Value.WaitFor runs the producer for iterations 0..count.
+  The LockConflict evidence note was reworded from "up to 54 iterations" to "up to 55 resubmits (guard
+  iteration > 54)" to match the polling-rule. The pollBatch evidence still says polling continues on 500,
+  but the 500 response handler retries and then raises first (see polling-rule). Added
+  the documentation answer (function-documentation, parameter-captions). The options fields also carry
+  Documentation.DefaultValue, which has no answer id. Documentation.Name set by Function.Atomic (SparkCompute.pqm
+  35, DualTable.View.pqm 27, DeltaTableFastCopy.pqm 30) tags internal functions, not shared ones, so it is
+  not counted. test-connection stays dedicated-probe: the kind record has no TestConnection field, and
+  the gateway test runs the OnTestConnection handler, which calls the separate Sql.TestServerConnection
+  probe.
+
+  - Root Handlers GetRowCount returns the constant 5 (LakeHouse.pq 3572). LakehouseView routes GetRowCount
+  to that transform, so a row count on the root nav table returns 5 instead of a real count.
+
+  - custom-sql-generator (Spark SQL through SqlView.Generator / SqlGenerator.pqm) is wired. It only takes
+  effect when the MashupFlight_UseSparkCompute feature switch is on and options[UseSparkCompute] = true
+  (SparkCompute.pqm 466). DeltaTableFastCopy needs options[EnableOptimizedCopyToLakehouse] = true. Partitioned
+  refresh needs MashupFlight_EnablePartitionedRefresh.
+
+  - Native query: DualTable.View defines OnNativeQuery as a passthrough, and DeltaTableFastCopy runs an
+  internal Value.NativeQuery (sys.databases check). Neither is a user-facing native query, so native-query
+  is not counted.
+
+  - long-running: labelled "other", not "async-export-polling", because the submit-then-poll jobs are
+  DMS metadata-sync batches and Livy Spark statements on write paths, not data exports. If the scorer
+  treats any submit/poll job as async-export-polling, this is the borderline item.
+
+  - writes: Action/ValueAction sequences are also used heavily (versions, Value.Versions publish, cache
+  actions). The single answer chosen is table-view-mutations because every write enters through OnInsertRows/OnUpdateRows/OnDeleteRows
+  handlers.
+
+  - The Fabric list APIs (/v1/workspaces, /lakehouses, /warehouses, /items) can return continuationToken.
+  The connector ignores it and reads only the first response''s value array, so large tenants may be truncated.
+  Answered paging = none.
+
+  - Helpers that are defined but never called: GetMissingTable (LakeHouse.pq 1692), GetPlatformVersion
+  (68), BaseCacheKeyFormat (88), OneLakeUriFormat (105), PrivateLinkCapacityHeader/PublicApiSystemCallHeader
+  (2733-2734), and LakeHouse.pq''s own GetTenantIdFromToken (279; Workspace.PrivateLink.pqm uses its own
+  copy). In Utils.pqm, Web.JsonContentsWithCaching and Web.RefreshToken are never called. SparkComputeUtils
+  exports Utils[Connector.EvaluateQueryAndActionsForErrors], which does not exist in Utils (lazy, never
+  accessed).
+
+  - Utils[RetryHandler](1) is used for the Livy 503s and for SparkComputeUtils statement-status polling,
+  but it never retries: Http.Request increments Iteration before the handler runs, so `Iteration < 1`
+  is never true. Only the retry sites with count >= 2 are real.
+
+  - Bug: in the RunSparkSqlStatement retry (SparkComputeUtils.pqm 165-171), the recursive call omits apiUrl,
+  so the arguments are shifted.
+
+  - Utils.Connector.GenerateErrorRecord switches between GenerateErrorRecord and SurfaceErrorRecord via
+  the MashupFlight_LakehouseSurfaceInnerError feature switch.
+
+  - TryFileCreationActions (LakeHouse.pq 1818-1849) treats 409/PathAlreadyExists as success and retries
+  PathNotFound up to 3 times with no delay. That is action-level handling, not HTTP retry-with-delay.
+
+  '

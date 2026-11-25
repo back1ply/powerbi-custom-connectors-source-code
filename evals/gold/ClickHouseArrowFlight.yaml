@@ -1,114 +1,279 @@
 connector: ClickHouseArrowFlight
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read in full: ClickHouseArrowFlight.pq (485), ClickHouseSqlGenerator.pqm (770), SqlGeneratorCommon.pqm (671), TypeInfo.pqm (265), Diagnostics.pqm (164), FlightSqlAdbcConfig.pqm (38). Total 2393 lines."
+source_note: 'Read in full: ClickHouseArrowFlight.pq (485), ClickHouseSqlGenerator.pqm (770), SqlGeneratorCommon.pqm
+  (671), TypeInfo.pqm (265), Diagnostics.pqm (164), FlightSqlAdbcConfig.pqm (38). Total 2393 lines.'
 answers:
   auth:
-    values: [username-password]
+    values:
+    - username-password
     evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "92-95", function: ClickHouseArrowFlight, note: "Authentication = [UsernamePassword = []]"}
-      - {file: ClickHouseArrowFlight.pq, lines: "430-433", function: ClickHouseAdbcConnection, note: "Username:Password sent as a static Basic authorization header (adbc.flight.sql.authorization_header) on every Flight SQL call"}
+    - file: ClickHouseArrowFlight.pq
+      lines: 92-95
+      function: ClickHouseArrowFlight
+      note: Authentication = [UsernamePassword = []]
+    - file: ClickHouseArrowFlight.pq
+      lines: 430-433
+      function: ClickHouseAdbcConnection
+      note: Username:Password sent as a static Basic authorization header (adbc.flight.sql.authorization_header)
+        on every Flight SQL call
     sub: {}
   transport:
-    values: [adbc-flight]
+    values:
+    - adbc-flight
     evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "405-411", function: ClickHouseAdbcConnection, note: "Driver = FlightSQL libadbc_driver_flightsql.dll, EntryPoint FlightSqlDriverInit"}
-      - {file: ClickHouseArrowFlight.pq, lines: "441-447", function: ClickHouseAdbcConnection, note: "Adbc.Connection(Driver, ConnectionString, [], [ConnectionPoolType = 2]); Exec calls Connection[ExecuteQuery]; uri grpc+tls://server:port (419)"}
+    - file: ClickHouseArrowFlight.pq
+      lines: 405-411
+      function: ClickHouseAdbcConnection
+      note: Driver = FlightSQL libadbc_driver_flightsql.dll, EntryPoint FlightSqlDriverInit
+    - file: ClickHouseArrowFlight.pq
+      lines: 441-447
+      function: ClickHouseAdbcConnection
+      note: Adbc.Connection(Driver, ConnectionString, [], [ConnectionPoolType = 2]); Exec calls Connection[ExecuteQuery];
+        uri grpc+tls://server:port (419)
     sub: {}
-  http-errors:
-    values: [not-applicable]
-  paging:
-    values: [none]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "442-447", function: ClickHouseAdbcConnection, note: "Each query is one Connection[ExecuteQuery] call; no page loop. LimitClauseKind.LimitOffset (ClickHouseSqlGenerator.pqm 746) only shapes folded SQL"}
-      - {file: ClickHouseArrowFlight.pq, lines: "450-465", function: ClickHouseAdbcConnection, note: "GetData runs the folded SQL once via Exec"}
-    sub: {}
-  navigation:
-    values: [hierarchical, discovered-from-api]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "384-400", function: ClickHouseDatabasesNav, note: "SHOW DATABASES -> Database nodes (IsLeaf false), filtered to the requested database, hides INFORMATION_SCHEMA"}
-      - {file: ClickHouseArrowFlight.pq, lines: "373-381", function: ClickHouseTablesNav, note: "SHOW TABLES FROM db -> Table leaves"}
-      - {file: ClickHouseArrowFlight.pq, lines: "240-259", function: Table.ToNavigationTable, note: "Navigation table metadata"}
-    sub:
-      test-connection:
-        values: [dedicated-probe]
-        evidence:
-          - {file: ClickHouseArrowFlight.pq, lines: "83-90", function: ClickHouseArrowFlight, note: "TestConnection returns {\"ClickHouseArrowFlight.ValidateConnection\", server, port, database}"}
-          - {file: ClickHouseArrowFlight.pq, lines: "102-104", function: ClickHouseArrowFlight.ValidateConnection, note: "Separate shared probe: Table.RowCount(ClickHouseAdbcConnection(...)), an authenticated metadata call"}
-  schema:
-    values: [declared-schema]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "343-367", function: ClickHouseLeafTable, note: "DESCRIBE TABLE result mapped through MapClickHouseType into an explicit table type passed to the fold generator"}
-      - {file: ClickHouseArrowFlight.pq, lines: "300-339", function: MapClickHouseType, note: "ClickHouse type string -> M type plus NativeTypeName facet"}
-    sub:
-      empty-result-columns:
-        values: [yes]
-        evidence:
-          - {file: ClickHouseArrowFlight.pq, lines: "450-453", function: ClickHouseAdbcConnection, note: "GetData's Table.View has GetType = () => resultType, so the declared type holds whatever rows come back"}
-          - {file: ClickHouseArrowFlight.pq, lines: "364-367", function: ClickHouseLeafTable, note: "tableType from DESCRIBE handed to FoldGen"}
-  folding:
-    values: [custom-sql-generator, native-query]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "469-472", function: ClickHouseAdbcConnection, note: "FoldGen = SqlView.Generator(UniqueId, ClickHouseSqlGenerator(highPrecision), GetData)"}
-      - {file: ClickHouseSqlGenerator.pqm, lines: "720-768", function: ClickHouseSqlGenerator.pqm, note: "Sql92 generator plus ClickHouse overrides (SqlGetTypeInfo, ImplicitTypeConversions, SqlCapabilities, FunctionOverrides), merged with SqlGeneratorCommon MergeOverrides"}
-      - {file: ClickHouseArrowFlight.pq, lines: "480-485", function: ClickHouseAdbcConnection, note: "Table.View(Nav, [OnNativeQuery = ...]) runs Value.NativeQuery statements verbatim"}
-    sub:
-      native-query-enabled:
-        text: "The navigation table returned by ClickHouseAdbcConnection is wrapped in Table.View with an OnNativeQuery handler. The handler runs the command verbatim through Exec (Connection[ExecuteQuery]) and raises an error if query parameters are given. ThrowFoldingFailures = false."
-        evidence:
-          - {file: ClickHouseArrowFlight.pq, lines: "480-485", function: ClickHouseAdbcConnection, note: "OnNativeQuery = (cmd, params, options) => if params = null then Exec(cmd, false) else error"}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "442-447", function: ClickHouseAdbcConnection, note: "Synchronous ExecuteQuery calls; no polling"}
-    sub: {}
-  packaging:
-    values: [pqm-modules, localized-strings, icons, beta-flag]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "200-237", function: Extension.LoadExpression, note: "Loads Diagnostics.pqm (207) and ClickHouseSqlGenerator.pqm (237)"}
-      - {file: ClickHouseSqlGenerator.pqm, lines: "96-101", function: ClickHouseSqlGenerator.pqm, note: "Loads SqlGeneratorCommon.pqm; TypeInfo.pqm loaded at line 19"}
-      - {file: ClickHouseArrowFlight.pq, lines: "96-96", function: ClickHouseArrowFlight, note: "Label = Extension.LoadString(\"DataSourceLabel\")"}
-      - {file: ClickHouseArrowFlight.pq, lines: "111-111", function: ClickHouseArrowFlight.Publish, note: "ButtonText from Extension.LoadString (no .resx in this folder)"}
-      - {file: ClickHouseArrowFlight.pq, lines: "114-131", function: ClickHouseArrowFlight.Icons, note: "Icons from ClickHouseConnector16..64.png (no .png in this folder)"}
-      - {file: ClickHouseArrowFlight.pq, lines: "109-109", function: ClickHouseArrowFlight.Publish, note: "Beta = true"}
-  diagnostics:
-    values: [tracing-gated]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "11-11", function: EnableTraceOutput, note: "EnableTraceOutput = false"}
-      - {file: ClickHouseArrowFlight.pq, lines: "209-209", function: Diagnostics.LogValue, note: "Diagnostics.LogValue is a no-op unless EnableTraceOutput; used for uri, SQL text, type mapping, excluded columns"}
-  writes:
-    values: [none]
-    evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "480-485", function: ClickHouseAdbcConnection, note: "Table.View implements only OnNativeQuery; no OnInsertRows/OnUpdateRows/OnDeleteRows or actions"}
   user-inputs:
-    values: [url-or-server, database-or-resource-id, options-record]
+    values:
+    - url-or-server
+    - database-or-resource-id
+    - options-record
     evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "18-41", function: DatabaseType, note: "server, port (arrowflight_port), optional database (navigation filter), optional options record"}
-      - {file: ClickHouseArrowFlight.pq, lines: "67-71", function: DatabaseCoreImplementation, note: "Options validated, then HighPrecision passed to ClickHouseAdbcConnection"}
+    - file: ClickHouseArrowFlight.pq
+      lines: 18-41
+      function: DatabaseType
+      note: server, port (arrowflight_port), optional database (navigation filter), optional options record
+    - file: ClickHouseArrowFlight.pq
+      lines: 67-71
+      function: DatabaseCoreImplementation
+      note: Options validated, then HighPrecision passed to ClickHouseAdbcConnection
     sub:
       options-fields:
-        text: "HighPrecision (nullable logical, default true): true keeps ClickHouse Decimal exact in folded aggregates and arithmetic; false casts operands to DOUBLE. Other keys are rejected by ValidateOptions."
+        text: 'HighPrecision (nullable logical, default true): true keeps ClickHouse Decimal exact in
+          folded aggregates and arithmetic; false casts operands to DOUBLE. Other keys are rejected by
+          ValidateOptions.'
         evidence:
-          - {file: ClickHouseArrowFlight.pq, lines: "34-41", function: DatabaseType, note: "options type [optional HighPrecision = nullable logical]"}
-          - {file: ClickHouseArrowFlight.pq, lines: "51-65", function: ValidOptionsMap, note: "HighPrecision, default true"}
-          - {file: ClickHouseSqlGenerator.pqm, lines: "15-17", function: ClickHouseSqlGenerator.pqm, note: "PreserveDecimal = highPrecision <> false"}
-  data-formats:
-    values: [arrow]
+        - file: ClickHouseArrowFlight.pq
+          lines: 34-41
+          function: DatabaseType
+          note: options type [optional HighPrecision = nullable logical]
+        - file: ClickHouseArrowFlight.pq
+          lines: 51-65
+          function: ValidOptionsMap
+          note: HighPrecision, default true
+        - file: ClickHouseSqlGenerator.pqm
+          lines: 15-17
+          function: ClickHouseSqlGenerator.pqm
+          note: PreserveDecimal = highPrecision <> false
+  paging:
+    values:
+    - none
     evidence:
-      - {file: ClickHouseArrowFlight.pq, lines: "441-447", function: ClickHouseAdbcConnection, note: "Results come back as Arrow over Flight SQL through the ADBC driver"}
-      - {file: ClickHouseArrowFlight.pq, lines: "274-293", function: IsUnsupportedChType, note: "Excludes columns whose Arrow types the ADBC reader cannot fetch"}
-notes: |
-  - Diagnostics: all of the connector's own tracing goes through the gated Diagnostics.LogValue. One exception: TryVisit in
-    ClickHouseSqlGenerator.pqm (141-146) calls the engine's Diagnostics.Trace directly, with no gate, when a fold override is declined.
-  - Navigation: unlike the ODBC ClickHouse connector, this connector builds both levels itself from SHOW DATABASES (386) and
-    SHOW TABLES (375), so it is labelled hierarchical + discovered-from-api.
-  - Schema: leaf tables get a declared type built from DESCRIBE TABLE. Value.NativeQuery results keep the types the driver returns.
-    GetData renames the returned columns to the declared names when the counts match (456-462).
-  - Unsupported ClickHouse types (FixedString, UUID, IPv6, Int128/256, JSON/Dynamic/Variant, AggregateFunction, Decimal precision > 38)
-    are left out of leaf tables and listed in ExcludedColumns metadata (351-370).
-  - Folding: SqlView.Generator and Adbc.Connection are resolved from #shared, with error stubs for older hosts (220-234). Outer joins
-    are not folded (ClickHouseSqlGenerator.pqm 754-758). The Text.BeforeDelimiter override (701-717) is unreachable, according to its own comment.
-  - Dead code: FlightSqlAdbcConfig.pqm is never loaded; the driver record is written out inline in ClickHouseAdbcConnection (405-411).
-    Many helpers exported by SqlGeneratorCommon.pqm (e.g. ApproxDistinctCount, InvocationWithVerbatim, SingleListElement) are never used.
-  - The Publish record wires Extension.LoadString strings and .png icons, but this repo copy has no .resx or .png files in
-    connectors/ClickHouseArrowFlight. They are still listed as localized-strings and icons because the code references them.
-  - Port is a required parameter alongside the host; both are counted under url-or-server.
+    - file: ClickHouseArrowFlight.pq
+      lines: 442-447
+      function: ClickHouseAdbcConnection
+      note: Each query is one Connection[ExecuteQuery] call; no page loop. LimitClauseKind.LimitOffset
+        (ClickHouseSqlGenerator.pqm 746) only shapes folded SQL
+    - file: ClickHouseArrowFlight.pq
+      lines: 450-465
+      function: ClickHouseAdbcConnection
+      note: GetData runs the folded SQL once via Exec
+    sub: {}
+  data-formats:
+    values:
+    - arrow
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 441-447
+      function: ClickHouseAdbcConnection
+      note: Results come back as Arrow over Flight SQL through the ADBC driver
+    - file: ClickHouseArrowFlight.pq
+      lines: 274-293
+      function: IsUnsupportedChType
+      note: Excludes columns whose Arrow types the ADBC reader cannot fetch
+  schema:
+    values:
+    - declared-schema
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 343-367
+      function: ClickHouseLeafTable
+      note: DESCRIBE TABLE result mapped through MapClickHouseType into an explicit table type passed
+        to the fold generator
+    - file: ClickHouseArrowFlight.pq
+      lines: 300-339
+      function: MapClickHouseType
+      note: ClickHouse type string -> M type plus NativeTypeName facet
+    sub:
+      empty-result-columns:
+        values:
+        - true
+        evidence:
+        - file: ClickHouseArrowFlight.pq
+          lines: 450-453
+          function: ClickHouseAdbcConnection
+          note: GetData's Table.View has GetType = () => resultType, so the declared type holds whatever
+            rows come back
+        - file: ClickHouseArrowFlight.pq
+          lines: 364-367
+          function: ClickHouseLeafTable
+          note: tableType from DESCRIBE handed to FoldGen
+  http-errors:
+    values:
+    - not-applicable
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: '16'
+      function: ClickHouseArrowFlight.Database
+      note: 'shared ClickHouseArrowFlight.Database = Value.ReplaceType(DatabaseCoreImplementation, DatabaseType)'
+    - file: ClickHouseArrowFlight.pq
+      lines: 18-41
+      function: DatabaseType
+      note: 'server, port, database: FieldCaption, FieldDescription, SampleValues; options record: field HighPrecision has FieldCaption and FieldDescription, the record has FieldCaption "Advanced options"'
+    - file: ClickHouseArrowFlight.pq
+      lines: 42-49
+      function: DatabaseType
+      note: 'function type meta Documentation.Name, LongDescription, Examples'
+  navigation:
+    values:
+    - hierarchical
+    - discovered-from-api
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 384-400
+      function: ClickHouseDatabasesNav
+      note: SHOW DATABASES -> Database nodes (IsLeaf false), filtered to the requested database, hides
+        INFORMATION_SCHEMA
+    - file: ClickHouseArrowFlight.pq
+      lines: 373-381
+      function: ClickHouseTablesNav
+      note: SHOW TABLES FROM db -> Table leaves
+    - file: ClickHouseArrowFlight.pq
+      lines: 240-259
+      function: Table.ToNavigationTable
+      note: Navigation table metadata
+  test-connection:
+    values:
+    - dedicated-probe
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 83-90
+      function: ClickHouseArrowFlight
+      note: TestConnection returns {"ClickHouseArrowFlight.ValidateConnection", server, port, database}
+    - file: ClickHouseArrowFlight.pq
+      lines: 102-104
+      function: ClickHouseArrowFlight.ValidateConnection
+      note: 'Separate shared probe: Table.RowCount(ClickHouseAdbcConnection(...)), an authenticated metadata
+        call'
+  folding:
+    values:
+    - custom-sql-generator
+    - native-query
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 469-472
+      function: ClickHouseAdbcConnection
+      note: FoldGen = SqlView.Generator(UniqueId, ClickHouseSqlGenerator(highPrecision), GetData)
+    - file: ClickHouseSqlGenerator.pqm
+      lines: 720-768
+      function: ClickHouseSqlGenerator.pqm
+      note: Sql92 generator plus ClickHouse overrides (SqlGetTypeInfo, ImplicitTypeConversions, SqlCapabilities,
+        FunctionOverrides), merged with SqlGeneratorCommon MergeOverrides
+    - file: ClickHouseArrowFlight.pq
+      lines: 480-485
+      function: ClickHouseAdbcConnection
+      note: Table.View(Nav, [OnNativeQuery = ...]) runs Value.NativeQuery statements verbatim
+    sub:
+      native-query-enabled:
+        text: The navigation table returned by ClickHouseAdbcConnection is wrapped in Table.View with
+          an OnNativeQuery handler. The handler runs the command verbatim through Exec (Connection[ExecuteQuery])
+          and raises an error if query parameters are given. ThrowFoldingFailures = false.
+        evidence:
+        - file: ClickHouseArrowFlight.pq
+          lines: 480-485
+          function: ClickHouseAdbcConnection
+          note: OnNativeQuery = (cmd, params, options) => if params = null then Exec(cmd, false) else
+            error
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
+    - beta-flag
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 200-237
+      function: Extension.LoadExpression
+      note: Loads Diagnostics.pqm (207) and ClickHouseSqlGenerator.pqm (237)
+    - file: ClickHouseSqlGenerator.pqm
+      lines: 96-101
+      function: ClickHouseSqlGenerator.pqm
+      note: Loads SqlGeneratorCommon.pqm; TypeInfo.pqm loaded at line 19
+    - file: ClickHouseArrowFlight.pq
+      lines: 96-96
+      function: ClickHouseArrowFlight
+      note: Label = Extension.LoadString("DataSourceLabel")
+    - file: ClickHouseArrowFlight.pq
+      lines: 111-111
+      function: ClickHouseArrowFlight.Publish
+      note: ButtonText from Extension.LoadString (no .resx in this folder)
+    - file: ClickHouseArrowFlight.pq
+      lines: 114-131
+      function: ClickHouseArrowFlight.Icons
+      note: Icons from ClickHouseConnector16..64.png (no .png in this folder)
+    - file: ClickHouseArrowFlight.pq
+      lines: 109-109
+      function: ClickHouseArrowFlight.Publish
+      note: Beta = true
+  diagnostics:
+    values:
+    - tracing-gated
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 11-11
+      function: EnableTraceOutput
+      note: EnableTraceOutput = false
+    - file: ClickHouseArrowFlight.pq
+      lines: 209-209
+      function: Diagnostics.LogValue
+      note: Diagnostics.LogValue is a no-op unless EnableTraceOutput; used for uri, SQL text, type mapping,
+        excluded columns
+  long-running:
+    values:
+    - none
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 442-447
+      function: ClickHouseAdbcConnection
+      note: Synchronous ExecuteQuery calls; no polling
+    sub: {}
+  writes:
+    values:
+    - none
+    evidence:
+    - file: ClickHouseArrowFlight.pq
+      lines: 480-485
+      function: ClickHouseAdbcConnection
+      note: Table.View implements only OnNativeQuery; no OnInsertRows/OnUpdateRows/OnDeleteRows or actions
+notes: "- Diagnostics: all of the connector's own tracing goes through the gated Diagnostics.LogValue.\
+  \ One exception: TryVisit in\n  ClickHouseSqlGenerator.pqm (141-146) calls the engine's Diagnostics.Trace\
+  \ directly, with no gate, when a fold override is declined.\n- Navigation: unlike the ODBC ClickHouse\
+  \ connector, this connector builds both levels itself from SHOW DATABASES (386) and\n  SHOW TABLES (375),\
+  \ so it is labelled hierarchical + discovered-from-api.\n- Schema: leaf tables get a declared type built\
+  \ from DESCRIBE TABLE. Value.NativeQuery results keep the types the driver returns.\n  GetData renames\
+  \ the returned columns to the declared names when the counts match (456-462).\n- Unsupported ClickHouse\
+  \ types (FixedString, UUID, IPv6, Int128/256, JSON/Dynamic/Variant, AggregateFunction, Decimal precision\
+  \ > 38)\n  are left out of leaf tables and listed in ExcludedColumns metadata (351-370).\n- Folding:\
+  \ SqlView.Generator and Adbc.Connection are resolved from #shared, with error stubs for older hosts\
+  \ (220-234). Outer joins\n  are not folded (ClickHouseSqlGenerator.pqm 754-758). The Text.BeforeDelimiter\
+  \ override (701-717) is unreachable, according to its own comment.\n- Dead code: FlightSqlAdbcConfig.pqm\
+  \ is never loaded; the driver record is written out inline in ClickHouseAdbcConnection (405-411).\n\
+  \  Many helpers exported by SqlGeneratorCommon.pqm (e.g. ApproxDistinctCount, InvocationWithVerbatim,\
+  \ SingleListElement) are never used.\n- The Publish record wires Extension.LoadString strings and .png\
+  \ icons, but this repo copy has no .resx or .png files in\n  connectors/ClickHouseArrowFlight. They\
+  \ are still listed as localized-strings and icons because the code references them.\n- Port is a required\
+  \ parameter alongside the host; both are counted under url-or-server.\n"

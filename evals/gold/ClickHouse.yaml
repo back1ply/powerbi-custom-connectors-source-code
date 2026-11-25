@@ -1,102 +1,241 @@
 connector: ClickHouse
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read in full: ClickHouseConnector.pq (650 lines) and Diagnostics.pqm (164 lines). OdbcConstants.pqm (1252 lines) read only in part (head, tail, and grep for SQL_SC/SQL_SP/SQL_AF/SQL_FN_CVT/=>); it holds ODBC constants plus a Flags helper. Total 2066 lines."
+source_note: 'Read in full: ClickHouseConnector.pq (650 lines) and Diagnostics.pqm (164 lines). OdbcConstants.pqm
+  (1252 lines) read only in part (head, tail, and grep for SQL_SC/SQL_SP/SQL_AF/SQL_FN_CVT/=>); it holds
+  ODBC constants plus a Flags helper. Total 2066 lines.'
 answers:
   auth:
-    values: [username-password]
+    values:
+    - username-password
     evidence:
-      - {file: ClickHouseConnector.pq, lines: "422-425", function: ClickHouse, note: "Authentication = [UsernamePassword = []] (Windows commented out)"}
-      - {file: ClickHouseConnector.pq, lines: "252-254", function: DatabaseCoreImplementation, note: "CredentialConnectionString = [UID = Credential[Username], PWD = Credential[Password]]"}
+    - file: ClickHouseConnector.pq
+      lines: 422-425
+      function: ClickHouse
+      note: Authentication = [UsernamePassword = []] (Windows commented out)
+    - file: ClickHouseConnector.pq
+      lines: 252-254
+      function: DatabaseCoreImplementation
+      note: CredentialConnectionString = [UID = Credential[Username], PWD = Credential[Password]]
     sub: {}
   transport:
-    values: [odbc]
+    values:
+    - odbc
     evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-385", function: DatabaseCoreImplementation, note: "Odbc.DataSource(ConnectionStringNoNulls, [...]) with the ClickHouse ODBC Driver (Unicode/ANSI)"}
-      - {file: ClickHouseConnector.pq, lines: "22-23", function: Config_DriverNameUnicode, note: "ODBC driver names"}
+    - file: ClickHouseConnector.pq
+      lines: 367-385
+      function: DatabaseCoreImplementation
+      note: Odbc.DataSource(ConnectionStringNoNulls, [...]) with the ClickHouse ODBC Driver (Unicode/ANSI)
+    - file: ClickHouseConnector.pq
+      lines: 22-23
+      function: Config_DriverNameUnicode
+      note: ODBC driver names
     sub:
       odbc-capabilities:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: ClickHouseConnector.pq, lines: "260-281", function: DatabaseCoreImplementation, note: "SqlCapabilities override (FractionalSecondsScale = 3) and SQLGetInfo overrides (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_CONVERT_FUNCTIONS = cast)"}
-          - {file: ClickHouseConnector.pq, lines: "501-571", function: BuildOdbcConfig, note: "Builds StringLiteralEscapeCharacters, LimitClauseKind = LimitOffset, SQL_SQL_CONFORMANCE = SQL92_FULL"}
-          - {file: ClickHouseConnector.pq, lines: "315-345", function: DatabaseCoreImplementation, note: "SQLColumns override remaps ClickHouse-specific DATA_TYPE codes"}
-  http-errors:
-    values: [not-applicable]
-  paging:
-    values: [none]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-385", function: DatabaseCoreImplementation, note: "Data comes through Odbc.DataSource; the connector does no paging of its own. LimitClauseKind.LimitOffset (line 81) only controls how folded LIMIT/OFFSET SQL is generated"}
-    sub: {}
-  navigation:
-    values: [hierarchical]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "369-371", function: DatabaseCoreImplementation, note: "HierarchicalNavigation = true: the engine builds a database/table tree"}
-      - {file: ClickHouseConnector.pq, lines: "393-394", function: DatabaseCoreImplementation, note: "Top level filtered to the requested database when given"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: ClickHouseConnector.pq, lines: "411-420", function: ClickHouse, note: "TestConnection returns {\"ClickHouse.Database\", server, port, database, options}"}
-  schema:
-    values: [driver-provided]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-385", function: DatabaseCoreImplementation, note: "Columns and types come from the ODBC driver through Odbc.DataSource (SoftNumbers = true)"}
-      - {file: ClickHouseConnector.pq, lines: "315-345", function: DatabaseCoreImplementation, note: "SQLColumns handler adjusts driver DATA_TYPE codes (BOOLEAN->BIT, UUID->GUID, INT8->TINYINT, INT64->BIGINT)"}
-    sub: {}
-  folding:
-    values: [odbc-sql-capabilities]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "260-281", function: DatabaseCoreImplementation, note: "SqlCapabilities / SQLGetInfo passed to Odbc.DataSource (lines 380-383) to drive folding"}
-      - {file: ClickHouseConnector.pq, lines: "542-544", function: BuildOdbcConfig, note: "LimitClauseKind = Config_LimitClauseKind (LimitOffset)"}
-      - {file: ClickHouseConnector.pq, lines: "431-439", function: ClickHouse.Publish, note: "SupportsDirectQuery = Config_EnableDirectQuery (true)"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-396", function: DatabaseCoreImplementation, note: "Single Odbc.DataSource call; no polling or async jobs"}
-    sub: {}
-  packaging:
-    values: [pqm-modules, localized-strings, icons]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "637-650", function: Extension.LoadFunction, note: "Loads Diagnostics.pqm and OdbcConstants.pqm with Extension.Contents + Expression.Evaluate"}
-      - {file: ClickHouseConnector.pq, lines: "427-427", function: ClickHouse, note: "Label = Extension.LoadString(\"DataSourceLabel\")"}
-      - {file: ClickHouseConnector.pq, lines: "434-434", function: ClickHouse.Publish, note: "ButtonText from Extension.LoadString (no .resx in this folder)"}
-      - {file: ClickHouseConnector.pq, lines: "437-454", function: ClickHouse.Icons, note: "SourceImage/SourceTypeImage icons from ClickHouseConnector16..64.png (no .png in this folder)"}
-  diagnostics:
-    values: [tracing-gated]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "13-13", function: EnableTraceOutput, note: "EnableTraceOutput = false"}
-      - {file: ClickHouseConnector.pq, lines: "646-646", function: Diagnostics.LogValue, note: "Diagnostics.LogValue is a no-op unless EnableTraceOutput"}
-      - {file: ClickHouseConnector.pq, lines: "294-304", function: DatabaseCoreImplementation, note: "SQLGetTypeInfo / SQLColumns trace rows only when EnableTraceOutput = true"}
-  writes:
-    values: [none]
-    evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-385", function: DatabaseCoreImplementation, note: "Read-only Odbc.DataSource navigation; no mutation handlers or actions"}
+        - file: ClickHouseConnector.pq
+          lines: 260-281
+          function: DatabaseCoreImplementation
+          note: SqlCapabilities override (FractionalSecondsScale = 3) and SQLGetInfo overrides (SQL_SQL92_PREDICATES,
+            SQL_AGGREGATE_FUNCTIONS, SQL_CONVERT_FUNCTIONS = cast)
+        - file: ClickHouseConnector.pq
+          lines: 501-571
+          function: BuildOdbcConfig
+          note: Builds StringLiteralEscapeCharacters, LimitClauseKind = LimitOffset, SQL_SQL_CONFORMANCE
+            = SQL92_FULL
+        - file: ClickHouseConnector.pq
+          lines: 315-345
+          function: DatabaseCoreImplementation
+          note: SQLColumns override remaps ClickHouse-specific DATA_TYPE codes
   user-inputs:
-    values: [url-or-server, database-or-resource-id, options-record]
+    values:
+    - url-or-server
+    - database-or-resource-id
+    - options-record
     evidence:
-      - {file: ClickHouseConnector.pq, lines: "128-148", function: DatabaseType, note: "server (host), port (number), optional database, optional options record"}
-      - {file: ClickHouseConnector.pq, lines: "229-232", function: DatabaseCoreImplementation, note: "Server/Port/Database go into the ODBC connection string"}
+    - file: ClickHouseConnector.pq
+      lines: 128-148
+      function: DatabaseType
+      note: server (host), port (number), optional database, optional options record
+    - file: ClickHouseConnector.pq
+      lines: 229-232
+      function: DatabaseCoreImplementation
+      note: Server/Port/Database go into the ODBC connection string
     sub:
       options-fields:
-        text: "Timeout (non-negative integer), VerifyConnectionEarly (text), SSLMode (text), HugeIntAsString (text), UseANSIDriver (logical). Unknown keys are rejected by ValidateOptions. UseANSIDriver only picks the ANSI driver name and is not put in the connection string."
+        text: Timeout (non-negative integer), VerifyConnectionEarly (text), SSLMode (text), HugeIntAsString
+          (text), UseANSIDriver (logical). Unknown keys are rejected by ValidateOptions. UseANSIDriver
+          only picks the ANSI driver name and is not put in the connection string.
         evidence:
-          - {file: ClickHouseConnector.pq, lines: "168-213", function: DatabaseCoreImplementation, note: "ValidOptionsMap"}
-          - {file: ClickHouseConnector.pq, lines: "225-241", function: DatabaseCoreImplementation, note: "Options mapped into ConnectionString"}
-          - {file: ClickHouseConnector.pq, lines: "573-632", function: ValidateOptions, note: "Validates option names and values"}
-  data-formats:
-    values: [driver-rows]
+        - file: ClickHouseConnector.pq
+          lines: 168-213
+          function: DatabaseCoreImplementation
+          note: ValidOptionsMap
+        - file: ClickHouseConnector.pq
+          lines: 225-241
+          function: DatabaseCoreImplementation
+          note: Options mapped into ConnectionString
+        - file: ClickHouseConnector.pq
+          lines: 573-632
+          function: ValidateOptions
+          note: Validates option names and values
+  paging:
+    values:
+    - none
     evidence:
-      - {file: ClickHouseConnector.pq, lines: "367-385", function: DatabaseCoreImplementation, note: "Rows come from the ODBC driver"}
-notes: |
-  - Navigation: the tree is built by the engine from HierarchicalNavigation = true (line 371); the connector only filters
-    the top level to the requested database (line 394). That is why it is labelled hierarchical only, not
-    discovered-from-api (compare ClickHouseArrowFlight, where the connector runs SHOW DATABASES/SHOW TABLES itself).
-  - Port is a required parameter alongside the host; both are counted under url-or-server.
-  - Dead code: ConvertOptionsStringToRecord (457-497) is never called. Config_DefaultUsernamePasswordHandling (91) is never read.
-    FixDataTypeName inside SQLColumns (336-342) is defined but its use is commented out (line 344).
-  - Odbc.DataSource is wrapped in try/catch (386-392); the catch re-raises the error and adds an install link when the ODBC driver is missing.
-  - The Publish record wires Extension.LoadString strings and .png icons, but this repo copy has no .resx or .png files in
-    connectors/ClickHouse. They are still listed as localized-strings and icons because the code references them.
-  - Beta = false (line 432), so no beta-flag. SupportsEncryption = true (line 426). Traits GatewayRequired = true (line 5).
-  - No explicit native-query enablement in code, so folding is odbc-sql-capabilities only.
+    - file: ClickHouseConnector.pq
+      lines: 367-385
+      function: DatabaseCoreImplementation
+      note: Data comes through Odbc.DataSource; the connector does no paging of its own. LimitClauseKind.LimitOffset
+        (line 81) only controls how folded LIMIT/OFFSET SQL is generated
+    sub: {}
+  data-formats:
+    values:
+    - driver-rows
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 367-385
+      function: DatabaseCoreImplementation
+      note: Rows come from the ODBC driver
+  schema:
+    values:
+    - driver-provided
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 367-385
+      function: DatabaseCoreImplementation
+      note: Columns and types come from the ODBC driver through Odbc.DataSource (SoftNumbers = true)
+    - file: ClickHouseConnector.pq
+      lines: 315-345
+      function: DatabaseCoreImplementation
+      note: SQLColumns handler adjusts driver DATA_TYPE codes (BOOLEAN->BIT, UUID->GUID, INT8->TINYINT,
+        INT64->BIGINT)
+    sub: {}
+  http-errors:
+    values:
+    - not-applicable
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: '123'
+      function: ClickHouse.Database
+      note: 'shared ClickHouse.Database = Value.ReplaceType(DatabaseCoreImplementation, DatabaseType)'
+    - file: ClickHouseConnector.pq
+      lines: 128-148
+      function: DatabaseType
+      note: 'server, port, database, options: FieldCaption, FieldDescription, SampleValues'
+    - file: ClickHouseConnector.pq
+      lines: 149-156
+      function: DatabaseType
+      note: 'function type meta Documentation.Name, LongDescription, Examples'
+  navigation:
+    values:
+    - hierarchical
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 369-371
+      function: DatabaseCoreImplementation
+      note: 'HierarchicalNavigation = true: the engine builds a database/table tree'
+    - file: ClickHouseConnector.pq
+      lines: 393-394
+      function: DatabaseCoreImplementation
+      note: Top level filtered to the requested database when given
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 411-420
+      function: ClickHouse
+      note: TestConnection returns {"ClickHouse.Database", server, port, database, options}
+  folding:
+    values:
+    - odbc-sql-capabilities
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 260-281
+      function: DatabaseCoreImplementation
+      note: SqlCapabilities / SQLGetInfo passed to Odbc.DataSource (lines 380-383) to drive folding
+    - file: ClickHouseConnector.pq
+      lines: 542-544
+      function: BuildOdbcConfig
+      note: LimitClauseKind = Config_LimitClauseKind (LimitOffset)
+    - file: ClickHouseConnector.pq
+      lines: 431-439
+      function: ClickHouse.Publish
+      note: SupportsDirectQuery = Config_EnableDirectQuery (true)
+    sub: {}
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 637-650
+      function: Extension.LoadFunction
+      note: Loads Diagnostics.pqm and OdbcConstants.pqm with Extension.Contents + Expression.Evaluate
+    - file: ClickHouseConnector.pq
+      lines: 427-427
+      function: ClickHouse
+      note: Label = Extension.LoadString("DataSourceLabel")
+    - file: ClickHouseConnector.pq
+      lines: 434-434
+      function: ClickHouse.Publish
+      note: ButtonText from Extension.LoadString (no .resx in this folder)
+    - file: ClickHouseConnector.pq
+      lines: 437-454
+      function: ClickHouse.Icons
+      note: SourceImage/SourceTypeImage icons from ClickHouseConnector16..64.png (no .png in this folder)
+  diagnostics:
+    values:
+    - tracing-gated
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 13-13
+      function: EnableTraceOutput
+      note: EnableTraceOutput = false
+    - file: ClickHouseConnector.pq
+      lines: 646-646
+      function: Diagnostics.LogValue
+      note: Diagnostics.LogValue is a no-op unless EnableTraceOutput
+    - file: ClickHouseConnector.pq
+      lines: 294-304
+      function: DatabaseCoreImplementation
+      note: SQLGetTypeInfo / SQLColumns trace rows only when EnableTraceOutput = true
+  long-running:
+    values:
+    - none
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 367-396
+      function: DatabaseCoreImplementation
+      note: Single Odbc.DataSource call; no polling or async jobs
+    sub: {}
+  writes:
+    values:
+    - none
+    evidence:
+    - file: ClickHouseConnector.pq
+      lines: 367-385
+      function: DatabaseCoreImplementation
+      note: Read-only Odbc.DataSource navigation; no mutation handlers or actions
+notes: "- Navigation: the tree is built by the engine from HierarchicalNavigation = true (line 371); the\
+  \ connector only filters\n  the top level to the requested database (line 394). That is why it is labelled\
+  \ hierarchical only, not\n  discovered-from-api (compare ClickHouseArrowFlight, where the connector\
+  \ runs SHOW DATABASES/SHOW TABLES itself).\n- Port is a required parameter alongside the host; both\
+  \ are counted under url-or-server.\n- Dead code: ConvertOptionsStringToRecord (457-497) is never called.\
+  \ Config_DefaultUsernamePasswordHandling (91) is never read.\n  FixDataTypeName inside SQLColumns (336-342)\
+  \ is defined but its use is commented out (line 344).\n- Odbc.DataSource is wrapped in try/catch (386-392);\
+  \ the catch re-raises the error and adds an install link when the ODBC driver is missing.\n- The Publish\
+  \ record wires Extension.LoadString strings and .png icons, but this repo copy has no .resx or .png\
+  \ files in\n  connectors/ClickHouse. They are still listed as localized-strings and icons because the\
+  \ code references them.\n- Beta = false (line 432), so no beta-flag. SupportsEncryption = true (line\
+  \ 426). Traits GatewayRequired = true (line 5).\n- No explicit native-query enablement in code, so folding\
+  \ is odbc-sql-capabilities only.\n"

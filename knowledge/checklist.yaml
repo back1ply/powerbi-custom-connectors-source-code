@@ -1,13 +1,32 @@
 # Per-connector checklist (phase 2). Authored; edit here, not in generated output.
 #
-# Every connector is profiled against these questions. An answer is picked from
-# `answers` (several allowed when `multi: true`) and must cite the function(s) and
-# file lines that implement it. Sub-questions are asked only when the parent
-# answer listed in `when` was given. `other` needs a short description; recurring
-# `other` answers should become new answer ids.
-version: 1
+# Part 1 (`questions`) describes how a connector works. Questions follow the order
+# and names of the Power Query SDK "Concepts" topics on Microsoft Learn; `topic` and
+# `docs` link each one to its page. Questions without an SDK topic come last.
+# Part 2 (certification rules) is computed by `pqkb certification`; see
+# src/pqkb/certification.py.
+#
+# An answer is picked from `answers` (several allowed when `multi: true`) and must
+# cite the function(s) and file lines that implement it. Sub-questions are asked only
+# when one of the parent answers listed in `when` was given. `other` needs a short
+# description; recurring `other` answers should become new answer ids.
+#
+# Labelling rules:
+# - Count only code that is wired and reachable from the shared entry functions, the
+#   data source kind record, or Publish. Note dead helpers; do not count them.
+# - Resources (.resx, .png) are stripped from the archive. Infer localized strings
+#   and icons from Extension.LoadString and Extension.Contents calls.
+# - When behaviour is delegated to the transport (OData.Feed, an ODBC driver,
+#   Sql.Database), pick the answer that names the delegation (driver-provided,
+#   odata-folding, source-function-folding), not `none`.
+# - A TestConnection that calls the entry function with a flag which branches to a
+#   separate probe counts as dedicated-probe.
+version: 2
+docs_base: https://learn.microsoft.com/en-us/power-query/
 questions:
   - id: auth
+    topic: Handling authentication
+    docs: handling-authentication
     question: How does the connector authenticate?
     multi: true
     answers: [anonymous, key, username-password, windows, oauth, aad, signed-request, other]
@@ -27,6 +46,8 @@ questions:
         answers: [header, query-string, body, other]
 
   - id: transport
+    topic: Handling data access
+    docs: handling-data-access
     question: What does it use to reach the data source?
     multi: true
     answers: [web-contents, odata-feed, odbc, adonet-oledb, sql-database, adbc-flight, other]
@@ -36,18 +57,21 @@ questions:
         question: Does it declare SqlCapabilities or SQLGetInfo overrides?
         answers: ["yes", "no"]
 
-  - id: http-errors
-    question: How does it handle HTTP status codes and errors?
+  - id: user-inputs
+    topic: Handling resource path
+    docs: handling-resource-path
+    question: What does the user supply to connect?
     multi: true
-    applies_when: {transport: [web-contents, odata-feed]}
-    answers: [default, manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]
+    answers: [url-or-server, database-or-resource-id, options-record, region-or-environment, date-range, none, other]
     sub:
-      - id: retry-rule
-        when: [retry-with-delay, rate-limit-aware]
-        question: Which statuses are retried, how many times, and with what delay?
+      - id: options-fields
+        when: [options-record]
+        question: Which fields does the options record accept?
         free_text: true
 
   - id: paging
+    topic: Handling paging
+    docs: handling-paging
     question: How does it page through results?
     multi: true
     answers: [none, offset-limit, cursor-token, next-link-url, skip-token, graphql-cursor, other]
@@ -62,16 +86,16 @@ questions:
         question: What ends paging?
         free_text: true
 
-  - id: navigation
-    question: How is the navigation table built?
+  - id: data-formats
+    topic: Handling transformations
+    docs: handling-transformations
+    question: What data formats does it parse?
     multi: true
-    answers: [single-table, fixed-list, discovered-from-api, hierarchical, none]
-    sub:
-      - id: test-connection
-        question: How is TestConnection wired?
-        answers: [dedicated-probe, reuses-entry-function, not-defined]
+    answers: [json, csv, xml, parquet, excel, binary-compressed, arrow, driver-rows, other]
 
   - id: schema
+    topic: Handling schemas
+    docs: handling-schema
     question: How are column names and types set?
     multi: true
     answers: [declared-schema, inferred-from-data, explicit-type-conversion, driver-provided, none]
@@ -81,10 +105,45 @@ questions:
         question: Does an empty result keep the declared columns?
         answers: ["yes", "no", unclear]
 
+  - id: http-errors
+    topic: Handling status codes
+    docs: handling-status-codes
+    question: How does it handle HTTP status codes and errors?
+    multi: true
+    applies_when: {transport: [web-contents, odata-feed]}
+    answers: [default, manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]
+    sub:
+      - id: retry-rule
+        when: [retry-with-delay, rate-limit-aware]
+        question: Which statuses are retried, how many times, and with what delay?
+        free_text: true
+
+  - id: documentation
+    topic: Handling documentation
+    docs: handling-documentation
+    question: What documentation metadata does it attach to its shared functions?
+    multi: true
+    answers: [function-documentation, parameter-captions, parameter-descriptions, sample-values, allowed-values, none]
+
+  - id: navigation
+    topic: Handling navigation tables
+    docs: handling-navigation-tables
+    question: How is the navigation table built?
+    multi: true
+    answers: [single-table, fixed-list, discovered-from-api, hierarchical, none]
+
+  - id: test-connection
+    topic: Handling gateway support
+    docs: handling-gateway-support
+    question: How is TestConnection wired for gateway refresh?
+    answers: [dedicated-probe, reuses-entry-function, not-defined]
+
   - id: folding
+    topic: Handling native query support; TripPin 10 (Table.View folding)
+    docs: native-query-sdk
     question: Does it fold queries to the source, and how?
     multi: true
-    answers: [none, table-view-handlers, odbc-sql-capabilities, native-query, custom-sql-generator, odata-folding]
+    answers: [none, table-view-handlers, odbc-sql-capabilities, native-query, custom-sql-generator, odata-folding, source-function-folding]
     sub:
       - id: table-view-handlers
         when: [table-view-handlers]
@@ -96,39 +155,28 @@ questions:
         question: How is native query support enabled?
         free_text: true
 
-  - id: long-running
-    question: Does it run long-running operations?
-    answers: [none, async-export-polling, other]
-    sub:
-      - id: polling-rule
-        when: [async-export-polling]
-        question: What are the polling interval, timeout, and terminal states?
-        free_text: true
-
   - id: packaging
+    topic: Versioning; Handling connector signing
+    docs: handling-versioning
     question: How is the connector packaged?
     multi: true
     answers: [single-file, pqm-modules, localized-strings, icons, beta-flag]
 
   - id: diagnostics
+    topic: TripPin 8 (Diagnostics)
+    docs: samples/trippin/8-diagnostics/readme
     question: Does it emit diagnostics?
     answers: [none, tracing-always, tracing-gated]
+
+  - id: long-running
+    question: Does it run long-running operations?
+    answers: [none, async-export-polling, other]
+    sub:
+      - id: polling-rule
+        when: [async-export-polling, other]
+        question: What are the polling interval, timeout, and terminal states?
+        free_text: true
 
   - id: writes
     question: Does it write data back to the source?
     answers: [none, table-view-mutations, actions]
-
-  - id: user-inputs
-    question: What does the user supply to connect?
-    multi: true
-    answers: [url-or-server, database-or-resource-id, options-record, region-or-environment, date-range, none, other]
-    sub:
-      - id: options-fields
-        when: [options-record]
-        question: Which fields does the options record accept?
-        free_text: true
-
-  - id: data-formats
-    question: What data formats does it parse?
-    multi: true
-    answers: [json, csv, xml, parquet, excel, binary-compressed, arrow, driver-rows, other]

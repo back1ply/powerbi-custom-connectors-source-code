@@ -1,92 +1,231 @@
 connector: MarkLogicODBC
 labelled_by: claude-code/claude-opus-5-5
-source_note: "MarkLogicODBC.m (479), Diagnostics.pqm (275), OdbcConstants.pqm (1254); 2008 lines total"
+source_note: MarkLogicODBC.m (479), Diagnostics.pqm (275), OdbcConstants.pqm (1254); 2008 lines total
 answers:
   auth:
-    values: [username-password]
+    values:
+    - username-password
     evidence:
-      - {file: MarkLogicODBC.m, lines: "355-357", function: MarkLogicODBC, note: "Authentication = [UsernamePassword = []]"}
-      - {file: MarkLogicODBC.m, lines: "132-139", function: MarkLogicODBCImpl, note: "CredentialConnectionString = [UID, PWD = Uri.EscapeDataString(Password), SSLmode verify-full/prefer from EncryptConnection]; any other kind errors"}
+    - file: MarkLogicODBC.m
+      lines: 355-357
+      function: MarkLogicODBC
+      note: Authentication = [UsernamePassword = []]
+    - file: MarkLogicODBC.m
+      lines: 132-139
+      function: MarkLogicODBCImpl
+      note: CredentialConnectionString = [UID, PWD = Uri.EscapeDataString(Password), SSLmode verify-full/prefer
+        from EncryptConnection]; any other kind errors
     sub: {}
   transport:
-    values: [odbc]
+    values:
+    - odbc
     evidence:
-      - {file: MarkLogicODBC.m, lines: "315-334", function: MarkLogicODBCImpl, note: "Odbc.DataSource(ConnectionString, [...]) with Driver = \"MarkLogic SQL\", Server, Port (lines 114-123)"}
+    - file: MarkLogicODBC.m
+      lines: 315-334
+      function: MarkLogicODBCImpl
+      note: Odbc.DataSource(ConnectionString, [...]) with Driver = "MarkLogic SQL", Server, Port (lines
+        114-123)
     sub:
       odbc-capabilities:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: MarkLogicODBC.m, lines: "146-165", function: MarkLogicODBCImpl, note: "SqlCapabilities (FractionalSecondsScale = 3) and SQLGetInfo overrides (SQL_CONVERT_W*, SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_GROUP_BY, SQL_DATETIME_LITERALS)"}
-          - {file: MarkLogicODBC.m, lines: "380-459", function: BuildOdbcConfig, note: "Base SqlCapabilities/SQLGetInfo from Config_* flags (SupportsTop = false, SQL_SQL_CONFORMANCE = 8)"}
-          - {file: MarkLogicODBC.m, lines: "180-273", function: MarkLogicODBCImpl, note: "SQLGetTypeInfo replaced with a static #table"}
-          - {file: OdbcConstants.pqm, lines: "773-794", function: SQL_SP, note: "Custom ML_SPECIFIC = 0x1406 predicate mask (line 792), used for SQL_SQL92_PREDICATES"}
-          - {file: OdbcConstants.pqm, lines: "1064-1083", function: SQL_DL_SQL92, note: "Custom ML_SPECIFIC = 0xFF8 datetime-literal mask (line 1082), used for SQL_DATETIME_LITERALS"}
-  http-errors:
-    values: [not-applicable]
-  paging:
-    values: [none]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "315-334", function: MarkLogicODBCImpl, note: "Rows streamed by Odbc.DataSource/driver; no connector paging loop"}
-    sub: {}
-  navigation:
-    values: [hierarchical]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "315-317", function: MarkLogicODBCImpl, note: "Odbc.DataSource with HierarchicalNavigation = true (tables grouped by schema)"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: MarkLogicODBC.m, lines: "347-353", function: MarkLogicODBC, note: "TestConnection parses server/port from dataSourcePath and returns {\"MarkLogicODBC.Contents\", server, port}"}
-  schema:
-    values: [driver-provided]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "180-273", function: MarkLogicODBCImpl, note: "Types come from the ODBC driver via SQLColumns, with a static SQLGetTypeInfo table mapping MarkLogic types (string, dateTime, gYear, ...) to ODBC SQL types"}
-      - {file: MarkLogicODBC.m, lines: "285-297", function: MarkLogicODBCImpl, note: "SQLColumns handler returns source unchanged (only logs when EnableTraceOutput)"}
-    sub: {}
-  folding:
-    values: [odbc-sql-capabilities]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "315-334", function: MarkLogicODBCImpl, note: "Odbc.DataSource folding driven by SqlCapabilities / SQLGetInfo / SQLGetTypeInfo plus AstVisitor"}
-      - {file: MarkLogicODBC.m, lines: "303-313", function: MarkLogicODBCImpl, note: "AstVisitor.LimitClause emits LIMIT n OFFSET m AfterQuerySpecification (SupportsTop = false)"}
-      - {file: MarkLogicODBC.m, lines: "319-319", function: MarkLogicODBCImpl, note: "HideNativeQuery = true, so no native query support"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "315-334", function: MarkLogicODBCImpl, note: "Synchronous ODBC queries only"}
-    sub: {}
-  packaging:
-    values: [pqm-modules, localized-strings, icons]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "464-479", function: Extension.LoadFunction, note: "Loads Diagnostics.pqm and OdbcConstants.pqm via Extension.Contents + Expression.Evaluate"}
-      - {file: MarkLogicODBC.m, lines: "358-358", function: MarkLogicODBC, note: "Label = Extension.LoadString(\"DataSourceLabel\") (resources.resx not present in folder)"}
-      - {file: MarkLogicODBC.m, lines: "365-365", function: MarkLogicODBC.Publish, note: "ButtonText = {Extension.LoadString(\"ButtonTitle\"), Extension.LoadString(\"ButtonHelp\")}"}
-      - {file: MarkLogicODBC.m, lines: "374-377", function: MarkLogicODBC.Icons, note: "Icon16/Icon32 PNGs via Extension.Contents, used by Publish lines 370-371"}
-  diagnostics:
-    values: [tracing-gated]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "12-12", function: EnableTraceOutput, note: "EnableTraceOutput = false"}
-      - {file: MarkLogicODBC.m, lines: "473-473", function: Diagnostics.LogValue, note: "Diagnostics.LogValue is Diagnostics[LogValue] only when EnableTraceOutput, else identity"}
-      - {file: MarkLogicODBC.m, lines: "285-297", function: MarkLogicODBCImpl, note: "SQLColumns logs table/column names and rows only if EnableTraceOutput"}
-      - {file: Diagnostics.pqm, lines: "2-2", function: Diagnostics.LogValue, note: "Diagnostics.Trace(TraceLevel.Information, ...)"}
-  writes:
-    values: [none]
-    evidence:
-      - {file: MarkLogicODBC.m, lines: "114-123", function: MarkLogicODBCImpl, note: "ApplicationIntent = \"readonly\"; HideNativeQuery = true (line 319); no write paths"}
+        - file: MarkLogicODBC.m
+          lines: 146-165
+          function: MarkLogicODBCImpl
+          note: SqlCapabilities (FractionalSecondsScale = 3) and SQLGetInfo overrides (SQL_CONVERT_W*,
+            SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_GROUP_BY, SQL_DATETIME_LITERALS)
+        - file: MarkLogicODBC.m
+          lines: 380-459
+          function: BuildOdbcConfig
+          note: Base SqlCapabilities/SQLGetInfo from Config_* flags (SupportsTop = false, SQL_SQL_CONFORMANCE
+            = 8)
+        - file: MarkLogicODBC.m
+          lines: 180-273
+          function: MarkLogicODBCImpl
+          note: 'SQLGetTypeInfo replaced with a static #table'
+        - file: OdbcConstants.pqm
+          lines: 773-794
+          function: SQL_SP
+          note: Custom ML_SPECIFIC = 0x1406 predicate mask (line 792), used for SQL_SQL92_PREDICATES
+        - file: OdbcConstants.pqm
+          lines: 1064-1083
+          function: SQL_DL_SQL92
+          note: Custom ML_SPECIFIC = 0xFF8 datetime-literal mask (line 1082), used for SQL_DATETIME_LITERALS
   user-inputs:
-    values: [url-or-server]
+    values:
+    - url-or-server
     evidence:
-      - {file: MarkLogicODBC.m, lines: "92-102", function: MarkLogicODBCType, note: "server (Hostname, text) and port (number), both required; no options record"}
+    - file: MarkLogicODBC.m
+      lines: 92-102
+      function: MarkLogicODBCType
+      note: server (Hostname, text) and port (number), both required; no options record
+    sub: {}
+  paging:
+    values:
+    - none
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 315-334
+      function: MarkLogicODBCImpl
+      note: Rows streamed by Odbc.DataSource/driver; no connector paging loop
     sub: {}
   data-formats:
-    values: [driver-rows]
+    values:
+    - driver-rows
     evidence:
-      - {file: MarkLogicODBC.m, lines: "315-334", function: MarkLogicODBCImpl, note: "Tabular rows returned by the ODBC driver through Odbc.DataSource"}
-notes: |
-  - BuildOdbcConfig (lines 380-459) merges records incorrectly (sample-template bug): e.g. withTop does `withEscape[SqlCapabilities] & [SqlCapabilities = [...]]` then `withEscape & caps`, so the StringLiteralEscapeCharacters setting ends up as a stray top-level field and the final SqlCapabilities is effectively [SupportsTop = false] (+ FractionalSecondsScale = 3).
-  - BuildOdbcConfig computes SQLGetFunctions (SQL_CONVERT_FUNCTIONS = CAST from Config_UseCastInsteadOfConvert) but SQLGetFunctions is never passed to Odbc.DataSource (lines 315-334), so it is dead.
-  - Config_DefaultUsernamePasswordHandling (line 53) is defined but never read; credentials are always set explicitly.
-  - Diagnostics.pqm functions other than LogValue are unused; tracing is off (EnableTraceOutput = false), labelled tracing-gated.
-  - AstVisitor LimitClause was counted under odbc-sql-capabilities (it is part of the ODBC folding config), not as a custom SQL generator.
+    - file: MarkLogicODBC.m
+      lines: 315-334
+      function: MarkLogicODBCImpl
+      note: Tabular rows returned by the ODBC driver through Odbc.DataSource
+  schema:
+    values:
+    - driver-provided
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 180-273
+      function: MarkLogicODBCImpl
+      note: Types come from the ODBC driver via SQLColumns, with a static SQLGetTypeInfo table mapping
+        MarkLogic types (string, dateTime, gYear, ...) to ODBC SQL types
+    - file: MarkLogicODBC.m
+      lines: 285-297
+      function: MarkLogicODBCImpl
+      note: SQLColumns handler returns source unchanged (only logs when EnableTraceOutput)
+    sub: {}
+  http-errors:
+    values:
+    - not-applicable
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: '90'
+      function: MarkLogicODBC.Contents
+      note: 'shared MarkLogicODBC.Contents = Value.ReplaceType(MarkLogicODBCImpl, MarkLogicODBCType)'
+    - file: MarkLogicODBC.m
+      lines: 92-102
+      function: MarkLogicODBCType
+      note: 'server and port: FieldCaption, FieldDescription, SampleValues'
+    - file: MarkLogicODBC.m
+      lines: 103-107
+      function: MarkLogicODBCType
+      note: 'function type meta Documentation.Name, LongDescription, Examples = {} (empty)'
+  navigation:
+    values:
+    - hierarchical
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 315-317
+      function: MarkLogicODBCImpl
+      note: Odbc.DataSource with HierarchicalNavigation = true (tables grouped by schema)
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 347-353
+      function: MarkLogicODBC
+      note: TestConnection parses server/port from dataSourcePath and returns {"MarkLogicODBC.Contents",
+        server, port}
+  folding:
+    values:
+    - odbc-sql-capabilities
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 315-334
+      function: MarkLogicODBCImpl
+      note: Odbc.DataSource folding driven by SqlCapabilities / SQLGetInfo / SQLGetTypeInfo plus AstVisitor
+    - file: MarkLogicODBC.m
+      lines: 303-313
+      function: MarkLogicODBCImpl
+      note: AstVisitor.LimitClause emits LIMIT n OFFSET m AfterQuerySpecification (SupportsTop = false)
+    - file: MarkLogicODBC.m
+      lines: 319-319
+      function: MarkLogicODBCImpl
+      note: HideNativeQuery = true, so no native query support
+    sub: {}
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 464-479
+      function: Extension.LoadFunction
+      note: Loads Diagnostics.pqm and OdbcConstants.pqm via Extension.Contents + Expression.Evaluate
+    - file: MarkLogicODBC.m
+      lines: 358-358
+      function: MarkLogicODBC
+      note: Label = Extension.LoadString("DataSourceLabel") (resources.resx not present in folder)
+    - file: MarkLogicODBC.m
+      lines: 365-365
+      function: MarkLogicODBC.Publish
+      note: ButtonText = {Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp")}
+    - file: MarkLogicODBC.m
+      lines: 374-377
+      function: MarkLogicODBC.Icons
+      note: Icon16/Icon32 PNGs via Extension.Contents, used by Publish lines 370-371
+  diagnostics:
+    values:
+    - tracing-gated
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 12-12
+      function: EnableTraceOutput
+      note: EnableTraceOutput = false
+    - file: MarkLogicODBC.m
+      lines: 473-473
+      function: Diagnostics.LogValue
+      note: Diagnostics.LogValue is Diagnostics[LogValue] only when EnableTraceOutput, else identity
+    - file: MarkLogicODBC.m
+      lines: 285-297
+      function: MarkLogicODBCImpl
+      note: SQLColumns logs table/column names and rows only if EnableTraceOutput
+    - file: Diagnostics.pqm
+      lines: 2-2
+      function: Diagnostics.LogValue
+      note: Diagnostics.Trace(TraceLevel.Information, ...)
+  long-running:
+    values:
+    - none
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 315-334
+      function: MarkLogicODBCImpl
+      note: Synchronous ODBC queries only
+    sub: {}
+  writes:
+    values:
+    - none
+    evidence:
+    - file: MarkLogicODBC.m
+      lines: 114-123
+      function: MarkLogicODBCImpl
+      note: ApplicationIntent = "readonly"; HideNativeQuery = true (line 319); no write paths
+notes: '- BuildOdbcConfig (lines 380-459) merges records incorrectly (sample-template bug): e.g. withTop
+  does `withEscape[SqlCapabilities] & [SqlCapabilities = [...]]` then `withEscape & caps`, so the StringLiteralEscapeCharacters
+  setting ends up as a stray top-level field and the final SqlCapabilities is effectively [SupportsTop
+  = false] (+ FractionalSecondsScale = 3).
+
+  - BuildOdbcConfig computes SQLGetFunctions (SQL_CONVERT_FUNCTIONS = CAST from Config_UseCastInsteadOfConvert)
+  but SQLGetFunctions is never passed to Odbc.DataSource (lines 315-334), so it is dead.
+
+  - Config_DefaultUsernamePasswordHandling (line 53) is defined but never read; credentials are always
+  set explicitly.
+
+  - Diagnostics.pqm functions other than LogValue are unused; tracing is off (EnableTraceOutput = false),
+  labelled tracing-gated.
+
+  - AstVisitor LimitClause was counted under odbc-sql-capabilities (it is part of the ODBC folding config),
+  not as a custom SQL generator.
+
   - Port is part of the server address, so user-inputs is only url-or-server.
+
   - SupportsDirectQuery = Config_EnableDirectQuery = true (line 368).
+
+  '

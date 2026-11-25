@@ -1,126 +1,313 @@
 connector: ZendeskData
 labelled_by: claude-code/claude-opus-5-5
-source_note: "zendesk.pq (352), GetSchemaForEntity.pqm (367), Table.ChangeType.pqm (138), Table.GenerateByPage.pqm (26), Table.ToNavigationTable.pqm (21), client_id/client_secret (1); ~905 lines"
+source_note: zendesk.pq (352), GetSchemaForEntity.pqm (367), Table.ChangeType.pqm (138), Table.GenerateByPage.pqm
+  (26), Table.ToNavigationTable.pqm (21), client_id/client_secret (1); ~905 lines
 answers:
   auth:
-    values: [oauth]
+    values:
+    - oauth
     evidence:
-      - {file: zendesk.pq, lines: "247-253", function: ZendeskData, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Label]]"}
-      - {file: zendesk.pq, lines: "285-305", function: StartLogin, note: "authorization code flow to {host}/oauth/authorizations/new"}
-      - {file: zendesk.pq, lines: "315-337", function: TokenMethod, note: "grant_type = authorization_code POST to {host}/oauth/tokens with client_secret"}
+    - file: zendesk.pq
+      lines: 247-253
+      function: ZendeskData
+      note: Authentication = [OAuth = [StartLogin, FinishLogin, Label]]
+    - file: zendesk.pq
+      lines: 285-305
+      function: StartLogin
+      note: authorization code flow to {host}/oauth/authorizations/new
+    - file: zendesk.pq
+      lines: 315-337
+      function: TokenMethod
+      note: grant_type = authorization_code POST to {host}/oauth/tokens with client_secret
     sub:
       oauth-pkce:
-        values: [no]
+        values:
+        - false
         evidence:
-          - {file: zendesk.pq, lines: "288-297", function: StartLogin, note: "query has response_type, client_id, scope, state, redirect_uri; no code_challenge"}
+        - file: zendesk.pq
+          lines: 288-297
+          function: StartLogin
+          note: query has response_type, client_id, scope, state, redirect_uri; no code_challenge
       oauth-refresh:
-        values: [no]
+        values:
+        - false
         evidence:
-          - {file: zendesk.pq, lines: "248-252", function: ZendeskData, note: "OAuth record has no Refresh function"}
+        - file: zendesk.pq
+          lines: 248-252
+          function: ZendeskData
+          note: OAuth record has no Refresh function
   transport:
-    values: [web-contents]
+    values:
+    - web-contents
     evidence:
-      - {file: zendesk.pq, lines: "172-189", function: GetPage, note: "Web.Contents(url, [Headers = [X-Zendesk-Power-BI-Connector = v2]])"}
-      - {file: zendesk.pq, lines: "97-113", function: GetTargetsEntity, note: "Web.Contents for targets"}
+    - file: zendesk.pq
+      lines: 172-189
+      function: GetPage
+      note: Web.Contents(url, [Headers = [X-Zendesk-Power-BI-Connector = v2]])
+    - file: zendesk.pq
+      lines: 97-113
+      function: GetTargetsEntity
+      note: Web.Contents for targets
     sub: {}
-  http-errors:
-    values: [default]
-    evidence:
-      - {file: zendesk.pq, lines: "174-179", function: GetPage, note: "no ManualStatusHandling, no retry; engine default handling"}
-      - {file: zendesk.pq, lines: "102-107", function: GetTargetsEntity, note: "same, default handling"}
-    sub: {}
-  paging:
-    values: [next-link-url]
-    evidence:
-      - {file: zendesk.pq, lines: "163-170", function: GetEntity, note: "cursor-based pagination: url & entity & \"?page[size]=100\""}
-      - {file: zendesk.pq, lines: "181-189", function: GetPage, note: "NextLink = links.next and HasMore = meta.has_more stored in page metadata"}
-      - {file: zendesk.pq, lines: "233-234", function: GetNextLink, note: "reads response[links][next]"}
-      - {file: zendesk.pq, lines: "210-229", function: GetAllPagesByNextLink, note: "next page fetched from Value.Metadata(previous)[NextLink]"}
-    sub:
-      paging-generator:
-        values: [table-generatebypage]
-        evidence:
-          - {file: zendesk.pq, lines: "210-229", function: GetAllPagesByNextLink, note: "Table.GenerateByPage((previous) => ...)"}
-          - {file: Table.GenerateByPage.pqm, lines: "1-26", function: Table.GenerateByPage, note: "List.Generate until getNextPage returns null; loaded at zendesk.pq:351"}
-      paging-stop:
-        text: "Stops when the previous page's meta.has_more is false: the generator then returns null. links.next is not null-checked, so the stop depends only on has_more."
-        evidence:
-          - {file: zendesk.pq, lines: "217-226", function: GetAllPagesByNextLink, note: "hasMore from Value.Metadata(previous)[HasMore]; page = if hasMore then GetPage(...) else null"}
-          - {file: zendesk.pq, lines: "238-239", function: GetHasMore, note: "Logical.From(response[meta][has_more])"}
-  navigation:
-    values: [fixed-list]
-    evidence:
-      - {file: zendesk.pq, lines: "18-19", function: RootEntityNames, note: "hard-coded list of 16 entity names"}
-      - {file: zendesk.pq, lines: "135-159", function: ZendeskNavTable, note: "nav table built from RootEntityNames, plus inserted Targets and Ticket Comments rows"}
-    sub:
-      test-connection:
-        values: [dedicated-probe]
-        evidence:
-          - {file: zendesk.pq, lines: "246", function: ZendeskData, note: "TestConnection = {\"ZendeskData.Contents\", dataSourcePath, [TestConnection = true]}"}
-          - {file: zendesk.pq, lines: "136-137", function: ZendeskNavTable, note: "options[TestConnection]? = true -> TestImpl(url)"}
-          - {file: zendesk.pq, lines: "83-88", function: TestImpl, note: "fetches only the targets entity"}
-  schema:
-    values: [declared-schema, explicit-type-conversion]
-    evidence:
-      - {file: GetSchemaForEntity.pqm, lines: "1-367", function: GetSchemaForEntity, note: "per-entity table types (TagsType ... CommentsType) via SchemaTable lookup"}
-      - {file: zendesk.pq, lines: "191-205", function: TableFieldTypeTransform, note: "expands records using the schema's field names"}
-      - {file: zendesk.pq, lines: "163-170", function: GetEntity, note: "Table.ChangeType(result, schema)"}
-      - {file: Table.ChangeType.pqm, lines: "3-68", function: Table.ChangeType, note: "Table.SelectColumns(..., MissingField.UseNull) + Table.TransformColumnTypes + Value.ReplaceType"}
-    sub:
-      empty-result-columns:
-        values: [yes]
-        evidence:
-          - {file: zendesk.pq, lines: "197-203", function: TableFieldTypeTransform, note: "Table.ExpandRecordColumn with schema fields gives the declared columns even with no rows"}
-          - {file: Table.GenerateByPage.pqm, lines: "20-21", function: Table.GenerateByPage, note: "empty first page is returned as-is (keeps its columns)"}
-          - {file: Table.ChangeType.pqm, lines: "35", function: Table.ChangeType, note: "Table.SelectColumns(_table, schema[Name], MissingField.UseNull)"}
-  folding:
-    values: [none]
-    evidence:
-      - {file: zendesk.pq, lines: "163-170", function: GetEntity, note: "full fetch of each entity; no Table.View or native query"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: zendesk.pq, lines: "172-189", function: GetPage, note: "synchronous GETs only"}
-    sub: {}
-  packaging:
-    values: [pqm-modules, localized-strings, icons]
-    evidence:
-      - {file: zendesk.pq, lines: "344-353", function: Extension.LoadFunction, note: "Expression.Evaluate of Table.ChangeType.pqm, Table.GenerateByPage.pqm, Table.ToNavigationTable.pqm, GetSchemaForEntity.pqm"}
-      - {file: zendesk.pq, lines: "67-81", function: ZendeskFunctionType, note: "Extension.LoadString for captions/descriptions"}
-      - {file: zendesk.pq, lines: "266-279", function: ZendeskData.Icons, note: "Extension.Contents(\"zendesk16.png\") ... Icon16/Icon32"}
-  diagnostics:
-    values: [none]
-    evidence:
-      - {file: zendesk.pq, lines: "172-189", function: GetPage, note: "no Diagnostics.Trace anywhere in the connector"}
-  writes:
-    values: [none]
-    evidence:
-      - {file: zendesk.pq, lines: "172-189", function: GetPage, note: "GET requests only; the only POST is the OAuth token exchange"}
   user-inputs:
-    values: [url-or-server, options-record]
+    values:
+    - url-or-server
+    - options-record
     evidence:
-      - {file: zendesk.pq, lines: "67-77", function: ZendeskFunctionType, note: "url as Uri.Type, optional options as record"}
-      - {file: zendesk.pq, lines: "90-95", function: GenerateFullUrl, note: "only the host of url is used: https://{host}/api/v2/"}
+    - file: zendesk.pq
+      lines: 67-77
+      function: ZendeskFunctionType
+      note: url as Uri.Type, optional options as record
+    - file: zendesk.pq
+      lines: 90-95
+      function: GenerateFullUrl
+      note: 'only the host of url is used: https://{host}/api/v2/'
     sub:
       options-fields:
-        text: "Only TestConnection (logical), used internally by the TestConnection handler to route to TestImpl. No other option is read."
+        text: Only TestConnection (logical), used internally by the TestConnection handler to route to
+          TestImpl. No other option is read.
         evidence:
-          - {file: zendesk.pq, lines: "136", function: ZendeskNavTable, note: "options[TestConnection]? = true"}
-  data-formats:
-    values: [json]
+        - file: zendesk.pq
+          lines: '136'
+          function: ZendeskNavTable
+          note: options[TestConnection]? = true
+  paging:
+    values:
+    - next-link-url
     evidence:
-      - {file: zendesk.pq, lines: "180", function: GetPage, note: "Json.Document(response)"}
-      - {file: zendesk.pq, lines: "108", function: GetTargetsEntity, note: "Json.Document(source)"}
-notes: |
-  - Targets is fetched without paging (GetTargetsEntity, single GET, line 97-113). A source comment at line 48-49 says that endpoint does not support CBP.
-  - Ticket Comments is N+1: it fetches all tickets, then one paged comments request per ticket id (115-133). With zero tickets, Table.Combine({}) (line 122) gives a table with no columns, an exception to empty-result-columns = yes.
-  - If meta.has_more is missing, Logical.From(null) gives null and `if (null)` at line 221 would raise an error.
+    - file: zendesk.pq
+      lines: 163-170
+      function: GetEntity
+      note: 'cursor-based pagination: url & entity & "?page[size]=100"'
+    - file: zendesk.pq
+      lines: 181-189
+      function: GetPage
+      note: NextLink = links.next and HasMore = meta.has_more stored in page metadata
+    - file: zendesk.pq
+      lines: 233-234
+      function: GetNextLink
+      note: reads response[links][next]
+    - file: zendesk.pq
+      lines: 210-229
+      function: GetAllPagesByNextLink
+      note: next page fetched from Value.Metadata(previous)[NextLink]
+    sub:
+      paging-generator:
+        values:
+        - table-generatebypage
+        evidence:
+        - file: zendesk.pq
+          lines: 210-229
+          function: GetAllPagesByNextLink
+          note: Table.GenerateByPage((previous) => ...)
+        - file: Table.GenerateByPage.pqm
+          lines: 1-26
+          function: Table.GenerateByPage
+          note: List.Generate until getNextPage returns null; loaded at zendesk.pq:351
+      paging-stop:
+        text: 'Stops when the previous page''s meta.has_more is false: the generator then returns null.
+          links.next is not null-checked, so the stop depends only on has_more.'
+        evidence:
+        - file: zendesk.pq
+          lines: 217-226
+          function: GetAllPagesByNextLink
+          note: hasMore from Value.Metadata(previous)[HasMore]; page = if hasMore then GetPage(...) else
+            null
+        - file: zendesk.pq
+          lines: 238-239
+          function: GetHasMore
+          note: Logical.From(response[meta][has_more])
+  data-formats:
+    values:
+    - json
+    evidence:
+    - file: zendesk.pq
+      lines: '180'
+      function: GetPage
+      note: Json.Document(response)
+    - file: zendesk.pq
+      lines: '108'
+      function: GetTargetsEntity
+      note: Json.Document(source)
+  schema:
+    values:
+    - declared-schema
+    - explicit-type-conversion
+    evidence:
+    - file: GetSchemaForEntity.pqm
+      lines: 1-367
+      function: GetSchemaForEntity
+      note: per-entity table types (TagsType ... CommentsType) via SchemaTable lookup
+    - file: zendesk.pq
+      lines: 191-205
+      function: TableFieldTypeTransform
+      note: expands records using the schema's field names
+    - file: zendesk.pq
+      lines: 163-170
+      function: GetEntity
+      note: Table.ChangeType(result, schema)
+    - file: Table.ChangeType.pqm
+      lines: 3-68
+      function: Table.ChangeType
+      note: Table.SelectColumns(..., MissingField.UseNull) + Table.TransformColumnTypes + Value.ReplaceType
+    sub:
+      empty-result-columns:
+        values:
+        - true
+        evidence:
+        - file: zendesk.pq
+          lines: 197-203
+          function: TableFieldTypeTransform
+          note: Table.ExpandRecordColumn with schema fields gives the declared columns even with no rows
+        - file: Table.GenerateByPage.pqm
+          lines: 20-21
+          function: Table.GenerateByPage
+          note: empty first page is returned as-is (keeps its columns)
+        - file: Table.ChangeType.pqm
+          lines: '35'
+          function: Table.ChangeType
+          note: Table.SelectColumns(_table, schema[Name], MissingField.UseNull)
+  http-errors:
+    values:
+    - default
+    evidence:
+    - file: zendesk.pq
+      lines: 174-179
+      function: GetPage
+      note: no ManualStatusHandling, no retry; engine default handling
+    - file: zendesk.pq
+      lines: 102-107
+      function: GetTargetsEntity
+      note: same, default handling
+    sub: {}
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: zendesk.pq
+      lines: '65'
+      function: ZendeskData.Contents
+      note: 'shared ZendeskData.Contents = Value.ReplaceType(ZendeskNavTable, ZendeskFunctionType)'
+    - file: zendesk.pq
+      lines: 67-77
+      function: ZendeskFunctionType
+      note: 'url and options: FieldCaption, FieldDescription, SampleValues (Extension.LoadString)'
+    - file: zendesk.pq
+      lines: 78-81
+      function: ZendeskFunctionType
+      note: 'function type meta Documentation.Name, Documentation.LongDescription'
+  navigation:
+    values:
+    - fixed-list
+    evidence:
+    - file: zendesk.pq
+      lines: 18-19
+      function: RootEntityNames
+      note: hard-coded list of 16 entity names
+    - file: zendesk.pq
+      lines: 135-159
+      function: ZendeskNavTable
+      note: nav table built from RootEntityNames, plus inserted Targets and Ticket Comments rows
+  test-connection:
+    values:
+    - dedicated-probe
+    evidence:
+    - file: zendesk.pq
+      lines: '246'
+      function: ZendeskData
+      note: TestConnection = {"ZendeskData.Contents", dataSourcePath, [TestConnection = true]}
+    - file: zendesk.pq
+      lines: 136-137
+      function: ZendeskNavTable
+      note: options[TestConnection]? = true -> TestImpl(url)
+    - file: zendesk.pq
+      lines: 83-88
+      function: TestImpl
+      note: fetches only the targets entity
+  folding:
+    values:
+    - none
+    evidence:
+    - file: zendesk.pq
+      lines: 163-170
+      function: GetEntity
+      note: full fetch of each entity; no Table.View or native query
+    sub: {}
+  packaging:
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
+    evidence:
+    - file: zendesk.pq
+      lines: 344-353
+      function: Extension.LoadFunction
+      note: Expression.Evaluate of Table.ChangeType.pqm, Table.GenerateByPage.pqm, Table.ToNavigationTable.pqm,
+        GetSchemaForEntity.pqm
+    - file: zendesk.pq
+      lines: 67-81
+      function: ZendeskFunctionType
+      note: Extension.LoadString for captions/descriptions
+    - file: zendesk.pq
+      lines: 266-279
+      function: ZendeskData.Icons
+      note: Extension.Contents("zendesk16.png") ... Icon16/Icon32
+  diagnostics:
+    values:
+    - none
+    evidence:
+    - file: zendesk.pq
+      lines: 172-189
+      function: GetPage
+      note: no Diagnostics.Trace anywhere in the connector
+  long-running:
+    values:
+    - none
+    evidence:
+    - file: zendesk.pq
+      lines: 172-189
+      function: GetPage
+      note: synchronous GETs only
+    sub: {}
+  writes:
+    values:
+    - none
+    evidence:
+    - file: zendesk.pq
+      lines: 172-189
+      function: GetPage
+      note: GET requests only; the only POST is the OAuth token exchange
+notes: '- Targets is fetched without paging (GetTargetsEntity, single GET, line 97-113). A source comment
+  at line 48-49 says that endpoint does not support CBP.
+
+  - Ticket Comments is N+1: it fetches all tickets, then one paged comments request per ticket id (115-133).
+  With zero tickets, Table.Combine({}) (line 122) gives a table with no columns, an exception to empty-result-columns
+  = yes.
+
+  - If meta.has_more is missing, Logical.From(null) gives null and `if (null)` at line 221 would raise
+  an error.
+
   - If has_more is true but links.next is absent, GetPage(null) would fail.
+
   - Neither path has guard code.
+
   - ZendeskData.Feed (line 161) is not shared; it is an internal helper.
-  - TableFieldTypeTransform has a schema = null branch (Table.FromRecords). GetSchemaForEntity returns null for unknown entities, but every entity used has a schema, so the branch is not reached in practice.
-  - EntityNameTable maps "Targets" and "Ticket Comments" too, but those rows are inserted separately (152, 155).
-  - client_id and client_secret are read from bundled files (lines 8-9). Publish has Beta = false (line 260), so no beta-flag.
+
+  - TableFieldTypeTransform has a schema = null branch (Table.FromRecords). GetSchemaForEntity returns
+  null for unknown entities, but every entity used has a schema, so the branch is not reached in practice.
+
+  - EntityNameTable maps "Targets" and "Ticket Comments" too, but those rows are inserted separately (152,
+  155).
+
+  - client_id and client_secret are read from bundled files (lines 8-9). Publish has Beta = false (line
+  260), so no beta-flag.
+
   - No .resx or .png files exist in the repo. localized-strings and icons are labelled from the code references.
-  - TestConnection is labelled dedicated-probe because the entry function branches to TestImpl, which fetches only the targets entity.
+
+  - TestConnection is labelled dedicated-probe because the entry function branches to TestImpl, which
+  fetches only the targets entity.
+
+  '

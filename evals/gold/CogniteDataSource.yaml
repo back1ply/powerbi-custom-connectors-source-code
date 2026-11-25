@@ -1,128 +1,372 @@
 connector: CogniteDataSource
 labelled_by: claude-code/claude-opus-5-5
-source_note: "Read CogniteDataSource.pq (1206), Table.GenerateByPage.pqm (28), Table.ToNavigationTable.pqm (24), Value.ToText.pqm (250); 1508 lines total. No .resx or .png files are in the folder."
+source_note: Read CogniteDataSource.pq (1206), Table.GenerateByPage.pqm (28), Table.ToNavigationTable.pqm
+  (24), Value.ToText.pqm (250); 1508 lines total. No .resx or .png files are in the folder.
 answers:
   auth:
-    values: [oauth]
+    values:
+    - oauth
     evidence:
-      - {file: CogniteDataSource.pq, lines: "214-221", function: CogniteDataSource, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Label, Refresh]]"}
+    - file: CogniteDataSource.pq
+      lines: 214-221
+      function: CogniteDataSource
+      note: Authentication = [OAuth = [StartLogin, FinishLogin, Label, Refresh]]
     sub:
       oauth-pkce:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: CogniteDataSource.pq, lines: "84-115", function: StartLogin, note: "codeChallenge = base64url(SHA256(codeVerifier)), code_challenge_method = S256; verifier in Context"}
-          - {file: CogniteDataSource.pq, lines: "126", function: TokenMethod, note: "code_verifier sent with the token request"}
+        - file: CogniteDataSource.pq
+          lines: 84-115
+          function: StartLogin
+          note: codeChallenge = base64url(SHA256(codeVerifier)), code_challenge_method = S256; verifier
+            in Context
+        - file: CogniteDataSource.pq
+          lines: '126'
+          function: TokenMethod
+          note: code_verifier sent with the token request
       oauth-refresh:
-        values: [yes]
+        values:
+        - true
         evidence:
-          - {file: CogniteDataSource.pq, lines: "177-189", function: Refresh, note: "TokenMethod(\"refresh_token\", refreshToken, ...)"}
-          - {file: CogniteDataSource.pq, lines: "219", function: CogniteDataSource, note: "Refresh = Refresh wired"}
+        - file: CogniteDataSource.pq
+          lines: 177-189
+          function: Refresh
+          note: TokenMethod("refresh_token", refreshToken, ...)
+        - file: CogniteDataSource.pq
+          lines: '219'
+          function: CogniteDataSource
+          note: Refresh = Refresh wired
   transport:
-    values: [web-contents, odata-feed]
+    values:
+    - web-contents
+    - odata-feed
     evidence:
-      - {file: CogniteDataSource.pq, lines: "774-779", function: RetryWithExponentialBackoff, note: "Web.Contents for all REST/GraphQL/org lookups"}
-      - {file: CogniteDataSource.pq, lines: "544-546", function: GetODataFeedImpl, note: "OData.Feed(queryUrl, null, [Concurrent, Implementation = \"2.0\", MaxUriLength, Headers])"}
+    - file: CogniteDataSource.pq
+      lines: 774-779
+      function: RetryWithExponentialBackoff
+      note: Web.Contents for all REST/GraphQL/org lookups
+    - file: CogniteDataSource.pq
+      lines: 544-546
+      function: GetODataFeedImpl
+      note: OData.Feed(queryUrl, null, [Concurrent, Implementation = "2.0", MaxUriLength, Headers])
     sub: {}
-  http-errors:
-    values: [manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]
+  user-inputs:
+    values:
+    - database-or-resource-id
     evidence:
-      - {file: CogniteDataSource.pq, lines: "859-866", function: GetPage, note: "ManualStatusHandling = {400, 403, 408, 409, 429, 500, 502, 503, 504}"}
-      - {file: CogniteDataSource.pq, lines: "657-659", function: GetEnvironmentFromOrganization, note: "ManualStatusHandling = {200, 401, 408, 409, 429, 502, 503, 504}"}
-      - {file: CogniteDataSource.pq, lines: "898-907", function: GetPage, note: "raises Error.Record(\"CogniteAPIError\", message | code | X-Request-ID | cluster, errorDetails)"}
-      - {file: CogniteDataSource.pq, lines: "1053-1078", function: GetGraphQLPage, note: "structured CogniteAPIError/CogniteConnectorError records incl. GraphQL errors array"}
-      - {file: CogniteDataSource.pq, lines: "774-831", function: RetryWithExponentialBackoff, note: "retries 429/502/503/504, autoretryable 409, 408 with exponential backoff + jitter via Function.InvokeAfter; 429 labelled \"Rate limit\""}
-      - {file: CogniteDataSource.pq, lines: "1126-1138", function: GetGraphQLPage, note: "GraphQL-level retry on HTTP 200 with errors+data"}
-    sub:
-      retry-rule:
-        text: "RetryWithExponentialBackoff retries 429, 502, 503 and 504. It retries 409 only when the response header cdf-is-auto-retryable is \"true\". It retries 408 except on paths ending /models/instances/query. Retry budget is 10 (MaxRetries), or 2 for 408 (MaxRetries408). The delay is full jitter: Number.Random() * min(base * 2^retryCount, 60000) ms, with base 1000 ms (2000 ms for 408). Each retry adds IsRetry = true to bypass the cache. Once retries run out it raises a CogniteAPIError ('Rate limit'/'Request timeout'/'Conflict (autoretryable)'/'Gateway error' exceeded after N retries) with code, x-request-id and cluster. There is no Retry-After handling. Separately, GetGraphQLPage retries an HTTP 200 response that has both 'errors' and 'data' up to 2 times, with jitter delay Random * min(2000 * 2^attempt, 60000) ms. GetAllPagesByCursor also waits 200 ms between pages for /streams/ URLs to stay under rate limits."
-        evidence:
-          - {file: CogniteDataSource.pq, lines: "19-28", function: CogniteDefaults, note: "MaxRetries 10, BaseRetryDelayMs 1000, MaxRetryDelayMs 60000, MaxRetries408 2, BaseRetryDelayMs408 2000, StreamsPageDelayMs 200"}
-          - {file: CogniteDataSource.pq, lines: "778-807", function: RetryWithExponentialBackoff, note: "retry condition, budget and delay"}
-          - {file: CogniteDataSource.pq, lines: "808-827", function: RetryWithExponentialBackoff, note: "error after exhaustion"}
-          - {file: CogniteDataSource.pq, lines: "1047-1052", function: GetGraphQLPage, note: "isTransientGraphQLError, maxGraphQLRetries = MaxRetries408"}
-          - {file: CogniteDataSource.pq, lines: "1126-1138", function: GetGraphQLPage, note: "GraphQL retry delay"}
-          - {file: CogniteDataSource.pq, lines: "691-720", function: GetAllPagesByCursor, note: "pacing for /streams/"}
+    - file: CogniteDataSource.pq
+      lines: 53-71
+      function: CogniteDataSourceType
+      note: project (CDF project name) and organization (CDF org/tenant name) text parameters
+    - file: CogniteDataSource.pq
+      lines: 644-666
+      function: GetEnvironmentFromOrganization
+      note: organization is used to list its projects and find the project's apiUrl (cluster)
+    sub: {}
   paging:
-    values: [cursor-token, graphql-cursor]
+    values:
+    - cursor-token
+    - graphql-cursor
     evidence:
-      - {file: CogniteDataSource.pq, lines: "689-737", function: GetAllPagesByCursor, note: "uses Value.Metadata(previous)[Cursor] to request the next page"}
-      - {file: CogniteDataSource.pq, lines: "839-846", function: GetPage, note: "GET: cursor appended as ?cursor= / &cursor="}
-      - {file: CogniteDataSource.pq, lines: "868-870", function: GetPage, note: "POST: cursor added to the JSON body"}
-      - {file: CogniteDataSource.pq, lines: "1144-1149", function: GetCursor, note: "nextCursor unless hasNext = false"}
-      - {file: CogniteDataSource.pq, lines: "739-768", function: GetAllGraphQLPagesByCursor, note: "GraphQL pages by cursor"}
-      - {file: CogniteDataSource.pq, lines: "1150-1156", function: GetCursorGraphQL, note: "pageInfo.endCursor when hasNextPage = true"}
-      - {file: CogniteDataSource.pq, lines: "1007", function: GetGraphQLPage, note: "cursor passed as GraphQL variable"}
+    - file: CogniteDataSource.pq
+      lines: 689-737
+      function: GetAllPagesByCursor
+      note: uses Value.Metadata(previous)[Cursor] to request the next page
+    - file: CogniteDataSource.pq
+      lines: 839-846
+      function: GetPage
+      note: 'GET: cursor appended as ?cursor= / &cursor='
+    - file: CogniteDataSource.pq
+      lines: 868-870
+      function: GetPage
+      note: 'POST: cursor added to the JSON body'
+    - file: CogniteDataSource.pq
+      lines: 1144-1149
+      function: GetCursor
+      note: nextCursor unless hasNext = false
+    - file: CogniteDataSource.pq
+      lines: 739-768
+      function: GetAllGraphQLPagesByCursor
+      note: GraphQL pages by cursor
+    - file: CogniteDataSource.pq
+      lines: 1150-1156
+      function: GetCursorGraphQL
+      note: pageInfo.endCursor when hasNextPage = true
+    - file: CogniteDataSource.pq
+      lines: '1007'
+      function: GetGraphQLPage
+      note: cursor passed as GraphQL variable
     sub:
       paging-generator:
-        values: [table-generatebypage]
+        values:
+        - table-generatebypage
         evidence:
-          - {file: CogniteDataSource.pq, lines: "695-727", function: GetAllPagesByCursor, note: "Table.GenerateByPage((previous) => ...)"}
-          - {file: CogniteDataSource.pq, lines: "740-768", function: GetAllGraphQLPagesByCursor, note: "Table.GenerateByPage"}
-          - {file: Table.GenerateByPage.pqm, lines: "5-27", function: Table.GenerateByPage, note: "helper built on List.Generate, stops when getNextPage returns null"}
+        - file: CogniteDataSource.pq
+          lines: 695-727
+          function: GetAllPagesByCursor
+          note: Table.GenerateByPage((previous) => ...)
+        - file: CogniteDataSource.pq
+          lines: 740-768
+          function: GetAllGraphQLPagesByCursor
+          note: Table.GenerateByPage
+        - file: Table.GenerateByPage.pqm
+          lines: 5-27
+          function: Table.GenerateByPage
+          note: helper built on List.Generate, stops when getNextPage returns null
       paging-stop:
-        text: "REST: stops when the previous page's Cursor metadata is null (no nextCursor, or hasNext = false) or when a later page returns 0 rows. Rows that are all null are then filtered out. GraphQL: paging only happens when the query text contains $cursor, otherwise a single page is fetched. It stops when pageInfo.hasNextPage is not true (cursor null) or a later page is empty."
+        text: 'REST: stops when the previous page''s Cursor metadata is null (no nextCursor, or hasNext
+          = false) or when a later page returns 0 rows. Rows that are all null are then filtered out.
+          GraphQL: paging only happens when the query text contains $cursor, otherwise a single page is
+          fetched. It stops when pageInfo.hasNextPage is not true (cursor null) or a later page is empty.'
         evidence:
-          - {file: CogniteDataSource.pq, lines: "700-724", function: GetAllPagesByCursor, note: "null cursor / empty page -> null"}
-          - {file: CogniteDataSource.pq, lines: "731-735", function: GetAllPagesByCursor, note: "drop all-null rows"}
-          - {file: CogniteDataSource.pq, lines: "342-347", function: GraphQLImpl, note: "cursor paging only if query contains $cursor"}
-          - {file: CogniteDataSource.pq, lines: "744-765", function: GetAllGraphQLPagesByCursor, note: "null cursor / empty page -> null"}
-  navigation:
-    values: [fixed-list]
+        - file: CogniteDataSource.pq
+          lines: 700-724
+          function: GetAllPagesByCursor
+          note: null cursor / empty page -> null
+        - file: CogniteDataSource.pq
+          lines: 731-735
+          function: GetAllPagesByCursor
+          note: drop all-null rows
+        - file: CogniteDataSource.pq
+          lines: 342-347
+          function: GraphQLImpl
+          note: cursor paging only if query contains $cursor
+        - file: CogniteDataSource.pq
+          lines: 744-765
+          function: GetAllGraphQLPagesByCursor
+          note: null cursor / empty page -> null
+  data-formats:
+    values:
+    - json
     evidence:
-      - {file: CogniteDataSource.pq, lines: "276-305", function: CogniteDataSourceImpl, note: "hard-coded nav table: GraphQL, PostCDF, GetCDF (Function), ODataCDF, ODataDataModel (Feed); shown only if hasCDFAccess(project)"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: CogniteDataSource.pq, lines: "208-212", function: CogniteDataSource, note: "returns {\"CogniteDataSource.Contents\", json[project], json[organization]}"}
+    - file: CogniteDataSource.pq
+      lines: '884'
+      function: GetPage
+      note: Json.Document(response)
+    - file: CogniteDataSource.pq
+      lines: '1025'
+      function: GetGraphQLPage
+      note: Json.Document(response)
+    - file: CogniteDataSource.pq
+      lines: '663'
+      function: GetEnvironmentFromOrganization
+      note: Json.Document(endpointResponse)
   schema:
-    values: [inferred-from-data]
+    values:
+    - inferred-from-data
+    - driver-provided
     evidence:
-      - {file: CogniteDataSource.pq, lines: "965-978", function: GetPage, note: "Table.FromRecords(items, null, MissingField.UseNull) - columns from the JSON records"}
-      - {file: CogniteDataSource.pq, lines: "1109-1120", function: GetGraphQLPage, note: "Table.ExpandRecordColumn with field names of the first item"}
-      - {file: Table.GenerateByPage.pqm, lines: "18-27", function: Table.GenerateByPage, note: "table type taken from the first page"}
+    - file: CogniteDataSource.pq
+      lines: 965-978
+      function: GetPage
+      note: Table.FromRecords(items, null, MissingField.UseNull) - columns from the JSON records
+    - file: CogniteDataSource.pq
+      lines: 1109-1120
+      function: GetGraphQLPage
+      note: Table.ExpandRecordColumn with field names of the first item
+    - file: Table.GenerateByPage.pqm
+      lines: 18-27
+      function: Table.GenerateByPage
+      note: table type taken from the first page
+    - file: CogniteDataSource.pq
+      lines: 544-546
+      function: GetODataFeedImpl
+      note: 'driver-provided: ODataCDF/ODataDataModel nodes return OData.Feed results, whose columns and
+        types come from the service $metadata'
     sub: {}
+  http-errors:
+    values:
+    - manual-status-handling
+    - structured-error-records
+    - retry-with-delay
+    - rate-limit-aware
+    evidence:
+    - file: CogniteDataSource.pq
+      lines: 859-866
+      function: GetPage
+      note: ManualStatusHandling = {400, 403, 408, 409, 429, 500, 502, 503, 504}
+    - file: CogniteDataSource.pq
+      lines: 657-659
+      function: GetEnvironmentFromOrganization
+      note: ManualStatusHandling = {200, 401, 408, 409, 429, 502, 503, 504}
+    - file: CogniteDataSource.pq
+      lines: 898-907
+      function: GetPage
+      note: raises Error.Record("CogniteAPIError", message | code | X-Request-ID | cluster, errorDetails)
+    - file: CogniteDataSource.pq
+      lines: 1053-1078
+      function: GetGraphQLPage
+      note: structured CogniteAPIError/CogniteConnectorError records incl. GraphQL errors array
+    - file: CogniteDataSource.pq
+      lines: 774-831
+      function: RetryWithExponentialBackoff
+      note: retries 429/502/503/504, autoretryable 409, 408 with exponential backoff + jitter via Function.InvokeAfter;
+        429 labelled "Rate limit"
+    - file: CogniteDataSource.pq
+      lines: 1126-1138
+      function: GetGraphQLPage
+      note: GraphQL-level retry on HTTP 200 with errors+data
+    sub:
+      retry-rule:
+        text: 'RetryWithExponentialBackoff retries 429, 502, 503 and 504. It retries 409 only when the
+          response header cdf-is-auto-retryable is "true". It retries 408 except on paths ending /models/instances/query.
+          Retry budget is 10 (MaxRetries), or 2 for 408 (MaxRetries408). The delay is full jitter: Number.Random()
+          * min(base * 2^retryCount, 60000) ms, with base 1000 ms (2000 ms for 408). Each retry adds IsRetry
+          = true to bypass the cache. Once retries run out it raises a CogniteAPIError (''Rate limit''/''Request
+          timeout''/''Conflict (autoretryable)''/''Gateway error'' exceeded after N retries) with code,
+          x-request-id and cluster. There is no Retry-After handling. Separately, GetGraphQLPage retries
+          an HTTP 200 response that has both ''errors'' and ''data'' up to 2 times, with jitter delay
+          Random * min(2000 * 2^attempt, 60000) ms. GetAllPagesByCursor also waits 200 ms between pages
+          for /streams/ URLs to stay under rate limits.'
+        evidence:
+        - file: CogniteDataSource.pq
+          lines: 19-28
+          function: CogniteDefaults
+          note: MaxRetries 10, BaseRetryDelayMs 1000, MaxRetryDelayMs 60000, MaxRetries408 2, BaseRetryDelayMs408
+            2000, StreamsPageDelayMs 200
+        - file: CogniteDataSource.pq
+          lines: 778-807
+          function: RetryWithExponentialBackoff
+          note: retry condition, budget and delay
+        - file: CogniteDataSource.pq
+          lines: 808-827
+          function: RetryWithExponentialBackoff
+          note: error after exhaustion
+        - file: CogniteDataSource.pq
+          lines: 1047-1052
+          function: GetGraphQLPage
+          note: isTransientGraphQLError, maxGraphQLRetries = MaxRetries408
+        - file: CogniteDataSource.pq
+          lines: 1126-1138
+          function: GetGraphQLPage
+          note: GraphQL retry delay
+        - file: CogniteDataSource.pq
+          lines: 691-720
+          function: GetAllPagesByCursor
+          note: pacing for /streams/
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: CogniteDataSource.pq
+      lines: '50'
+      function: CogniteDataSource.Contents
+      note: 'shared CogniteDataSource.Contents = Value.ReplaceType(CogniteDataSourceImpl, CogniteDataSourceType)'
+    - file: CogniteDataSource.pq
+      lines: 53-67
+      function: CogniteDataSourceType
+      note: 'project and organization: FieldCaption, FieldDescription, SampleValues'
+    - file: CogniteDataSource.pq
+      lines: 68-71
+      function: CogniteDataSourceType
+      note: 'function type meta Documentation.Name, Documentation.LongDescription'
+  navigation:
+    values:
+    - fixed-list
+    evidence:
+    - file: CogniteDataSource.pq
+      lines: 276-305
+      function: CogniteDataSourceImpl
+      note: 'hard-coded nav table: GraphQL, PostCDF, GetCDF (Function), ODataCDF, ODataDataModel (Feed);
+        shown only if hasCDFAccess(project)'
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: CogniteDataSource.pq
+      lines: 208-212
+      function: CogniteDataSource
+      note: returns {"CogniteDataSource.Contents", json[project], json[organization]}
   folding:
-    values: [odata-folding]
+    values:
+    - odata-folding
     evidence:
-      - {file: CogniteDataSource.pq, lines: "544-546", function: GetODataFeedImpl, note: "OData.Feed (Implementation 2.0) - the engine folds queries against the CDF OData service"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: CogniteDataSource.pq, lines: "833-878", function: GetPage, note: "synchronous requests; no job submission/polling"}
+    - file: CogniteDataSource.pq
+      lines: 544-546
+      function: GetODataFeedImpl
+      note: OData.Feed (Implementation 2.0) - the engine folds queries against the CDF OData service
     sub: {}
   packaging:
-    values: [pqm-modules, localized-strings, icons]
+    values:
+    - pqm-modules
+    - localized-strings
+    - icons
     evidence:
-      - {file: CogniteDataSource.pq, lines: "1197-1206", function: Extension.LoadFunction, note: "Value.ToText.pqm, Table.GenerateByPage.pqm, Table.ToNavigationTable.pqm loaded via Expression.Evaluate"}
-      - {file: CogniteDataSource.pq, lines: "53-71", function: CogniteDataSourceType, note: "Extension.LoadString for captions/descriptions"}
-      - {file: CogniteDataSource.pq, lines: "225-246", function: CogniteDataSource.Icons, note: "CDF16..CDF64.png icons on the UI record; no Beta field"}
+    - file: CogniteDataSource.pq
+      lines: 1197-1206
+      function: Extension.LoadFunction
+      note: Value.ToText.pqm, Table.GenerateByPage.pqm, Table.ToNavigationTable.pqm loaded via Expression.Evaluate
+    - file: CogniteDataSource.pq
+      lines: 53-71
+      function: CogniteDataSourceType
+      note: Extension.LoadString for captions/descriptions
+    - file: CogniteDataSource.pq
+      lines: 225-246
+      function: CogniteDataSource.Icons
+      note: CDF16..CDF64.png icons on the UI record; no Beta field
   diagnostics:
-    values: [none]
+    values:
+    - none
     evidence:
-      - {file: CogniteDataSource.pq, lines: "1-1206", function: "(section)", note: "no Diagnostics.Trace or diagnostics module; only the x-cdp-app header identifies the client"}
-  writes:
-    values: [none]
+    - file: CogniteDataSource.pq
+      lines: 1-1206
+      function: (section)
+      note: no Diagnostics.Trace or diagnostics module; only the x-cdp-app header identifies the client
+  long-running:
+    values:
+    - none
     evidence:
-      - {file: CogniteDataSource.pq, lines: "392-404", function: PostCDFImpl, note: "generic POST passthrough intended for list/query endpoints (samples /assets/list, /timeseries/list); no write-back feature"}
-  user-inputs:
-    values: [database-or-resource-id]
-    evidence:
-      - {file: CogniteDataSource.pq, lines: "53-71", function: CogniteDataSourceType, note: "project (CDF project name) and organization (CDF org/tenant name) text parameters"}
-      - {file: CogniteDataSource.pq, lines: "644-666", function: GetEnvironmentFromOrganization, note: "organization is used to list its projects and find the project's apiUrl (cluster)"}
+    - file: CogniteDataSource.pq
+      lines: 833-878
+      function: GetPage
+      note: synchronous requests; no job submission/polling
     sub: {}
-  data-formats:
-    values: [json]
+  writes:
+    values:
+    - none
     evidence:
-      - {file: CogniteDataSource.pq, lines: "884", function: GetPage, note: "Json.Document(response)"}
-      - {file: CogniteDataSource.pq, lines: "1025", function: GetGraphQLPage, note: "Json.Document(response)"}
-      - {file: CogniteDataSource.pq, lines: "663", function: GetEnvironmentFromOrganization, note: "Json.Document(endpointResponse)"}
-notes: |
-  - user-inputs: both shared-entry parameters, project and organization, are identifiers of the CDF tenant/project. Organization also resolves the cluster API URL indirectly through auth.cognite.com/api/v1/orgs/{org}/projects, so region-or-environment is arguable for it. I labelled it database-or-resource-id, since the user gives a tenant name, not a region or URL. The nav-table function items take their own parameters: GraphQL(space, datamodel, version, query, optional variables), PostCDF(url, body), GetCDF(url), GetODataFeed(url, optional apiVersion) and GetDataModelODataFeed(space, datamodel, version, optional apiVersion). These are not entry-function inputs.
-  - Navigation: the connector's own nav table is fixed. The ODataCDF/ODataDataModel feeds return the OData service's navigation from $metadata. GetODataFeedImpl replaces the service's TimeseriesAggregate function with a wrapper that partitions tags (TimeseriesAggregate, PartitionTags). Value.ToText.pqm is used only to build that row's Signature.
-  - OData schema and folding are handled by the engine (OData.Feed). The token request (TokenMethod) and OData.Feed calls get default status handling. The REST/GraphQL requests that matter use ManualStatusHandling and retries.
-  - PostCDF can POST to any CDF API path, so a user could hit write endpoints. The connector does not offer that as a feature, so writes = none.
-  - Unused locals: TokenMethod's RefreshToken binding (148) is computed but never merged into Parts, and hasCDFAccess's projectItem (1182) is unused. StartLogin and FinishLogin compute urls, which triggers the org lookup during login.
-  - GraphQL paging is enabled only when the query text contains "$cursor"; otherwise a single page is fetched.
+    - file: CogniteDataSource.pq
+      lines: 392-404
+      function: PostCDFImpl
+      note: generic POST passthrough intended for list/query endpoints (samples /assets/list, /timeseries/list);
+        no write-back feature
+notes: '- v2 changes: schema gained driver-provided for the OData.Feed nodes (GetODataFeedImpl 544-546),
+  per the v2 delegation rule; folding already counted odata-folding on that path. Added the documentation
+  answer from CogniteDataSource.Contents. The nav-table functions (GraphQL, PostCDF, GetCDF, GetODataFeed,
+  GetDataModelODataFeed) also carry FieldDescription/SampleValues/Name, but they are not shared and add
+  no new ids.
+
+  - user-inputs: both shared-entry parameters, project and organization, are identifiers of the
+  CDF tenant/project. Organization also resolves the cluster API URL indirectly through auth.cognite.com/api/v1/orgs/{org}/projects,
+  so region-or-environment is arguable for it. I labelled it database-or-resource-id, since the user gives
+  a tenant name, not a region or URL. The nav-table function items take their own parameters: GraphQL(space,
+  datamodel, version, query, optional variables), PostCDF(url, body), GetCDF(url), GetODataFeed(url, optional
+  apiVersion) and GetDataModelODataFeed(space, datamodel, version, optional apiVersion). These are not
+  entry-function inputs.
+
+  - Navigation: the connector''s own nav table is fixed. The ODataCDF/ODataDataModel feeds return the
+  OData service''s navigation from $metadata. GetODataFeedImpl replaces the service''s TimeseriesAggregate
+  function with a wrapper that partitions tags (TimeseriesAggregate, PartitionTags). Value.ToText.pqm
+  is used only to build that row''s Signature.
+
+  - OData schema and folding are handled by the engine (OData.Feed). The token request (TokenMethod) and
+  OData.Feed calls get default status handling. The REST/GraphQL requests that matter use ManualStatusHandling
+  and retries.
+
+  - PostCDF can POST to any CDF API path, so a user could hit write endpoints. The connector does not
+  offer that as a feature, so writes = none.
+
+  - Unused locals: TokenMethod''s RefreshToken binding (148) is computed but never merged into Parts,
+  and hasCDFAccess''s projectItem (1182) is unused. StartLogin and FinishLogin compute urls, which triggers
+  the org lookup during login.
+
+  - GraphQL paging is enabled only when the query text contains "$cursor"; otherwise a single page is
+  fetched.
+
   - Localized strings and icons are referenced, but the .resx and .png files are not in the repo folder.
+
+  '

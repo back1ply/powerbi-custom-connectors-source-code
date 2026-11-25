@@ -1,84 +1,198 @@
 connector: AptixInsights
 labelled_by: claude-code/claude-opus-5-5
-source_note: "AptixInsights.pq (87 lines); single file, no .resx/.png present in the folder"
+source_note: AptixInsights.pq (87 lines); single file, no .resx/.png present in the folder
 answers:
   auth:
-    values: [key]
+    values:
+    - key
     evidence:
-      - {file: AptixInsights.pq, lines: "55-62", function: AptixInsights, note: "Authentication = [Key = []] (comment: JWT key based auth)"}
-      - {file: AptixInsights.pq, lines: "39-41", function: AptixInsightsImpl, note: "token = Extension.CurrentCredential()[Key]; headers = [Authorization = \"Bearer \" & token]"}
+    - file: AptixInsights.pq
+      lines: 55-62
+      function: AptixInsights
+      note: 'Authentication = [Key = []] (comment: JWT key based auth)'
+    - file: AptixInsights.pq
+      lines: 39-41
+      function: AptixInsightsImpl
+      note: token = Extension.CurrentCredential()[Key]; headers = [Authorization = "Bearer " & token]
     sub:
       key-placement:
-        values: [header]
+        values:
+        - header
         evidence:
-          - {file: AptixInsights.pq, lines: "41-50", function: AptixInsightsImpl, note: "Key sent as Authorization: Bearer header passed to OData.Feed(url, headers, ...)"}
+        - file: AptixInsights.pq
+          lines: 41-50
+          function: AptixInsightsImpl
+          note: 'Key sent as Authorization: Bearer header passed to OData.Feed(url, headers, ...)'
   transport:
-    values: [odata-feed]
+    values:
+    - odata-feed
     evidence:
-      - {file: AptixInsights.pq, lines: "42-50", function: AptixInsightsImpl, note: "OData.Feed(url, headers, [Implementation = \"2.0\", ODataVersion = 4, MoreColumns = true, Query = ...])"}
+    - file: AptixInsights.pq
+      lines: 42-50
+      function: AptixInsightsImpl
+      note: OData.Feed(url, headers, [Implementation = "2.0", ODataVersion = 4, MoreColumns = true, Query
+        = ...])
     sub: {}
-  http-errors:
-    values: [default]
+  user-inputs:
+    values:
+    - url-or-server
+    - other
     evidence:
-      - {file: AptixInsights.pq, lines: "42-50", function: AptixInsightsImpl, note: "Only request is OData.Feed with no ManualStatusHandling, retry, or error handling; engine default handling"}
+    - file: AptixInsights.pq
+      lines: 18-24
+      function: AptixInsightsType
+      note: Required url (text); must be https (ValidateUrlScheme lines 11-15)
+    - file: AptixInsights.pq
+      lines: 25-31
+      function: AptixInsightsType
+      note: 'other: optional query (type any), passed as the OData.Feed Query option (record of query-string
+        parameters) at line 46'
     sub: {}
   paging:
-    values: [none]
+    values:
+    - none
     evidence:
-      - {file: AptixInsights.pq, lines: "37-52", function: AptixInsightsImpl, note: "Single OData.Feed call returned as-is; no connector-side paging (any @odata.nextLink following happens inside OData.Feed)"}
-    sub: {}
-  navigation:
-    values: [discovered-from-api]
-    evidence:
-      - {file: AptixInsights.pq, lines: "50-52", function: AptixInsightsImpl, note: "Returns the OData.Feed result directly; for a service root URL OData.Feed builds the navigation table from the service document/$metadata. The connector builds no nav table itself"}
-    sub:
-      test-connection:
-        values: [reuses-entry-function]
-        evidence:
-          - {file: AptixInsights.pq, lines: "57-57", function: AptixInsights, note: "TestConnection = (dataSourcePath) => {\"AptixInsights.Feed\", Json.Document(dataSourcePath)[url]}"}
-  schema:
-    values: [driver-provided]
-    evidence:
-      - {file: AptixInsights.pq, lines: "42-50", function: AptixInsightsImpl, note: "Column names/types come from the OData service $metadata via OData.Feed (MoreColumns = true); no schema declared or transformed in the connector"}
-    sub: {}
-  folding:
-    values: [odata-folding]
-    evidence:
-      - {file: AptixInsights.pq, lines: "42-50", function: AptixInsightsImpl, note: "OData.Feed (Implementation 2.0) result returned unwrapped, so folding is OData.Feed's built-in $filter/$select/$top folding; no Table.View"}
-    sub: {}
-  long-running:
-    values: [none]
-    evidence:
-      - {file: AptixInsights.pq, lines: "37-52", function: AptixInsightsImpl, note: "Single synchronous OData.Feed call; no polling"}
-    sub: {}
-  packaging:
-    values: [single-file, localized-strings, icons]
-    evidence:
-      - {file: AptixInsights.pq, lines: "1-87", function: AptixInsights, note: "Whole connector is one .pq section document; no Extension.LoadFunction / .pqm modules"}
-      - {file: AptixInsights.pq, lines: "17-35", function: AptixInsightsType, note: "Extension.LoadString for captions, descriptions, connector name (resources.resx expected; not present in this folder)"}
-      - {file: AptixInsights.pq, lines: "74-87", function: AptixInsights.Icons, note: "Icon16/Icon32 via Extension.Contents(AptixInsights16..64.png), used by Publish SourceImage/SourceTypeImage lines 70-71 (png files not present in folder)"}
-  diagnostics:
-    values: [none]
-    evidence:
-      - {file: AptixInsights.pq, lines: "37-52", function: AptixInsightsImpl, note: "No Diagnostics.Trace / logging anywhere in the file"}
-  writes:
-    values: [none]
-    evidence:
-      - {file: AptixInsights.pq, lines: "37-52", function: AptixInsightsImpl, note: "Read-only OData.Feed; no actions or Table.View mutation handlers"}
-  user-inputs:
-    values: [url-or-server, other]
-    evidence:
-      - {file: AptixInsights.pq, lines: "18-24", function: AptixInsightsType, note: "Required url (text); must be https (ValidateUrlScheme lines 11-15)"}
-      - {file: AptixInsights.pq, lines: "25-31", function: AptixInsightsType, note: "other: optional query (type any), passed as the OData.Feed Query option (record of query-string parameters) at line 46"}
+    - file: AptixInsights.pq
+      lines: 37-52
+      function: AptixInsightsImpl
+      note: Single OData.Feed call returned as-is; no connector-side paging (any @odata.nextLink following
+        happens inside OData.Feed)
     sub: {}
   data-formats:
-    values: [json]
+    values:
+    - json
     evidence:
-      - {file: AptixInsights.pq, lines: "42-50", function: AptixInsightsImpl, note: "OData v4 (ODataVersion = 4) JSON payloads parsed by OData.Feed"}
-notes: |
-  - Line 49 `url = ValidateUrlScheme(url)` inside the let shadows the function parameter `url` and refers to itself, which in M is a cyclic reference; as written this likely errors at evaluation. Labels describe the intended behaviour (https check + OData.Feed).
-  - `query` is typed `any` but is used as OData.Feed's Query option (a record of query-string parameters); labelled `other` under user-inputs rather than options-record because it is not a connector options record.
+    - file: AptixInsights.pq
+      lines: 42-50
+      function: AptixInsightsImpl
+      note: OData v4 (ODataVersion = 4) JSON payloads parsed by OData.Feed
+  schema:
+    values:
+    - driver-provided
+    evidence:
+    - file: AptixInsights.pq
+      lines: 42-50
+      function: AptixInsightsImpl
+      note: Column names/types come from the OData service $metadata via OData.Feed (MoreColumns = true);
+        no schema declared or transformed in the connector
+    sub: {}
+  http-errors:
+    values:
+    - default
+    evidence:
+    - file: AptixInsights.pq
+      lines: 42-50
+      function: AptixInsightsImpl
+      note: Only request is OData.Feed with no ManualStatusHandling, retry, or error handling; engine
+        default handling
+    sub: {}
+  documentation:
+    values:
+    - function-documentation
+    - parameter-captions
+    - parameter-descriptions
+    - sample-values
+    evidence:
+    - file: AptixInsights.pq
+      lines: '9'
+      function: AptixInsights.Feed
+      note: 'shared AptixInsights.Feed = Value.ReplaceType(AptixInsightsImpl, AptixInsightsType)'
+    - file: AptixInsights.pq
+      lines: 17-31
+      function: AptixInsightsType
+      note: 'url and query: FieldCaption, FieldDescription, SampleValues (Extension.LoadString)'
+    - file: AptixInsights.pq
+      lines: 32-35
+      function: AptixInsightsType
+      note: 'function type meta Documentation.Name, Documentation.LongDescription'
+  navigation:
+    values:
+    - discovered-from-api
+    evidence:
+    - file: AptixInsights.pq
+      lines: 50-52
+      function: AptixInsightsImpl
+      note: Returns the OData.Feed result directly; for a service root URL OData.Feed builds the navigation
+        table from the service document/$metadata. The connector builds no nav table itself
+  test-connection:
+    values:
+    - reuses-entry-function
+    evidence:
+    - file: AptixInsights.pq
+      lines: 57-57
+      function: AptixInsights
+      note: TestConnection = (dataSourcePath) => {"AptixInsights.Feed", Json.Document(dataSourcePath)[url]}
+  folding:
+    values:
+    - odata-folding
+    evidence:
+    - file: AptixInsights.pq
+      lines: 42-50
+      function: AptixInsightsImpl
+      note: OData.Feed (Implementation 2.0) result returned unwrapped, so folding is OData.Feed's built-in
+        $filter/$select/$top folding; no Table.View
+    sub: {}
+  packaging:
+    values:
+    - single-file
+    - localized-strings
+    - icons
+    evidence:
+    - file: AptixInsights.pq
+      lines: 1-87
+      function: AptixInsights
+      note: Whole connector is one .pq section document; no Extension.LoadFunction / .pqm modules
+    - file: AptixInsights.pq
+      lines: 17-35
+      function: AptixInsightsType
+      note: Extension.LoadString for captions, descriptions, connector name (resources.resx expected;
+        not present in this folder)
+    - file: AptixInsights.pq
+      lines: 74-87
+      function: AptixInsights.Icons
+      note: Icon16/Icon32 via Extension.Contents(AptixInsights16..64.png), used by Publish SourceImage/SourceTypeImage
+        lines 70-71 (png files not present in folder)
+  diagnostics:
+    values:
+    - none
+    evidence:
+    - file: AptixInsights.pq
+      lines: 37-52
+      function: AptixInsightsImpl
+      note: No Diagnostics.Trace / logging anywhere in the file
+  long-running:
+    values:
+    - none
+    evidence:
+    - file: AptixInsights.pq
+      lines: 37-52
+      function: AptixInsightsImpl
+      note: Single synchronous OData.Feed call; no polling
+    sub: {}
+  writes:
+    values:
+    - none
+    evidence:
+    - file: AptixInsights.pq
+      lines: 37-52
+      function: AptixInsightsImpl
+      note: Read-only OData.Feed; no actions or Table.View mutation handlers
+notes: '- Line 49 `url = ValidateUrlScheme(url)` inside the let shadows the function parameter `url` and
+  refers to itself, which in M is a cyclic reference; as written this likely errors at evaluation. Labels
+  describe the intended behaviour (https check + OData.Feed).
+
+  - `query` is typed `any` but is used as OData.Feed''s Query option (a record of query-string parameters);
+  labelled `other` under user-inputs rather than options-record because it is not a connector options
+  record.
+
   - windowWidth / windowHeight (lines 5-6) are defined but never used (leftover OAuth template values).
-  - Navigation, paging and folding are entirely delegated to OData.Feed; data format json assumes standard OData v4 JSON.
-  - schema = driver-provided is a judgement call: types come from the OData service $metadata through OData.Feed; the connector itself declares or converts nothing (alternative would be `none`).
+
+  - Navigation, paging and folding are entirely delegated to OData.Feed; data format json assumes standard
+  OData v4 JSON.
+
+  - schema = driver-provided is a judgement call: types come from the OData service $metadata through
+  OData.Feed; the connector itself declares or converts nothing (alternative would be `none`).
+
   - Strings (.resx) and icon .png files are referenced but not present in the repo folder.
+
+  '
