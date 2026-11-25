@@ -150,6 +150,8 @@ def evidence_lines(hit: Hit, indent: str = "") -> list[str]:
         "pending": "Unreviewed match",
     }
     state = labels[hit.verdict]
+    if hit.stale:
+        state = "Match from a review of older source" if not state else f"{state} (older review)"
     lines = [f"{indent}* **{state}**"] if state else []
     for evidence in hit.review_evidence or hit.evidence:
         url = source_url(hit.connector, evidence.file, evidence.line)

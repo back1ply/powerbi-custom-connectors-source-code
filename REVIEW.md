@@ -77,10 +77,19 @@ mentions; it does not receive a complete parsed call graph. Its supported,
 uncertain, and rejected decisions and exact citations are stored in
 `knowledge/match-reviews.json`. The recorded model is the agent actor.
 
-`pqkb verify-matches` checks every current candidate, full connector-source and
-rule/scope fingerprints, and quotes against the supplied context. It does not
-prove that the model's reasoning is correct. Confidence is qualitative. These
-assessments never certify runtime behavior or renew authored prose reviews.
+`pqkb verify-matches` checks every current candidate, the full connector-source
+fingerprint, the request fingerprint (the candidates and pattern scope the reviewer
+saw), and quotes against the supplied context. It does not prove that the model's
+reasoning is correct. Confidence is qualitative. These assessments never certify
+runtime behavior or renew authored prose reviews.
+
+Candidate reviews are advisory and never block a refresh or publication;
+`verify-matches` only reports coverage. An edit to one pattern page no longer
+expires every connector's review: the recorded `rules_sha256` is kept but not
+compared. When a connector's review is no longer current, the site keeps its last
+verdict, labelled as coming from a review of older source, and shows the current
+scanner evidence instead of the older citations. A candidate the older review never
+assessed stays labelled as unreviewed.
 
 OpenCode's DeepSeek path uses an isolated temporary profile with all tools
 denied and no MCP servers. Its recorded model comes from the exported session,

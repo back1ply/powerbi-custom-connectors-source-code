@@ -67,10 +67,12 @@ jobs:
       - name: Verify source-bound pattern reviews
         id: reviews
         continue-on-error: true
-        run: |
-          uv run pqkb verify-reviews
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run pqkb verify-matches
+        run: uv run pqkb verify-reviews
+      # Report only: stale candidate reviews keep their last verdict, labelled as older.
+      - name: Report candidate review coverage
+        id: matches
+        continue-on-error: true
+        run: uv run pqkb verify-matches
       - name: Build review preview
         id: site
         continue-on-error: true
@@ -100,7 +102,8 @@ jobs:
             Checks run in this refresh workflow:
             - Source excerpts and pipeline: ${{ steps.tests.outcome }}
             - Lint, metadata, and links: ${{ steps.static.outcome }}
-            - Pattern prose and candidate reviews: ${{ steps.reviews.outcome }}
+            - Pattern prose reviews: ${{ steps.reviews.outcome }}
+            - Candidate review coverage (report only, does not block): ${{ steps.matches.outcome }}
             - Site build: ${{ steps.site.outcome }}
             - Secret scan: passed (a failure prevents this PR step)
 

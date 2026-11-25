@@ -73,13 +73,19 @@ def rule_fingerprint(rules: list[Rule]) -> str:
 
 
 def current_review(cache: dict, connector: str, files: dict[str, str], rules: list[Rule]) -> dict:
+    """Return the cached review when its source and protocol still match.
+
+    ``rules_sha256`` is recorded but not compared: it hashes every pattern page, so one
+    edit would expire every connector. ``request_fingerprint`` (checked by
+    ``review_is_usable``) already binds the candidates and pattern scope this
+    connector's reviewer actually saw.
+    """
+    del rules  # Kept in the signature for callers; see the docstring.
     review = cache.get(connector, {})
     provider = review.get("reviewer", {}).get("provider", "")
     if review.get("protocol_sha256") != protocol_fingerprint(provider):
         return {}
     if review.get("source_sha256") != source_fingerprint(files):
-        return {}
-    if review.get("rules_sha256") != rule_fingerprint(rules):
         return {}
     return review
 
@@ -264,12 +270,27 @@ def connector_reviews(repo: Path, sources: dict, rules: list[Rule], hits: dict) 
     return current
 
 
+def older_hit(hit: Hit, review: dict, pattern_id: str) -> Hit:
+    """Keep the last verdict from a review of older source, labelled as stale.
+
+    Its citations may point at moved lines, so the current scanner evidence is shown
+    instead. A candidate the older review never assessed stays pending.
+    """
+    if not assessment(review, pattern_id):
+        return hit
+    return replace(reviewed_hit(hit, review, pattern_id), review_evidence=(), stale=True)
+
+
 def apply_reviews(repo: Path, sources: dict, rules: list[Rule], hits: dict) -> dict:
     current = connector_reviews(repo, sources, rules, hits)
+    cache = load_cache(repo)
     output = {}
     for pattern_id, matches in hits.items():
         reviewed = [
-            reviewed_hit(hit, current.get(hit.connector, {}), pattern_id) for hit in matches
+            reviewed_hit(hit, current[hit.connector], pattern_id)
+            if hit.connector in current
+            else older_hit(hit, cache.get(hit.connector, {}), pattern_id)
+            for hit in matches
         ]
         output[pattern_id] = [hit for hit in reviewed if hit.verdict != "rejected"]
     return output

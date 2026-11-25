@@ -63,16 +63,17 @@ def test_oauth_requires_corroboration_but_keeps_partial_candidates_explicit():
     assert partial.confidence == "partial"
 
 
-def test_stale_source_or_rule_review_is_not_reused():
+def test_stale_source_review_is_not_current_but_unrelated_page_edits_are_ignored():
     files = {"Demo.pq": "result = OData.Feed(url);"}
     rules = [Rule.build("odata", [])]
     record = cache_record(files, rules, [], {"provider": "test", "models": ["test-agent"]})
     cache = {"Demo": record}
     assert match_reviews.current_review(cache, "Demo", files, rules) == record
     assert not match_reviews.current_review(cache, "Demo", {"Demo.pq": "changed"}, rules)
-    assert not match_reviews.current_review(
-        cache, "Demo", files, [replace(rules[0], scope_sha256="changed")]
-    )
+    # An edit to some pattern page no longer expires every connector; the request
+    # fingerprint still catches changes to the scope this connector's reviewer saw.
+    edited = [replace(rules[0], scope_sha256="changed")]
+    assert match_reviews.current_review(cache, "Demo", files, edited) == record
 
 
 @pytest.mark.parametrize(
@@ -154,8 +155,19 @@ def test_supported_uncertain_rejected_and_stale_reviews_render_differently(repo)
     source = repo / "connectors/Demo/Demo.pq"
     source.write_text(source.read_text() + "\n// source changed\n")
     bundle.build(repo)
-    assert "Unreviewed match" in frontmatter.read(page).body
+    # A review of older source keeps its last verdict: still rejected, still hidden.
+    assert "../patterns/retries.md" not in frontmatter.read(page).body
     assert verify_matches(repo) == ["Demo: candidate review missing or stale"]
+    decision["verdict"] = "supported"
+    save_cache(repo, cache)
+    bundle.build(repo)
+    older = frontmatter.read(page)
+    assert "Match from a review of older source" in older.body
+    assert "retries" in older.meta["tags"]
+    cache["Demo"]["matches"] = []
+    save_cache(repo, cache)
+    bundle.build(repo)
+    assert "Unreviewed match" in frontmatter.read(page).body
 
 
 def test_all_documented_patterns_have_candidates_in_their_cited_connector():
