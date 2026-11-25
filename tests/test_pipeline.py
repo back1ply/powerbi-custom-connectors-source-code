@@ -304,7 +304,8 @@ def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     assert page.meta["tags"] == ["oauth", "usernamepassword"]
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert "stale_after" not in page.meta  # Building is not a source refresh.
-    assert "(../patterns/retries.md)" in page.body
+    # Scanner and candidate-review matches are not published on connector pages.
+    assert "../patterns/" not in page.body and "Pattern evidence" not in page.body
     pattern = repo / "bundle" / "patterns" / "retries.md"
     assert pattern.read_bytes() == authored
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored

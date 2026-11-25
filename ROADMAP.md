@@ -12,8 +12,8 @@ distinct connectors. Counts describe this baseline and will change on refresh.
 
 Authored explanations live in `knowledge/patterns/`. Connector pages, indexes,
 and match lists are generated into the committed OKF v0.3 bundle `bundle/`.
-MkDocs publishes the site, with the official OKF graph viewer (`viz.html`) and
-`llms.txt`. Review drift is reported and shown as stale; it never blocks. The current review scope and limitations are recorded in [REVIEW.md](REVIEW.md).
+MkDocs publishes the site and `llms.txt`; the official OKF graph viewer is
+available locally (`pqkb viz`) and unpublished until phase 2. Review drift is reported and shown as stale; it never blocks. The current review scope and limitations are recorded in [REVIEW.md](REVIEW.md).
 
 ## Work sequence
 
@@ -63,7 +63,7 @@ been installed or compatibility-tested as part of this documentation change.
 | Official OKF validator (`skills/okf-generate/scripts/validate.py`) | Adopted 2026-11-25 | CI gate for OKF v0.3 conformance; vendored with the official skills. |
 | okflint 0.5.x | Removed 2026-11-25 | 0.5.0 and 0.5.1 reject `okf_version` 0.3. Reconsider if a release supports 0.3 and adds checks the official validator lacks. |
 | `@mfdaves/okf-mcp` 0.9.1 | Adopted 2026-11-25 | `.mcp.json` serves `bundle/` read-only. Search, neighbors, provenance, and the stdio server work on the 0.3 bundle; its `validate` still applies v0.2 rules (root frontmatter, date-only `stale_after`). |
-| Official OKF viewer (`viz.html`) | Adopted 2026-11-25 | Vendored in `src/pqkb/viz`; generated with the site. |
+| Official OKF viewer (`viz.html`) | Adopted 2026-11-25, unpublished | Vendored in `src/pqkb/viz`; local via `pqkb viz`. Its demo palette and size rules made the 158-node graph unreadable; revisit after phase 2 adds a question → technique → connector hierarchy. |
 | `@fcmam5/okph` 0.9.0 | Dropped | Its value is change-impact feeds, which this project does not need. |
 | OKF-Schema | Conditional | Evaluate explicit schemas for `Power Query Pattern` and `Power Query Connector` only when they catch metadata errors that the current profile and tests miss. Avoid a second parallel knowledge lifecycle. |
 | Obsidian | Optional reader | A local way to browse a copy of the generated bundle. Edits to generated pages are temporary; authored pattern changes must go through `knowledge/patterns/`. No CI dependency needed. |

@@ -21,7 +21,7 @@ def test_llms_txt_lists_raw_bundle_pages_under_standard_sections(repo):
     raw = "https://raw.githubusercontent.com/owner/name/main/bundle"
     assert f"({raw}/connectors/Demo.md)" in text
     assert f"({raw}/patterns/retries.md)" in text
-    assert "(https://example.test/site/viz.html)" in text
+    assert "viz.html" not in text  # The graph is not published until phase 2.
     assert "index.md):" not in text.split("## Optional")[0]  # Indexes only under Optional.
 
 

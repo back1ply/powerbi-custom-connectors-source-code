@@ -2,7 +2,7 @@
 type: Power Query Connector
 title: SQL database in Fabric
 description: Import data from SQL database items in Fabric
-tags: [aad, buffering, credentials, diagnostics, errors, packaging, parameter-metadata, response-metadata, schema, table-view, web-requests]
+tags: [aad]
 x-pqkb-publisher: Microsoft
 x-pqkb-version: 1.2.47
 sources:
@@ -30,7 +30,7 @@ sources:
 resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/FabricSql/1.2.47/FabricSql_1.2.47.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T17:23:17Z'
+  at: '2026-11-25T20:59:46Z'
 verified:
   by: process:pqkb-refresh
   at: '2026-11-25T17:23:17Z'
@@ -50,84 +50,3 @@ stale_after: '2026-12-09T17:23:17Z'
 * [Workspace.DLP.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.DLP.pqm)
 * [Workspace.PrivateLink.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm)
 * [Workspace.pqm](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm)
-
-# Pattern evidence
-
-* [Buffering tables, lists, and binaries](../patterns/buffering.md)
-  * **Match from a review of older source**
-    * [Utils.pqm line 295](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L295) — `handledStatuses = List.Buffer(List.Transform(Record.FieldNames(Record.RemoveFields(handlers, "Error")), Number.From)),`
-    * [Workspace.pqm line 187](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L187) — `workspaceIds = List.Buffer(GetTestConnectionWorkspaceIds(dlpPolicies)),`
-* [Credential access](../patterns/credentials.md)
-  * **Match from a review of older source**
-    * [Utils.pqm line 432](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L432) — `Extension.CurrentCredential(forceRefreshOfTokens) <> null, // Force refresh of token.`
-    * [Utils.pqm line 493](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L493) — `finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,`
-    * [Workspace.DLP.pqm line 61](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.DLP.pqm#L61) — `credential = Extension.CurrentCredential(),`
-    * [Workspace.PrivateLink.pqm line 127](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L127) — `serviceAccessToken = Extension.CurrentCredential()[Properties]?[ServiceAccessToken]?,`
-    * [Workspace.PrivateLink.pqm line 150](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L150) — `token = Utils[GetCredential](AadWorkspaceApiOAuthResource)[access_token],`
-* [Diagnostic tracing](../patterns/diagnostics.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 290](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L290) — `error Diagnostics.Trace(TraceLevel.Error, [Name = "GenerateFabricSqlConnection/MissingRequiredProperties",`
-    * [FabricSql.pq line 290](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L290) — `error Diagnostics.Trace(TraceLevel.Error, [Name = "GenerateFabricSqlConnection/MissingRequiredProperties",`
-    * [Table.NavigationTableView.pqm line 68](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L68) — `Diagnostics.Trace(TraceLevel.Information, [Name = "NavigationTableView/OnSelectRows/FoldingFailure", Data = [], SafeData = [DueToError = triedData[HasError]]], default)`
-    * [Table.NavigationTableView.pqm line 68](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L68) — `Diagnostics.Trace(TraceLevel.Information, [Name = "NavigationTableView/OnSelectRows/FoldingFailure", Data = [], SafeData = [DueToError = triedData[HasError]]], default)`
-    * [Utils.pqm line 56](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L56) — `tracedMessage = Diagnostics.Trace(`
-    * [Utils.pqm line 57](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L57) — `TraceLevel.Error,`
-    * [Workspace.PrivateLink.pqm line 37](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L37) — `catch(e) => error Diagnostics.Trace(`
-    * [Workspace.PrivateLink.pqm line 38](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L38) — `TraceLevel.Information,`
-    * [Workspace.pqm line 18](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L18) — `error Diagnostics.Trace(`
-    * [Workspace.pqm line 19](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L19) — `TraceLevel.Error,`
-* [Function parameters and data-source identity](../patterns/parameter-metadata.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 173](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L173) — `Documentation.FieldCaption = Extension.LoadString("FabricSql.Fields.HierarchicalNavigation.FieldCaption")`
-    * [FabricSql.pq line 168](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L168) — `shared FabricSql.Contents = Value.ReplaceType(FabricSqlImpl, FabricSql.Type);`
-    * [FabricSql.pq line 178](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L178) — `FabricSql = type function (optional options as FabricSqlOptions)`
-* [Resources and modular source loading](../patterns/packaging.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 12](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L12) — `binary = Extension.Contents(name),`
-    * [Utils.pqm line 47](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L47) — `Text.Format(Extension.LoadString("TraceMessageWithDetails"), {piiFreeLogMessage, errorMessage})`
-    * [Workspace.DLP.pqm line 86](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.DLP.pqm#L86) — `Message = NonPii(Extension.LoadString("WorkspaceAccessDeniedByDlpPolicy")),`
-    * [Workspace.PrivateLink.pqm line 46](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L46) — `Utils[NonPii](Extension.LoadString("UrlParseError")),`
-    * [Workspace.pqm line 23](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L23) — `Extension.LoadString("NoWorkspacesAvailable"),`
-* [Response and pagination metadata](../patterns/response-metadata.md)
-  * **Match from a review of older source**
-    * [Table.NavigationTableView.pqm line 55](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L55) — `viewException.IsMarked = (errorRecord) => Record.FieldCount( Value.Metadata( Value.Type(errorRecord[Reason]?) ) ) > 0`
-    * [Utils.pqm line 4](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L4) — `IsNonPii = (x) => Value.Metadata(x)[Is.Pii]? = false,`
-    * [Utils.pqm line 304](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L304) — `responseStatus = Value.Metadata(response)[Response.Status]? ?? 200,`
-* [Retries, delays, and polling](../patterns/retry-polling.md)
-  * **Uncertain match (older review)**
-    * [FabricSql.pq line 15](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L15) — `context = if additionalContext = null`
-    * [Table.NavigationTableView.pqm line 21](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L21) — `if value is list then`
-    * [Utils.pqm line 231](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L231) — `else {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), delay(state{0}))},`
-    * [Utils.pqm line 407](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L407) — `if state[Iteration] < count then Function.InvokeAfter(() => state, #duration(0, 0, 0, delay(state[Iteration])))`
-    * [Utils.pqm line 8](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L8) — `nextDepth = if depth = null then 3 else depth - 1,`
-    * [Workspace.DLP.pqm line 24](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.DLP.pqm#L24) — `if (dlpPoliciesJson = null) then`
-    * [Workspace.PrivateLink.pqm line 25](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L25) — `if Text.Contains(PBIBaseUrl, "powerbistagingapi") then`
-    * [Workspace.pqm line 143](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L143) — `TestConnectionPrivateLinkTimeout = #duration(0, 0, 0, 5),`
-    * [Workspace.pqm line 45](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L45) — `allWorkspaces = if List.IsEmpty(jsonResponse[value]) then`
-* [Schema and type enforcement](../patterns/schema.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 168](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L168) — `shared FabricSql.Contents = Value.ReplaceType(FabricSqlImpl, FabricSql.Type);`
-    * [FabricSql.pq line 80](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L80) — `Schema =  navigation{4}?[Schema]?,`
-    * [Table.NavigationTableView.pqm line 40](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L40) — `type table Type.ForRecord(List.Accumulate(tableKeys, [], (r, f) => Record.AddField(r, f, [Type=if f = "Data" then type table else type any, Optional=false])), false),`
-    * [Utils.pqm line 17](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L17) — `else if value is type then List.First(Table.Schema(#table({"type"}, {{value}}))[TypeName], "<type>")`
-* [Structured errors and HTTP status handling](../patterns/errors.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 242](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L242) — `error Table.ViewError(Error.Record(`
-    * [FabricSql.pq line 19](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L19) — `try`
-    * [Table.NavigationTableView.pqm line 28](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L28) — `error "Unexpected descriptor value for '" & key & "'",`
-    * [Utils.pqm line 66](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L66) — `Error.Record(`
-    * [Utils.pqm line 21](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L21) — `try result catch (e) => @Value.ToText(e, nextDepth),`
-    * [Workspace.DLP.pqm line 27](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.DLP.pqm#L27) — `try`
-    * [Workspace.PrivateLink.pqm line 44](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L44) — `Error.Record(`
-    * [Workspace.PrivateLink.pqm line 14](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.PrivateLink.pqm#L14) — `Utils = try #shared[Utils] otherwise`
-    * [Workspace.pqm line 123](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L123) — `unableToResolveCurrentWorkspace = Table.ViewError(Error.Record(`
-    * [Workspace.pqm line 5](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Workspace.pqm#L5) — `Utils = try #shared[Utils] otherwise error "Module Utils not found in shared context. Ensure the Utils module is loaded.",`
-* [Table.View handlers](../patterns/table-view.md)
-  * **Match from a review of older source**
-    * [FabricSql.pq line 272](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L272) — `Table.View(withoutSystemTables,[`
-    * [FabricSql.pq line 277](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/FabricSql.pq#L277) — `OnSelectRows = (selector) => Table.SelectRows(nav, selector), // Prevent the "sys" schema predicate from blocking folding`
-    * [Table.NavigationTableView.pqm line 57](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L57) — `Table.View(null, [`
-    * [Table.NavigationTableView.pqm line 58](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Table.NavigationTableView.pqm#L58) — `GetType = () => tableType,`
-* [Web requests and relative paths](../patterns/web-requests.md)
-  * **Match from a review of older source**
-    * [Utils.pqm line 303](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/FabricSql/Utils.pqm#L303) — `response = Web.Contents(url, moreOptions & [IsRetry = state[Iteration] > 0]),`

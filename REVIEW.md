@@ -99,10 +99,9 @@ runtime behavior or renew authored prose reviews.
 Candidate reviews are advisory and never block a refresh or publication;
 `verify-matches` only reports coverage. An edit to one pattern page no longer
 expires every connector's review: the recorded `rules_sha256` is kept but not
-compared. When a connector's review is no longer current, the site keeps its last
-verdict, labelled as coming from a review of older source, and shows the current
-scanner evidence instead of the older citations. A candidate the older review never
-assessed stays labelled as unreviewed.
+compared. Since 2026-11-25 candidate assessments and scanner evidence are no longer
+shown on connector pages or used for connector tags; the ledger is kept as a record
+and an eval baseline while phase 2 replaces it with per-connector checklist answers.
 
 OpenCode's DeepSeek path uses an isolated temporary profile with all tools
 denied and no MCP servers. Its recorded model comes from the exported session,

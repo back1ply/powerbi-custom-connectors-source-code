@@ -8,7 +8,6 @@ from pathlib import Path
 from pqkb import frontmatter
 from pqkb.bundle import load_patterns, patterns_by_category
 from pqkb.excerpts import Excerpt, excerpts
-from pqkb.viz import generate_visualization
 
 
 def on_config(config):
@@ -46,8 +45,6 @@ def on_config(config):
         {"Connectors": connectors},
         {"Connector tags": "tags/index.md"},
         {"Refresh log": "log.md"},
-        # Absolute URL: viz.html is written after the build, outside MkDocs' pages.
-        {"Graph": f"{config.site_url.rstrip('/')}/viz.html"},
     ]
     return config
 
@@ -82,11 +79,6 @@ def on_post_build(config):
     destination = Path(config.site_dir) / "assets"
     for asset in (Path(config.config_file_path).parent / "site-assets").iterdir():
         shutil.copyfile(asset, destination / asset.name)
-    # The OKF viewer computes staleness at generation time, so it is built with the
-    # site rather than committed to bundle/.
-    generate_visualization(
-        Path(config.docs_dir), Path(config.site_dir) / "viz.html", bundle_name=config.site_name
-    )
     llms = llms_txt(Path(config.docs_dir), config.site_url, config.repo_url)
     (Path(config.site_dir) / "llms.txt").write_text(llms, encoding="utf-8", newline="\n")
 
@@ -128,7 +120,6 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
             "",
             f"- [Bundle index]({raw}/index.md): sections of the bundle",
             f"- [Refresh log]({raw}/log.md): archive refresh history",
-            f"- [Graph view]({site_url.rstrip('/')}/viz.html): interactive map of every page",
             f"- [Bundle download]({site_url.rstrip('/')}/knowledge.zip): the whole bundle as a zip",
             "",
         ]

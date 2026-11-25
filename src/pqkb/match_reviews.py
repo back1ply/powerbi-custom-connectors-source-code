@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 
 from pqkb.reviews import digest
-from pqkb.scan import Evidence, Hit, Rule, _strip_strings_and_comments
+from pqkb.scan import Hit, Rule, _strip_strings_and_comments
 
 CACHE_FILE = "knowledge/match-reviews.json"
 REVIEW_VERSION = 1
@@ -226,73 +226,6 @@ def valid_citation(evidence: dict, visible: dict) -> bool:
 
 def visible_lines(sources: dict) -> dict:
     return {(file, row["line"]): row["code"] for file, rows in sources.items() for row in rows}
-
-
-def reviewed_hit(hit: Hit, review: dict, pattern_id: str) -> Hit:
-    decision = assessment(review, pattern_id)
-    identity = review.get("reviewer", {})
-    actor = ", ".join(identity.get("models", [])) or identity.get("requested_model", "")
-    supplement = decision.get("supplemental_review")
-    if supplement:
-        actor += "; citation checked by " + supplement["by"]
-    citations = tuple(
-        Evidence(e["file"], e["line"], "review citation", e["quote"])
-        for e in decision.get("evidence", [])
-    )
-    return replace(
-        hit,
-        verdict=decision.get("verdict", "pending"),
-        reason=decision.get("reason", ""),
-        certainty=decision.get("confidence", ""),
-        reviewer=actor,
-        review_evidence=citations,
-    )
-
-
-def connector_reviews(repo: Path, sources: dict, rules: list[Rule], hits: dict) -> dict:
-    cache = load_cache(repo)
-    definitions = {rule.pattern_id: rule.scope for rule in rules}
-    current = {}
-    for connector, files in sources.items():
-        review = current_review(cache, connector, files)
-        if not review:
-            continue
-        candidates = {
-            pid: hit
-            for pid, matches in hits.items()
-            for hit in matches
-            if hit.connector == connector
-        }
-        packet = review_packet(connector, files, candidates)
-        if review_is_usable(review, packet, definitions, files):
-            current[connector] = review
-    return current
-
-
-def older_hit(hit: Hit, review: dict, pattern_id: str) -> Hit:
-    """Keep the last verdict from a review of older source, labelled as stale.
-
-    Its citations may point at moved lines, so the current scanner evidence is shown
-    instead. A candidate the older review never assessed stays pending.
-    """
-    if not assessment(review, pattern_id):
-        return hit
-    return replace(reviewed_hit(hit, review, pattern_id), review_evidence=(), stale=True)
-
-
-def apply_reviews(repo: Path, sources: dict, rules: list[Rule], hits: dict) -> dict:
-    current = connector_reviews(repo, sources, rules, hits)
-    cache = load_cache(repo)
-    output = {}
-    for pattern_id, matches in hits.items():
-        reviewed = [
-            reviewed_hit(hit, current[hit.connector], pattern_id)
-            if hit.connector in current
-            else older_hit(hit, cache.get(hit.connector, {}), pattern_id)
-            for hit in matches
-        ]
-        output[pattern_id] = [hit for hit in reviewed if hit.verdict != "rejected"]
-    return output
 
 
 def protocol_fingerprint(provider: str = "claude-code") -> str:

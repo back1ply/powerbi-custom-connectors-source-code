@@ -18,6 +18,6 @@ Examples describe archived source and have not been runtime-tested. Uncertain an
 [Download the OKF bundle](https://back1ply.github.io/powerbi-custom-connectors-source-code/knowledge.zip).
 
 * [Patterns](patterns/index.md) - 23 implementation patterns, grouped by topic.
-* [Connectors](connectors/index.md) - All 135 connectors in the archive, their files and detected patterns.
-* [Connector tags](tags/index.md) - Browse authentication kinds and detected patterns.
+* [Connectors](connectors/index.md) - All 135 connectors in the archive, and their source files.
+* [Connector tags](tags/index.md) - Browse connectors by authentication kind.
 * [Refresh log](log.md) - Successful refreshes, verification checks, and package changes.

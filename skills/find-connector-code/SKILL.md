@@ -27,10 +27,10 @@ runtime-tested; say so when it matters.
 ## Procedure
 
 1. **Find candidates.** For a technique, read the matching `bundle/patterns/<id>.md`
-   for how it works, then `bundle/tags/index.md`, which lists the connectors where
-   a review supported that pattern. Each connector page's "Pattern evidence"
-   section also lists unreviewed and uncertain candidates, with line links.
-   For a library function or identifier, search the source directly:
+   for how it works and which connectors it cites. Connector pages list source
+   files and authentication kinds; `bundle/tags/index.md` groups connectors by
+   authentication kind. For a library function or identifier, search the source
+   directly:
 
    ```bash
    rg -n "Table.GenerateByPage" connectors --glob "*.{pq,pqm,m}"

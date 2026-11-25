@@ -38,13 +38,8 @@ a supported verdict cites no meaningful line at a detected signal. Rerun
 failing, try the other provider. Never edit `match-reviews.json` by hand to make
 a review pass.
 
-## What the labels mean
+## Where results go
 
-| Label on a connector page | Meaning |
-| --- | --- |
-| (no label) | Current review supports the match. |
-| Uncertain match | Current review could not establish the wiring. |
-| Unreviewed match | No review has assessed this candidate. |
-| Match from a review of older source / (older review) | The connector's code changed since its review; the last verdict is kept until it is reviewed again. |
-
-Rejected matches are hidden from the pages but kept in the review record.
+Since 2026-11-25 verdicts are stored in `knowledge/match-reviews.json` only; they
+are not rendered on connector pages. The ledger is a record and an eval baseline
+while phase 2 replaces it with per-connector checklist answers.

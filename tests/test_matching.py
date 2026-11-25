@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from pqkb import bundle, frontmatter, match_reviews
-from pqkb.match_agent import cache_record, save_cache, verify_matches
+from pqkb import bundle, match_reviews
+from pqkb.match_agent import cache_record
 from pqkb.scan import Rule, auth_kinds, scan
 
 pytest_plugins = ("test_pipeline",)
@@ -100,69 +100,6 @@ def test_agent_output_cannot_skip_candidates_or_invent_evidence(failure):
         assessment["evidence"] = []
     with pytest.raises(ValueError):
         match_reviews.validate_assessments({"matches": matches}, packet)
-
-
-def test_supported_uncertain_rejected_and_stale_reviews_render_differently(repo):
-    # The fixture's retry call supplies real source and a generated connector page.
-    from pqkb.match_agent import review_inputs
-
-    sources, rules, candidates, definitions = review_inputs(repo)
-    hit = candidates["Demo"]["retries"]
-    evidence = hit.evidence[0]
-    decision = {
-        "pattern_id": "retries",
-        "verdict": "supported",
-        "confidence": "medium",
-        "reason": "A delayed producer is present.",
-        "evidence": [{"file": evidence.file, "line": evidence.line, "quote": evidence.code}],
-    }
-    cache = {
-        "Demo": cache_record(
-            sources["Demo"], rules, [decision], {"provider": "test", "models": ["test-agent"]}
-        )
-    }
-    packet = match_reviews.review_packet("Demo", sources["Demo"], candidates["Demo"])
-    cache["Demo"]["request_sha256"] = match_reviews.request_fingerprint(packet, definitions)
-    save_cache(repo, cache)
-    assert verify_matches(repo) == []
-    bundle.build(repo)
-    page = repo / "bundle/connectors/Demo.md"
-    assert "retries" in frontmatter.read(page).meta["tags"]
-    body = frontmatter.read(page).body
-    assert f"{evidence.file} line {evidence.line}" in body
-    for review_text in (
-        "Agent-supported",
-        "static evidence:",
-        "review confidence:",
-        decision["reason"],
-        "test-agent",
-    ):
-        assert review_text not in body
-    decision["verdict"] = "uncertain"
-    save_cache(repo, cache)
-    bundle.build(repo)
-    assert "Uncertain" in frontmatter.read(page).body
-    assert "retries" not in frontmatter.read(page).meta["tags"]
-    decision["verdict"] = "rejected"
-    save_cache(repo, cache)
-    bundle.build(repo)
-    assert "../patterns/retries.md" not in frontmatter.read(page).body
-    source = repo / "connectors/Demo/Demo.pq"
-    source.write_text(source.read_text() + "\n// source changed\n")
-    bundle.build(repo)
-    # A review of older source keeps its last verdict: still rejected, still hidden.
-    assert "../patterns/retries.md" not in frontmatter.read(page).body
-    assert verify_matches(repo) == ["Demo: candidate review missing or stale"]
-    decision["verdict"] = "supported"
-    save_cache(repo, cache)
-    bundle.build(repo)
-    older = frontmatter.read(page)
-    assert "Match from a review of older source" in older.body
-    assert "retries" in older.meta["tags"]
-    cache["Demo"]["matches"] = []
-    save_cache(repo, cache)
-    bundle.build(repo)
-    assert "Unreviewed match" in frontmatter.read(page).body
 
 
 def test_all_documented_patterns_have_candidates_in_their_cited_connector():

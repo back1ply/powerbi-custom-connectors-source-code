@@ -11,11 +11,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-from pqkb import frontmatter, match_reviews
+from pqkb import frontmatter
 from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.reviews import authored_digest, digest, review_reason
-from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
+from pqkb.scan import Rule, auth_kinds, read_source
 
 PRODUCER = "process:pqkb-build"
 BUNDLE_DIR = "bundle"  # Generated OKF bundle, committed so agents can browse it.
@@ -97,13 +97,13 @@ def write_if_changed(path: Path, meta: dict, body: str, now: datetime) -> bool:
     return True
 
 
-def connector_meta(record: ConnectorRecord, auth: set[str], pattern_ids: set[str]) -> dict:
+def connector_meta(record: ConnectorRecord, auth: set[str]) -> dict:
     description = record.description or f"Power BI connector source for {record.title}."
     meta = {
         "type": "Power Query Connector",
         "title": record.title,
         "description": " ".join(description.split()),
-        "tags": sorted({a.lower() for a in auth} | pattern_ids),
+        "tags": sorted({a.lower() for a in auth}),
         # Not OKF fields: extension keys use the x- prefix (OKF 0.3 section 4.1).
         "x-pqkb-publisher": record.publisher,
         "x-pqkb-version": record.version,
@@ -117,12 +117,7 @@ def connector_meta(record: ConnectorRecord, auth: set[str], pattern_ids: set[str
     return meta
 
 
-def connector_body(
-    record: ConnectorRecord,
-    auth: set[str],
-    used: dict[str, list[Hit]],
-    patterns: dict[str, Pattern],
-) -> str:
+def connector_body(record: ConnectorRecord, auth: set[str]) -> str:
     auth_text = ", ".join(sorted(auth)) or "Not declared"
     lines = [
         "| Publisher | Version | Authentication |",
@@ -132,34 +127,8 @@ def connector_body(
         "# Source files",
         "",
         *[f"* [{f}]({source_url(record.name, f)})" for f in record.files],
-        "",
-        "# Pattern evidence",
-        "",
     ]
-    if not used:
-        lines.append("No implementation candidates were found by the current rules.")
-    for pattern_id in sorted(used, key=lambda pid: patterns[pid].title.lower()):
-        lines.append(f"* [{link_text(patterns[pattern_id].title)}](../patterns/{pattern_id}.md)")
-        for hit in used[pattern_id]:
-            lines.extend(evidence_lines(hit, indent="  "))
     return "\n".join(lines)
-
-
-def evidence_lines(hit: Hit, indent: str = "") -> list[str]:
-    labels = {
-        "supported": "",
-        "uncertain": "Uncertain match",
-        "pending": "Unreviewed match",
-    }
-    state = labels[hit.verdict]
-    if hit.stale:
-        state = "Match from a review of older source" if not state else f"{state} (older review)"
-    lines = [f"{indent}* **{state}**"] if state else []
-    for evidence in hit.review_evidence or hit.evidence:
-        url = source_url(hit.connector, evidence.file, evidence.line)
-        code = evidence.code.replace("`", "'")
-        lines.append(f"{indent}  * [{evidence.file} line {evidence.line}]({url}) — `{code}`")
-    return lines
 
 
 def index_entry(title: str, href: str, description: str) -> str:
@@ -256,11 +225,11 @@ def root_index(patterns: list[Pattern], connector_count: int) -> str:
         + index_entry(
             "Connectors",
             "connectors/index.md",
-            f"All {connector_count} connectors in the archive, their files and detected patterns.",
+            f"All {connector_count} connectors in the archive, and their source files.",
         )
         + "\n"
         + index_entry(
-            "Connector tags", "tags/index.md", "Browse authentication kinds and detected patterns."
+            "Connector tags", "tags/index.md", "Browse connectors by authentication kind."
         )
         + "\n"
         + index_entry(
@@ -314,36 +283,16 @@ def remove_stale_pages(folder: Path, names: set[str]) -> None:
             page.unlink()
 
 
-def hits_by_connector(hits: dict[str, list[Hit]]) -> dict[str, dict[str, list[Hit]]]:
-    used: dict[str, dict[str, list[Hit]]] = defaultdict(lambda: defaultdict(list))
-    for pattern_id, pattern_hits in hits.items():
-        for hit in pattern_hits:
-            used[hit.connector][pattern_id].append(hit)
-    return used
-
-
-def write_connector_pages(
-    repo: Path, patterns: list[Pattern], hits: dict[str, list[Hit]], now: datetime
-) -> None:
+def write_connector_pages(repo: Path, now: datetime) -> None:
     records = load_index(repo / "connectors")
     sources = read_sources(repo / "connectors", records)
-    by_id = {p.pattern_id: p for p in patterns}
-    used = hits_by_connector(hits)
     pages = repo / BUNDLE_DIR / "connectors"
     for name, record in records.items():
         auth = set().union(*(auth_kinds(text) for text in sources[name].values()))
         write_if_changed(
             pages / f"{name}.md",
-            connector_meta(
-                record,
-                auth,
-                {
-                    pid
-                    for pid, matches in used[name].items()
-                    if any(h.verdict == "supported" for h in matches)
-                },
-            ),
-            connector_body(record, auth, used[name], by_id),
+            connector_meta(record, auth),
+            connector_body(record, auth),
             now,
         )
     remove_stale_pages(pages, set(records))
@@ -408,11 +357,7 @@ def build(repo: Path, now: datetime | None = None) -> None:
     knowledge, connectors_dir = repo / BUNDLE_DIR, repo / "connectors"
     records = archive_records(connectors_dir)
     patterns = render_patterns(repo, knowledge)
-    sources = read_sources(connectors_dir, records)
-    rules = rules_for(patterns)
-    hits = match_reviews.apply_reviews(repo, sources, rules, scan(sources, rules))
-
-    write_connector_pages(repo, patterns, hits, now)
+    write_connector_pages(repo, now)
     apply_confirmation(repo)
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))

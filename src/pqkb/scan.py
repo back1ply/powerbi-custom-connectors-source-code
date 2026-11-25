@@ -52,11 +52,6 @@ class Hit:
     evidence: tuple[Evidence, ...] = ()
     confidence: str = "partial"
     verdict: str = "pending"
-    reason: str = ""
-    reviewer: str = ""
-    certainty: str = ""
-    review_evidence: tuple[Evidence, ...] = ()
-    stale: bool = False  # Verdict comes from a review of older source or rules.
 
 
 def read_source(path: Path) -> str:
