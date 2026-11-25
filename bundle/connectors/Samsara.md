@@ -96,8 +96,8 @@ generated:
   at: '2026-11-25T11:49:44Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |

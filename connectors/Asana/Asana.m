@@ -1,4 +1,4 @@
-﻿[Version = "1.0.2"]
+﻿[Version = "1.0.3"]
 section Asana;
 
 config = Json.Document ( Extension.Contents( "Config.json") );
@@ -94,7 +94,7 @@ Asana.Publish = [
     Beta = false,
     Category = "Online Services",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    LearnMoreUrl = "https://app.asana.com",
+    LearnMoreUrl = "https://asana.com/support",
     SourceImage = Asana.Icons,
     SourceTypeImage = Asana.Icons
 ];

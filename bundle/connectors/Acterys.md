@@ -1,27 +1,27 @@
 ---
 type: Power Query Connector
-title: 'Acterys : Model Automation & Planning'
+title: 'Acterys: Model Automation & Planning'
 description: Connect to Acterys
 tags: [aad, navigation, packaging]
 x-pqkb-publisher: Managility
-x-pqkb-version: 1.0.0
+x-pqkb-version: 1.0.1
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Acterys/Acterys.pq
   title: Acterys.pq
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Acterys/1.0.0/Acterys_1.0.0.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Acterys/1.0.1/Acterys_1.0.1.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Managility | 1.0.0 | Aad |
+| Managility | 1.0.1 | Aad |
 
 # Source files
 

@@ -10,19 +10,18 @@ let
 
     // Resolve ApiUrl internally
     ApiUrl = Environment.FeatureSwitch("PowerBiUri", "https://api.powerbi.com"),
-    UseWorkspacePL = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_UseWorkspacePL", false)),
 
     // Raises the standard NoWorkspacesAvailable error with consistent diagnostics
-    // tracing. sourceFn identifies the caller for both the trace Name and the error
+    // tracing. callerName identifies the caller for both the trace Name and the error
     // record's source attribution.
-    RaiseNoWorkspacesAvailable = (sourceFn as text) =>
+    RaiseNoWorkspacesAvailable = (callerName as text) =>
         error Diagnostics.Trace(
             TraceLevel.Error,
-            [Name = Text.Format("Workspace/#{0}/NoWorkspacesAvailable", {sourceFn}), Data = []],
+            [Name = Text.Format("Workspace/#{0}/NoWorkspacesAvailable", {callerName}), Data = []],
             Utils[Connector.GenerateErrorRecord](
                 "NoWorkspacesAvailable",
                 Extension.LoadString("NoWorkspacesAvailable"),
-                sourceFn)),
+                callerName)),
 
     GetWorkspacesNavTable = (workspaceViewGenerator as function, options as record, optional testConnectionFn as nullable function) =>
         let
@@ -134,9 +133,20 @@ let
                     currentWorkspaceId
         else  
             workspaceId,
-    GetFirstWarehouse = (noWarehousesFoundErrorMessage as text) as record =>
+    // Maximum number of workspaces whose SQL endpoint resolution may fail before TestConnection gives up.
+    MaxTestConnectionAttempts = 20,
+
+    // Per-request timeout for the TestConnection artifact listing when it is routed to a workspace Private Link
+    // host. An unreachable PL host (e.g. private endpoint in another VNET) otherwise hangs until the TCP /
+    // Web.Contents timeout. The listing goes to the same host as the later SQL endpoint resolution calls, so it
+    // doubles as a reachability probe and those calls keep their default timeout.
+    TestConnectionPrivateLinkTimeout = #duration(0, 0, 0, 5),
+
+    GetTestConnectionListingTimeout = (baseUrl as text) as nullable duration =>
+        if WorkspacePrivateLink[IsWorkspacePLUrl](baseUrl) then TestConnectionPrivateLinkTimeout else null,
+
+    GetTestConnectionWorkspaceIds = (dlpPolicies as record) as list =>
         let
-            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
             workspacesEndpoint = Uri.Combine(ApiUrl, "/v1/workspaces"),
             jsonResponse = Utils[Web.JsonContents](
                 workspacesEndpoint, 
@@ -144,109 +154,158 @@ let
                 /*additionalHandlers*/ null, 
                 /*jsonBody*/ null, 
                 /*startState*/ null, 
-                /*traceContext*/ [Origin = Utils[NonPii]("GetWorkspacesNavTable")]
+                /*traceContext*/ [Origin = Utils[NonPii]("GetTestConnectionWorkspaceIds")]
             ),
-            
             allWorkspaces = if List.IsEmpty(jsonResponse[value]) then
-                    RaiseNoWorkspacesAvailable("GetFirstWarehouse")
+                    RaiseNoWorkspacesAvailable("GetTestConnectionWorkspaceIds")
                 else
                     GetWorkspaces(jsonResponse),
             // Filter workspaces based on DLP policy
-            filteredWorkspaces = Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies)),
-            allWarehouses = Table.AddColumn(filteredWorkspaces, "warehouseId", each GetFirstWarehouseId([workspaceId], dlpPolicies)),
-            warehousesWithIds = Table.SelectRows(allWarehouses, each [warehouseId] <> null),
-            firstWarehouse = if Table.IsEmpty(warehousesWithIds) then
-                    error Diagnostics.Trace(
-                        TraceLevel.Error,
-                        [Name = "Workspace/GetFirstWarehouse/NoWarehousesFound", Data = []],
-                        Utils[Connector.GenerateErrorRecord](
-                            "NoWarehousesFound",
-                            noWarehousesFoundErrorMessage,
-                            "GetFirstWarehouse"))
-                else
-                    Table.First(warehousesWithIds)
+            filteredWorkspaces = Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies))
         in
-            firstWarehouse,
+            filteredWorkspaces[workspaceId],
 
-    GetFirstWarehouseId = (workspaceId as text, dlpPolicies as record) as nullable text =>
+    // Finds the SQL endpoint TestConnection should probe, walking DLP-allowed workspaces in order.
+    // - Workspaces without a matching artifact are skipped and do not count as attempts.
+    // - Listing or SQL endpoint resolution failures (e.g. Workspace Private Link) count as attempts, up to
+    //   MaxTestConnectionAttempts. The first workspace that resolves wins; later workspaces are not touched.
+    // - When no workspace resolves, the first failure is raised, or the "no artifacts" error if none failed.
+    // Returns [tdsEndpoint, name, artifactId]. The caller probes it once; probe failures are not retried.
+    FindTestConnectionEndpoint = (artifactKind as text, noArtifactsErrorMessage as text) as record =>
         let
-            // Check workspace access with DLP policy and use validated workspace ID
-            validatedWorkspaceId = WorkspaceDlp[CheckWorkspaceAllowed](workspaceId, dlpPolicies),
-            workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, validatedWorkspaceId),
-            warehouseEndpoint = Uri.Combine(workspaceSpecificApiUrl, Text.Format("v1/workspaces/#{0}/items?type=Warehouse", {validatedWorkspaceId})),
+            callerName = "Test" & artifactKind & "Connection",
+            noArtifactsErrorCode = "No" & artifactKind & "sFound",
+            findArtifact = if artifactKind = "Warehouse" then GetFirstWarehouseId else GetFirstLakehouseWithSqlEndpoint,
+            resolveEndpoint = if artifactKind = "Warehouse" then
+                    (workspaceId, warehouseId) =>
+                        GetTDSEndPoint(workspaceId, warehouseId, "Warehouse", null) & [artifactId = warehouseId]
+                else
+                    (workspaceId, lakehouseIds) =>
+                        GetTDSEndPoint(workspaceId, lakehouseIds[databaseId], "Lakehouse", lakehouseIds[lakehouseId]?)
+                            & [artifactId = lakehouseIds[databaseId]],
+            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
+            workspaceIds = List.Buffer(GetTestConnectionWorkspaceIds(dlpPolicies)),
+            workspaceCount = List.Count(workspaceIds),
+            // Evaluates one workspace per step (a try record: error = failed attempt, null Value = skipped) and stops
+            // after the first resolved endpoint or MaxTestConnectionAttempts failures. Buffered so that no workspace
+            // is evaluated twice.
+            step = (index as number, failureCount as number) as record =>
+                [
+                    index = index,
+                    failureCount = failureCount,
+                    outcome = if index < workspaceCount and failureCount < MaxTestConnectionAttempts then
+                            FindEndpointInWorkspace(callerName, workspaceIds{index}, failureCount + 1, artifactKind, findArtifact, resolveEndpoint)
+                        else
+                            null
+                ],
+            outcomes = List.Buffer(List.Generate(
+                () => step(0, 0),
+                each [outcome] <> null,
+                each if [outcome][HasError] then step([index] + 1, [failureCount] + 1)
+                    else if [outcome][Value] = null then step([index] + 1, [failureCount])
+                    else [outcome = null],
+                each [outcome])),
+            failures = List.Select(outcomes, each [HasError]),
+            success = List.First(List.Select(outcomes, each not [HasError] and [Value] <> null), null)
+        in
+            if success <> null then
+                success[Value]
+            else if List.IsEmpty(failures) then
+                error Diagnostics.Trace(
+                    TraceLevel.Error,
+                    [Name = Text.Format("Workspace/#{0}/#{1}", {callerName, noArtifactsErrorCode}), Data = []],
+                    Utils[Connector.GenerateErrorRecord](noArtifactsErrorCode, noArtifactsErrorMessage, callerName))
+            else
+                error Diagnostics.Trace(
+                    TraceLevel.Error,
+                    [
+                        Name = Text.Format("Workspace/#{0}/AttemptsExhausted", {callerName}),
+                        Data = [
+                            Attempts = Utils[NonPii](Text.From(List.Count(failures))),
+                            WorkspaceCount = Utils[NonPii](Text.From(workspaceCount))
+                        ]
+                    ],
+                    failures{0}[Error]),
+
+    // Returns a try record for one workspace: [HasError = false, Value = null] when it has no artifact,
+    // the resolved endpoint, or the listing / resolution error. Each outcome is traced.
+    FindEndpointInWorkspace = (
+        callerName as text,
+        workspaceId as text,
+        attemptNumber as number,
+        artifactKind as text,
+        findArtifact as function,
+        resolveEndpoint as function) as record =>
+        let
+            trace = (level as number, suffix as text, data as record, value as record) =>
+                Diagnostics.Trace(
+                    level,
+                    [
+                        Name = Text.Format("Workspace/#{0}/#{1}", {callerName, suffix}),
+                        Data = [WorkspaceId = Utils[NonPii](workspaceId), AttemptNumber = Utils[NonPii](Text.From(attemptNumber))] & data
+                    ],
+                    value),
+            errorData = (e as record) => [ErrorReason = Utils[NonPii](e[Reason]? ?? ""), ErrorMessage = e[Message]?],
+            artifact = try findArtifact(workspaceId),
+            resolved = try RequireSqlEndpoint(resolveEndpoint(workspaceId, artifact[Value]), artifactKind)
+        in
+            if artifact[HasError] then
+                trace(TraceLevel.Warning, "FindArtifactFailed", errorData(artifact[Error]), artifact)
+            else if artifact[Value] = null then
+                artifact
+            else if resolved[HasError] then
+                trace(TraceLevel.Warning, "ResolveSqlEndpointFailed", errorData(resolved[Error]), resolved)
+            else
+                trace(TraceLevel.Information, "SqlEndpointResolved", [], resolved),
+
+    // Returns the resolved endpoint, or raises ArtifactInInvalidState when it has no tdsEndpoint so that the
+    // attempt counts as a resolution failure. Evaluating this forces tdsEndpoint, so deferred resolution
+    // errors also surface inside the caller's try.
+    RequireSqlEndpoint = (endpoint as record, artifactKind as text) as record =>
+        if endpoint[tdsEndpoint]? <> null then
+            endpoint
+        else
+            error Error.Record(
+                Utils[NonPii]("DataSource.Error"),
+                Utils[NonPii](Extension.LoadString("ArtifactInInvalidState")),
+                [
+                    ArtifactId = Utils[NonPii](endpoint[artifactId]),
+                    ArtifactKind = Utils[NonPii](artifactKind),
+                    Reason = Utils[NonPii]("SqlEndpointMissing")
+                ],
+                {Utils[NonPii](artifactKind), endpoint[name]?, Utils[NonPii](endpoint[artifactId]), null, null}),
+
+    GetFirstWarehouseId = (workspaceId as text) as nullable text =>
+        let
+            workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, workspaceId),
+            warehouseEndpoint = Uri.Combine(workspaceSpecificApiUrl, Text.Format("v1/workspaces/#{0}/items?type=Warehouse", {workspaceId})),
             jsonResponse = Utils[Web.JsonContents](
                 warehouseEndpoint, 
-                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](validatedWorkspaceId), 
+                /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId), 
                 /*additionalHandlers*/ null, 
                 /*jsonBody*/ null, 
                 /*startState*/ null, 
-                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstWarehouseId")]),
+                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstWarehouseId")],
+                /*timeout*/ GetTestConnectionListingTimeout(workspaceSpecificApiUrl)),
             workspacesData = jsonResponse[value],
             warehouses = List.Select(workspacesData, each Record.HasFields(_, {"id", "displayName"}))
         in
             if List.IsEmpty(warehouses) then null else List.First(warehouses)[id]?,
 
-    GetFirstLakehouse = (noLakehousesFoundErrorMessage as text) as record =>
-        let
-            dlpPolicies = WorkspaceDlp[GetDlpPolicies](),
-            workspacesEndpoint = Uri.Combine(ApiUrl, "/v1/workspaces"),
-            jsonResponse = Utils[Web.JsonContents](
-                workspacesEndpoint, 
-                /*headers*/ null,
-                /*additionalHandlers*/ null, 
-                /*jsonBody*/ null, 
-                /*startState*/ null, 
-                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstLakehouse")]
-            ),
-            
-            allWorkspaces = if List.IsEmpty(jsonResponse[value]) then
-                    RaiseNoWorkspacesAvailable("GetFirstLakehouse")
-                else
-                    GetWorkspaces(jsonResponse),
-            // Filter workspaces based on DLP policy
-            filteredWorkspaces = Table.SelectRows(allWorkspaces, each WorkspaceDlp[IsWorkspaceAllowed]([workspaceId], dlpPolicies)),
-            // Ignore per-workspace failures when probing for lakehouses so a single
-            // failing workspace (permissions, bad state, transient error) does not abort
-            // the test connection flow. A failed probe yields null and is dropped below.
-            withLakehouseIds = Table.AddColumn(
-                filteredWorkspaces,
-                "lakehouseIds",
-                each
-                    try GetFirstLakehouseIds([workspaceId])
-                    catch (e) => Diagnostics.Trace(
-                        TraceLevel.Warning,
-                        [
-                            Name = "Workspace/GetFirstLakehouse/GetFirstLakehouseIdsFailed",
-                            Data = [WorkspaceId = Utils[NonPii]([workspaceId])]
-                        ],
-                        null)),
-            withNonNullIds = Table.SelectRows(withLakehouseIds, each [lakehouseIds] <> null and [lakehouseIds][databaseId]? <> null),
-            expanded = Table.ExpandRecordColumn(withNonNullIds, "lakehouseIds", {"databaseId", "lakehouseId"}, {"lakehouseDbId", "lakehouseId"}),
-            firstLakehouse = if Table.IsEmpty(expanded) then
-                    error Diagnostics.Trace(
-                        TraceLevel.Error,
-                        [Name = "Workspace/GetFirstLakehouse/NoLakehousesFound", Data = []],
-                        Utils[Connector.GenerateErrorRecord](
-                            "NoLakehousesFound",
-                            noLakehousesFoundErrorMessage,
-                            "GetFirstLakehouse"))
-                else
-                    Table.First(expanded)
-        in
-            firstLakehouse,
-
     // Returns a record [databaseId, lakehouseId] for the first lakehouse in the workspace
     // that has a SQL endpoint provisioned, or null if none is found.
-    GetFirstLakehouseIds = (workspaceId as text) as nullable record =>
+    GetFirstLakehouseWithSqlEndpoint = (workspaceId as text) as nullable record =>
         let
-            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/lakehouses", {workspaceId})),
+            workspaceSpecificApiUrl = WorkspacePrivateLink[GetWorkspaceBaseUrl](ApiUrl, workspaceId),
+            url = Uri.Combine(workspaceSpecificApiUrl, Text.Format("v1/workspaces/#{0}/lakehouses", {workspaceId})),
             response = Utils[Web.JsonContents](
                 url,
                 /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
                 /*additionalHandlers*/ null,
                 /*jsonBody*/ null,
                 /*startState*/ null,
-                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstLakehouseIds")]
+                /*traceContext*/ [Origin = Utils[NonPii]("GetFirstLakehouseWithSqlEndpoint")],
+                /*timeout*/ GetTestConnectionListingTimeout(workspaceSpecificApiUrl)
             ),
             responseAsRecord = Table.FromList(response[value], Splitter.SplitByNothing(), {"Lakehouses"}),
             lakehouses = Table.ExpandRecordColumn(
@@ -295,9 +354,9 @@ let
         in
             renamedInnerRecord,
 
-    GetWarehouseInformation = (workspaceId as text, warehouseId as text) as record =>
+    GetWarehouseInformation = (workspaceId as text, warehouseId as text, optional baseUrl as nullable text) as record =>
         let
-            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/warehouses/#{1}", {workspaceId, warehouseId})),
+            url = Uri.Combine(baseUrl ?? ApiUrl, Text.Format("/v1/workspaces/#{0}/warehouses/#{1}", {workspaceId, warehouseId})),
             response = Utils[Web.JsonContents](
                 url,
                 /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
@@ -309,9 +368,9 @@ let
         in
             response,
 
-    GetLakehouseInformation = (workspaceId as text, lakehouseId as text) as record =>
+    GetLakehouseInformation = (workspaceId as text, lakehouseId as text, optional baseUrl as nullable text) as record =>
         let
-            url = Uri.Combine(ApiUrl, Text.Format("/v1/workspaces/#{0}/lakehouses/#{1}", {workspaceId, lakehouseId})),
+            url = Uri.Combine(baseUrl ?? ApiUrl, Text.Format("/v1/workspaces/#{0}/lakehouses/#{1}", {workspaceId, lakehouseId})),
             response = Utils[Web.JsonContents](
                 url,
                 /*headers*/ WorkspacePrivateLink[GetPrivateLinkS2SHeader](workspaceId),
@@ -360,15 +419,16 @@ let
     // /information endpoint returns HTTP 403 ("API is not accessible for application").
     // For Warehouse:  GET v1/workspaces/{workspaceId}/warehouses/{warehouseId}
     // For Lakehouse:  GET v1/workspaces/{workspaceId}/lakehouses/{lakehouseArtifactId}
-    GetTDSEndPointViaFabricApi = (validatedWorkspaceId as text, artifactObjectId as text, artifactKind as text, lakehouseArtifactId as nullable text) as record =>
+    // Uses the workspace-specific base URL so that Private Link workspaces are routed correctly.
+    GetTDSEndPointViaFabricApi = (validatedWorkspaceId as text, artifactObjectId as text, artifactKind as text, lakehouseArtifactId as nullable text, workspaceSpecificApiUrl as text) as record =>
         if artifactKind = "Warehouse" then
             let
-                response = GetWarehouseInformation(validatedWorkspaceId, artifactObjectId)
+                response = GetWarehouseInformation(validatedWorkspaceId, artifactObjectId, workspaceSpecificApiUrl)
             in
                 [tdsEndpoint = response[properties][connectionString], name = response[displayName]]
         else if artifactKind = "Lakehouse" then
             let
-                response = GetLakehouseInformation(validatedWorkspaceId, lakehouseArtifactId),
+                response = GetLakehouseInformation(validatedWorkspaceId, lakehouseArtifactId, workspaceSpecificApiUrl),
                 dwProps = GetDwProperties(response[properties]),
                 provisioningStatus = if dwProps = null then null else dwProps[provisioningStatus]?
             in
@@ -394,10 +454,9 @@ let
                 ]),
 
     // GetTDSEndPoint
-    // Retrieves the legacy /information payload (Warehouse or Lakehouse). If 
-    //   MashupFlight_UseWorkspacePL feature switch
-    // evaluates to true, it overwrites the original `tdsEndpoint` value using the connection string API; otherwise leaves it unchanged.
-    // After (conditional) overwrite it validates state/status (must both be 1) and returns ONLY a pruned record:
+    // Retrieves the legacy /information payload (Warehouse or Lakehouse). When routing uses the
+    // workspace-specific Private Link URL, overwrites `tdsEndpoint` using the connection string API.
+    // It validates state/status (must both be 1) and returns ONLY a pruned record:
     //   [ tdsEndpoint = <text>, name = <text> ]
     // Internal validation still examines `state` & `status` from the /information response before pruning.
     // Falls back to standard Fabric REST APIs if the legacy endpoint returns HTTP 403
@@ -439,7 +498,7 @@ let
                                 ArtifactKind = Utils[NonPii](artifactKind)
                             ]
                         ],
-                        GetTDSEndPointViaFabricApi(validatedWorkspaceId, artifactObjectId, artifactKind, lakehouseArtifactId))
+                        GetTDSEndPointViaFabricApi(validatedWorkspaceId, artifactObjectId, artifactKind, lakehouseArtifactId, workspaceSpecificApiUrl))
                 in
                     state & [
                         Response = [
@@ -457,9 +516,14 @@ let
                 /*jsonBody*/ null, 
                 /*startState*/ null, 
                 /*traceContext*/ [Origin = Utils[NonPii]("GetTDSEndPoint")]),
-            // Retrieve connection string via new API only when both flights enabled
-            connectionStringRecord = if UseWorkspacePL then 
-                GetSqlConnectionString(validatedWorkspaceId, artifactObjectId, workspaceSpecificApiUrl, artifactKind) else null,
+            isWorkspacePLUrl = WorkspacePrivateLink[IsWorkspacePLUrl](workspaceSpecificApiUrl),
+            // The connection-string API is valid only after routing switches to the workspace-specific
+            // URL. This binding remains lazy and is forced only by the
+            // successful state/status branch below.
+            connectionStringRecord = if isWorkspacePLUrl then
+                GetSqlConnectionString(validatedWorkspaceId, artifactObjectId, workspaceSpecificApiUrl, artifactKind)
+            else
+                null,
             jsonResponseWithConnection = if connectionStringRecord <> null and Record.HasFields(connectionStringRecord, "connectionString") then
                 jsonResponse & [ tdsEndpoint = connectionStringRecord[connectionString] ] else jsonResponse,
             state = jsonResponse[state]?,
@@ -494,8 +558,7 @@ let
 in
     [
         GetWorkspacesNavTable = GetWorkspacesNavTable,
-        GetFirstWarehouse = GetFirstWarehouse,
-        GetFirstLakehouse = GetFirstLakehouse,
+        FindTestConnectionEndpoint = FindTestConnectionEndpoint,
         GetTDSEndPoint = GetTDSEndPoint,
         ResolveWorkspaceId = ResolveWorkspaceId,
         GetWarehouseInformation = GetWarehouseInformation,

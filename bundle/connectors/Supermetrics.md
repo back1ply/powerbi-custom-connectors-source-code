@@ -4,7 +4,7 @@ title: Supermetrics
 description: Power BI connector source for Supermetrics.
 tags: [errors, navigation, oauth, packaging, pkce, schema, web-requests]
 x-pqkb-publisher: Supermetrics
-x-pqkb-version: 3.3.0
+x-pqkb-version: 3.4.0
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Icons.pqm
@@ -12,19 +12,19 @@ sources:
 - id: file-2
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m
   title: Supermetrics.m
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Supermetrics/3.3.0/Supermetrics_3.3.0.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Supermetrics/3.4.0/Supermetrics_3.4.0.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Supermetrics | 3.3.0 | OAuth |
+| Supermetrics | 3.4.0 | OAuth |
 
 # Source files
 
@@ -35,16 +35,16 @@ stale_after: '2026-11-16T11:27:27Z'
 
 * [Buffering tables, lists, and binaries](../patterns/buffering.md)
   * **Uncertain match (older review)**
-    * [Supermetrics.m line 334](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L334) — `_response = Binary.Buffer(_httpResponse) meta Value.Metadata(_httpResponse),`
+    * [Supermetrics.m line 338](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L338) — `_response = Binary.Buffer(_httpResponse) meta Value.Metadata(_httpResponse),`
 * [Credential access](../patterns/credentials.md)
   * **Uncertain match (older review)**
-    * [Supermetrics.m line 293](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L293) — `#"Authorization" = "Bearer " & Extension.CurrentCredential()[access_token],`
-    * [Supermetrics.m line 293](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L293) — `#"Authorization" = "Bearer " & Extension.CurrentCredential()[access_token],`
+    * [Supermetrics.m line 297](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L297) — `#"Authorization" = "Bearer " & Extension.CurrentCredential()[access_token],`
+    * [Supermetrics.m line 297](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L297) — `#"Authorization" = "Bearer " & Extension.CurrentCredential()[access_token],`
 * [Function parameters and data-source identity](../patterns/parameter-metadata.md)
   * **Uncertain match (older review)**
-    * [Supermetrics.m line 471](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L471) — `Documentation.FieldCaption = title,`
+    * [Supermetrics.m line 475](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L475) — `Documentation.FieldCaption = title,`
     * [Supermetrics.m line 77](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L77) — `navigationTable = Value.ReplaceType(table, newTableType)`
-    * [Supermetrics.m line 537](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L537) — `type function (`
+    * [Supermetrics.m line 541](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L541) — `type function (`
 * [Navigation tables and connection checks](../patterns/navigation.md)
   * **Match from a review of older source**
     * [Supermetrics.m line 43](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L43) — `_resultWithEvent = (eventResponse) => Table.ToNavigationTable(`
@@ -60,17 +60,17 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Supermetrics.m line 7](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L7) — `Expression.Evaluate(Text.FromBinary(Extension.Contents(filename)), #shared);`
 * [Response and pagination metadata](../patterns/response-metadata.md)
   * **Uncertain match (older review)**
-    * [Supermetrics.m line 305](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L305) — `{[#"X-Pbi-Iteration" = Number.ToText(iteration)], try Value.Metadata(body)[headers] otherwise []}`
+    * [Supermetrics.m line 309](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L309) — `{[#"X-Pbi-Iteration" = Number.ToText(iteration)], try Value.Metadata(body)[headers] otherwise []}`
     * [Supermetrics.m line 157](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L157) — `Headers = [`
 * [Retries, delays, and polling](../patterns/retry-polling.md)
   * **Uncertain match (older review)**
-    * [Supermetrics.m line 282](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L282) — `{1 + state{0}, Function.InvokeAfter(() => producer(state{0}), interval(state{0}))},`
-    * [Supermetrics.m line 342](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L342) — `#duration(0, 0, 0, _retryDelay)`
+    * [Supermetrics.m line 286](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L286) — `{1 + state{0}, Function.InvokeAfter(() => producer(state{0}), interval(state{0}))},`
+    * [Supermetrics.m line 346](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L346) — `#duration(0, 0, 0, _retryDelay)`
     * [Supermetrics.m line 81](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L81) — `if dataType = "bool" then`
 * [Schema and type enforcement](../patterns/schema.md)
   * **Match from a review of older source**
     * [Supermetrics.m line 77](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L77) — `navigationTable = Value.ReplaceType(table, newTableType)`
-    * [Supermetrics.m line 803](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L803) — `type table [`
+    * [Supermetrics.m line 807](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L807) — `type table [`
 * [Structured errors and HTTP status handling](../patterns/errors.md)
   * **Match from a review of older source**
     * [Supermetrics.m line 168](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Supermetrics/Supermetrics.m#L168) — `error Error.Record(_response[error], _response[message]?)`

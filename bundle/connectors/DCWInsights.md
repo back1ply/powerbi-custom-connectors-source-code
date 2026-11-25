@@ -4,24 +4,24 @@ title: Digital Construction Works Insights
 description: Get Help
 tags: [credentials, key, odata, parameter-metadata]
 x-pqkb-publisher: Microsoft
-x-pqkb-version: 1.0.2
+x-pqkb-version: 1.0.3
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/DCWInsights/DCWInsights.m
   title: DCWInsights.m
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DCWInsights/1.0.2/DCWInsights_1.0.2.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/DCWInsights/1.0.3/DCWInsights_1.0.3.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Microsoft | 1.0.2 | Key |
+| Microsoft | 1.0.3 | Key |
 
 # Source files
 

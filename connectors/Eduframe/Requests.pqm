@@ -1,25 +1,27 @@
 let
     //######################################## DATA HELPER FUNCTIONS ########################################
-    // Eduframe.Request - retrieves a single page of data and sets a Next link value as meta on the returned json response. 
+    DefaultHttp = (url as text, options as record) as binary => Web.Contents(url, AddAuthHeader(options)),
+
+    // Eduframe.Request - retrieves a single page of data and sets a Next link value as meta on the returned json response.
     // We parse the json result (which will be a list of records) into a table.
     //
-    Eduframe.Request = (url as text, optional query as nullable record) =>
+    Eduframe.Request = (url as text, optional query as nullable record, optional http as nullable function) =>
         let
             timeout = (iteration) => if iteration = 0 then #duration(0, 0, 0, 0) else #duration(0, 0, 1, 5), // Wait 65 seconds before trying again. Adds up to 5:30 minutes delay total which is our rate limiting duration.
-            content = Value.WaitFor(Fetcher(url, query), timeout, 10)
+            content = Value.WaitFor(Fetcher(url, query, http ?? DefaultHttp), timeout, 10)
         in
             if content = null then error "Failed after multiple retry attempts"
             else Json.Document(content) meta [Next=GetNextLink(content)],
 
     // Fetcher - retries up to 10 times in case of rate limiting (status 429)
-    Fetcher = (url as text, optional query as nullable record) => (iteration) => 
+    Fetcher = (url as text, query as nullable record, http as function) => (iteration) =>
                 let
                     base_options = [ManualStatusHandling = {429}, IsRetry = iteration > 0], // Set IsRetry if this is not the first iteration to prevent using the cache.
                     options = if query <> null then Record.AddField(base_options, "Query", query) else base_options,
-                    result = Web.Contents(url, AddAuthHeader(options)),
+                    result = http(url, options),
                     status = Value.Metadata(result)[Response.Status]
                 in
-                    if status = 429 then null else result,
+                    if status = 429 then null meta [RetryAfter=Value.Metadata(result)[Headers][#"Retry-After"]?] else result,
 
 
     // Manually set authorization header in case we're using an access token, otherwise Power BI will handle the Authorization header.
@@ -32,8 +34,8 @@ let
 
     // Eduframe.PagedRecords - fetches all pages using the link headers
     // Adds the query parameters to the first request and afterwards relies only on the link headers
-    Eduframe.PagedRecords = (url as text, optional query as nullable record) as list => List.GenerateByPage(
-        () => Eduframe.Request(url, query),
+    Eduframe.PagedRecords = (url as text, optional query as nullable record, optional http as nullable function) as list => List.GenerateByPage(
+        () => Eduframe.Request(url, query, http),
         (previous) =>
             let
                 // If we have a previous page, get its Next link from metadata on the page.
@@ -41,18 +43,18 @@ let
                 // If we have a next link, use it, otherwise use the original URL that was passed in.
                 urlToUse = if (next <> null) then next else url,
                 // If we have a previous page, but don't have a next link, then we're done paging. Otherwise retrieve the next page.
-                current = if (previous <> null and next = null) then null else Eduframe.Request(urlToUse),
+                current = if (previous <> null and next = null) then null else Eduframe.Request(urlToUse, null, http),
                 // If we got data back from the current page, get the link for the next page
                 link = if (current <> null) then Value.Metadata(current)[Next] else null
             in
                 current meta [Next=link]),
 
     // This function returns an absolute URL to the next page of data.
-    // 
-    // The 'response' parameter typically contains the result of the call to Web.Contents. 
+    //
+    // The 'response' parameter typically contains the result of the call to Web.Contents.
     // The 'request' parameter is optional and contains values to formulate the request.
-    // It is typically used when the next link is a relative URL and needs to be 
-    // appended to a base URL from the request. Its format is up to the extension author. 
+    // It is typically used when the next link is a relative URL and needs to be
+    // appended to a base URL from the request. Its format is up to the extension author.
     //
     GetNextLink = (response, optional request) =>
         let
@@ -66,7 +68,7 @@ let
         in
             try removedBrackets otherwise null,
 
-    // Calls the getNextPage function until it returns null. 
+    // Calls the getNextPage function until it returns null.
     // Each call to getNextPage expects a list of records to be returned.
     // The result of the previous call to getNextPage is passed along to the next call.
     // Returns a list of all records returned by a single API endpoint
@@ -78,13 +80,20 @@ let
         )),
 
     // This function is useful when making an asynchronous HTTP request and you need to poll the server until the request is complete.
+    // If the producer function returns null, it will wait for the specified interval and try again until it gets a non-null result or reaches the optional count limit.
     Value.WaitFor = (producer as function, interval as function, optional count as number) as any =>
         let
+            request = (state as list) =>
+                let
+                    waitTime = Value.Metadata(state{1})[RetryAfter]?
+                in
+                    Function.InvokeAfter(() => producer(state{0}), if waitTime <> null then #duration(0, 0, 0, Number.From(waitTime)) else interval(state{0})),
+
             list = List.Generate(
-                () => {0, null},
+                () => {0, null}, // Iteration, Result
                 (state) => state{0} <> null and (count = null or state{0} < count),
-                (state) => if state{1} <> null then {null, state{1}} else {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), interval(state{0}))},
+                (state) => if state{1} <> null then {null, state{1}} else { 1 + state{0}, request(state) },
                 (state) => state{1})
         in
             List.Last(list)
-in  [PagedList = Eduframe.PagedRecords, Fetch = Eduframe.Request]
+in  [PagedList = Eduframe.PagedRecords, Fetch = Eduframe.Request, NextLink = GetNextLink]

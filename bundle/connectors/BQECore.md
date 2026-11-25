@@ -4,24 +4,24 @@ title: BQE CORE
 description: Connect to BQE CORE
 tags: [errors, navigation, oauth, oauth2, packaging, pagination, web-requests]
 x-pqkb-publisher: BQE
-x-pqkb-version: 12.0.0
+x-pqkb-version: 12.0.1
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/BQECore/BQECore.pq
   title: BQECore.pq
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BQECore/12.0.0/BQECore_12.0.0.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BQECore/12.0.1/BQECore_12.0.1.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| BQE | 12.0.0 | OAuth |
+| BQE | 12.0.1 | OAuth |
 
 # Source files
 

@@ -4,7 +4,7 @@ title: BuildingConnected & TradeTapp
 description: Connect to BuildingConnected & TradeTapp
 tags: [errors, navigation, oauth, oauth2, packaging, parameter-metadata, pkce, schema, web-requests]
 x-pqkb-publisher: Autodesk
-x-pqkb-version: 1.0.6
+x-pqkb-version: 1.0.7
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/BuildingConnected/BuildingConnected.pq
@@ -24,19 +24,19 @@ sources:
 - id: file-6
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/BuildingConnected/Table.ToNavigationTable.pqm
   title: Table.ToNavigationTable.pqm
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BuildingConnected/1.0.6/BuildingConnected_1.0.6.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/BuildingConnected/1.0.7/BuildingConnected_1.0.7.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Autodesk | 1.0.6 | OAuth |
+| Autodesk | 1.0.7 | OAuth |
 
 # Source files
 

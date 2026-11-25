@@ -4,24 +4,24 @@ title: Kognitwin
 description: Connect to Kognitwin
 tags: [errors, navigation, oauth, oauth2, packaging, parameter-metadata, pkce, schema, web-requests]
 x-pqkb-publisher: Kongsberg
-x-pqkb-version: 2.5.0
+x-pqkb-version: 2.5.1
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq
   title: Kognitwin.pq
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kognitwin/2.5.0/Kognitwin_2.5.0.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Kognitwin/2.5.1/Kognitwin_2.5.1.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Kongsberg | 2.5.0 | OAuth |
+| Kongsberg | 2.5.1 | OAuth |
 
 # Source files
 
@@ -37,7 +37,7 @@ stale_after: '2026-11-16T11:27:27Z'
 * [Navigation tables and connection checks](../patterns/navigation.md)
   * **Match from a review of older source**
     * [Kognitwin.pq line 81](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L81) — `Table.ToNavigationTable(`
-    * [Kognitwin.pq line 770](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L770) — `NavigationTable.NameColumn = nameColumn,`
+    * [Kognitwin.pq line 837](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L837) — `NavigationTable.NameColumn = nameColumn,`
 * [OAuth2 login and token refresh](../patterns/oauth2.md)
   * **Match from a review of older source**
     * [Kognitwin.pq line 113](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L113) — `OAuth = [`
@@ -47,8 +47,8 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Kognitwin.pq line 214](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L214) — `Web.Contents(`
 * [Page generation and cursor traversal](../patterns/pagination.md)
   * **Uncertain match (older review)**
-    * [Kognitwin.pq line 809](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L809) — `Table.GenerateByPage(`
-    * [Kognitwin.pq line 813](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L813) — `cursor = if (previous <> null) then Value.Metadata(previous)[NextCursor] else null,`
+    * [Kognitwin.pq line 881](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L881) — `Table.GenerateByPage(`
+    * [Kognitwin.pq line 887](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L887) — `cursor = if (previous <> null) then Value.Metadata(previous)[NextCursor] else null,`
 * [PKCE and URL-safe encoding](../patterns/pkce.md)
   * **Match from a review of older source**
     * [Kognitwin.pq line 138](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L138) — `code_challenge = codeVerifier,`
@@ -58,7 +58,7 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Kognitwin.pq line 121](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L121) — `Label = Extension.LoadString("DataSourceLabel")`
 * [Response and pagination metadata](../patterns/response-metadata.md)
   * **Uncertain match (older review)**
-    * [Kognitwin.pq line 813](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L813) — `cursor = if (previous <> null) then Value.Metadata(previous)[NextCursor] else null,`
+    * [Kognitwin.pq line 887](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L887) — `cursor = if (previous <> null) then Value.Metadata(previous)[NextCursor] else null,`
     * [Kognitwin.pq line 218](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Kognitwin/Kognitwin.pq#L218) — `Headers = [`
 * [Schema and type enforcement](../patterns/schema.md)
   * **Match from a review of older source**
