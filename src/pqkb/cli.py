@@ -43,6 +43,34 @@ def main(argv: list[str] | None = None) -> int:
     )
     functions_parser.add_argument("connector", help="connector folder name, e.g. Attio")
     functions_parser.add_argument("--json", action="store_true", help="print JSON")
+    check_parser = commands.add_parser(
+        "check-profiles", help="validate checklist answer files against the checklist and source"
+    )
+    check_parser.add_argument(
+        "folder", nargs="?", type=Path, default=Path("evals/gold"), help="folder of <Name>.yaml"
+    )
+    profile_parser = commands.add_parser(
+        "profile", help="answer the connector checklist with Claude (default: gold-set connectors)"
+    )
+    profile_parser.add_argument(
+        "connectors", nargs="*", help="connector names (default: evals/gold)"
+    )
+    profile_parser.add_argument("--all", action="store_true", help="profile every connector")
+    profile_parser.add_argument(
+        "--model", default="haiku", help="Claude model alias (default: haiku)"
+    )
+    profile_parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=Path("knowledge/profiles"),
+        help="where profiles are written",
+    )
+    profile_parser.add_argument("--force", action="store_true", help="ignore cached profiles")
+    eval_parser = commands.add_parser("eval", help="score profiles against the gold set")
+    eval_parser.add_argument("--gold", type=Path, default=Path("evals/gold"))
+    eval_parser.add_argument("--profiles", type=Path, default=Path("knowledge/profiles"))
+    eval_parser.add_argument("--save", type=Path, help="write the full result JSON here")
+    eval_parser.add_argument("--json", action="store_true", help="print the full result as JSON")
     viz_parser = commands.add_parser("viz", help="write the OKF graph viewer for bundle/")
     viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
     args = parser.parse_args(argv)
@@ -52,6 +80,12 @@ def main(argv: list[str] | None = None) -> int:
 
         review_matches(args.repo, provider=args.provider)
         return 0
+    if args.command == "profile":
+        return run_profile_command(args)
+    if args.command == "eval":
+        return run_eval_command(args)
+    if args.command == "check-profiles":
+        return check_profiles(args.repo, args.repo / args.folder)
     if args.command == "functions":
         return list_functions(args.repo, args.connector, as_json=args.json)
     if args.command == "viz":
@@ -80,6 +114,52 @@ def main(argv: list[str] | None = None) -> int:
         bundle.build(args.repo, now)
         print("Bundle rebuilt.")
     return 0
+
+
+def run_profile_command(args) -> int:
+    from pqkb.profile import run_profiles
+
+    if args.all:
+        names = sorted(refresh.load_index(args.repo / "connectors"))
+    else:
+        names = args.connectors or sorted(
+            p.stem for p in (args.repo / "evals" / "gold").glob("*.yaml")
+        )
+    failures = run_profiles(
+        args.repo, names, model=args.model, out_dir=args.repo / args.out_dir, force=args.force
+    )
+    print(f"{len(names) - len(failures)} of {len(names)} connectors have a valid profile.")
+    return 1 if failures else 0
+
+
+def run_eval_command(args) -> int:
+    import json
+
+    from pqkb.evaluate import evaluate, report_lines
+
+    result = evaluate(args.repo, args.repo / args.gold, args.repo / args.profiles)
+    if args.save:
+        target = args.repo / args.save
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
+    print(json.dumps(result, indent=2) if args.json else "\n".join(report_lines(result)))
+    return 0 if result["connectors_scored"] else 1
+
+
+def check_profiles(repo: Path, folder: Path) -> int:
+    from pqkb.checklist import load_checklist, load_profiles, validate_profile
+
+    checklist = load_checklist(repo)
+    profiles = load_profiles(folder)
+    problems = []
+    for name, profile in profiles.items():
+        if profile.get("connector") != name:
+            problems.append(f"{name}.yaml: connector field is {profile.get('connector')!r}")
+        problems += validate_profile(repo, profile, checklist)
+    for problem in problems:
+        print(problem)
+    print(f"{len(profiles)} profiles checked: {len(problems)} problems.")
+    return 1 if problems or not profiles else 0
 
 
 def list_functions(repo: Path, connector: str, *, as_json: bool) -> int:

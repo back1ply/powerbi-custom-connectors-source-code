@@ -1,0 +1,113 @@
+connector: CommonDataService
+labelled_by: claude-code/claude-opus-5-5
+source_note: "CommonDataService.pq (423 lines); only source file in connectors/CommonDataService"
+answers:
+  auth:
+    values: [aad]
+    evidence:
+      - {file: CommonDataService.pq, lines: "336-350", function: CommonDataService, note: "Authentication = [Aad = [AuthorizationUri, Resource, DefaultClientApplication]]"}
+      - {file: CommonDataService.pq, lines: "205-215", function: GetAuthUri, note: "discovers authorization_uri from the WWW-Authenticate header of {server}/api/data"}
+    sub: {}
+  transport:
+    values: [sql-database, web-contents]
+    evidence:
+      - {file: CommonDataService.pq, lines: "68-73", function: CommonDataService.Database, note: "Sql.Database(validatedServer, database, [LegacyExtension = true, ...]) (Dataverse TDS endpoint)"}
+      - {file: CommonDataService.pq, lines: "157-159", function: EnvironmentListTable, note: "Web.Contents(BapEndpoint) to list environments when server = null"}
+      - {file: CommonDataService.pq, lines: "205-210", function: GetAuthUri, note: "Web.Contents(validateUri & \"api/data\") for the AAD authority probe"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, default]
+    evidence:
+      - {file: CommonDataService.pq, lines: "208", function: GetAuthUri, note: "ManualStatusHandling = {401} to read the WWW-Authenticate header"}
+      - {file: CommonDataService.pq, lines: "159", function: EnvironmentListTable, note: "BAP environment request uses default status handling"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: CommonDataService.pq, lines: "157-177", function: EnvironmentListTable, note: "single BAP request, reads response[value]; no next link handling"}
+      - {file: CommonDataService.pq, lines: "73", function: CommonDataService.Database, note: "table data comes through Sql.Database; the driver streams rows, no connector paging"}
+    sub: {}
+  navigation:
+    values: [discovered-from-api, hierarchical]
+    evidence:
+      - {file: CommonDataService.pq, lines: "90", function: CommonDataService.Database, note: "server = null -> EnvironmentListTable(), else the Sql.Database navigation table"}
+      - {file: CommonDataService.pq, lines: "157-177", function: EnvironmentListTable, note: "environments discovered from the BAP API (Dynamics365Instance), typed with EnvironmentListType"}
+      - {file: CommonDataService.pq, lines: "134-150", function: EnvironmentListType, note: "Data column ItemKind = Database, NavigationTable.SupportsIndirection = true"}
+      - {file: CommonDataService.pq, lines: "195-203", function: MakeIndirectTable, note: "each environment node is an indirect table re-invoking CommonDataService.Database(endpoint) -> entity tables (environment > entity)"}
+    sub:
+      test-connection:
+        values: [reuses-entry-function]
+        evidence:
+          - {file: CommonDataService.pq, lines: "327", function: CommonDataService, note: "TestConnection = (path) => {\"CommonDataService.Database\", ServerFromPath(path)}"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: CommonDataService.pq, lines: "68-73", function: CommonDataService.Database, note: "column names and types come from Sql.Database. IncludeFieldCaptions controls display-name captions"}
+      - {file: CommonDataService.pq, lines: "283-296", function: AdjustTypeForCaptions, note: "only adds Documentation.FieldCaption metadata on native query results; types unchanged"}
+    sub: {}
+  folding:
+    values: [native-query, table-view-handlers]
+    evidence:
+      - {file: CommonDataService.pq, lines: "74-89", function: CommonDataService.Database, note: "Table.View(navTable, [OnNativeQuery = ...]) forwarding Value.NativeQuery to Sql.Database"}
+      - {file: CommonDataService.pq, lines: "298-318", function: ApplyDisplayNamesOption, note: "SqlDatabase.View([Dialect = \"T-SQL\", GetRows, GetNativeQuery, NativeQueryOptions = {EnableFolding, PreserveTypes}]) when DisplayNames is given"}
+    sub:
+      table-view-handlers:
+        values: [other]
+        evidence:
+          - {file: CommonDataService.pq, lines: "74-89", function: CommonDataService.Database, note: "the only folding handler is OnNativeQuery (no answer id for it)"}
+      native-query-enabled:
+        text: "The Sql.Database navigation table is wrapped in Table.View with an OnNativeQuery handler. The handler strips DisplayNames from the options. If DisplayNames is null, it calls Value.NativeQuery on the plain Sql.Database table with the remaining options (incl. EnableFolding), so Sql.Database handles native-query folding itself. If DisplayNames is given and EnableFolding is false, it returns the base result with captions added (AdjustTypeForCaptions). If DisplayNames is given and EnableFolding = true, it tries the query through a SqlDatabase.View T-SQL wrapper (NativeQueryOptions EnableFolding, PreserveTypes) that also applies captions, and falls back to the captioned base result. Errors are rethrown via Table.ViewError."
+        evidence:
+          - {file: CommonDataService.pq, lines: "74-89", function: CommonDataService.Database, note: "OnNativeQuery implementation"}
+          - {file: CommonDataService.pq, lines: "298-318", function: ApplyDisplayNamesOption, note: "SqlDatabase.View with NativeQueryOptions"}
+          - {file: CommonDataService.pq, lines: "152-153", function: TryCatch, note: "TryCatch wraps the query evaluation"}
+          - {file: CommonDataService.pq, lines: "155", function: TableViewError, note: "errors rethrown as Table.ViewError"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: CommonDataService.pq, lines: "61-93", function: CommonDataService.Database, note: "no polling or async jobs"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons]
+    evidence:
+      - {file: CommonDataService.pq, lines: "1-11", function: "section CommonDataService", note: "single section document, no .pqm modules"}
+      - {file: CommonDataService.pq, lines: "97-111", function: CommonDataService.Type, note: "Extension.LoadString captions"}
+      - {file: CommonDataService.pq, lines: "417-420", function: CommonDataService.Icons, note: "Extension.Contents(\"Dataverse16.png\") ... Icon16/Icon32"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: CommonDataService.pq, lines: "61-93", function: CommonDataService.Database, note: "no Diagnostics.Trace anywhere in the file"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: CommonDataService.pq, lines: "74-89", function: CommonDataService.Database, note: "Table.View defines only OnNativeQuery; no insert/update/delete handlers"}
+  user-inputs:
+    values: [url-or-server, options-record]
+    evidence:
+      - {file: CommonDataService.pq, lines: "101-112", function: CommonDataService.Type, note: "server (nullable text, e.g. orgname.crm.dynamics.com), options record"}
+      - {file: CommonDataService.pq, lines: "63-67", function: CommonDataService.Database, note: "(optional server, optional options); server validated against Dataverse domains"}
+    sub:
+      options-fields:
+        text: "CreateNavigationProperties (nullable logical, default true; public). EnableDisplayNames (nullable logical, default true; hidden; maps to IncludeFieldCaptions). UnsafeTypeConversions (nullable logical, default false; hidden; validated but never used). Unknown keys raise an error."
+        evidence:
+          - {file: CommonDataService.pq, lines: "126-132", function: OptionsMap, note: "option names, types, defaults, hidden flags"}
+          - {file: CommonDataService.pq, lines: "68-72", function: CommonDataService.Database, note: "EnableDisplayNames -> IncludeFieldCaptions, CreateNavigationProperties -> Sql.Database options"}
+          - {file: CommonDataService.pq, lines: "258-281", function: ValidateOptions, note: "rejects unknown keys and invalid values"}
+  data-formats:
+    values: [json, driver-rows]
+    evidence:
+      - {file: CommonDataService.pq, lines: "159", function: EnvironmentListTable, note: "Json.Document(Web.Contents(BapEndpoint))"}
+      - {file: CommonDataService.pq, lines: "73", function: CommonDataService.Database, note: "rows returned by Sql.Database"}
+notes: |
+  - Main query folding comes from the engine's built-in Sql.Database (TDS endpoint, T-SQL). No checklist folding id names it directly.
+  - native-query and table-view-handlers (OnNativeQuery only, hence sub "other") are the connector's own code.
+  - custom-sql-generator was NOT labelled. The connector writes no SQL text of its own. SqlDatabase.View (298-318) is the engine's T-SQL generator configured through options, and it is reached only for native queries that pass DisplayNames together with EnableFolding = true (lines 83-85).
+  - MakeIndirectTable (195-203) implements GetExpression/GetType/GetRows for navigation indirection, not folding, so get-expression was not labelled. Its GetRows always errors (LoadDataError).
+  - http-errors: the only manual handling is ManualStatusHandling {401} in GetAuthUri, used by Aad.AuthorizationUri. The BAP request uses default handling. Data goes through Sql.Database.
+  - Cloud and AAD authority are set by Environment.FeatureSwitch (lines 50, 56), not by the user, so no region-or-environment.
+  - The server parameter is optional: null gives the environment list.
+  - UnsafeTypeConversions appears in OptionsMap but is never read.
+  - EnvironmentListType is a navigation-table type and is not counted as a declared data schema.
+  - DSRHandlers (362-380), GetAddress and ParseAddress* handle data source reference round-tripping. GetAddress and GetAddressWithServerName contain `...` (not implemented) branches for invalid navigation.
+  - SupportsDirectQuery = true in the UI record (410). No Beta flag.
+  - No .resx or .png files exist in the repo. localized-strings and icons are labelled from the code references.

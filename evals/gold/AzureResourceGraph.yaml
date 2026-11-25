@@ -1,0 +1,115 @@
+connector: AzureResourceGraph
+labelled_by: claude-code/claude-opus-5-5
+source_note: "Read AzureResourceGraph.pq (223 lines); the only source file in the archive folder."
+answers:
+  auth:
+    values: [aad]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "181-186", function: AzureResourceGraph, note: "Authentication = [Aad = [AuthorizationUri = <AAD>/common/oauth2/authorize, Resource = ARM AAD resource]]"}
+      - {file: AzureResourceGraph.pq, lines: "155-174", function: GetEndpointConfig, note: "AAD/ARM endpoints from Environment.FeatureSwitch, global cloud override"}
+    sub: {}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "85-95", function: WaitForResult, note: "Web.Contents POST to <ARM>/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01 with JSON Content"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, retry-with-delay]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "91-95", function: WaitForResult, note: "ManualStatusHandling = {500, 400}, IsRetry = iteration > 0"}
+      - {file: AzureResourceGraph.pq, lines: "99-103", function: WaitForResult, note: "non-200: builds text message from error.message + details; 500 -> null (retry) while iteration < 3; 400 -> [IsError = true]"}
+      - {file: AzureResourceGraph.pq, lines: "106-106", function: WaitForResult, note: "interval = #duration(0,0,0, 2^iteration), count = 3"}
+      - {file: AzureResourceGraph.pq, lines: "110-118", function: Value.WaitFor, note: "List.Generate loop with Function.InvokeAfter between attempts"}
+      - {file: AzureResourceGraph.pq, lines: "76-77", function: GetPage, note: "IsError -> error response[Content] (plain text error, not Error.Record)"}
+    sub:
+      retry-rule:
+        text: "Only HTTP 500 is retried (400 fails immediately; other non-200 codes use engine default handling). Value.WaitFor with count = 3 and exponential delay 2^iteration seconds (1s before the first attempt, then 2s, then 4s). Because the loop stops when the counter reaches 3, at most iterations 0 and 1 produce a used result (the iteration-2 attempt is dropped by the count check), and the 'iteration < 3 else IsError' branch is unreachable. If 500 persists, WaitFor returns null and GetPage fails on response[IsError]. Separately, every page request is wrapped in Function.InvokeAfter with a random 1-3 s delay (throttling, not a retry). No 429/Retry-After handling."
+        evidence:
+          - {file: AzureResourceGraph.pq, lines: "103-106", function: WaitForResult, note: "status = 500 and iteration < 3 -> null; interval 2^iteration; count 3"}
+          - {file: AzureResourceGraph.pq, lines: "112-116", function: Value.WaitFor, note: "condition state{0} <> null and state{0} < count"}
+          - {file: AzureResourceGraph.pq, lines: "58-59", function: ARGImpl, note: "delay = Number.RandomBetween(1, 3); Function.InvokeAfter before each GetPage"}
+  paging:
+    values: [skip-token]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "52-62", function: ARGImpl, note: "first page skipToken \"\", later pages Value.Metadata(previous)[SkipToken]"}
+      - {file: AzureResourceGraph.pq, lines: "137-138", function: BuildPostContent, note: "options.$skipToken added to the POST body"}
+      - {file: AzureResourceGraph.pq, lines: "153-153", function: GetSkipToken, note: "Record.FieldOrDefault(response, \"$skipToken\")"}
+      - {file: AzureResourceGraph.pq, lines: "73-78", function: GetPage, note: "nextSkipToken = null when resultTruncated is true (default), otherwise GetSkipToken(body)"}
+    sub:
+      paging-generator:
+        values: [table-generatebypage]
+        evidence:
+          - {file: AzureResourceGraph.pq, lines: "204-223", function: Table.GenerateByPage, note: "standard helper on List.Generate"}
+          - {file: AzureResourceGraph.pq, lines: "52-53", function: ARGImpl, note: "Table.GenerateByPage((previous) => ...)"}
+      paging-stop:
+        text: "Stops when the page's SkipToken metadata is null: either the response body has no $skipToken, or resultTruncated is true. resultTruncated is true when options[resultTruncated] is absent/null (the default), so by default only the first page is fetched; supplying any value for resultTruncated (even true) turns paging on. The next getNextPage call then returns null and List.Generate ends."
+        evidence:
+          - {file: AzureResourceGraph.pq, lines: "73-73", function: GetPage, note: "resultTruncated = if options[resultTruncated]? = null then true else false"}
+          - {file: AzureResourceGraph.pq, lines: "78-78", function: GetPage, note: "nextSkipToken = if resultTruncated = true then null else GetSkipToken(body)"}
+          - {file: AzureResourceGraph.pq, lines: "56-59", function: ARGImpl, note: "page = null when nextToken is null"}
+  navigation:
+    values: [single-table]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "52-62", function: ARGImpl, note: "entry returns the query result table directly; no navigation table"}
+      - {file: AzureResourceGraph.pq, lines: "176-180", function: AzureResourceGraph, note: "Singleton data source kind"}
+    sub:
+      test-connection:
+        values: [reuses-entry-function]
+        evidence:
+          - {file: AzureResourceGraph.pq, lines: "180-180", function: AzureResourceGraph, note: "TestConnection = {\"AzureResourceGraph.Query\", \"resources | limit 1\"}"}
+  schema:
+    values: [inferred-from-data]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "79-81", function: GetPage, note: "columns = Record.FieldNames of the first data record; empty -> #table({\"Results\"}, {{\"No results\"}})"}
+      - {file: AzureResourceGraph.pq, lines: "217-222", function: Table.GenerateByPage, note: "result type from first page"}
+    sub: {}
+  folding:
+    values: [none]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "120-142", function: BuildPostContent, note: "user-written KQL query sent as-is; no Table.View or Value.NativeQuery support"}
+    sub: {}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "85-108", function: WaitForResult, note: "Value.WaitFor is used only as a retry loop on HTTP 500, not to poll an async job"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "1-2", function: AzureResourceGraph, note: "single section document, no modules"}
+      - {file: AzureResourceGraph.pq, lines: "7-50", function: AzureResourceGraphType, note: "parameter docs via Extension.LoadString"}
+      - {file: AzureResourceGraph.pq, lines: "191-202", function: AzureResourceGraph.Icons, note: "SourceImage/SourceTypeImage icons via Extension.Contents png; Beta = false"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "85-108", function: WaitForResult, note: "no Diagnostics.Trace anywhere in the file"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "85-95", function: WaitForResult, note: "POST is a read-only Resource Graph query"}
+  user-inputs:
+    values: [database-or-resource-id, options-record, other]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "7-16", function: AzureResourceGraphType, note: "other: query as text (KQL)"}
+      - {file: AzureResourceGraph.pq, lines: "17-21", function: AzureResourceGraphType, note: "other: optional scope, AllowedValues Tenant / Subscription / Management group"}
+      - {file: AzureResourceGraph.pq, lines: "22-31", function: AzureResourceGraphType, note: "optional subscription and managementGroup ids (comma-separated lists, split in ProcessParam)"}
+      - {file: AzureResourceGraph.pq, lines: "32-41", function: AzureResourceGraphType, note: "optional options record with resultTruncated"}
+    sub:
+      options-fields:
+        text: "resultTruncated (logical). Absent/null means results are truncated to the first page; any supplied value enables $skipToken paging."
+        evidence:
+          - {file: AzureResourceGraph.pq, lines: "32-41", function: AzureResourceGraphType, note: "optional resultTruncated = type logical"}
+          - {file: AzureResourceGraph.pq, lines: "73-73", function: GetPage, note: "read via options[resultTruncated]?"}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: AzureResourceGraph.pq, lines: "97-97", function: WaitForResult, note: "Json.Document(result)"}
+      - {file: AzureResourceGraph.pq, lines: "140-140", function: BuildPostContent, note: "Json.FromValue request body"}
+notes: |
+  - resultTruncated logic is inverted relative to its name: options[resultTruncated]? = null -> true, so a user who passes resultTruncated = true actually gets full paging. Default (no options) returns a single page.
+  - In BuildPostContent, skip and top are always null and the local resultTruncated (line 131) evaluates a comparison that is never used, so $skip/$top are never sent; only $skipToken (empty string on the first page) is added.
+  - Retry: only 500 is retried, via Value.WaitFor with count 3 and 2^n second delays. The count check drops the third attempt, and the iteration >= 3 error branch is unreachable, so persistent 500s surface as an error from accessing a field of null. Errors from 400/500 are raised as plain text, not Error.Record, so structured-error-records is not listed.
+  - navigation: no Table.ToNavigationTable; the shared function returns the query result directly. Labelled single-table (alternative reading: none).
+  - The user-supplied KQL query is not a native-query folding mechanism (no Value.NativeQuery / NativeQuery handler), so folding = none.
+  - The random 1-3 s Function.InvokeAfter before each page is throttling, not a retry.
+  - Publish Beta = false, so beta-flag is not listed.

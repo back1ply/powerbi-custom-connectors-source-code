@@ -15,11 +15,11 @@ questions:
       - id: oauth-pkce
         when: [oauth]
         question: Does the OAuth flow use PKCE?
-        answers: [yes, no]
+        answers: ["yes", "no"]
       - id: oauth-refresh
         when: [oauth]
         question: Does it implement token refresh?
-        answers: [yes, no]
+        answers: ["yes", "no"]
       - id: key-placement
         when: [key]
         question: Where is the key sent?
@@ -34,7 +34,7 @@ questions:
       - id: odbc-capabilities
         when: [odbc]
         question: Does it declare SqlCapabilities or SQLGetInfo overrides?
-        answers: [yes, no]
+        answers: ["yes", "no"]
 
   - id: http-errors
     question: How does it handle HTTP status codes and errors?
@@ -79,7 +79,7 @@ questions:
       - id: empty-result-columns
         when: [declared-schema]
         question: Does an empty result keep the declared columns?
-        answers: [yes, no, unclear]
+        answers: ["yes", "no", unclear]
 
   - id: folding
     question: Does it fold queries to the source, and how?

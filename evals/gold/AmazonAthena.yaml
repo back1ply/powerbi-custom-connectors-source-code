@@ -1,0 +1,89 @@
+connector: AmazonAthena
+labelled_by: claude-code/claude-opus-5-5
+source_note: "AmazonAthena.m (298), OdbcConstants.pqm (1278); 1576 lines total"
+answers:
+  auth:
+    values: [aad, anonymous]
+    evidence:
+      - {file: AmazonAthena.m, lines: "225-237", function: AmazonAthena, note: "Authentication = [Aad = [AuthorizationUri login.microsoftonline.com, Resource .../AmazonAthena], Implicit = [Label \"Use Data Source Configuration\"]]"}
+      - {file: AmazonAthena.m, lines: "57-66", function: AthenaImpl, note: "For OAuth/OAuth2 credential kind (AAD), CredentialConnectionString = [AuthenticationType = \"JWT\", web_identity_token = access_token]; Implicit uses DSN-configured credentials"}
+    sub: {}
+  transport:
+    values: [odbc]
+    evidence:
+      - {file: AmazonAthena.m, lines: "123-205", function: AthenaImpl, note: "Odbc.DataSource([DSN = DSN, preferred_role = role], [...] & Options)"}
+    sub:
+      odbc-capabilities:
+        values: [yes]
+        evidence:
+          - {file: AmazonAthena.m, lines: "163-202", function: AthenaImpl, note: "SqlCapabilities: PrepareStatements, SupportsTop = false, LimitClauseKind.Limit, Sql92Conformance = 8, GroupByCapabilities, literal support, FractionalSecondsScale = 3"}
+          - {file: AmazonAthena.m, lines: "81-121", function: AthenaImpl, note: "SQLGetInfo overrides (SQL_AGGREGATE_FUNCTIONS, SQL_TIMEDATE_ADD/DIFF_INTERVALS, SQL_SQL_CONFORMANCE) and SQLGetFunctions (CAST, no SQLBindParameter), passed at lines 144 and 204"}
+  http-errors:
+    values: [not-applicable]
+  paging:
+    values: [none]
+    evidence:
+      - {file: AmazonAthena.m, lines: "123-205", function: AthenaImpl, note: "Rows streamed by Odbc.DataSource/driver; no connector paging"}
+    sub: {}
+  navigation:
+    values: [hierarchical]
+    evidence:
+      - {file: AmazonAthena.m, lines: "124-127", function: AthenaImpl, note: "Odbc.DataSource HierarchicalNavigation = true (tables grouped by schema under each database); SupportsIncrementalNavigation = true (line 203)"}
+    sub:
+      test-connection:
+        values: [reuses-entry-function]
+        evidence:
+          - {file: AmazonAthena.m, lines: "219-220", function: AmazonAthena, note: "TestConnection = {\"AmazonAthena.Databases\"} & Text.Split(resourcePath, \";\") (DSN and optional role)"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: AmazonAthena.m, lines: "145-162", function: AthenaImpl, note: "Types come from the ODBC driver via SQLColumns; handler only remaps SQL FLOAT(7)/\"float\" to DOUBLE(8)/\"double\""}
+    sub: {}
+  folding:
+    values: [odbc-sql-capabilities]
+    evidence:
+      - {file: AmazonAthena.m, lines: "163-204", function: AthenaImpl, note: "Folding via Odbc.DataSource SqlCapabilities / SQLGetInfo / SQLGetFunctions (LIMIT clause, SQL92 full)"}
+      - {file: AmazonAthena.m, lines: "130-130", function: AthenaImpl, note: "HideNativeQuery = true, so Value.NativeQuery is not exposed"}
+    sub: {}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: AmazonAthena.m, lines: "123-205", function: AthenaImpl, note: "Synchronous ODBC queries only"}
+    sub: {}
+  packaging:
+    values: [pqm-modules, localized-strings, icons]
+    evidence:
+      - {file: AmazonAthena.m, lines: "285-298", function: Extension.LoadFunction, note: "OdbcConstants.pqm loaded via Extension.Contents + Expression.Evaluate; Flags, SQL_SC, SQL_GB, SQL_TSI used"}
+      - {file: AmazonAthena.m, lines: "73-80", function: AthenaImpl, note: "ValidateRole uses Extension.LoadString(\"MissingRoleError\") (resources.resx not present in folder)"}
+      - {file: AmazonAthena.m, lines: "277-280", function: AmazonAthena.Icons, note: "Athena16..64.png via Extension.Contents, used by AmazonAthena.UI lines 254-255"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: AmazonAthena.m, lines: "42-207", function: AthenaImpl, note: "No Diagnostics.Trace or logging module"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: AmazonAthena.m, lines: "123-205", function: AthenaImpl, note: "Read-only Odbc.DataSource navigation, HideNativeQuery = true; no write paths"}
+  user-inputs:
+    values: [url-or-server, other, options-record]
+    evidence:
+      - {file: AmazonAthena.m, lines: "22-26", function: AthenaType, note: "url-or-server: DSN (user/system ODBC data source name, required) identifies the connection target; the endpoint/region live in the pre-configured DSN"}
+      - {file: AmazonAthena.m, lines: "27-30", function: AthenaType, note: "other: optional role (IAM role) sent as preferred_role; required when using AAD/OAuth (ValidateRole lines 73-80)"}
+      - {file: AmazonAthena.m, lines: "32-35", function: AthenaType, note: "optional options record, declared as an empty record type"}
+    sub:
+      options-fields:
+        text: "None. The options parameter is typed as an empty record (type []) and AthenaImpl never reads it; the `Options` merged into Odbc.DataSource is the internal credential record, not this parameter."
+        evidence:
+          - {file: AmazonAthena.m, lines: "32-42", function: AthenaType, note: "optional options as (type [] ...); AthenaImpl(DSN, role, options) never references options"}
+  data-formats:
+    values: [driver-rows]
+    evidence:
+      - {file: AmazonAthena.m, lines: "123-205", function: AthenaImpl, note: "Tabular rows returned by the ODBC driver through Odbc.DataSource"}
+notes: |
+  - AAD credentials surface as AuthenticationKind "OAuth"; the AAD access token is forwarded to the Simba driver as a JWT web identity token (lines 57-66), and role is required in that case.
+  - Implicit auth labelled `anonymous` (no credential fields; the driver uses the DSN configuration).
+  - AmazonAthena.UI declares NativeQueryProperties with DefaultOptions EnableFolding = true (lines 256-273), but Odbc.DataSource sets HideNativeQuery = true (line 130); native-query not counted.
+  - The user `options` parameter is accepted but empty and unused (options-record listed only because the entry function accepts one). redirect_uri (line 14) is defined but never used. ParseResourcePath/ParseResourcePathTC are duplicates.
+  - DSN labelled url-or-server (judgement call): the user supplies an ODBC DSN name rather than a host/URL, but it is the connection-target identifier and no better id fits. role is labelled `other`.
+  - native-query not counted: patterns/odbc.md also treats Athena's HideNativeQuery = true as native SQL disabled.
+  - OdbcConstants.pqm is a constants record plus the Flags helper (lines 3-12, List.Generate bit-OR).

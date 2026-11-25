@@ -1,0 +1,125 @@
+connector: Attio
+labelled_by: claude-code/claude-opus-5-5
+source_note: "Attio.pq (793 lines); only source file in connectors/Attio"
+answers:
+  auth:
+    values: [key]
+    evidence:
+      - {file: Attio.pq, lines: "674-676", function: Attio, note: "Authentication = [Key = [Label, KeyLabel]]"}
+    sub:
+      key-placement:
+        values: [header]
+        evidence:
+          - {file: Attio.pq, lines: "472", function: Attio.RequestHeaders, note: "Authorization = \"Bearer \" & Extension.CurrentCredential()[Key]"}
+          - {file: Attio.pq, lines: "484-486", function: Attio.Request, note: "Headers = Attio.RequestHeaders added to Web.Contents options"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: Attio.pq, lines: "474-498", function: Attio.Request, note: "Web.Contents(url, requestOptions)"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, retry-with-delay, structured-error-records]
+    evidence:
+      - {file: Attio.pq, lines: "476-481", function: Attio.Request, note: "ManualStatusHandling = {500, 502}, IsRetry = attempt > 0"}
+      - {file: Attio.pq, lines: "489-491", function: Attio.Request, note: "retries via Function.InvokeAfter with #duration (attempt+1) seconds"}
+      - {file: Attio.pq, lines: "492-495", function: Attio.Request, note: "after retries raises Error.Record(\"HttpRequestFailed\", ..., [Status = status])"}
+    sub:
+      retry-rule:
+        text: "Retries HTTP 500 and 502 only (ManualStatusHandling list). Up to 2 retries (3 attempts total; retry while attempt < 2). Delay is linear: 1s before the 1st retry, 2s before the 2nd, via Function.InvokeAfter. After the last failure it raises Error.Record HttpRequestFailed with the status. Other statuses (incl. 429) use default engine handling."
+        evidence:
+          - {file: Attio.pq, lines: "474-498", function: Attio.Request, note: "manualRetryStatusCodes = {500, 502}; attempt < 2; #duration(0,0,0,(attempt+1)*1)"}
+  paging:
+    values: [offset-limit, cursor-token]
+    evidence:
+      - {file: Attio.pq, lines: "379", function: Attio.Collections, note: "getNotes Paging = [Style = \"offsetLimit\", OffsetParam = \"offset\", LimitParam = \"limit\"] (same for tasks 396, threads 413, webhooks 447)"}
+      - {file: Attio.pq, lines: "430", function: Attio.Collections, note: "getMeetings Paging = [Style = \"cursor\", CursorParam = \"cursor\", CursorField = \"nextCursor\", CursorLimitParam = \"limit\"]"}
+      - {file: Attio.pq, lines: "559-573", function: Attio.FetchCollection, note: "getPageOffset adds offset/limit query params, page size 50 (line 521)"}
+      - {file: Attio.pq, lines: "574-598", function: Attio.FetchCollection, note: "getPageCursor sends cursor param, reads nextCursor from response"}
+    sub:
+      paging-generator:
+        values: [table-generatebypage]
+        evidence:
+          - {file: Attio.pq, lines: "599-614", function: Attio.FetchCollection, note: "Table.GenerateByPage for offsetLimit and cursor styles"}
+          - {file: Attio.pq, lines: "727-736", function: Table.GenerateByPage, note: "local helper built on List.Generate"}
+      paging-stop:
+        text: "Offset style: NextOffset is set to null when a page returns fewer than PageSize (50) items, and a page with 0 items returns null; either ends generation. Cursor style: stops when the response's nextCursor is null or blank (no HasMoreField configured)."
+        evidence:
+          - {file: Attio.pq, lines: "571-573", function: Attio.FetchCollection, note: "nextOffset = if itemCount < __pageSize then null; if itemCount = 0 then null"}
+          - {file: Attio.pq, lines: "594-596", function: Attio.FetchCollection, note: "nextCursor null when responseCursor null or empty"}
+          - {file: Attio.pq, lines: "603-604", function: Attio.FetchCollection, note: "offset = null -> null page"}
+          - {file: Attio.pq, lines: "612-613", function: Attio.FetchCollection, note: "cursor = null -> null page"}
+  navigation:
+    values: [fixed-list]
+    evidence:
+      - {file: Attio.pq, lines: "314-468", function: Attio.Collections, note: "hard-coded record of 9 collections (Objects, Lists, WorkspaceMembers, Notes, Tasks, Threads, Meetings, Webhooks, Self)"}
+      - {file: Attio.pq, lines: "633-648", function: Attio.ContentsImpl, note: "Record.ToTable(Attio.Collections) -> Table.ToNavigationTable"}
+    sub:
+      test-connection:
+        values: [dedicated-probe]
+        evidence:
+          - {file: Attio.pq, lines: "673", function: Attio, note: "TestConnection = {\"Attio.Contents\", resource, [TestConnection = true]}"}
+          - {file: Attio.pq, lines: "630-631", function: Attio.ContentsImpl, note: "TestConnection option branches to Attio.TestConnectionProbe"}
+          - {file: Attio.pq, lines: "503-508", function: Attio.TestConnectionProbe, note: "single GET v2/objects, returns #table Connected"}
+  schema:
+    values: [declared-schema, explicit-type-conversion, inferred-from-data]
+    evidence:
+      - {file: Attio.pq, lines: "7-111", function: Attio.Schemas, note: "per-collection column lists with Name/Type"}
+      - {file: Attio.pq, lines: "738-772", function: ApplySchema, note: "expands records/lists per Attio.Expansions, then Table.TransformColumnTypes on declared columns that are present (761, 768)"}
+      - {file: Attio.pq, lines: "551-558", function: Attio.FetchCollection, note: "non-empty pages built with Table.FromRecords(records): columns come from the data; extra API fields are kept, only declared columns present get typed"}
+      - {file: Attio.pq, lines: "109-110", function: Attio.Schemas, note: "getSelf has an empty schema, so its columns are entirely inferred from the response"}
+    sub:
+      empty-result-columns:
+        values: [yes]
+        evidence:
+          - {file: Attio.pq, lines: "554-555", function: Attio.FetchCollection, note: "no records -> #table(List.Transform(__cols, each _[Name]), {})"}
+          - {file: Attio.pq, lines: "605", function: Attio.FetchCollection, note: "toTable({}) passed as emptyTable to Table.GenerateByPage"}
+          - {file: Attio.pq, lines: "733", function: Table.GenerateByPage, note: "no pages -> emptyTable"}
+  folding:
+    values: [none]
+    evidence:
+      - {file: Attio.pq, lines: "510-623", function: Attio.FetchCollection, note: "plain Web.Contents fetch; no Table.View or native query anywhere"}
+    sub: {}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: Attio.pq, lines: "510-623", function: Attio.FetchCollection, note: "synchronous GETs only"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons, beta-flag]
+    evidence:
+      - {file: Attio.pq, lines: "1-2", function: "section Attio", note: "single section document, no .pqm modules"}
+      - {file: Attio.pq, lines: "675", function: Attio, note: "Extension.LoadString(\"BearerTokenAuthLabel\") etc."}
+      - {file: Attio.pq, lines: "688-691", function: Attio.Icons, note: "Extension.Contents(\"Attio16.png\") ... Icon16/Icon32"}
+      - {file: Attio.pq, lines: "680-686", function: Attio.Publish, note: "Beta = true"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: Attio.pq, lines: "474-498", function: Attio.Request, note: "no Diagnostics.Trace anywhere in the file"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: Attio.pq, lines: "474-498", function: Attio.Request, note: "GET only (no Content); no write handlers"}
+  user-inputs:
+    values: [url-or-server, options-record]
+    evidence:
+      - {file: Attio.pq, lines: "650-667", function: Attio.ContentsType, note: "type function (url as url, optional options as options)"}
+      - {file: Attio.pq, lines: "625-628", function: Attio.ContentsImpl, note: "(url as text, optional options as record); reads TestConnection"}
+    sub:
+      options-fields:
+        text: "Only TestConnection (logical, default false), used internally by the TestConnection handler to route to the probe. No user-facing options are read."
+        evidence:
+          - {file: Attio.pq, lines: "627-628", function: Attio.ContentsImpl, note: "Record.FieldOrDefault(__options, \"TestConnection\", false)"}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: Attio.pq, lines: "500-501", function: Attio.RequestJson, note: "Json.Document(Attio.Request(url, query))"}
+notes: |
+  - Paging is per collection: Objects, Lists, WorkspaceMembers and Self are unpaged (Paging Style "none", lines 328, 345, 362, 464); Notes, Tasks, Threads, Webhooks use offset/limit; Meetings uses cursor. "none" was not added to the paging values.
+  - FetchCollection supports a "cursorId" style and HasMoreField/LastRowIdField options (586-593, 607), but no collection configures them.
+  - The unpaged branch (616-621) adds a limit param only if LimitParam is set; none of the unpaged collections set it.
+  - The PageSize option (521, default 50) is never overridden.
+  - structured-error-records is a judgement call: the only structured error is the Error.Record raised after retries are exhausted for 500/502 (492-495); other statuses use default engine handling.
+  - TestConnection is labelled dedicated-probe because the entry function branches to a separate TestConnectionProbe (one GET v2/objects) rather than building the nav table.
+  - The schema is applied only to the declared columns that are present. Extra API fields are not removed and missing columns are not added for non-empty pages. Hence inferred-from-data alongside declared-schema.
+  - No .resx or .png files exist in the repo for this connector. localized-strings and icons are labelled from the Extension.LoadString / Extension.Contents references.
+  - NormalizeUrl enforces https; Attio.BasePath is "" so no path templating applies.

@@ -1,0 +1,106 @@
+connector: Asana
+labelled_by: claude-code/claude-opus-5-5
+source_note: "Read Asana.m (250), Config.json (6), Table.ToNavigationTable.pqm (21); 277 lines total. No .resx or .png files are in the folder."
+answers:
+  auth:
+    values: [oauth]
+    evidence:
+      - {file: Asana.m, lines: "81-90", function: Asana, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Label]]; there is no Refresh handler"}
+    sub:
+      oauth-pkce:
+        values: [yes]
+        evidence:
+          - {file: Asana.m, lines: "108-127", function: StartLogin, note: "code_challenge = GenerateCodeChallenge(code_verifier), code_challenge_method = S256; verifier passed in Context"}
+          - {file: Asana.m, lines: "149-152", function: TokenMethod, note: "code_verifier added to the token request when the context has it"}
+          - {file: Asana.m, lines: "225-229", function: GenerateCodeChallenge, note: "Replace(HashString(code_verifier))"}
+          - {file: Asana.m, lines: "231-235", function: HashString, note: "SHA256 of the verifier, base64"}
+          - {file: Asana.m, lines: "237-241", function: Replace, note: "base64url: + -> -, / -> _, strip ="}
+      oauth-refresh:
+        values: [yes]
+        evidence:
+          - {file: Asana.m, lines: "192-198", function: RefreshToken, note: "TokenMethod(\"refresh_token\", ...) with Extension.CurrentCredential()[refresh_token]; returns a new access_token"}
+          - {file: Asana.m, lines: "173-183", function: GetTasks, note: "RefreshToken() is called before every data request; ManualCredentials = true and Bearer header set from the refreshed token"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: Asana.m, lines: "176-183", function: GetTasks, note: "Web.Contents to reporting-api.integrations.asana.plus, RelativePath /v1/data"}
+      - {file: Asana.m, lines: "208-215", function: AsanaSchema, note: "Web.Contents(api_url & \"/v1/schema\")"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, structured-error-records]
+    evidence:
+      - {file: Asana.m, lines: "157-164", function: TokenMethod, note: "ManualStatusHandling = {400} on the token endpoint"}
+      - {file: Asana.m, lines: "176-183", function: GetTasks, note: "ManualStatusHandling = {403} on the data request"}
+      - {file: Asana.m, lines: "184-188", function: GetTasks, note: "if the JSON body has error/error_description, raises Error.Record(error, error_description, Json)"}
+      - {file: Asana.m, lines: "165-169", function: TokenMethod, note: "same Error.Record built from the token response body"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: Asana.m, lines: "173-190", function: GetTasks, note: "one Web.Contents call, whole JSON list turned into a table; no follow-up requests"}
+      - {file: Asana.m, lines: "60-75", function: Asana.View, note: "CalculateUrl only adds url and optional limit; no page/cursor parameter"}
+    sub: {}
+  navigation:
+    values: [fixed-list]
+    evidence:
+      - {file: Asana.m, lines: "26-34", function: AsanaNavTable, note: "hard-coded #table with a single entry \"Tasks\" -> Asana.View(link), passed to Table.ToNavigationTable"}
+    sub:
+      test-connection:
+        values: [reuses-entry-function]
+        evidence:
+          - {file: Asana.m, lines: "82", function: Asana, note: "TestConnection = (dataSourcePath) => {\"Asana.Tables\", dataSourcePath}"}
+  schema:
+    values: [inferred-from-data]
+    evidence:
+      - {file: Asana.m, lines: "200-206", function: ProcessResponse, note: "Table.ExpandRecordColumn using Record.FieldNames of the first row; no types applied"}
+      - {file: Asana.m, lines: "41", function: Asana.View, note: "GetType = Value.Type(AsanaSchema()); column names come from the service's /v1/schema endpoint, all untyped (any)"}
+      - {file: Asana.m, lines: "208-215", function: AsanaSchema, note: "#table(Json[fields], {}) - names only, fetched at runtime"}
+    sub: {}
+  folding:
+    values: [table-view-handlers]
+    evidence:
+      - {file: Asana.m, lines: "37-78", function: Asana.View, note: "Table.View(null, [GetType, GetRows, OnTake]) with state carried in a record"}
+    sub:
+      table-view-handlers:
+        values: [on-take]
+        evidence:
+          - {file: Asana.m, lines: "53-57", function: Asana.View, note: "OnTake stores Limit in state"}
+          - {file: Asana.m, lines: "69-73", function: Asana.View, note: "Limit sent as the limit query parameter"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: Asana.m, lines: "173-190", function: GetTasks, note: "single synchronous GET (2 hour Timeout), no polling"}
+    sub: {}
+  packaging:
+    values: [pqm-modules, localized-strings, icons]
+    evidence:
+      - {file: Asana.m, lines: "243-250", function: Extension.LoadFunction, note: "Table.ToNavigationTable loaded from Table.ToNavigationTable.pqm via Expression.Evaluate"}
+      - {file: Asana.m, lines: "14-23", function: Asana_Type, note: "Extension.LoadString for captions, descriptions and names"}
+      - {file: Asana.m, lines: "93-105", function: Asana.Publish, note: "SourceImage/SourceTypeImage = Asana.Icons (Asana16..64.png); Beta = false, so no beta flag"}
+      - {file: Asana.m, lines: "102-105", function: Asana.Icons, note: "Icon16/Icon32 lists of Asana*.png via Extension.Contents"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: Asana.m, lines: "1-250", function: "(section)", note: "no Diagnostics.Trace or diagnostics module anywhere"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: Asana.m, lines: "37-78", function: Asana.View, note: "Table.View defines only GetType/GetRows/OnTake; no insert/update/delete handlers"}
+  user-inputs:
+    values: [url-or-server]
+    evidence:
+      - {file: Asana.m, lines: "14-19", function: Asana_Type, note: "single parameter link as Uri.Type"}
+      - {file: Asana.m, lines: "66", function: Asana.View, note: "link is sent as the url query parameter to the reporting API"}
+    sub: {}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: Asana.m, lines: "184", function: GetTasks, note: "Json.Document(Source)"}
+      - {file: Asana.m, lines: "211", function: AsanaSchema, note: "Json.Document for the schema endpoint"}
+notes: |
+  - The Authentication record has no Refresh handler, so the engine never refreshes the token. Instead GetTasks calls RefreshToken() (refresh_token grant against api_url/powerbi/auth) before every data request and sends the result as a Bearer header with ManualCredentials = true. I labelled oauth-refresh = yes because the code does implement a refresh_token exchange, even though it is not the standard Refresh hook.
+  - Schema: GetType declares the columns from the runtime /v1/schema endpoint (names only, untyped). GetRows builds columns from the first returned record, and an empty result falls back to the /v1/schema columns. I picked inferred-from-data. declared-schema would also be defensible, since GetType declares a table type, but that type comes from the service and is not hard-coded.
+  - Navigation is a navigation table with one hard-coded entry (Tasks). I picked fixed-list over single-table because a nav table wraps it.
+  - Config.json is read with Extension.Contents (lines 4-9). token_uri and authorize_uri are read from it; token_uri is never used, because TokenMethod posts to api_url/powerbi/auth.
+  - The localized strings and icons are referenced in code, but the .resx and .png files are not in this repo folder.
+  - GetTasks hard-codes the base URL https://reporting-api.integrations.asana.plus rather than using api_url, which has the same value.

@@ -1,0 +1,96 @@
+connector: GoogleSheets
+labelled_by: claude-code/claude-opus-5-5
+source_note: "Read GoogleSheets.pq (323 lines); the only source file in the archive folder."
+answers:
+  auth:
+    values: [oauth]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "64-76", function: GoogleSheets, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Refresh, Label]]"}
+      - {file: GoogleSheets.pq, lines: "9-26", function: StartLogin, note: "Google authorization-code flow, access_type=offline, prompt=consent"}
+    sub:
+      oauth-pkce:
+        values: [no]
+        evidence:
+          - {file: GoogleSheets.pq, lines: "11-18", function: StartLogin, note: "authorize query has no code_challenge"}
+          - {file: GoogleSheets.pq, lines: "34-43", function: FinishLogin, note: "token exchange sends client_secret, no code_verifier"}
+      oauth-refresh:
+        values: [yes]
+        evidence:
+          - {file: GoogleSheets.pq, lines: "48-62", function: Refresh, note: "POST https://oauth2.googleapis.com/token grant_type=refresh_token"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "253-259", function: Web.JsonContents, note: "Web.Contents(url, [ManualStatusHandling = ApiErrorStatusCodes]) for all Sheets API calls"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, structured-error-records]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "7-7", function: ApiErrorStatusCodes, note: "{ 400, 403, 404, 500, 503 }"}
+      - {file: GoogleSheets.pq, lines: "253-259", function: Web.JsonContents, note: "ManualStatusHandling = ApiErrorStatusCodes; matching status -> Web.ErrorResponse"}
+      - {file: GoogleSheets.pq, lines: "261-270", function: Web.ErrorResponse, note: "error Error.Record(\"DataSource.Error\", error.message, [errorstatus, errormessage, errorcode])"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "140-150", function: GetSheetData, note: "single request for the whole grid range A1:<lastCol><rowCount>"}
+      - {file: GoogleSheets.pq, lines: "230-240", function: GetData, note: "one Web.JsonContents call, takes rowData of the first data element"}
+    sub: {}
+  navigation:
+    values: [discovered-from-api]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "106-126", function: GetResults, note: "sheets and namedRanges fetched from the spreadsheet metadata endpoint; sheets as ItemKind Table, named ranges as DefinedName, flat nav table"}
+      - {file: GoogleSheets.pq, lines: "303-324", function: Table.ToNavigationTable, note: "nav table metadata"}
+    sub:
+      test-connection:
+        values: [reuses-entry-function]
+        evidence:
+          - {file: GoogleSheets.pq, lines: "68-68", function: GoogleSheets, note: "TestConnection = (resourcePath) => {\"GoogleSheets.Contents\"} & ParseResourcePath(resourcePath)"}
+  schema:
+    values: [inferred-from-data, explicit-type-conversion]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "152-158", function: AttachTypestoData, note: "Table.FromRows on padded rows: column count from data, default Column1..N names, no declared column types"}
+      - {file: GoogleSheets.pq, lines: "242-251", function: GetPaddedRowsData, note: "pads rows to the widest row"}
+      - {file: GoogleSheets.pq, lines: "160-175", function: AddTypeToValue, note: "per-cell value chosen from effectiveValue number/string/bool; errorValue raises DataFormat.Error"}
+      - {file: GoogleSheets.pq, lines: "177-190", function: CheckNumberValue, note: "numberFormat DATE/TIME/DATE_TIME -> Date.From/Time.From/DateTime.From"}
+    sub: {}
+  folding:
+    values: [none]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "140-150", function: GetSheetData, note: "fetches the full sheet range and builds a table locally; no Table.View"}
+    sub: {}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "230-240", function: GetData, note: "synchronous GET"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "1-2", function: GoogleSheets, note: "single section document, no modules loaded"}
+      - {file: GoogleSheets.pq, lines: "293-301", function: GoogleSheets.Publish, note: "ButtonText via Extension.LoadString; no SourceImage/icons; Beta = false"}
+      - {file: GoogleSheets.pq, lines: "93-104", function: GoogleSheetsType, note: "documentation strings via Extension.LoadString"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "253-259", function: Web.JsonContents, note: "no Diagnostics.Trace anywhere in the file"}
+  writes:
+    values: [none]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "253-259", function: Web.JsonContents, note: "GET only; OAuth scope spreadsheets.readonly (line 13)"}
+  user-inputs:
+    values: [url-or-server]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "93-98", function: GoogleSheetsType, note: "url as text (spreadsheet URL)"}
+      - {file: GoogleSheets.pq, lines: "82-91", function: GoogleSheetsImpl, note: "must start with https://docs.google.com/spreadsheets/d/; spreadsheet id = 6th path segment"}
+    sub: {}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: GoogleSheets.pq, lines: "256-256", function: Web.JsonContents, note: "Json.Document(response)"}
+notes: |
+  - formatValue (287-291) is never called; dead code.
+  - http-errors: only the five codes in ApiErrorStatusCodes are handled manually and turned into a structured DataSource.Error with detail. Other statuses (for example 401, 429) fall to engine default handling. No retry, no 429 handling. The OAuth token requests in FinishLogin/Refresh use default handling.
+  - schema: column names are generic (Table.FromRows gives Column1..N), and no table type is declared. Cell values are converted per cell by format type (dates/times), which is why both inferred-from-data and explicit-type-conversion are listed. A judgement call.
+  - GetData reads only rowDataColumn{0}[rowData]; GetSheetData/GetRangeData return null when rowData is null (empty sheet).
+  - Named ranges default missing bounds to 0 / 18278 cols / 5,000,000 rows (AddMissingFields).
+  - The client secret is redacted in the archive.
