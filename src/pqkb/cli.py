@@ -38,6 +38,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Claude Haiku (default) or OpenCode with DeepSeek Flash",
     )
     commands.add_parser("verify-matches", help="check source-bound candidate assessments")
+    functions_parser = commands.add_parser(
+        "functions", help="list a connector's top-level functions, line ranges, and calls"
+    )
+    functions_parser.add_argument("connector", help="connector folder name, e.g. Attio")
+    functions_parser.add_argument("--json", action="store_true", help="print JSON")
     viz_parser = commands.add_parser("viz", help="write the OKF graph viewer for bundle/")
     viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
     args = parser.parse_args(argv)
@@ -47,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
 
         review_matches(args.repo, provider=args.provider)
         return 0
+    if args.command == "functions":
+        return list_functions(args.repo, args.connector, as_json=args.json)
     if args.command == "viz":
         from pqkb.viz import generate_visualization
 
@@ -72,6 +79,28 @@ def main(argv: list[str] | None = None) -> int:
     else:
         bundle.build(args.repo, now)
         print("Bundle rebuilt.")
+    return 0
+
+
+def list_functions(repo: Path, connector: str, *, as_json: bool) -> int:
+    import json
+    from dataclasses import asdict
+
+    from pqkb.functions import index_connector
+
+    records = refresh.load_index(repo / "connectors")
+    if connector not in records:
+        print(f"Unknown connector {connector!r}; see connectors/index.json.")
+        return 2
+    sources = bundle.read_sources(repo / "connectors", {connector: records[connector]})
+    functions = index_connector(connector, sources[connector])
+    if as_json:
+        print(json.dumps([asdict(f) for f in functions], indent=2))
+        return 0
+    for f in functions:
+        calls = f" -> {', '.join(f.calls)}" if f.calls else ""
+        print(f"{f.file}:{f.start}-{f.end} {'shared ' if f.shared else ''}{f.name}{calls}")
+    print(f"{len(functions)} functions in {connector}.")
     return 0
 
 

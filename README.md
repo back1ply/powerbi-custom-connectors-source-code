@@ -25,7 +25,10 @@ uv run pqkb verify-reviews
 uv run pqkb verify-matches
 uv run mkdocs build --strict
 uv run pqkb viz
+uv run pqkb functions Attio
 ```
+
+`pqkb functions <Connector>` lists each top-level function with its file, line range, and the other functions it calls (`--json` for agents). It is the first step of phase 2, which profiles every connector against the questions in `knowledge/checklist.yaml`.
 
 `build` regenerates the reference from `connectors/` without downloading packages and writes the OKF bundle to `bundle/`, which is committed. Preview the site with `uv run mkdocs serve`; static output goes to `build/site/`, including `llms.txt`. `pqkb viz` writes the official OKF graph viewer to `build/viz.html` for local use; it is not published while phase 2 redesigns connector pages. Power Query highlighting loads Prism from a CDN.
 
