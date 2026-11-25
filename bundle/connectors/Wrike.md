@@ -4,7 +4,7 @@ title: Wrike
 description: Connect to Wrike
 tags: [errors, navigation, oauth, oauth2, packaging, pagination, response-metadata, schema, web-requests]
 x-pqkb-publisher: Microsoft
-x-pqkb-version: 1.1.0
+x-pqkb-version: 1.1.1
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/Table.EmptyTable.pqm
@@ -117,19 +117,19 @@ sources:
 - id: file-37
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Wrike/wrike.m
   title: wrike.m
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.0/Wrike_1.1.0.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Wrike/1.1.1/Wrike_1.1.1.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Microsoft | 1.1.0 | OAuth |
+| Microsoft | 1.1.1 | OAuth |
 
 # Source files
 

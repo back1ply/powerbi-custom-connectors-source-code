@@ -1,7 +1,7 @@
-[Version = "3.3.0"]
+[Version = "3.4.0"]
 section Supermetrics;
 
-ConnectorVersion = "3.3.0";
+ConnectorVersion = "3.4.0";
 
 Extension.LoadFunction = (filename as text) =>
     Expression.Evaluate(Text.FromBinary(Extension.Contents(filename)), #shared);
@@ -45,7 +45,7 @@ shared Supermetrics.Test = () as any => HttpClient[Get](Urls[Profile], [], []);
             {"id"},
             "label",
             "items",
-            "icon",
+            "kind",
             "type",
             "leaf"
         ),
@@ -213,9 +213,13 @@ in
 ;
 
 
-Urls = let
+Urls = /* Auto-generated from config.sh - DO NOT edit manually
+   Generated: ke 30 syyskuuta 2026 09:16:59 EEST */
+
+let
     environment = "supermetrics",
-    envBase = "https://api." & environment & ".com",
+    protocol = "https://api.",
+    envBase = protocol & environment & ".com",
     enterprise = "enterprise",
     apiBase = envBase & "/" & enterprise,
     authBase = envBase & "/oauth",
@@ -793,21 +797,21 @@ GettingStarted = let
             )
         in
             _result,
-    _instructions = 
+    _instructions =
     [
                 #"id" = "getting-started",
                 #"label" = "- Instructions",
                 #"items" = this.getRenameHeaders(
                     Table.FromRecords(
-                        this.getGettingStartedInstructions(), 
+                        this.getGettingStartedInstructions(),
                         type table [
-                            #"step" = text, 
+                            #"step" = text,
                             #"description" = text
                         ]
                     )
                 ),
                 #"type" = "Table",
-                #"icon" = "Subcube",
+                #"kind" = "Table",
                 #"leaf" = true
     ],
     _campaignLast30Days = [
@@ -828,7 +832,7 @@ GettingStarted = let
             ]
         ),
         #"type" = "Table",
-        #"icon" = "Subcube",
+        #"kind" = "Table",
         #"leaf" = true
     ],
     _campaignPerformanceLastYearMonth = [
@@ -894,7 +898,7 @@ GettingStarted = let
             ]
         ),
         #"type" = "Table",
-        #"icon" = "Subcube",
+        #"kind" = "Table",
         #"leaf" = true
     ],
     _campaignPerformanceLast30Days = [
@@ -928,7 +932,7 @@ GettingStarted = let
             ]
         ),
         #"type" = "Table",
-        #"icon" = "Subcube",
+        #"kind" = "Table",
         #"leaf" = true
     ],
     _records = Table.FromRecords({
@@ -938,11 +942,11 @@ GettingStarted = let
             _campaignPerformanceLast30Days
         },
         {
-            "id", 
-            "label", 
-            "items", 
-            "icon",
+            "id",
+            "label",
+            "items",
             "type",
+            "kind",
             "leaf"
         }
     ),
@@ -951,10 +955,10 @@ GettingStarted = let
         {"id"},
         "label",
         "items",
-        "icon",
+        "kind",
         "",
         "leaf"
-    ), 
+    ),
     this.gettingStarted = Table.FromRecords(
         {
             [
@@ -962,16 +966,16 @@ GettingStarted = let
                 #"label" = "Getting Started",
                 #"items" = _navigationTable,
                 #"type" = "Function",
-                #"icon" = "Sheet",
+                #"kind" = "Folder",
                 #"leaf" = false
             ]
         },
         {
-            "id", 
-            "label", 
-            "items", 
-            "icon", 
-            "type", 
+            "id",
+            "label",
+            "items",
+            "type",
+            "kind",
             "leaf"
         }
     )
@@ -991,7 +995,7 @@ this.createNavigationTable = (instructions as table) as table =>
                 {"id"},
                 "label",
                 "items",
-                "icon",
+                "kind",
                 "",
                 "leaf"
             ),
@@ -1002,24 +1006,24 @@ this.createNavigationTable = (instructions as table) as table =>
                         #"label" = "My Queries",
                         #"items" = _navigationTable,
                         #"type" = "Function",
-                        #"icon" = "Dimension",
+                        #"kind" = "Dimension",
                         #"leaf" = false
                     ]
                 },
                 {
-                    "id", 
-                    "label", 
-                    "items", 
-                    "icon", 
-                    "type", 
+                    "id",
+                    "label",
+                    "items",
+                    "type",
+                    "kind",
                     "leaf"
                 }
             )
     in
         _result
     ,
-    this.noConnectionInstructions = () as table => 
-        let 
+    this.noConnectionInstructions = () as table =>
+        let
             _instructions = Table.FromRecords({
                 [
                     #"id" = "no-connections-found",
@@ -1034,24 +1038,24 @@ this.createNavigationTable = (instructions as table) as table =>
                         ]
                     ),
                     #"type" = "Table",
-                    #"icon" = "Sheet",
+                    #"kind" = "Table",
                     #"leaf" = true
                 ]},
                 {
-                    "id", 
-                    "label", 
-                    "items", 
-                    "icon",
+                    "id",
+                    "label",
+                    "items",
                     "type",
+                    "kind",
                     "leaf"
                 }
             ),
             _result = this.createNavigationTable(_instructions)
-                
+
         in
             _result,
-    this.noConnectionsForQueries = () as table => 
-        let 
+    this.noConnectionsForQueries = () as table =>
+        let
             _instructions = Table.FromRecords({
                 [
                     #"id" = "no-queries-found",
@@ -1066,15 +1070,15 @@ this.createNavigationTable = (instructions as table) as table =>
                         ]
                     ),
                     #"type" = "Table",
-                    #"icon" = "Sheet",
+                    #"kind" = "Table",
                     #"leaf" = true
                 ]},
                 {
-                    "id", 
-                    "label", 
-                    "items", 
-                    "icon",
+                    "id",
+                    "label",
+                    "items",
                     "type",
+                    "kind",
                     "leaf"
                 }
             ),
@@ -1176,8 +1180,8 @@ Tools = let
                                                 this.switchTeamHandler(selectedTeamName),
                                             this.switchTeamFnType(_teamsList)
                                         ),
-                                        #"icon" = "CubeViewFolder",
                                         #"type" = "Function",
+                                        #"kind" = "Function",
                                         #"leaf" = true
                                     ],*/
                                     [
@@ -1188,26 +1192,26 @@ Tools = let
                                                 this.refreshAccountsHandler(selectedValue, _dataSources),
                                             this.refreshAccountsFnType(_dataSourcesLabel)
                                         ),
-                                        #"icon" = "CubeViewFolder",
-                                        #"type" = "Table",
+                                        #"type" = "Function",
+                                        #"kind" = "Function",
                                         #"leaf" = true
                                     ]
                                 },
-                                {"id", "label", "items", "icon", "type", "leaf"}
+                                {"id", "label", "items", "type", "kind", "leaf"}
                             ),
                             {"id"},
                             "label",
                             "items",
-                            "icon",
+                            "kind",
                             "",
                             "leaf"
                         ),
-                        #"icon" = "Function",
                         #"type" = "Table",
+                        #"kind" = "Folder",
                         #"leaf" = false
                     ]
                 },
-                {"id", "label", "items", "icon", "type", "leaf"}
+                {"id", "label", "items", "type", "kind", "leaf"}
             )
         in
             _tableRecords
@@ -1598,16 +1602,16 @@ Navigation = let
             result,
         
     this.getLogins = () as list =>
-        let 
+        let
             result = List.Transform(
                 SupermetricsClient[GetLogins](),
                 (loginInfo as record) as record =>
                     [
                         #"id" = loginInfo[login_id],
                         #"label" = loginInfo[display_name] & " (" & loginInfo[auth_user_info][email] & ")",
-                        #"icon" = "Function",
                         #"items" = {},
                         #"type" = "Function",
+                        #"kind" = "Function",
                         #"leaf" = true,
                         #"ds_id" = loginInfo[ds_info][ds_id],
                         #"ds_name" = loginInfo[ds_info][name],
@@ -1700,7 +1704,7 @@ Navigation = let
             _result = Table.ReplaceKeys(
                 Table.Distinct(
                     Table.FromRecords(
-                        records, List.Combine({{"id", "label", "items", "icon", "type", "leaf"}, _additionalColumns})
+                        records, List.Combine({{"id", "label", "items", "type", "kind", "leaf"}, _additionalColumns})
                     ),
                     _uniqueColumn
                 ),
@@ -1712,7 +1716,7 @@ Navigation = let
         let
             _previewColumn = if (usePreviewColumn = true) then "type" else ""
         in
-            Table.ToNavigationTable(t, {"id"}, "label", "items", "icon", _previewColumn, "leaf"),
+            Table.ToNavigationTable(t, {"id"}, "label", "items", "kind", _previewColumn, "leaf"),
     this.getDataSourceReportTypesTable = (reportTypes as list) as table =>
         this.getDistinctTableFromRecords(
             List.Transform(
@@ -1721,13 +1725,13 @@ Navigation = let
                     [
                         #"id" = reportTypeInfo[id],
                         #"label" = reportTypeInfo[label],
-                        #"icon" = "Function",
                         #"items" = {},
                         #"type" = "Function",
+                        #"kind" = "Function",
                         #"leaf" = true
                     ]
             )
-        ),    
+        ),
     this.getQueriesTable = (queries as list) as table =>
         this.getDistinctTableFromRecords(
                 List.Transform(
@@ -1739,8 +1743,8 @@ Navigation = let
                                 #"id" = queryInfo[query_id],
                                 #"label" = queryInfo[name],
                                 #"items" = this.getQueriesAndConnectionsBasedOnReportType(queryInfo),
-                                #"icon" = "Cube",
                                 #"type" = "Function",
+                                #"kind" = "Function",
                                 #"leaf" = true,
                                 #"group_id" = queryInfo[group_info][group_id]
                             ]
@@ -1766,8 +1770,8 @@ Navigation = let
                             ),
                             false
                         ),
-                        #"icon" = "CubeDatabase",
                         #"type" = "Table",
+                        #"kind" = "Database",
                         #"leaf" = false,
                         #"ds_id" = queryInfo[ds_info][ds_id]
                     ]
@@ -1796,8 +1800,8 @@ Navigation = let
                             ),
                             true
                         ),
-                        #"icon" = "DatabaseServer",
                         #"type" = "Table",
+                        #"kind" = "DatabaseServer",
                         #"leaf" = false
                     ]
             ),
@@ -1826,8 +1830,8 @@ Navigation = let
                     #"id" = "my-queries",
                     #"label" = "My queries",
                     #"items" = this.toNavigationTable(dataSourcesTable, true),
-                    #"icon" = "Dimension",
                     #"type" = "Table",
+                    #"kind" = "Dimension",
                     #"leaf" = false
                 ]
             }

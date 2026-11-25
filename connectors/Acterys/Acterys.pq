@@ -1,5 +1,5 @@
 ﻿// This file contains your Data Connector logic
-[Version = "1.0.0"]
+[Version = "1.0.1"]
 section Acterys;
 
 [DataSource.Kind="Acterys", Publish="Acterys.Publish"]

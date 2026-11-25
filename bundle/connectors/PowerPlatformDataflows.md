@@ -4,7 +4,7 @@ title: Dataflows
 description: Import data from a dataflow
 tags: [aad, buffering, credentials, diagnostics, errors, native-query, navigation, packaging, pagination, retry-polling, schema, table-view, web-requests]
 x-pqkb-publisher: Microsoft
-x-pqkb-version: 3.1.33
+x-pqkb-version: 3.1.35
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Cdsa.Workspace.pqm
@@ -33,19 +33,19 @@ sources:
 - id: file-9
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm
   title: Workspace.PrivateLink.pqm
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerPlatformDataflows/3.1.33/PowerPlatformDataflows_3.1.33.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/PowerPlatformDataflows/3.1.35/PowerPlatformDataflows_3.1.35.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Microsoft | 3.1.33 | Aad |
+| Microsoft | 3.1.35 | Aad |
 
 # Source files
 
@@ -69,11 +69,11 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Fabric.GetClusterUrl.pqm line 13](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Fabric.GetClusterUrl.pqm#L13) — `props = (Extension.CurrentCredential()[Properties]? ?? []) & Extension.CurrentApplication(),`
     * [PowerPlatformDataflows.pq line 217](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L217) — `else Extension.CurrentCredential(),`
     * [PowerPlatformDataflows.pq line 565](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L565) — `currentCredentials & [access_token = Record.FieldOrDefault(currentCredentials[Properties], prop, currentCredentials[access_token])];`
-    * [Utils.pqm line 431](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L431) — `Extension.CurrentCredential(forceRefreshOfTokens) <> null, // Force refresh of token.`
-    * [Utils.pqm line 492](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L492) — `finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,`
+    * [Utils.pqm line 432](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L432) — `Extension.CurrentCredential(forceRefreshOfTokens) <> null, // Force refresh of token.`
+    * [Utils.pqm line 493](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L493) — `finalTokenValue = if tokenValue = "" then Diagnostics.Trace(TraceLevel.Error, [Name = "GetCredential/CredentialPropertyNotFound", Data = [], SafeData = [CredentialProperty = Text.Combine({prop, propWithSlash}, ",")]], currentCredentials[access_token]) else tokenValue,`
     * [Workspace.DLP.pqm line 61](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.DLP.pqm#L61) — `credential = Extension.CurrentCredential(),`
-    * [Workspace.PrivateLink.pqm line 131](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L131) — `serviceAccessToken = Extension.CurrentCredential()[Properties]?[ServiceAccessToken]?,`
-    * [Workspace.PrivateLink.pqm line 154](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L154) — `token = Utils[GetCredential](AadWorkspaceApiOAuthResource)[access_token],`
+    * [Workspace.PrivateLink.pqm line 127](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L127) — `serviceAccessToken = Extension.CurrentCredential()[Properties]?[ServiceAccessToken]?,`
+    * [Workspace.PrivateLink.pqm line 150](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L150) — `token = Utils[GetCredential](AadWorkspaceApiOAuthResource)[access_token],`
 * [Diagnostic tracing](../patterns/diagnostics.md)
   * **Match from a review of older source**
     * [Cdsa.Workspace.pqm line 28](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Cdsa.Workspace.pqm#L28) — `filteredWorkspaces = Diagnostics.Trace(TraceLevel.Information,`
@@ -84,8 +84,8 @@ stale_after: '2026-11-16T11:27:27Z'
     * [PowerPlatformDataflows.pq line 230](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L230) — `credential = Diagnostics.Trace(TraceLevel.Information,`
     * [Utils.pqm line 56](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L56) — `tracedMessage = Diagnostics.Trace(`
     * [Utils.pqm line 57](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L57) — `TraceLevel.Error,`
-    * [Workspace.PrivateLink.pqm line 41](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L41) — `catch(e) => error Diagnostics.Trace(`
-    * [Workspace.PrivateLink.pqm line 42](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L42) — `TraceLevel.Information,`
+    * [Workspace.PrivateLink.pqm line 37](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L37) — `catch(e) => error Diagnostics.Trace(`
+    * [Workspace.PrivateLink.pqm line 38](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L38) — `TraceLevel.Information,`
 * [Native queries](../patterns/native-query.md)
   * **Match from a review of older source**
     * [PowerPlatformDataflows.pq line 1727](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L1727) — `Value.NativeQuery(`
@@ -103,7 +103,7 @@ stale_after: '2026-11-16T11:27:27Z'
     * [PowerPlatformDataflows.pq line 150](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L150) — `Documentation.Name = Extension.LoadString("DataSourceLabel"),`
     * [Utils.pqm line 47](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L47) — `Text.Format(Extension.LoadString("TraceMessageWithDetails"), {piiFreeLogMessage, errorMessage})`
     * [Workspace.DLP.pqm line 86](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.DLP.pqm#L86) — `Message = NonPii(Extension.LoadString("WorkspaceAccessDeniedByDlpPolicy")),`
-    * [Workspace.PrivateLink.pqm line 50](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L50) — `Utils[NonPii](Extension.LoadString("UrlParseError")),`
+    * [Workspace.PrivateLink.pqm line 46](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L46) — `Utils[NonPii](Extension.LoadString("UrlParseError")),`
 * [Response and pagination metadata](../patterns/response-metadata.md)
   * **Uncertain match (older review)**
     * [Table.ChangeType.pqm line 12](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Table.ChangeType.pqm#L12) — `previousMeta = Value.Metadata(tableType),`
@@ -119,10 +119,10 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Table.NavigationTableView.pqm line 19](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Table.NavigationTableView.pqm#L19) — `if value is list`
     * [Table.ToNavigationTable.pqm line 15](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Table.ToNavigationTable.pqm#L15) — `if tagsColumn <> null then`
     * [Utils.pqm line 231](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L231) — `else {1 + state{0}, Function.InvokeAfter(() => producer(state{0}), delay(state{0}))},`
-    * [Utils.pqm line 406](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L406) — `if state[Iteration] < count then Function.InvokeAfter(() => state, #duration(0, 0, 0, delay(state[Iteration])))`
+    * [Utils.pqm line 407](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L407) — `if state[Iteration] < count then Function.InvokeAfter(() => state, #duration(0, 0, 0, delay(state[Iteration])))`
     * [Utils.pqm line 8](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L8) — `nextDepth = if depth = null then 3 else depth - 1,`
     * [Workspace.DLP.pqm line 24](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.DLP.pqm#L24) — `if (dlpPoliciesJson = null) then`
-    * [Workspace.PrivateLink.pqm line 29](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L29) — `if Text.Contains(PBIBaseUrl, "powerbistagingapi") then`
+    * [Workspace.PrivateLink.pqm line 25](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L25) — `if Text.Contains(PBIBaseUrl, "powerbistagingapi") then`
 * [Schema and type enforcement](../patterns/schema.md)
   * **Match from a review of older source**
     * [Cdsa.Workspace.pqm line 236](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Cdsa.Workspace.pqm#L236) — `withData = Table.AddColumn(dataflows, "Data", each getNavTableForDataflow(baseUrl, workspaceId, workspaceType, [dataflowId], options), type table),`
@@ -144,8 +144,8 @@ stale_after: '2026-11-16T11:27:27Z'
     * [Utils.pqm line 66](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L66) — `Error.Record(`
     * [Utils.pqm line 21](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Utils.pqm#L21) — `try result catch (e) => @Value.ToText(e, nextDepth),`
     * [Workspace.DLP.pqm line 27](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.DLP.pqm#L27) — `try`
-    * [Workspace.PrivateLink.pqm line 48](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L48) — `Error.Record(`
-    * [Workspace.PrivateLink.pqm line 17](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L17) — `Utils = try #shared[Utils] otherwise`
+    * [Workspace.PrivateLink.pqm line 44](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L44) — `Error.Record(`
+    * [Workspace.PrivateLink.pqm line 14](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/Workspace.PrivateLink.pqm#L14) — `Utils = try #shared[Utils] otherwise`
 * [Table.View handlers](../patterns/table-view.md)
   * **Match from a review of older source**
     * [PowerPlatformDataflows.pq line 175](https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/PowerPlatformDataflows/PowerPlatformDataflows.pq#L175) — `view = (x) => Table.View(null, Handlers((op, transform) =>`

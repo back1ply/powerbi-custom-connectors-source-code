@@ -34,9 +34,12 @@ verified:
   at: '2026-10-19T10:10:51Z'
 - by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
+stale_after: "2026-11-25T17:23:17Z"
 ---
 
 # Web requests and relative paths
+
+**Changed since review:** this page or the source it cites has changed since it was last reviewed. Quoted lines and line numbers may be out of date.
 
 ## Mechanism
 

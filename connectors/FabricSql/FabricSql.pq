@@ -1,4 +1,4 @@
-[ Version = "1.2.43" ]
+[ Version = "1.2.47" ]
 section FabricSql;
 
 FilterSchemasForHierarchicalNavigation = Utils[Value.ConvertToLogical](Environment.FeatureSwitch("MashupFlight_FilterSchemasForHierarchicalNavigation", false));
@@ -330,7 +330,7 @@ GetFabricSqlDetails = (tdsEndPoint as text, fabricSqlName as text, options as re
          (datasource) => Utils[GetCredential](AadSqlResource),
          () =>
             let
-                curatedOptions = Record.SelectFields(options, {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation"}, MissingField.Ignore),
+                curatedOptions = Record.SelectFields(options, {"CommandTimeout", "CreateNavigationProperties", "HierarchicalNavigation", "EnableBulkInsert"}, MissingField.Ignore),
                 // Fabric SQL does not support cross-database folding, diabling it by default.
                 fabricSql = Sql.Database(tdsEndPoint, fabricSqlName, curatedOptions & [EnableCrossDatabaseFolding=false]),
                 sensitivityLabelApplied = if IncludeFabricSensitivityLabels then Utils[AddSensitivityTrait](fabricSql, sensitivityLabelId) else fabricSql

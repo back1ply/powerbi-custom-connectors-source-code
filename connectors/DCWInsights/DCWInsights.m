@@ -1,11 +1,11 @@
 // This file contains your Data Connector logic
-[Version = "1.0.2"]
+[Version = "1.0.3"]
 section DCWInsights;
 
 windowWidth = 800;
 windowHeight = 800;
 
-[DataSource.Kind="DCWInsights", Publish="DCWInsights.Publish"]
+[DataSource.Kind="DCWInsights"]
 shared DCWInsights.Feed = Value.ReplaceType(DCWInsightsImpl, DCWInsightsType);
  
  ValidateUrlScheme = (url as text) as text => if (Uri.Parts(url)[Scheme] <> "https") then error "Url scheme must be HTTPS" else url;

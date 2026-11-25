@@ -1,6 +1,6 @@
 # Connectors
 
-* [Acterys : Model Automation & Planning](Acterys.md) - Managility. Connect to Acterys
+* [Acterys: Model Automation & Planning](Acterys.md) - Managility. Connect to Acterys
 * [Actian](Actian.md) - Actian. Connect to Actian X Vector, Avalanche, or Ingres
 * [ADPAnalytics](ADPAnalytics.md) - ADP. Connect to ADPAnalytics
 * [Amazon OpenSearch Service](AmazonOpenSearchService.md) - Amazon. Connect to OpenSearch
@@ -34,6 +34,7 @@
 * [Celonis EMS](Celonis.md) - Celonis. Connect to Celonis EMS
 * [Cherwell](Cherwell.md) - Cherwell. Connect to Cherwell Service Management
 * [ClickHouse](ClickHouse.md) - ClickHouse. Connect to ClickHouse
+* [ClickHouse Arrow Flight](ClickHouseArrowFlight.md) - ClickHouse. Connect to ClickHouse over Arrow Flight SQL
 * [CloudBluePSA](CloudBluePSA.md) - CloudBluePSA.
 * [Cognite Data Fusion (OData)](Cognite.md) - Cognite. Connect to Cognite Data Fusion (CDF)
 * [Cognite Data Fusion (REST API)](CogniteDataSource.md) - CogniteDataSource. Connect to Cognite Data Fusion (CDF)
@@ -58,6 +59,7 @@
 * [FactSet RMS](FactSetRMS.md) - FactSet. Connect to FactSet RMS
 * [FactSetAnalytics](FactSetAnalytics.md) - FactSet.
 * [FHIR](Fhir.md) - Microsoft. Connect to FHIR server
+* [FifteenFive](FifteenFive.md) - Microsoft.
 * [Funnel](Funnel.md) - Funnel.
 * [Google Sheets](GoogleSheets.md) - Microsoft.
 * [HexagonSmartApi](HexagonSmartApi.md) - Hexagon.
@@ -111,12 +113,12 @@
 * [SoftOne BI](SoftOneBI.md) - SoftOne. Connect to Soft1 / Atlantis
 * [SolarwindsServiceDesk](SolarwindsServiceDesk.md) - SolarwindsServiceDesk.
 * [Solver](BI360.md) - Solver. Connect to Solver
-* [SQL database](FabricSql.md) - Microsoft. Import data from SQL database instances in Fabric
+* [SQL database in Fabric](FabricSql.md) - Microsoft. Import data from SQL database items in Fabric
 * [StarburstPresto](StarburstPresto.md) - Starburst.
 * [SumTotal](SumTotal.md) - SumTotal. Connect to SumTotal
 * [Supermetrics](Supermetrics.md) - Supermetrics.
 * [SurveyMonkey](SurveyMonkey.md) - SurveyMonkey. Connect to SurveyMonkey
-* [TeamDesk.PowerBI.DataConnector](TeamDesk.PowerBI.DataConnector.md) - ForeSoft.
+* [TeamDesk.PowerBI.DataConnector](TeamDesk.PowerBI.DataConnector.md) - Microsoft.
 * [Tenforce (Smart)List](Tenforce.md) - TenForce. Connect to Tenforce
 * [TIBCO.ODBC.TDV](TIBCO.md) - TIBCO. Connect to TIBCO.ODBC.TDV
 * [Topcon Aptix Insights](AptixInsights.md) - AptixInsights. Get Help

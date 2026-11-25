@@ -4,7 +4,7 @@ title: Asana
 description: Connect to Asana
 tags: [credentials, errors, navigation, oauth, oauth2, packaging, parameter-metadata, pkce, schema, table-view, web-requests]
 x-pqkb-publisher: Asana
-x-pqkb-version: 1.0.2
+x-pqkb-version: 1.0.3
 sources:
 - id: file-1
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m
@@ -12,19 +12,19 @@ sources:
 - id: file-2
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Table.ToNavigationTable.pqm
   title: Table.ToNavigationTable.pqm
-resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Asana/1.0.2/Asana_1.0.2.pqx
+resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/Asana/1.0.3/Asana_1.0.3.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-25T11:49:44Z'
+  at: '2026-11-25T17:23:17Z'
 verified:
   by: process:pqkb-refresh
-  at: '2026-11-02T11:27:27Z'
-stale_after: '2026-11-16T11:27:27Z'
+  at: '2026-11-25T17:23:17Z'
+stale_after: '2026-12-09T17:23:17Z'
 ---
 
 | Publisher | Version | Authentication |
 | --- | --- | --- |
-| Asana | 1.0.2 | OAuth |
+| Asana | 1.0.3 | OAuth |
 
 # Source files
 
