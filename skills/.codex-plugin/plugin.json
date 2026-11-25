@@ -1,0 +1,35 @@
+{
+  "name": "pq-connectors",
+  "version": "0.1.0",
+  "description": "Find how Microsoft's certified Power Query connectors implement things, maintain the connector archive and its pattern guides, and read or write the OKF bundle (includes the official okf-generate and okf-consume skills).",
+  "author": {
+    "name": "back1ply",
+    "url": "https://github.com/back1ply"
+  },
+  "homepage": "https://back1ply.github.io/powerbi-custom-connectors-source-code/",
+  "repository": "https://github.com/back1ply/powerbi-custom-connectors-source-code",
+  "license": "MIT AND Apache-2.0",
+  "keywords": [
+    "power-query",
+    "powerbi",
+    "connectors",
+    "okf",
+    "agent-skills"
+  ],
+  "skills": "./",
+  "interface": {
+    "displayName": "Power Query Connector Source",
+    "shortDescription": "Look up and maintain certified Power Query connector code",
+    "longDescription": "Use find-connector-code to answer how certified connectors implement authentication, paging, navigation, folding, and errors. Use refresh-archive, review-pattern, and run-candidate-reviews to maintain the archive. okf-generate and okf-consume are the official Open Knowledge Format skills.",
+    "developerName": "back1ply",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Skills"
+    ],
+    "defaultPrompt": [
+      "How do certified Power Query connectors implement cursor paging?",
+      "Refresh the connector archive and fix any failing checks."
+    ],
+    "websiteURL": "https://back1ply.github.io/powerbi-custom-connectors-source-code/"
+  }
+}

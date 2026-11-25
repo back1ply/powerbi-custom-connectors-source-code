@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "okf": {
+      "command": "npx",
+      "args": ["-y", "@mfdaves/okf-mcp@0.9.1", "--root", "bundle", "mcp"]
+    }
+  }
+}

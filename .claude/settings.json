@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "powerbi-connector-source": {
+      "source": {
+        "source": "github",
+        "repo": "back1ply/powerbi-custom-connectors-source-code"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "pq-connectors@powerbi-connector-source": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "powerbi-connector-source",
+  "interface": {
+    "displayName": "Power Query Connector Source"
+  },
+  "plugins": [
+    {
+      "name": "pq-connectors",
+      "source": {
+        "source": "local",
+        "path": "./skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
