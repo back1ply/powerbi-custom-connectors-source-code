@@ -8,6 +8,7 @@ from pathlib import Path
 from pqkb import frontmatter
 from pqkb.bundle import load_patterns, patterns_by_category
 from pqkb.excerpts import Excerpt, excerpts
+from pqkb.viz import generate_visualization
 
 
 def on_config(config):
@@ -45,6 +46,8 @@ def on_config(config):
         {"Connectors": connectors},
         {"Connector tags": "tags/index.md"},
         {"Refresh log": "log.md"},
+        # Absolute URL: viz.html is written after the build, outside MkDocs' pages.
+        {"Graph": f"{config.site_url.rstrip('/')}/viz.html"},
     ]
     return config
 
@@ -79,3 +82,54 @@ def on_post_build(config):
     destination = Path(config.site_dir) / "assets"
     for asset in (Path(config.config_file_path).parent / "site-assets").iterdir():
         shutil.copyfile(asset, destination / asset.name)
+    # The OKF viewer computes staleness at generation time, so it is built with the
+    # site rather than committed to bundle/.
+    generate_visualization(
+        Path(config.docs_dir), Path(config.site_dir) / "viz.html", bundle_name=config.site_name
+    )
+    llms = llms_txt(Path(config.docs_dir), config.site_url, config.repo_url)
+    (Path(config.site_dir) / "llms.txt").write_text(llms, encoding="utf-8", newline="\n")
+
+
+def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
+    """Render an llms.txt index (llmstxt.org) that points at the raw bundle Markdown."""
+    raw = repo_url.replace("https://github.com/", "https://raw.githubusercontent.com/")
+    raw = f"{raw.rstrip('/')}/main/bundle"
+    root = frontmatter.read(bundle_root / "index.md").meta
+
+    def entries(folder: str) -> list[str]:
+        lines = []
+        for page in sorted((bundle_root / folder).glob("*.md")):
+            if page.name == "index.md":
+                continue
+            meta = frontmatter.read(page).meta
+            description = " ".join(str(meta.get("description", "")).split())
+            lines.append(f"- [{meta['title']}]({raw}/{folder}/{page.name}): {description}")
+        return lines
+
+    return "\n".join(
+        [
+            f"# {root['title']}",
+            "",
+            f"> {' '.join(root['description'].split())}",
+            "",
+            "Each link is the raw Markdown of one page of the Open Knowledge Format bundle. "
+            f"Connector source is under {repo_url}/tree/main/connectors.",
+            "",
+            "## Patterns",
+            "",
+            *entries("patterns"),
+            "",
+            "## Connectors",
+            "",
+            *entries("connectors"),
+            "",
+            "## Optional",
+            "",
+            f"- [Bundle index]({raw}/index.md): sections of the bundle",
+            f"- [Refresh log]({raw}/log.md): archive refresh history",
+            f"- [Graph view]({site_url.rstrip('/')}/viz.html): interactive map of every page",
+            f"- [Bundle download]({site_url.rstrip('/')}/knowledge.zip): the whole bundle as a zip",
+            "",
+        ]
+    )

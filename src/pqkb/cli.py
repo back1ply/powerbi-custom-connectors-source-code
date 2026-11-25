@@ -38,12 +38,20 @@ def main(argv: list[str] | None = None) -> int:
         help="Claude Haiku (default) or OpenCode with DeepSeek Flash",
     )
     commands.add_parser("verify-matches", help="check source-bound candidate assessments")
+    viz_parser = commands.add_parser("viz", help="write the OKF graph viewer for bundle/")
+    viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
     args = parser.parse_args(argv)
 
     if args.command == "review-matches":
         from pqkb.match_agent import review_matches
 
         review_matches(args.repo, provider=args.provider)
+        return 0
+    if args.command == "viz":
+        from pqkb.viz import generate_visualization
+
+        counts = generate_visualization(args.repo / bundle.BUNDLE_DIR, args.repo / args.out)
+        print(f"Wrote {args.out}: {counts['concepts']} concepts, {counts['edges']} links.")
         return 0
     if args.command in ("verify-reviews", "verify-matches"):
         return verify(args.command, args.repo)
