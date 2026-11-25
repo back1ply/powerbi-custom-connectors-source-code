@@ -18,6 +18,7 @@ from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Hit, Rule, auth_kinds, read_source, scan
 
 PRODUCER = "process:pqkb-build"
+BUNDLE_DIR = "bundle"  # Generated OKF bundle, committed so agents can browse it.
 STALE_AFTER = timedelta(days=14)
 VOLATILE = ("generated", "stale_after", "verified")
 CATEGORY_ORDER = (
@@ -328,7 +329,7 @@ def write_connector_pages(
     sources = read_sources(repo / "connectors", records)
     by_id = {p.pattern_id: p for p in patterns}
     used = hits_by_connector(hits)
-    pages = repo / "build" / "knowledge" / "connectors"
+    pages = repo / BUNDLE_DIR / "connectors"
     for name, record in records.items():
         auth = set().union(*(auth_kinds(text) for text in sources[name].values()))
         write_if_changed(
@@ -365,7 +366,7 @@ def confirm_archive(repo: Path, now: datetime) -> None:
 def apply_confirmation(repo: Path) -> None:
     confirmation = confirmation_metadata(repo)
     for name in load_index(repo / "connectors"):
-        path = repo / "build" / "knowledge" / "connectors" / f"{name}.md"
+        path = repo / BUNDLE_DIR / "connectors" / f"{name}.md"
         document = frontmatter.read(path)
         document.meta.pop("verified", None)
         document.meta.pop("stale_after", None)
@@ -397,9 +398,9 @@ def archive_digest(repo: Path) -> str:
 
 
 def build(repo: Path, now: datetime | None = None) -> None:
-    """Render authored knowledge and archive metadata into ``build/knowledge/``."""
+    """Render authored knowledge and archive metadata into ``bundle/``."""
     now = now or datetime.now(UTC)
-    knowledge, connectors_dir = repo / "build" / "knowledge", repo / "connectors"
+    knowledge, connectors_dir = repo / BUNDLE_DIR, repo / "connectors"
     records = archive_records(connectors_dir)
     patterns = render_patterns(repo, knowledge)
     sources = read_sources(connectors_dir, records)

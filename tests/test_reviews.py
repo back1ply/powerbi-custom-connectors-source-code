@@ -55,7 +55,7 @@ def test_changed_review_scope_is_reported_and_marked_stale_without_editing_the_p
     bundle.build(repo, DAY)
     # The authored page is never rewritten by a build.
     assert page.read_bytes() == authored
-    built = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
+    built = frontmatter.read(repo / "bundle" / "patterns" / page.name)
     assert bundle.DRIFT_BANNER in built.body
     assert built.meta["status"] == "stable"
     assert "stale_after" not in built.meta  # No refresh receipt yet: no date is invented.
@@ -69,7 +69,7 @@ def test_drifted_page_gets_the_refresh_time_as_stale_after_and_rebuilds_identica
     source.write_text(source.read_text() + "// Changed source context.\n", encoding="utf-8")
     bundle.confirm_archive(repo, DAY)
     bundle.build(repo, DAY)
-    built_path = repo / "build" / "knowledge" / "patterns" / page.name
+    built_path = repo / "bundle" / "patterns" / page.name
     built = frontmatter.read(built_path)
     assert built.meta["stale_after"] == "2026-10-18T00:00:00Z"
     assert built.body.lstrip().startswith(bundle.DRIFT_BANNER)
@@ -93,7 +93,7 @@ def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(rev
     )
     bundle.build(repo, DAY)
     updated = frontmatter.read(page)
-    generated = frontmatter.read(repo / "build" / "knowledge" / "patterns" / page.name)
+    generated = frontmatter.read(repo / "bundle" / "patterns" / page.name)
     assert generated.body == original.body
     assert reviews.review_reason(repo, generated) == ""
     assert updated.body == original.body

@@ -47,7 +47,7 @@ def test_pattern_excerpt_matches_its_cited_source(page):
 
 def test_bundle_provenance_timestamps_have_explicit_offsets():
     bundle.build(ROOT)
-    for page in (ROOT / "build" / "knowledge").rglob("*.md"):
+    for page in (ROOT / "bundle").rglob("*.md"):
         metadata = frontmatter.read(page).meta
         if "type" not in metadata:
             continue

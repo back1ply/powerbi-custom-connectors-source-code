@@ -210,8 +210,8 @@ def test_local_refresh_replaces_complete_set_redacts_and_rebuilds(repo):
     assert main(["--repo", str(repo), "refresh", "--source-dir", str(packages)]) == 0
     assert not (repo / "connectors" / "Demo").exists()
     assert REDACTED in (repo / "connectors" / "New" / "New.pq").read_text()
-    assert not (repo / "build" / "knowledge" / "connectors" / "Demo.md").exists()
-    assert (repo / "build" / "knowledge" / "connectors" / "New.md").is_file()
+    assert not (repo / "bundle" / "connectors" / "Demo.md").exists()
+    assert (repo / "bundle" / "connectors" / "New.md").is_file()
     log = (repo / "knowledge" / "log.md").read_text()
     assert "**Creation**" in log and "**Deletion**: Removed Demo" in log
     record = refresh.load_index(repo / "connectors")["New"]
@@ -299,42 +299,40 @@ def test_failed_rollback_keeps_previous_tree_for_recovery(repo, monkeypatch):
 def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     authored = (repo / "knowledge" / "patterns" / "retries.md").read_bytes()
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
-    page = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
+    page = frontmatter.read(repo / "bundle" / "connectors" / "Demo.md")
     assert page.meta["type"] == "Power Query Connector"
     assert page.meta["tags"] == ["oauth", "usernamepassword"]
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert "stale_after" not in page.meta  # Building is not a source refresh.
     assert "(../patterns/retries.md)" in page.body
-    pattern = repo / "build" / "knowledge" / "patterns" / "retries.md"
+    pattern = repo / "bundle" / "patterns" / "retries.md"
     assert pattern.read_bytes() == authored
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored
-    root = (repo / "build" / "knowledge" / "index.md").read_text(encoding="utf-8")
+    root = (repo / "bundle" / "index.md").read_text(encoding="utf-8")
     assert "patterns/index.md" in root
-    directory = (repo / "build" / "knowledge" / "patterns" / "index.md").read_text(encoding="utf-8")
+    directory = (repo / "bundle" / "patterns" / "index.md").read_text(encoding="utf-8")
     assert "# Data retrieval" in directory and "retries.md" in directory
     meta = frontmatter.parse(root).meta
     assert meta["okf_version"] == "0.3"
     assert meta["title"] and meta["description"]  # OKF 0.3 section 8.1 bundle metadata
     assert (repo / "knowledge" / "log.md").is_file()
-    tags = (repo / "build" / "knowledge" / "tags" / "index.md").read_text()
+    tags = (repo / "bundle" / "tags" / "index.md").read_text()
     assert "# retries" not in tags
     assert "# oauth" in tags and "(../connectors/Demo.md)" in tags
 
 
 def test_build_is_stable_when_nothing_changed(repo):
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
-    first = {path: path.read_bytes() for path in (repo / "build" / "knowledge").rglob("*.md")}
+    first = {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")}
     bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
-    assert {
-        path: path.read_bytes() for path in (repo / "build" / "knowledge").rglob("*.md")
-    } == first
+    assert {path: path.read_bytes() for path in (repo / "bundle").rglob("*.md")} == first
 
 
 def test_refresh_confirmation_survives_rebuild_without_regenerating_content(repo):
     bundle.build(repo, datetime(2026, 10, 17, tzinfo=UTC))
     bundle.confirm_archive(repo, datetime(2026, 11, 1, tzinfo=UTC))
     bundle.build(repo, datetime(2026, 11, 2, tzinfo=UTC))
-    page = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
+    page = frontmatter.read(repo / "bundle" / "connectors" / "Demo.md")
     assert page.meta["generated"]["at"] == "2026-10-17T00:00:00Z"
     assert page.meta["verified"] == {"by": "process:pqkb-refresh", "at": "2026-11-01T00:00:00Z"}
     assert page.meta["stale_after"] == "2026-11-15T00:00:00Z"
@@ -342,17 +340,17 @@ def test_refresh_confirmation_survives_rebuild_without_regenerating_content(repo
         repo / "knowledge" / "log.md", refresh.Changes(), {}, datetime(2026, 11, 1, tzinfo=UTC)
     )
     assert "no package version changes" in (repo / "knowledge" / "log.md").read_text()
-    output = (repo / "build").resolve()
+    output = (repo / "bundle").resolve()
     assert output.parent == repo.resolve()
     shutil.rmtree(output)
     bundle.build(repo, datetime(2026, 11, 3, tzinfo=UTC))
-    rebuilt = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
+    rebuilt = frontmatter.read(repo / "bundle" / "connectors" / "Demo.md")
     assert rebuilt.meta["verified"] == page.meta["verified"]
     assert rebuilt.meta["stale_after"] == page.meta["stale_after"]
     source = repo / "connectors" / "Demo" / "Demo.pq"
     source.write_text(source.read_text() + "\n// Archive changed outside refresh.\n")
     bundle.build(repo, datetime(2026, 11, 4, tzinfo=UTC))
-    changed = frontmatter.read(repo / "build" / "knowledge" / "connectors" / "Demo.md")
+    changed = frontmatter.read(repo / "bundle" / "connectors" / "Demo.md")
     assert "verified" not in changed.meta
     assert "stale_after" not in changed.meta
 

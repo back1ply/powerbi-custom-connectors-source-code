@@ -44,9 +44,9 @@ jobs:
         run: |
           uv run pqkb build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git diff --exit-code -- knowledge
+          git diff --exit-code -- knowledge bundle
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run python skills/okf-generate/scripts/validate.py build/knowledge
+          uv run python skills/okf-generate/scripts/validate.py bundle
       # Report only: drifted pattern pages are marked stale in the bundle, never blocking.
       - name: Report pattern review drift
         continue-on-error: true
@@ -60,7 +60,7 @@ jobs:
       - name: Build review preview
         run: uv run --group site mkdocs build --strict
       - name: Package portable OKF bundle
-        run: Compress-Archive -Path build/knowledge/* -DestinationPath build/site/knowledge.zip -Force
+        run: Compress-Archive -Path bundle/* -DestinationPath build/site/knowledge.zip -Force
       - name: Upload review preview
         uses: actions/upload-artifact@v7
         with:

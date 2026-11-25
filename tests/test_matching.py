@@ -131,7 +131,7 @@ def test_supported_uncertain_rejected_and_stale_reviews_render_differently(repo)
     save_cache(repo, cache)
     assert verify_matches(repo) == []
     bundle.build(repo)
-    page = repo / "build/knowledge/connectors/Demo.md"
+    page = repo / "bundle/connectors/Demo.md"
     assert "retries" in frontmatter.read(page).meta["tags"]
     body = frontmatter.read(page).body
     assert f"{evidence.file} line {evidence.line}" in body
