@@ -22,20 +22,15 @@ sources:
 review:
   content_sha256: 8601126655d9b5cea648c65aedf777603f3aadf428f947e1567e5143d96d2f0d
   sources_sha256:
-    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-    helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
+    example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
+    helper: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     contrast: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
 verified:
-- by: claude/claude-haiku-5-5
-  at: '2026-10-19T10:10:51Z'
-- by: codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
-stale_after: "2026-11-25T17:23:17Z"
+  by: claude-code/claude-opus-5-5
+  at: '2026-11-25T20:06:22Z'
 ---
 
 # Schema and type enforcement
-
-**Changed since review:** this page or the source it cites has changed since it was last reviewed. Quoted lines and line numbers may be out of date.
 
 ## Mechanism
 

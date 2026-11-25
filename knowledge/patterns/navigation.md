@@ -34,18 +34,16 @@ sources:
 review:
   content_sha256: b87f97414b479561db79bb240e4c7f5c7b7d603e95f38abce6c69d810b6235ce
   sources_sha256:
-    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-    helper: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-    loader: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
+    example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
+    helper: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
+    loader: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     pqm: acae85d13e9737698632a24472c171dedb9ee19e5f6a15b64d4d300b51435c0b
     contrast: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
     json-path: 2d4e1443df32a7f24853d4afd67afaae87637e5146d5b6f4b08dd3e5bb200b27
     split-path: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
 verified:
-- by: claude/claude-haiku-5-5
-  at: '2026-10-19T10:10:51Z'
-- by: codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+  by: claude-code/claude-opus-5-5
+  at: '2026-11-25T20:06:22Z'
 ---
 
 # Navigation tables and connection checks

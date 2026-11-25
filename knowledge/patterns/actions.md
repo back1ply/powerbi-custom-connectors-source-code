@@ -11,37 +11,35 @@ generated:
 detect: ['\b(?:Action\.(?:Sequence|Return)|TableAction\.(?:InsertRows|UpdateRows|DeleteRows))\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L998
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L994
   title: LakeHouse/LakeHouse.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L962
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L958
   title: LakeHouse/LakeHouse.pq
 - id: builder
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2806
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2802
   title: LakeHouse/LakeHouse.pq
 - id: cachetable
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2776
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2772
   title: LakeHouse/LakeHouse.pq
 - id: wrapper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2867
+  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2863
   title: LakeHouse/LakeHouse.pq
 - id: flag
   resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L57
   title: LakeHouse/LakeHouse.pq
 review:
-  content_sha256: d0e124b9b91f5c395f81b8b2b92aa5b323fe2e04c7be1b02158d8038a8ce85dc
+  content_sha256: 928aa3250374154e5d63bad0b1c98c2f757a029d024705f2bc8b6ec1811f5034
   sources_sha256:
-    example: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-    caller: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-    builder: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-    cachetable: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-    wrapper: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
-    flag: c4a813c57670b8bbbf60d80cbffd7f0dd8777c979731589ccf29a9b9e8499729
+    example: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
+    caller: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
+    builder: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
+    cachetable: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
+    wrapper: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
+    flag: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
 verified:
-- by: claude/claude-haiku-5-5
-  at: '2026-10-19T10:10:51Z'
-- by: codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
+  by: claude-code/claude-opus-5-5
+  at: '2026-11-25T20:06:22Z'
 ---
 
 # Actions and table mutation handlers
@@ -50,13 +48,13 @@ verified:
 
 `GetWarehouseDatabaseView` uses cached endpoint data only when it is non-null and passes `Sql.ValidateInstance`. Otherwise it tries `Workspace[GetTDSEndPoint]`, with lookup errors becoming null. It builds `stateTableInsert` with `CacheTableInsertBuilder` and passes that action to `GenerateViewForWarehouseSqlTableData` with the `Sql.Contents` navigation table. When no endpoint is found, it returns null.[^caller]
 
-`GenerateViewForWarehouseSqlTableData` (lines 998–1039) receives `content` and `cacheTableInsertAction` as parameters. Its inner `view` helper (lines 1005–1029) wraps each table's data in a `Table.View` with `OnInvoke` and `TableDefault`, and declares no mutation handlers. The outer `Table.View` (lines 1034–1039) wraps `renamedColumns` and defines `GetExpression`, `OnInsertRows`, `OnUpdateRows`, and `OnDeleteRows`.[^example]
+`GenerateViewForWarehouseSqlTableData` (lines 994–1035) receives `content` and `cacheTableInsertAction` as parameters. Its inner `view` helper (lines 1001–1025) wraps each table's data in a `Table.View` with `OnInvoke` and `TableDefault`, and declares no mutation handlers. The outer `Table.View` (lines 1030–1035) wraps `renamedColumns` and defines `GetExpression`, `OnInsertRows`, `OnUpdateRows`, and `OnDeleteRows`.[^example]
 
 Each mutation handler returns `Diagnostics.Trace(...)` around `Action.Sequence({cacheTableInsertAction, TableAction.X(...)})`. The cache action runs first, then the table mutation. The mutations target `content`, not `renamedColumns`. Insert uses `content` directly. Update and delete use `Table.SelectRows(content, selector)`. The trace records carry only an event name and an empty `Data` record.[^example]
 
-`CacheTableInsertBuilder` (lines 2806–2820) returns `Action.Sequence` of cache actions only when `UseFileCache` is true, the URL is not a private-link workspace, and both cache IDs are non-null. Otherwise it returns `Action.DoNothing`. `UseFileCache` reads the `MashupFlight_UseFileCache` feature switch, which defaults to false. By default, the cache step is therefore a no-op.[^builder][^flag]
+`CacheTableInsertBuilder` (lines 2802–2816) returns `Action.Sequence` of cache actions only when `UseFileCache` is true, the URL is not a private-link workspace, and both cache IDs are non-null. Otherwise it returns `Action.DoNothing`. `UseFileCache` reads the `MashupFlight_UseFileCache` feature switch, which defaults to false. By default, the cache step is therefore a no-op.[^builder][^flag]
 
-When the cache is enabled, `CacheTableAction` (lines 2776–2801) checks whether the key exists. If it does, it touches the entry. If it does not, it creates the cache folder if needed and inserts the entry. `tryCacheActions` (lines 2867–2873) wraps the cache action in `Action.Try`. On error, it emits a warning trace and returns `Action.DoNothing`, so the mutation still runs.[^cachetable][^wrapper]
+When the cache is enabled, `CacheTableAction` (lines 2772–2797) checks whether the key exists. If it does, it touches the entry. If it does not, it creates the cache folder if needed and inserts the entry. `tryCacheActions` (lines 2863–2869) wraps the cache action in `Action.Try`. On error, it emits a warning trace and returns `Action.DoNothing`, so the mutation still runs.[^cachetable][^wrapper]
 
 ## Adaptation and failure paths
 
@@ -70,7 +68,7 @@ The cache step runs first, and its failures are warned and swallowed by `tryCach
 
 The mutation handlers do not wrap a retry. Nothing in them checks for an existing row before `TableAction.InsertRows`, so a repeated insert action could add a duplicate. This source does not show whether the host retries actions, so check that behavior before adding a retry.[^example]
 
-If the endpoint is not found, the caller returns null (line 988) instead of a view. The `catch(e) => error e` on line 986 rethrows the error unchanged. Test both branches. Also check the `UseFileCache` setting for the target environment, since the same write can take different paths.[^caller][^flag]
+If the endpoint is not found, the caller returns null (line 984) instead of a view. The `catch(e) => error e` on line 982 rethrows the error unchanged. Test both branches. Also check the `UseFileCache` setting for the target environment, since the same write can take different paths.[^caller][^flag]
 
 Adaptation checklist:
 
@@ -85,7 +83,7 @@ See [Table.View handlers](table-view.md), [diagnostics](diagnostics.md), and [st
 
 ## Examples
 
-The first excerpt, copied from `LakeHouse/LakeHouse.pq` lines 998–1039, is the complete `GenerateViewForWarehouseSqlTableData` function. It includes the per-table view, the renamed-column step, and the three mutation handlers that use `cacheTableInsertAction`.[^example]
+The first excerpt, copied from `LakeHouse/LakeHouse.pq` lines 994–1035, is the complete `GenerateViewForWarehouseSqlTableData` function. It includes the per-table view, the renamed-column step, and the three mutation handlers that use `cacheTableInsertAction`.[^example]
 
 <!-- source: example -->
 ```powerquery
@@ -133,7 +131,7 @@ in
     ]);
 ```
 
-The second excerpt, copied from `LakeHouse/LakeHouse.pq` lines 2867–2873, is the failure wrapper for every cache action. It is the reason a cache error does not stop the write.[^wrapper]
+The second excerpt, copied from `LakeHouse/LakeHouse.pq` lines 2863–2869, is the failure wrapper for every cache action. It is the reason a cache error does not stop the write.[^wrapper]
 
 <!-- source: wrapper -->
 ```powerquery
@@ -148,9 +146,9 @@ tryCacheActions = (actions, actionName) => Action.Sequence
 
 Coverage is limited to LakeHouse. `connectors/Warehouse/WarehouseOutputInterceptor.pqm` also defines `OnInsertRows`, `OnUpdateRows`, and `OnDeleteRows` handlers. This page does not cover that file, so do not treat it as a second example of this pattern.
 
-[^example]: LakeHouse/LakeHouse.pq lines 998–1039: `GenerateViewForWarehouseSqlTableData` receives `content` and `cacheTableInsertAction`, builds per-table views, and defines insert, update, and delete handlers on the renamed view that mutate `content`.
-[^caller]: LakeHouse/LakeHouse.pq lines 962–990: `GetWarehouseDatabaseView` resolves the endpoint, builds `stateTableInsert` with `CacheTableInsertBuilder`, calls `GenerateViewForWarehouseSqlTableData`, and returns null when no endpoint is found.
-[^builder]: LakeHouse/LakeHouse.pq lines 2806–2820: `CacheTableInsertBuilder` returns `Action.Sequence` of cache actions only when the cache is enabled, the URL is not private-link, and both IDs are non-null; otherwise it returns `Action.DoNothing`.
-[^cachetable]: LakeHouse/LakeHouse.pq lines 2776–2801: `CacheTableAction` touches an existing cache entry, or creates the folder and inserts a new entry, and wraps both paths in `tryCacheActions`.
-[^wrapper]: LakeHouse/LakeHouse.pq lines 2867–2873: `tryCacheActions` wraps an action in `Action.Try`, emits a warning trace on error, and returns `Action.DoNothing`.
+[^example]: LakeHouse/LakeHouse.pq lines 994–1035: `GenerateViewForWarehouseSqlTableData` receives `content` and `cacheTableInsertAction`, builds per-table views, and defines insert, update, and delete handlers on the renamed view that mutate `content`.
+[^caller]: LakeHouse/LakeHouse.pq lines 958–986: `GetWarehouseDatabaseView` resolves the endpoint, builds `stateTableInsert` with `CacheTableInsertBuilder`, calls `GenerateViewForWarehouseSqlTableData`, and returns null when no endpoint is found.
+[^builder]: LakeHouse/LakeHouse.pq lines 2802–2816: `CacheTableInsertBuilder` returns `Action.Sequence` of cache actions only when the cache is enabled, the URL is not private-link, and both IDs are non-null; otherwise it returns `Action.DoNothing`.
+[^cachetable]: LakeHouse/LakeHouse.pq lines 2772–2797: `CacheTableAction` touches an existing cache entry, or creates the folder and inserts a new entry, and wraps both paths in `tryCacheActions`.
+[^wrapper]: LakeHouse/LakeHouse.pq lines 2863–2869: `tryCacheActions` wraps an action in `Action.Try`, emits a warning trace on error, and returns `Action.DoNothing`.
 [^flag]: LakeHouse/LakeHouse.pq line 57: `UseFileCache` reads the `MashupFlight_UseFileCache` feature switch with a default of false.

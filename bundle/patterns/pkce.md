@@ -25,21 +25,16 @@ sources:
 review:
   content_sha256: 400dff5a1e53cbd4e5cc8b110c816fc16bb8b01cd6b0567119f8f9716a703c8e
   sources_sha256:
-    example: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-    caller: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
-    callback: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
+    example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
+    caller: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
+    callback: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     anaplan: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
 verified:
-- by: claude/claude-haiku-5-5
-  at: '2026-10-19T10:10:51Z'
-- by: codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
-stale_after: "2026-11-25T17:23:17Z"
+  by: claude-code/claude-opus-5-5
+  at: '2026-11-25T20:06:22Z'
 ---
 
 # PKCE and URL-safe encoding
-
-**Changed since review:** this page or the source it cites has changed since it was last reviewed. Quoted lines and line numbers may be out of date.
 
 ## Mechanism
 

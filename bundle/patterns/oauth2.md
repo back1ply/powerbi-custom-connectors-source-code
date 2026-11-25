@@ -32,18 +32,13 @@ review:
     start: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
     callback: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
     anaplan-refresh: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
-    asana-refresh: 05ddd2acfc64395cc732dfc54b3e2ea8690ee77c30f083e840ed71a3d08cbb89
+    asana-refresh: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
 verified:
-- by: claude/claude-haiku-5-5
-  at: '2026-10-19T10:10:51Z'
-- by: codex/gpt-6
-  at: '2026-10-19T10:10:51Z'
-stale_after: "2026-11-25T17:23:17Z"
+  by: claude-code/claude-opus-5-5
+  at: '2026-11-25T20:06:22Z'
 ---
 
 # OAuth2 login and token refresh
-
-**Changed since review:** this page or the source it cites has changed since it was last reviewed. Quoted lines and line numbers may be out of date.
 
 ## Mechanism
 
