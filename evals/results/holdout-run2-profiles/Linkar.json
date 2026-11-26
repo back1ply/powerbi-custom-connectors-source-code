@@ -1,0 +1,285 @@
+{
+  "connector": "Linkar",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "29-31",
+          "function": "Linkar",
+          "note": "Authentication record declares UsernamePassword = [] as the only supported auth kind."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "155-156",
+          "function": "LinkarImpl",
+          "note": "Extension.CurrentCredential() supplies Username and Password, which are passed to the ADO.NET connection as UID and PWD."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "adonet-oledb"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "170-172",
+          "function": "FullDatabase",
+          "note": "AdoDotNet.DataSource(\"LinkarClientPowerBi\", ...) is opened and its Tables collection is read through the ADO.NET provider."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "179",
+          "function": "FullDatabase",
+          "note": "AdoDotNet.Query issues a query per table through the ADO.NET data source."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "202",
+          "function": "ExecuteQuery",
+          "note": "AdoDotNet.Query runs the user's file query through the ADO.NET provider."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "79-83",
+          "function": "LinkarType",
+          "note": "server parameter (with port at 89-93) names the connection host, which is the target."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "84-88",
+          "function": "LinkarType",
+          "note": "entrypoint is mapped to the Database field of the connection, so it names the database inside the server."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "94-136",
+          "function": "LinkarType",
+          "note": "Remaining optional parameters (language, freetext, customvars, FileName, SelectClause, DictClause, SortClause, sqlmode) are flat parameters, not an options record. No existing id fits them, so this is other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "170-172",
+          "function": "FullDatabase",
+          "note": "Tables come back from the ADO.NET data source as driver rows."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "179",
+          "function": "FullDatabase",
+          "note": "Per-table data is returned by AdoDotNet.Query as driver rows."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "202",
+          "function": "ExecuteQuery",
+          "note": "The query result is returned as an ADO.NET table. Json.Document on line 16 only parses the TestConnection path, so it is not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "170-172",
+          "function": "FullDatabase",
+          "note": "Column names and types come from the ADO.NET provider's Tables metadata."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "174-177",
+          "function": "FullDatabase",
+          "note": "Columns are only selected and renamed. No M types are assigned to returned columns."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "202",
+          "function": "ExecuteQuery",
+          "note": "Query result columns are passed through from the driver without declared types or conversion."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "170-202",
+          "function": "FullDatabase",
+          "note": "The transport is ADO.NET (AdoDotNet), not Web.Contents or OData.Feed, so the applies_when condition excludes this connector."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "79-83",
+          "function": "LinkarType",
+          "note": "Documentation.FieldCaption and FieldDescription are set on parameters, for example server."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "82",
+          "function": "LinkarType",
+          "note": "Documentation.SampleValues is set on parameters, for example server."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "129-133",
+          "function": "LinkarType",
+          "note": "Documentation.AllowedValues = { true, false } is set on sqlmode."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "171-172",
+          "function": "FullDatabase",
+          "note": "Navigator items are the table list read at runtime from the ADO.NET Tables collection."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "186",
+          "function": "FullDatabase",
+          "note": "Table.ToNavigationTable builds the navigation table from the discovered rows."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "182",
+          "function": "FullDatabase",
+          "note": "Every item is IsLeaf = true, so there are no folders and hierarchical does not apply."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "14-27",
+          "function": "Linkar",
+          "note": "TestConnection returns { \"Linkar.Contents\", server, entrypoint, port }, which calls the shared entry function with no probe flag or branch."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "1-205",
+          "function": "",
+          "note": "The connector is a single .pq file, with no .pqm modules loaded."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "32",
+          "function": "Linkar",
+          "note": "Label uses Extension.LoadString, which indicates localized strings."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "48-51",
+          "function": "Linkar.Icons",
+          "note": "Icon16 and Icon32 are loaded through Extension.Contents from PNG files."
+        },
+        {
+          "file": "LinkarConnector.pq",
+          "lines": "38",
+          "function": "Linkar.Publish",
+          "note": "Beta = true is set on the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:31:23Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.005223800000000001,
+    "duration_ms": 20946
+  },
+  "source_sha256": "4f10881daa497fbc7109dfc61968b9d4d94ca6fb314d1098c9c74342dc60ef7b",
+  "checklist_sha256": "09e368211fbbc5c1646995e2b48cf4916a8e4783ecb3789508853225b7c4a43f",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

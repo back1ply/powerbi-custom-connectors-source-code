@@ -1,0 +1,355 @@
+{
+  "connector": "ZohoCreator",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "132-139",
+          "function": "ZohoCreator",
+          "note": "Authentication record uses OAuth with StartLogin, FinishLogin, Refresh and Logout."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "143-163",
+          "function": "StartLogin",
+          "note": "Builds the authorization URL and LoginUri for the OAuth code flow."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "165-178",
+          "function": "FinishLogin",
+          "note": "Exchanges the authorization code for a token through TokenMethod."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "180-180",
+          "function": "Refresh",
+          "note": "Refresh token exchange through TokenMethod."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "ZohoCreator.m",
+              "lines": "143-163",
+              "function": "StartLogin",
+              "note": "Authorization request has no code_challenge or code_challenge_method parameter."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "ZohoCreator.m",
+              "lines": "180-180",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "ZohoCreator.m",
+              "lines": "184-210",
+              "function": "TokenMethod",
+              "note": "Handles the refresh_token grant."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "56-71",
+          "function": "GetRecords",
+          "note": "Web.Contents fetches the report export data."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "196-203",
+          "function": "TokenMethod",
+          "note": "Web.Contents posts the token request."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "region-or-environment",
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "89-93",
+          "function": "DialogInput",
+          "note": "creatordomain is a user-picked Zoho data centre domain."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "92-92",
+          "function": "DialogInput",
+          "note": "AllowedValues lists the regional domains zoho.com, zoho.eu, zoho.com.cn, zoho.in and zoho.com.au."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "94-108",
+          "function": "DialogInput",
+          "note": "scopname (workspace), applinkname (application) and reportlinkname (report) name resources inside the target."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "48-54",
+          "function": "GetRec",
+          "note": "Requests only page 0 ({0 .. 0}) and returns that single result, with no next-page logic."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "csv",
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "66-66",
+          "function": "GetRecords",
+          "note": "Csv.Document parses the export payload."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "204-204",
+          "function": "TokenMethod",
+          "note": "Json.Document parses the token response payload."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "73-77",
+          "function": "fetchData",
+          "note": "Table.PromoteHeaders takes column names from the first CSV row; no M types are assigned anywhere on the returned data."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "62-62",
+          "function": "GetRecords",
+          "note": "Web.Contents sets ManualStatusHandling = {401,400,500} and the status is inspected at line 64."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "202-202",
+          "function": "TokenMethod",
+          "note": "Token Web.Contents sets ManualStatusHandling = {400}."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "205-206",
+          "function": "TokenMethod",
+          "note": "Error.Record is built from the token response body's error and error_description fields."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "38-46",
+          "function": "Value.WaitFor",
+          "note": "Helper that re-invokes a producer after a delay using Function.InvokeAfter."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "58-69",
+          "function": "GetRecords",
+          "note": "Value.WaitFor re-runs the export request with an exponential delay, up to max_retry attempts."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Value.WaitFor re-invokes the producer only when the previous result is null (line 42-43). The GetRecords producer (lines 58-68) returns a Csv.Document table and never null, so no HTTP status code triggers a resend in practice. The delay is 2^iteration seconds (line 69), and the maximum attempts come from max_retry, loaded from WebApp.json (lines 24, 69). No status codes are named for retry. throttle_limit (line 25) is loaded but never used, so there is no rate-limit handling.",
+          "evidence": [
+            {
+              "file": "ZohoCreator.m",
+              "lines": "38-46",
+              "function": "Value.WaitFor",
+              "note": "Retry only when the producer result is null."
+            },
+            {
+              "file": "ZohoCreator.m",
+              "lines": "69-69",
+              "function": "GetRecords",
+              "note": "Delay is #duration(0,0,0,Number.Power(2, iteration)) with max_retry attempts."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "109-117",
+          "function": "DialogInput",
+          "note": "Documentation.Name, LongDescription and Examples on the shared function."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "89-108",
+          "function": "DialogInput",
+          "note": "Documentation.FieldCaption on each parameter."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "89-108",
+          "function": "DialogInput",
+          "note": "Documentation.FieldDescription on each parameter."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "97-107",
+          "function": "DialogInput",
+          "note": "Documentation.SampleValues on scopname, applinkname and reportlinkname."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "92-92",
+          "function": "DialogInput",
+          "note": "Documentation.AllowedValues on creatordomain."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "79-86",
+          "function": "ConnectorEntryPoint",
+          "note": "ZohoCreator.Contents returns one data table directly, with no navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "122-130",
+          "function": "TestConnection",
+          "note": "TestConnection returns the list {\"ZohoCreator.Contents\", ...}, so the gateway test evaluates the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "1-234",
+          "function": "ZohoCreator.m",
+          "note": "All code is in one .m file, with no .pqm modules."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "222-229",
+          "function": "ZohoCreator.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "231-234",
+          "function": "ZohoCreator.Icons",
+          "note": "Publish record references the icon image files through Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:31:38Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0071585,
+    "duration_ms": 34163
+  },
+  "source_sha256": "7227caac16a270267c559a0c9099ff0596cbc5558a092a36bcb5fc340128a864",
+  "checklist_sha256": "09e368211fbbc5c1646995e2b48cf4916a8e4783ecb3789508853225b7c4a43f",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
