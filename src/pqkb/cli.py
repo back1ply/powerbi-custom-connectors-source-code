@@ -66,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
         help="where profiles are written",
     )
     profile_parser.add_argument("--force", action="store_true", help="ignore cached profiles")
+    profile_parser.add_argument(
+        "--workers", type=int, default=2, help="connectors profiled in parallel (default: 2)"
+    )
     eval_parser = commands.add_parser("eval", help="score profiles against the gold set")
     eval_parser.add_argument("--gold", type=Path, default=Path("evals/gold"))
     eval_parser.add_argument("--profiles", type=Path, default=Path("knowledge/profiles"))
@@ -133,7 +136,12 @@ def run_profile_command(args) -> int:
             p.stem for p in (args.repo / "evals" / "gold").glob("*.yaml")
         )
     failures = run_profiles(
-        args.repo, names, model=args.model, out_dir=args.repo / args.out_dir, force=args.force
+        args.repo,
+        names,
+        model=args.model,
+        out_dir=args.repo / args.out_dir,
+        force=args.force,
+        workers=args.workers,
     )
     print(f"{len(names) - len(failures)} of {len(names)} connectors have a valid profile.")
     return 1 if failures else 0
