@@ -1,0 +1,14 @@
+{
+  "condition": "baseline",
+  "model": "sonnet",
+  "prompt": "Read spec.md in the current folder and do the task it describes.",
+  "cost_usd": 1.9344176000000002,
+  "duration_ms": 615724,
+  "num_turns": 25,
+  "is_error": false,
+  "models": [
+    "claude-opus-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "result": "I wrote the connector source to `connector/`. As the spec asked, nothing was compiled or run, so treat it as untested.\n\n**Files**\n- `Ledgerly.pq`: the connector.\n- `resources.resx`: the UI strings.\n- `Ledgerly.query.pq`: the SDK test query.\n- `README.md`: build and signing steps, gateway setup, versioning policy and a release checklist.\n\n**What it does**\n- **Navigator:** lists Invoices, Customers and Payments, with fixed column types, including when a table is empty.\n- **Security:** only HTTPS URLs are accepted, and the API key goes only in the `Authorization` header.\n- **Credential check:** it calls `/me` before showing the tables, so \"test connection\" should fail on a bad key.\n- **Resilience:** it follows the page cursor and retries 429 and 503 (also 502 and 504), honouring `Retry-After`. A wait over 120 seconds fails with a message instead.\n- **Preview:** it is marked as beta.\n\n**Check this first**\nIt is unclear whether `Web.Contents` needs `ManualCredentials = true` to accept a custom `Authorization` header with key authentication. I recall that it may, but the reviewer model advised leaving it out, and I couldn't verify either way because the lookups needed approval. I left it out. If the first request fails with a credential or header error, add that line to the `Web.Contents` options in `Request`.\n\n**Choices you might change**\n- **Dates and times:** they are shown in UTC without a time zone, so Desktop and the gateway give the same values.\n- **Amounts:** `total` and `amount` are fixed decimals, rounded to 4 places.\n- **Updated since:** this is an optional parameter that filters all three tables. It is not incremental refresh.\n\n**Still missing**\n- **Icons:** I couldn't create image files without running something, so the connector doesn't reference any.\n- **Support details:** there is no help link or support contact yet.\n- **Static checks:** the resource keys match and there is only one `Web.Contents` call. Bracket balance was not checked by a tool.\n- **Build commands:** the `MakePQX` options in the README are from memory, so check them against `--help`.\n\nBefore giving this to customers, work through the README's release checklist: compile, test the error cases, sign, and run a scheduled refresh through a gateway."
+}

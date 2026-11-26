@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="DataSourceLabel" xml:space="preserve"><value>Ledgerly</value></data>
+  <data name="ButtonTitle" xml:space="preserve"><value>Ledgerly</value></data>
+  <data name="ButtonHelp" xml:space="preserve"><value>Import invoices, customers and payments from Ledgerly</value></data>
+  <data name="AuthKeyLabel" xml:space="preserve"><value>Ledgerly key</value></data>
+  <data name="AuthKeyFieldLabel" xml:space="preserve"><value>Key</value></data>
+  <data name="FunctionName" xml:space="preserve"><value>Ledgerly</value></data>
+  <data name="FunctionDescription" xml:space="preserve"><value>Returns the invoices, customers and payments of a Ledgerly account.</value></data>
+  <data name="UrlCaption" xml:space="preserve"><value>Ledgerly URL</value></data>
+  <data name="UrlDescription" xml:space="preserve"><value>Your company's Ledgerly address, starting with https:// and ending with /api/v2.</value></data>
+  <data name="OptionsCaption" xml:space="preserve"><value>Options</value></data>
+  <data name="UpdatedSinceCaption" xml:space="preserve"><value>Updated since (UTC)</value></data>
+  <data name="UpdatedSinceDescription" xml:space="preserve"><value>Return only records updated since this time. Applies to all three tables.</value></data>
+  <data name="Invoices" xml:space="preserve"><value>Invoices</value></data>
+  <data name="Customers" xml:space="preserve"><value>Customers</value></data>
+  <data name="Payments" xml:space="preserve"><value>Payments</value></data>
+  <data name="ErrorInvalidUrl" xml:space="preserve"><value>Enter an HTTPS Ledgerly URL, such as https://yourcompany.ledgerly.example/api/v2, without a user name, query or fragment.</value></data>
+  <data name="ErrorUnknownOption" xml:space="preserve"><value>Unknown option: #{0}. The supported option is UpdatedSince.</value></data>
+  <data name="ErrorUpdatedSinceType" xml:space="preserve"><value>UpdatedSince must be a datetime or datetimezone value.</value></data>
+  <data name="ErrorTemplate" xml:space="preserve"><value>#{0} (HTTP #{1} on /#{2}) #{3} #{4}</value></data>
+  <data name="Error401" xml:space="preserve"><value>Ledgerly rejected the key. It is wrong or has expired; update the data source credentials.</value></data>
+  <data name="Error403" xml:space="preserve"><value>Ledgerly denied access with this key.</value></data>
+  <data name="Error404" xml:space="preserve"><value>Ledgerly did not find this address. Check that the URL ends with /api/v2.</value></data>
+  <data name="Error429" xml:space="preserve"><value>Ledgerly is limiting requests. Try again later or refresh less often.</value></data>
+  <data name="Error5xx" xml:space="preserve"><value>Ledgerly is temporarily unavailable. Try again later.</value></data>
+  <data name="ErrorRequest" xml:space="preserve"><value>Ledgerly rejected the request.</value></data>
+  <data name="ErrorUnexpectedResponse" xml:space="preserve"><value>Ledgerly returned an unexpected response from /#{0}. Check the URL.</value></data>
+  <data name="ErrorRepeatedCursor" xml:space="preserve"><value>Ledgerly repeated a page cursor on /#{0}; loading stopped to avoid an endless loop.</value></data>
+</root>

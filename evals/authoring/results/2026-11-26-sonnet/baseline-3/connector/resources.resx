@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="DataSourceLabel" xml:space="preserve"><value>Ledgerly</value></data>
+  <data name="ButtonTitle" xml:space="preserve"><value>Ledgerly (Beta)</value></data>
+  <data name="ButtonHelp" xml:space="preserve"><value>Connect to Ledgerly invoices, customers and payments</value></data>
+  <data name="FunctionDescription" xml:space="preserve"><value>Returns the Invoices, Customers and Payments tables from the Ledgerly API.</value></data>
+  <data name="UrlCaption" xml:space="preserve"><value>Ledgerly API URL</value></data>
+  <data name="UrlDescription" xml:space="preserve"><value>Your company's HTTPS base URL, including /api/v2</value></data>
+  <data name="UpdatedSinceCaption" xml:space="preserve"><value>Updated since</value></data>
+  <data name="UpdatedSinceDescription" xml:space="preserve"><value>Only return records updated since this date and time</value></data>
+  <data name="KeyLabel" xml:space="preserve"><value>API key</value></data>
+  <data name="AuthenticationLabel" xml:space="preserve"><value>API key</value></data>
+  <data name="InvoicesName" xml:space="preserve"><value>Invoices</value></data>
+  <data name="CustomersName" xml:space="preserve"><value>Customers</value></data>
+  <data name="PaymentsName" xml:space="preserve"><value>Payments</value></data>
+  <data name="ErrorInvalidUrl" xml:space="preserve"><value>Enter an HTTPS Ledgerly API URL such as https://acme.ledgerly.example/api/v2, without a user name, query string or fragment.</value></data>
+  <data name="ErrorBadResponse" xml:space="preserve"><value>Ledgerly returned an unexpected response. Check that the URL is your Ledgerly API base URL.</value></data>
+  <data name="ErrorRepeatedCursor" xml:space="preserve"><value>Ledgerly returned the same page cursor twice, so loading was stopped.</value></data>
+  <data name="Error401" xml:space="preserve"><value>Ledgerly rejected the API key (HTTP #{0}). It may be wrong or expired. Update the data source credentials.</value></data>
+  <data name="Error403" xml:space="preserve"><value>The API key is not allowed to access this data (HTTP #{0}).</value></data>
+  <data name="Error404" xml:space="preserve"><value>Ledgerly could not find this address (HTTP #{0}). Check the API URL, including /api/v2.</value></data>
+  <data name="Error429" xml:space="preserve"><value>Ledgerly is limiting requests (HTTP #{0}) and the connector stopped retrying. Try again later or refresh less often.</value></data>
+  <data name="ErrorUnavailable" xml:space="preserve"><value>Ledgerly is temporarily unavailable (HTTP #{0}). Try again later.</value></data>
+  <data name="ErrorHttp" xml:space="preserve"><value>The Ledgerly request failed (HTTP #{0}).</value></data>
+  <data name="ErrorApiMessage" xml:space="preserve"><value>Ledgerly said: #{0}</value></data>
+</root>
