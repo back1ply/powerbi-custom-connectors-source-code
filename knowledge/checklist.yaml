@@ -134,6 +134,12 @@ questions:
       excel:
         means: Excel.Workbook is reachable for data the connector actually returns. Like every answer, count it only on a live path.
         source: convention
+      parquet:
+        means: The connector parses Parquet itself (Parquet.Document, Parquet.Metadata).
+        source: convention
+      other:
+        means: A format with no id of its own, such as Delta tables read through DeltaLake.Table. Name it in the evidence note.
+        source: convention
 
   - id: schema
     topic: Handling schemas
@@ -221,6 +227,16 @@ questions:
     docs: handling-gateway-support
     question: How is TestConnection wired for gateway refresh?
     answers: [dedicated-probe, reuses-entry-function, not-defined]
+    definitions:
+      dedicated-probe:
+        means: The gateway test runs a separate check rather than a full query - a TestConnection that names a probe function, an entry function called with a flag that branches to a probe, or an OnTestConnection handler on the returned Table.View.
+        source: handling-gateway-support
+      reuses-entry-function:
+        means: TestConnection names the shared entry function itself, so the test evaluates a normal query.
+        source: handling-gateway-support
+      not-defined:
+        means: There is no TestConnection field on the data source kind and no OnTestConnection handler.
+        source: handling-gateway-support
 
   - id: folding
     topic: Handling native query support; TripPin 10 (Table.View folding)
@@ -230,7 +246,7 @@ questions:
     answers: [none, table-view-handlers, odbc-sql-capabilities, native-query, custom-sql-generator, odata-folding, source-function-folding]
     definitions:
       table-view-handlers:
-        means: The connector writes its own folding handlers in Table.View (OnTake, OnSelectRows, OnSort and the like). A Table.View that adds only GetRows or OnNativeQuery is not folding; OnNativeQuery alone is native-query. Handlers built by the engine's SqlView.Generator count under custom-sql-generator.
+        means: The connector writes its own folding handlers in Table.View (OnTake, OnSelectRows, OnSort and the like), on data tables or on its navigation tables. A Table.View that adds only GetRows or OnNativeQuery is not folding; OnNativeQuery alone is native-query. Handlers built by the engine's SqlView.Generator count under custom-sql-generator.
         source: samples/trippin/10-tableview1/readme
       native-query:
         means: Value.NativeQuery is supported, through an OnNativeQuery handler or a source function that accepts native queries.

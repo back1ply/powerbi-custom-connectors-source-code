@@ -133,6 +133,7 @@ answers:
     - json
     - driver-rows
     - parquet
+    - other
     evidence:
     - file: Utils.pqm
       lines: 287-290
@@ -145,24 +146,15 @@ answers:
     - file: LakeHouse.pq
       lines: 1534-1551
       function: GenerateNavTableUsingDeltaTable
-      note: DeltaLake.Table over OneLake (Delta/Parquet files)
+      note: 'other: DeltaLake.Table reads Delta tables (transaction log plus Parquet files) over OneLake'
     - file: DeltaTableFastCopy.pqm
       lines: 396-407
       function: UpdateDeltaLogWithFileReference
       note: Parquet.Document(parquetContent, [TypeMapping = "Sql"]); Parquet.Metadata at line 424
   schema:
     values:
-    - declared-schema
     - driver-provided
     evidence:
-    - file: LakeHouse.pq
-      lines: 162-180
-      function: LakehouseNavTableType
-      note: Declared nav table types LakehouseNavTableType and LakehouseTableDetailType
-    - file: LakeHouse.pq
-      lines: 209-213
-      function: GetNavTableForWorkspace
-      note: 'GetType = Value.Type(emptyTable), built from #table(LakehouseNavTableType, {})'
     - file: LakeHouse.pq
       lines: 2945-2954
       function: Sql.Contents
@@ -171,23 +163,11 @@ answers:
       lines: 1534-1551
       function: GenerateNavTableUsingDeltaTable
       note: Or from DeltaLake.Table over OneLake (Delta schema)
-    sub:
-      empty-result-columns:
-        values:
-        - true
-        evidence:
-        - file: LakeHouse.pq
-          lines: 209-212
-          function: GetNavTableForWorkspace
-          note: emptyTable = AddLakehouseTrivia(#table(LakehouseNavTableType, {}), ...) provides the type
-        - file: LakeHouse.pq
-          lines: '331'
-          function: GetLakehouses
-          note: 'if lakehouesWithoutData = null then #table(LakehouseNavTableType, {})'
-        - file: LakeHouse.pq
-          lines: '399'
-          function: GetWarehouses
-          note: 'if response = null then #table(LakehouseNavTableType, {})'
+    - file: LakeHouse.pq
+      lines: 162-180
+      function: LakehouseNavTableType
+      note: The declared types LakehouseNavTableType and LakehouseTableDetailType shape navigation tables only,
+        so they are not declared-schema under the checklist definition
   http-errors:
     values:
     - manual-status-handling

@@ -16,10 +16,10 @@
     "ZendeskData"
   ],
   "overall": {
-    "precision": 0.962,
-    "recall": 0.769,
-    "exact": 0.818,
-    "n": 33
+    "precision": 0.981,
+    "recall": 0.797,
+    "exact": 0.875,
+    "n": 32
   },
   "per_question": {
     "auth": {
@@ -47,22 +47,22 @@
       "n": 2
     },
     "data-formats": {
-      "precision": 0.75,
-      "recall": 0.75,
+      "precision": 1.0,
+      "recall": 0.8,
       "exact": 0.5,
       "n": 2
     },
     "schema": {
       "precision": 1.0,
-      "recall": 0.667,
-      "exact": 0.5,
+      "recall": 1.0,
+      "exact": 1.0,
       "n": 2
     },
     "schema/empty-result-columns": {
       "precision": 1.0,
-      "recall": 0.5,
-      "exact": 0.5,
-      "n": 2
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
     },
     "http-errors": {
       "precision": 1.0,
@@ -132,6 +132,7 @@
       "expected": [
         "driver-rows",
         "json",
+        "other",
         "parquet"
       ],
       "got": [
@@ -139,25 +140,6 @@
         "json",
         "other"
       ]
-    },
-    {
-      "connector": "LakeHouse",
-      "question": "schema",
-      "expected": [
-        "declared-schema",
-        "driver-provided"
-      ],
-      "got": [
-        "driver-provided"
-      ]
-    },
-    {
-      "connector": "LakeHouse",
-      "question": "schema/empty-result-columns",
-      "expected": [
-        "yes"
-      ],
-      "got": []
     },
     {
       "connector": "LakeHouse",
