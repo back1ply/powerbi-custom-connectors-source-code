@@ -58,7 +58,7 @@
     "customers_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -68,7 +68,7 @@
     "payments_empty_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -98,7 +98,7 @@
     "error_404": {
       "pass": true,
       "note": "Ledgerly found nothing at /invoices. Check the base URL (does it include /api/v2?) (HTTP 404)",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 2,
         "FailedMatches": 1,
@@ -130,18 +130,23 @@
     "http_rejected": {
       "pass": true,
       "note": "The Ledgerly base URL must be an HTTPS address without a user name, query string or fragment, for example https://acme.ledgerly.example/api/v2.",
-      "seconds": 3.6,
+      "seconds": 3.5,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
         "UnmatchedRequests": null
       }
     },
-    "test_connection_runs": {
+    "test_connection_valid": {
       "pass": true,
-      "note": "The remote name could not be resolved: 'ok.ledgerly.example'",
-      "seconds": 3.1
+      "note": "TestConnection expression is valid: Ledgerly.Contents(\"https://ok.ledgerly.example/api/v2\")",
+      "seconds": 1.6
     }
+  },
+  "preview_requests": {
+    "RequestCount": 2,
+    "FailedMatches": 0,
+    "UnmatchedRequests": null
   },
   "passed": 14,
   "total": 14

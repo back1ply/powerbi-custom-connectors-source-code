@@ -62,11 +62,14 @@ Finish each step's check before starting the next.
    (next link, cursor, or total), copying
    [references/Table.GenerateByPage.pqm](references/Table.GenerateByPage.pqm): Microsoft's
    sample version turns empty pages into null rows
-   ([pitfalls](references/pitfalls.md)). Build every request as
+   ([pitfalls](references/pitfalls.md)). Every page, empty ones included, must carry
+   the entity's declared table type. Build every request as
    `Web.Contents(baseUrl, [RelativePath = ..., Query = [...]])`: the base URL stays
    static, which the service needs in order to validate it for refresh. Check: an empty
    endpoint returns zero rows, and an empty first page with a next cursor, an empty
-   middle page, the last page, and a single page all return the right rows.
+   middle page, the last page, and a single page all return the right rows; and
+   `Table.FirstN(table, 1)` requests only the first page, so a preview does not
+   download the whole table.
 7. **Schema.** Declare a table type per entity and enforce it (`Table.ChangeType` or
    `Value.ReplaceType`) so empty and sparse pages keep their columns. Check: an empty
    result has the declared columns and types.

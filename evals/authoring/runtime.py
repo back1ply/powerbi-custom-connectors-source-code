@@ -225,7 +225,10 @@ def judge(name: str, result: dict) -> dict:
     elif name.endswith("_schema"):
         ok, note = schema_verdict(run, name.split("_")[0].capitalize())
     elif name == "error_401":
-        ok = failed and bool(re.search(r"key|credential|401|unauthori", text, re.I))
+        # Learn's handling-status-codes: 401 must reach the engine as a credentials
+        # exception, which is what prompts the user to enter a new key.
+        details = (run.get("Error") or {}).get("Details") or {}
+        ok = failed and "Microsoft.Data.Mashup.CredentialError.Reason" in details
     elif name == "error_404":
         ok = failed and bool(re.search(r"invoices|not found|could not find|404", text, re.I))
     elif name in {"error_429", "error_503"}:
@@ -257,14 +260,27 @@ def store_credentials(tools: Path, ext: list[str], creds: Path) -> None:
         pqtest(tools, *args, stdin=json.dumps(key), timeout=120)
 
 
-def test_connection(tools: Path, base: list[str], work: Path, path: str, want: bool) -> dict:
-    args = ["test-connection", *base, "-dsk", KIND, "-dsp", path]
-    result = pqtest(tools, *args)
-    save(work / "raw" / f"test_connection_{'ok' if want else '401'}.json", result)
+def validate(tools: Path, base: list[str], work: Path) -> dict:
+    # `validate` builds the TestConnection call without running it; without a
+    # TestConnection it fails with "Has TestConnection been implemented?". The
+    # `test-connection` command takes no HTTP mock, so it cannot run here.
+    result = pqtest(tools, "validate", *base, "-dsk", KIND, "-dsp", url("ok"))
+    save(work / "raw" / "test_connection_valid.json", result)
     run = first(result)
-    passed = str(run.get("Status", "")).lower() in {"passed", "success"}
-    note = message(run)[:200] or str(run.get("Status") or result["raw"])
-    return {"pass": passed == want, "note": note, "seconds": result["seconds"]}
+    note = str(run.get("Message") or result["raw"])[:200]
+    if run.get("Expression"):
+        note += f": {run['Expression']}"
+    return {"pass": run.get("Status") == "Success", "note": note, "seconds": result["seconds"]}
+
+
+def preview_requests(tools: Path, base: list[str], work: Path, mock: Path) -> dict:
+    # Unscored: requests made to show one invoice. Invoices has two pages, so 1 means
+    # a preview reads only the first page.
+    qfile = work / "queries" / "preview_requests.query.pq"
+    qfile.write_text(query(url("ok"), f"Table.FirstN({table('Invoices')}, 1)"), encoding="utf-8")
+    result = pqtest(tools, "run-test", *base, "-q", str(qfile), "-hm", str(mock))
+    save(work / "raw" / "preview_requests.json", result)
+    return mock_stats(first(result))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -308,11 +324,8 @@ def main(argv: list[str] | None = None) -> int:
         result = pqtest(tools, "run-test", *base, "-q", str(qfile), "-hm", str(mock))
         save(work / "raw" / f"{name}.json", result)
         record["checks"][name] = judge(name, result)
-    # test-connection has no HTTP mock option: on the fictional host it can only show
-    # whether TestConnection is wired up and fails fast, not that it succeeds.
-    record["checks"]["test_connection_runs"] = test_connection(
-        tools, base, work, url("ok"), want=False
-    )
+    record["checks"]["test_connection_valid"] = validate(tools, base, work)
+    record["preview_requests"] = preview_requests(tools, base, work, mock)
     passed = sum(c["pass"] for c in record["checks"].values())
     record["passed"], record["total"] = passed, len(record["checks"])
     save(trial / "runtime.json", record)

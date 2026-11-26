@@ -7,10 +7,13 @@ source in `connectors/`.
 
 ## Empty pages that become null rows, or drop data
 
-**Pattern:** combine pages with `Table.Combine`, as in
-[Table.GenerateByPage.pqm](Table.GenerateByPage.pqm). Give every page, empty ones
-included, the declared table type. Test an empty endpoint, an empty first page that
-has a next cursor, and an empty page in the middle.
+**Pattern:** drop empty pages before expanding, as in
+[Table.GenerateByPage.pqm](Table.GenerateByPage.pqm), which stays as lazy as
+Microsoft's version (a preview requests one page). `Table.Combine(listOfPages)` also
+gives the right rows but requests every page, even for a preview. Give every page,
+empty ones included, the declared table type: an untyped empty first page loses every
+column whichever helper you use. Test an empty endpoint, an empty first page that has
+a next cursor, and an empty page in the middle.
 
 **Seen in:** Microsoft's own sample helper, which builds a column of page tables and
 runs `Table.ExpandTableColumn` over it. On the engine each empty page becomes a row of

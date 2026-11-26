@@ -1,11 +1,12 @@
-// Runs three Table.GenerateByPage helpers over page sequences that include empty pages.
+// Runs four Table.GenerateByPage helpers over page sequences that include empty pages.
 // Run with PQTest against any connector, e.g.:
 //   PQTest.exe run-test -e Any.mez -q generatebypage-check.query.pq -p
 // Columns: pages served "empty" / "a, b" / "empty, a, b" / "a, empty, b"; the right
 // answers are none / a,b / a,b / a,b. Result with PQTest 2.160.2:
 //   sample-inline (TripPin 5, GitHub sample): null / a,b / null,a,b / a,null,b
 //   sample-pqm (TripPin 7+, Learn helper-functions): none / a,b / none / a,null,b
-//   combine (Table.GenerateByPage.pqm here): none / a,b / a,b / a,b
+//   combine (Table.Combine; right rows, but fetches every page): none / a,b / a,b / a,b
+//   filtered (Table.GenerateByPage.pqm here): none / a,b / a,b / a,b
 let
     Inline = (getNextPage as function) as table =>
         let
@@ -50,6 +51,22 @@ let
                 Table.FromRows({})
             else
                 Value.ReplaceType(Table.Combine(listOfPages), Value.Type(firstPage)),
+    Filtered = (getNextPage as function) as table =>
+        let
+            listOfPages = List.Generate(
+                () => getNextPage(null), (lastPage) => lastPage <> null, (lastPage) => getNextPage(lastPage)
+            ),
+            tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
+            firstRow = tableOfPages{0}?,
+            nonEmptyPages = Table.SelectRows(tableOfPages, each not Table.IsEmpty([Column1]))
+        in
+            if (firstRow = null) then
+                Table.FromRows({})
+            else
+                Value.ReplaceType(
+                    Table.ExpandTableColumn(nonEmptyPages, "Column1", Table.ColumnNames(firstRow[Column1])),
+                    Value.Type(firstRow[Column1])
+                ),
     PageType = type table [id = text],
     E = #table(PageType, {}),
     A = #table(PageType, {{"a"}}),
@@ -68,7 +85,7 @@ let
         in
             if List.IsEmpty(ids) then "none" else Text.Combine(ids, ","),
     Cases = {{"empty", {E}}, {"a, b", {A, B}}, {"empty, a, b", {E, A, B}}, {"a, empty, b", {A, E, B}}},
-    Helpers = {{"sample-inline", Inline}, {"sample-pqm", Pqm}, {"combine", Combine}},
+    Helpers = {{"sample-inline", Inline}, {"sample-pqm", Pqm}, {"combine", Combine}, {"filtered", Filtered}},
     Rows = List.Transform(
         Helpers, (h) => {h{0}} & List.Transform(Cases, (c) => Run(h{1}, c{1}))
     ),

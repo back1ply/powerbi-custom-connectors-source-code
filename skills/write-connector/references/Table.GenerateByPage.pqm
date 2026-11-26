@@ -1,15 +1,20 @@
-// Table.GenerateByPage, combining pages instead of expanding a column of tables.
+// Table.GenerateByPage that skips empty pages and stays lazy.
 //
 // getNextPage receives the previous page (null on the first call) and returns the next
 // page as a table, or null to stop. Carry the next cursor or link in the page's
-// metadata. Every page, empty ones included, should have the declared table type.
+// metadata. Every page, empty ones included, must have the declared table type: the
+// output columns come from the first page, so an untyped empty first page
+// (Table.FromRecords({})) loses every column.
 //
 // Microsoft's sample versions (TripPin 5, the GitHub sample, and the .pqm from TripPin 7
-// on, also shown on Learn's helper-functions page) expand a column of page tables. On
-// the Power Query engine that turns each empty page into a row of nulls, and the .pqm's
-// empty-first-page guard drops every later page. This version returns the right rows
-// in all of those cases; checked with PQTest 2.160.2 using
-// generatebypage-check.query.pq next to this file.
+// on, also shown on Learn's helper-functions page) expand every page. On the Power
+// Query engine that turns each empty page into a row of nulls, and the .pqm's
+// empty-first-page guard drops every later page. This version filters empty pages out
+// before expanding. Checked with PQTest 2.160.2:
+// - generatebypage-check.query.pq next to this file: right rows in every case;
+// - with an HTTP mock of 4 pages, Table.FirstN(t, 1) and Table.Schema(t) request one
+//   page, like Microsoft's version. Table.Combine(listOfPages) also gives the right
+//   rows but requests every page for both, so a navigator preview downloads the table.
 (getNextPage as function) as table =>
     let
         listOfPages = List.Generate(
@@ -17,9 +22,14 @@
             (lastPage) => lastPage <> null,
             (lastPage) => getNextPage(lastPage)
         ),
-        firstPage = List.First(listOfPages, null)
+        tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
+        firstRow = tableOfPages{0}?,
+        nonEmptyPages = Table.SelectRows(tableOfPages, each not Table.IsEmpty([Column1]))
     in
-        if firstPage = null then
+        if firstRow = null then
             Table.FromRows({})
         else
-            Value.ReplaceType(Table.Combine(listOfPages), Value.Type(firstPage))
+            Value.ReplaceType(
+                Table.ExpandTableColumn(nonEmptyPages, "Column1", Table.ColumnNames(firstRow[Column1])),
+                Value.Type(firstRow[Column1])
+            )

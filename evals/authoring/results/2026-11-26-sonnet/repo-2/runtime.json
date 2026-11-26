@@ -8,7 +8,7 @@
     "navigation": {
       "pass": true,
       "note": "names ['Customers', 'Invoices', 'Payments']",
-      "seconds": 3.8,
+      "seconds": 3.7,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -18,7 +18,7 @@
     "navigation_lazy": {
       "pass": true,
       "note": "no data requests",
-      "seconds": 3.9,
+      "seconds": 3.7,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -38,7 +38,7 @@
     "invoices_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.0,
+      "seconds": 3.8,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -48,7 +48,7 @@
     "customers_rows": {
       "pass": true,
       "note": "ids ['c_1', 'c_2']",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 3,
         "FailedMatches": 0,
@@ -58,7 +58,7 @@
     "customers_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.0,
+      "seconds": 3.8,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -68,7 +68,7 @@
     "payments_empty_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 3.9,
+      "seconds": 3.8,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -78,7 +78,7 @@
     "payments_empty_rows": {
       "pass": true,
       "note": "ids []",
-      "seconds": 4.3,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -98,7 +98,7 @@
     "error_404": {
       "pass": true,
       "note": "Ledgerly did not find this address. Check that the URL ends with /api/v2. (HTTP 404 on /invoices)  ",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 1,
@@ -119,8 +119,8 @@
     },
     "error_503": {
       "pass": true,
-      "note": "6 requests, 35.2s: Ledgerly is temporarily unavailable. Try again later. (HTTP 503 on /invoices) unavailable Ledgerly is briefly unavailable.",
-      "seconds": 35.2,
+      "note": "6 requests, 35.1s: Ledgerly is temporarily unavailable. Try again later. (HTTP 503 on /invoices) unavailable Ledgerly is briefly unavailable.",
+      "seconds": 35.1,
       "mock": {
         "RequestCount": 6,
         "FailedMatches": 0,
@@ -137,11 +137,16 @@
         "UnmatchedRequests": null
       }
     },
-    "test_connection_runs": {
+    "test_connection_valid": {
       "pass": true,
-      "note": "The remote name could not be resolved: 'ok.ledgerly.example'",
-      "seconds": 3.2
+      "note": "TestConnection expression is valid: Ledgerly.Contents(\"https://ok.ledgerly.example/api/v2\", [TestConnection=true])",
+      "seconds": 1.6
     }
+  },
+  "preview_requests": {
+    "RequestCount": 1,
+    "FailedMatches": 0,
+    "UnmatchedRequests": null
   },
   "passed": 14,
   "total": 14
