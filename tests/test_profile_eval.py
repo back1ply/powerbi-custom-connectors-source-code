@@ -142,3 +142,22 @@ def test_profiles_answered_partly_by_another_model_are_not_saved(repo, monkeypat
     assert main(["--repo", str(repo), "profile", "Demo"]) == 1
     assert "answered partly by claude-opus-5-5" in capsys.readouterr().out
     assert not (repo / "knowledge/profiles/Demo.json").exists()
+
+
+def test_functions_and_certification_accept_a_folder_outside_the_archive(tmp_path, capsys):
+    (tmp_path / "pyproject.toml").touch()
+    folder = tmp_path / "MyConnector"
+    folder.mkdir()
+    (folder / "MyConnector.pq").write_text(
+        '[Version = "1.0.0"]\nsection MyConnector;\n'
+        '[DataSource.Kind = "MyConnector"]\nshared MyConnector.Contents = () => 1;\n',
+        encoding="utf-8",
+    )
+    assert main(["--repo", str(tmp_path), "functions", "--path", str(folder)]) == 0
+    assert "shared MyConnector.Contents" in capsys.readouterr().out
+    assert main(["--repo", str(tmp_path), "certification", "--path", str(folder), "--json"]) == 0
+    assert '"MyConnector"' in capsys.readouterr().out
+    empty = tmp_path / "Empty"
+    empty.mkdir()
+    assert main(["--repo", str(tmp_path), "certification", "--path", str(empty)]) == 2
+    assert main(["--repo", str(tmp_path), "functions"]) == 2

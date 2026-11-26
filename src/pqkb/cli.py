@@ -41,7 +41,12 @@ def main(argv: list[str] | None = None) -> int:
     functions_parser = commands.add_parser(
         "functions", help="list a connector's top-level functions, line ranges, and calls"
     )
-    functions_parser.add_argument("connector", help="connector folder name, e.g. Attio")
+    functions_parser.add_argument(
+        "connector", nargs="?", help="connector folder name in connectors/, e.g. Attio"
+    )
+    functions_parser.add_argument(
+        "--path", type=Path, help="a connector folder outside the archive (your own connector)"
+    )
     functions_parser.add_argument("--json", action="store_true", help="print JSON")
     check_parser = commands.add_parser(
         "check-profiles", help="validate checklist answer files against the checklist and source"
@@ -78,6 +83,11 @@ def main(argv: list[str] | None = None) -> int:
         "certification", help="check connectors against Microsoft's certification rules"
     )
     cert_parser.add_argument("connectors", nargs="*", help="connector names (default: all)")
+    cert_parser.add_argument(
+        "--path",
+        type=Path,
+        help="check a connector folder outside the archive (your own connector)",
+    )
     cert_parser.add_argument("--json", action="store_true", help="print JSON")
     viz_parser = commands.add_parser("viz", help="write the OKF graph viewer for bundle/")
     viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
@@ -93,11 +103,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "eval":
         return run_eval_command(args)
     if args.command == "certification":
+        if args.path:
+            return run_certification_path(args.path, as_json=args.json)
         return run_certification(args.repo, args.connectors, as_json=args.json)
     if args.command == "check-profiles":
         return check_profiles(args.repo, args.repo / args.folder)
     if args.command == "functions":
-        return list_functions(args.repo, args.connector, as_json=args.json)
+        return list_functions(args.repo, args.connector, as_json=args.json, path=args.path)
     if args.command == "viz":
         from pqkb.viz import generate_visualization
 
@@ -192,6 +204,28 @@ def run_certification(repo: Path, names: list[str], *, as_json: bool) -> int:
     return 0
 
 
+def run_certification_path(path: Path, *, as_json: bool) -> int:
+    """Certification checks for one connector folder outside the archive."""
+    import json
+    from dataclasses import asdict
+
+    from pqkb.certification import check_connector
+
+    try:
+        name, files = folder_sources(path)
+    except FileNotFoundError as error:
+        print(error)
+        return 2
+    findings = check_connector(name, files)
+    if as_json:
+        print(json.dumps({name: [asdict(f) for f in findings]}, indent=2))
+        return 0
+    for f in findings:
+        where = f" ({f.file}:{f.line})" if f.file else ""
+        print(f"{f.status:7} {f.rule:24} {f.detail}{where}")
+    return 0
+
+
 def check_profiles(repo: Path, folder: Path) -> int:
     from pqkb.checklist import load_checklist, load_profiles, validate_profile
 
@@ -208,18 +242,43 @@ def check_profiles(repo: Path, folder: Path) -> int:
     return 1 if problems or not profiles else 0
 
 
-def list_functions(repo: Path, connector: str, *, as_json: bool) -> int:
+def folder_sources(path: Path) -> tuple[str, dict[str, str]]:
+    """Name and M source files (.pq, .pqm, .m) of a connector folder outside the archive."""
+    from pqkb.package import m_sources
+    from pqkb.scan import read_source
+
+    if not path.is_dir():
+        raise FileNotFoundError(f"{path} is not a folder")
+    files = {f: read_source(path / f) for f in m_sources(path)}
+    if not files:
+        raise FileNotFoundError(f"no .pq, .pqm or .m files in {path}")
+    return path.resolve().name, files
+
+
+def list_functions(
+    repo: Path, connector: str | None, *, as_json: bool, path: Path | None = None
+) -> int:
     import json
     from dataclasses import asdict
 
     from pqkb.functions import index_connector
 
-    records = refresh.load_index(repo / "connectors")
-    if connector not in records:
-        print(f"Unknown connector {connector!r}; see connectors/index.json.")
+    if path is not None:
+        try:
+            connector, files = folder_sources(path)
+        except FileNotFoundError as error:
+            print(error)
+            return 2
+    elif connector is None:
+        print("Give a connector name from connectors/, or --path <folder>.")
         return 2
-    sources = bundle.read_sources(repo / "connectors", {connector: records[connector]})
-    functions = index_connector(connector, sources[connector])
+    else:
+        records = refresh.load_index(repo / "connectors")
+        if connector not in records:
+            print(f"Unknown connector {connector!r}; see connectors/index.json, or use --path.")
+            return 2
+        files = bundle.read_sources(repo / "connectors", {connector: records[connector]})[connector]
+    functions = index_connector(connector, files)
     if as_json:
         print(json.dumps([asdict(f) for f in functions], indent=2))
         return 0
