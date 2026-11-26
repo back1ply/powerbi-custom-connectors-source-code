@@ -1,0 +1,140 @@
+{
+  "connectors_scored": 1,
+  "missing": [
+    "AmazonAthena",
+    "Anaplan",
+    "AptixInsights",
+    "Asana",
+    "Attio",
+    "AzureResourceGraph",
+    "ClickHouse",
+    "ClickHouseArrowFlight",
+    "CogniteDataSource",
+    "CommonDataService",
+    "GoogleSheets",
+    "MarkLogicODBC",
+    "SurveyMonkey",
+    "ZendeskData"
+  ],
+  "overall": {
+    "precision": 0.974,
+    "recall": 1.0,
+    "exact": 0.938,
+    "n": 16
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "user-inputs": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "paging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "data-formats": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "schema": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "http-errors": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "navigation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "folding": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "exact": 0.0,
+      "n": 1
+    },
+    "folding/table-view-handlers": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "packaging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "diagnostics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "writes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "LakeHouse",
+      "question": "folding",
+      "expected": [
+        "custom-sql-generator",
+        "source-function-folding",
+        "table-view-handlers"
+      ],
+      "got": [
+        "custom-sql-generator",
+        "native-query",
+        "source-function-folding",
+        "table-view-handlers"
+      ]
+    }
+  ]
+}

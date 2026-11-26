@@ -1,0 +1,177 @@
+{
+  "connectors_scored": 4,
+  "missing": [],
+  "overall": {
+    "precision": 0.99,
+    "recall": 0.98,
+    "exact": 0.955,
+    "n": 66
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 0.833,
+      "exact": 0.75,
+      "n": 4
+    },
+    "auth/key-placement": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "user-inputs": {
+      "precision": 1.0,
+      "recall": 0.857,
+      "exact": 0.75,
+      "n": 4
+    },
+    "paging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "paging/paging-generator": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "data-formats": {
+      "precision": 0.833,
+      "recall": 1.0,
+      "exact": 0.75,
+      "n": 4
+    },
+    "schema": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "schema/empty-result-columns": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "http-errors": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "navigation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "folding": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "packaging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "diagnostics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "writes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "auth/oauth-pkce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "auth/oauth-refresh": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "transport/odbc-capabilities": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "PlanviewOKR",
+      "question": "data-formats",
+      "expected": [
+        "json"
+      ],
+      "got": [
+        "json",
+        "other"
+      ]
+    },
+    {
+      "connector": "TIBCO",
+      "question": "auth",
+      "expected": [
+        "anonymous",
+        "username-password",
+        "windows"
+      ],
+      "got": [
+        "username-password",
+        "windows"
+      ]
+    },
+    {
+      "connector": "TIBCO",
+      "question": "user-inputs",
+      "expected": [
+        "options-record",
+        "other",
+        "url-or-server"
+      ],
+      "got": [
+        "options-record",
+        "url-or-server"
+      ]
+    }
+  ]
+}

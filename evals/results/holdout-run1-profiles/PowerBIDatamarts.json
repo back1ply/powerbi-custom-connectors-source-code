@@ -1,0 +1,299 @@
+{
+  "connector": "PowerBIDatamarts",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "18-24",
+          "function": "PowerBIDatamarts",
+          "note": "Authentication record declares only an Aad method with AuthorizationUri and Scope; no other auth kind is declared."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "155",
+          "function": "Web.JsonContents",
+          "note": "Web.Contents call for the Power BI REST API (cluster details, artifacts)."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "271",
+          "function": "GetTDSEndPoint",
+          "note": "Web.Contents call for the datamart metadata endpoint."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "263",
+          "function": "GetSQLTables",
+          "note": "Sql.Database opens the TDS endpoint that serves the datamart tables."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "96-98",
+          "function": "PowerBI.Datamarts / DatamartsImpl",
+          "note": "The only user parameter is optional server as text, a TDS endpoint host name; with no server, workspaces and datamarts are discovered from the API."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "156",
+          "function": "Web.JsonContents",
+          "note": "Json.Document parses API responses."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "272",
+          "function": "GetTDSEndPoint",
+          "note": "Json.Document parses the datamart metadata response."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "263",
+          "function": "GetSQLTables",
+          "note": "Sql.Database returns driver-provided tables to the caller."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "263",
+          "function": "GetSQLTables",
+          "note": "Column names and types of returned data tables come from Sql.Database. The connector declares no M types on data columns. The type text and type table annotations at lines 213-214 apply only to navigation helper columns, which do not count."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "271",
+          "function": "GetTDSEndPoint",
+          "note": "Web.Contents with no ManualStatusHandling; the metadata request counts as a data request, so default applies."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "155",
+          "function": "Web.JsonContents",
+          "note": "Sets ManualStatusHandling = ApiErrorStatusCodes and inspects Response.Status on the live workspace-listing path."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "161-182",
+          "function": "Web.ErrorResponse",
+          "note": "Builds error Error.Record values from HTTP error responses."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "130-134",
+          "function": "Datamarts.Type",
+          "note": "Function-level Documentation.Name, Caption, Description and LongDescription."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "124-127",
+          "function": "Datamarts.Type",
+          "note": "Parameter caption, description and sample value on the server parameter."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "104-120",
+          "function": "GetNavforWorkspaces",
+          "note": "Workspaces, datamarts and tables are listed at runtime from the API."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "217-218",
+          "function": "CreateNavTable",
+          "note": "Workspace folders have IsLeaf false and contain datamart navigation tables."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "235-236",
+          "function": "GetDataMarts",
+          "note": "Datamart database rows have IsLeaf false and open table navigation."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "252-254",
+          "function": "GetNavforSqlTable",
+          "note": "Table leaves have IsLeaf true."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "17",
+          "function": "PowerBIDatamarts",
+          "note": "TestConnection invokes the shared PowerBI.Datamarts entry function with the server, which evaluates a normal navigation query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "263",
+          "function": "GetSQLTables",
+          "note": "Data tables are Sql.Database results, so folding is delegated to Sql.Database. No Table.View handlers or native query support are defined."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "1-315",
+          "function": "module",
+          "note": "The connector is one .pq file with no pqm modules."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "125-134",
+          "function": "Datamarts.Type",
+          "note": "Extension.LoadString is used for localized strings."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "289-292",
+          "function": "PowerBIDatamarts.Icons",
+          "note": "Icons are loaded with Extension.Contents PNG files."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "286",
+          "function": "PowerBIDatamarts.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "187",
+          "function": "PBICommonHeaders",
+          "note": "Diagnostics.Trace runs with no switch. PBICommonHeaders is called live from GetClusterUrl at line 146, which feeds apiurl."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:24:46Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.007248,
+    "duration_ms": 28880
+  },
+  "source_sha256": "6c341e8f754d5f7cc58aefdd4ecfc37d33592582f60de10a154774cab5f56ecd",
+  "checklist_sha256": "9ce0cbe20ebf048bdba3bef3dcf5414b5a9273e167560e5a90af336f9b95deca",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
