@@ -154,6 +154,15 @@ def _merge_identity(first: dict, second: dict) -> dict:
     return merged
 
 
+def other_models(requested: str, used: list[str]) -> list[str]:
+    """Models in the reply that are not the requested one (alias 'haiku' or a full id).
+
+    Claude Code sometimes hands part of a request to a different model; such a profile
+    would be scored as the requested model's work, so it is rejected instead.
+    """
+    return [m for m in used if requested.lower() not in m.lower()]
+
+
 def profile_connector(repo: Path, name: str, model: str) -> dict:
     """Ask the model once; on validation problems, send them back for one repair."""
     payload, files = profile_inputs(repo, name)
@@ -173,6 +182,12 @@ def profile_connector(repo: Path, name: str, model: str) -> dict:
     if problems:
         raise ValueError(
             f"{len(problems)} validation problems after one repair, first: {problems[0]}"
+        )
+    others = other_models(model, identity.get("models", []))
+    if others:
+        raise ValueError(
+            f"answered partly by {', '.join(others)}, not {model}; not saved"
+            f" (cost ${identity.get('cost_usd') or 0:.2f})"
         )
     return {
         **profile,

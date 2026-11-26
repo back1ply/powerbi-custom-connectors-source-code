@@ -26,7 +26,7 @@ def test_profile_validates_caches_and_reruns_only_when_inputs_change(repo, monke
         assert payload["functions"][0]["name"] == "Demo.Contents"
         return {"answers": negative_profile()["answers"]}, {
             "requested_model": model,
-            "models": ["fake"],
+            "models": ["claude-haiku-fake"],
         }
 
     monkeypatch.setattr(profile_module, "ask_claude", fake)
@@ -129,3 +129,16 @@ def test_validation_problems_get_one_repair_and_costs_are_summed(repo, monkeypat
 def test_first_json_object_ignores_fences_and_trailing_text():
     reply = '```json\n{"answers": {"a": {"values": ["x"]}}}\n```\nNote: {"stray": 1}'
     assert profile_module.first_json_object(reply) == {"answers": {"a": {"values": ["x"]}}}
+
+
+def test_profiles_answered_partly_by_another_model_are_not_saved(repo, monkeypatch, capsys):  # noqa: F811
+    with_index(repo)
+    identity = {"requested_model": "haiku", "models": ["claude-haiku-5-5", "claude-opus-5-5"]}
+    monkeypatch.setattr(
+        profile_module,
+        "ask_claude",
+        lambda payload, model: ({"answers": negative_profile()["answers"]}, identity),
+    )
+    assert main(["--repo", str(repo), "profile", "Demo"]) == 1
+    assert "answered partly by claude-opus-5-5" in capsys.readouterr().out
+    assert not (repo / "knowledge/profiles/Demo.json").exists()
