@@ -1,0 +1,96 @@
+connector: SolarwindsServiceDesk
+labelled_by: claude-code/claude-opus-5-5
+source_note: SolarWindsServiceDesk.pq (307 lines) and Columns.json; labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [key]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "287-291", function: SolarWindsServiceDesk, note: "Authentication = [Key = [...]]"}
+    sub:
+      key-placement:
+        values: [header]
+        evidence:
+          - {file: SolarWindsServiceDesk.pq, lines: "139-141", function: GetPage, note: "X-Samanage-Authorization = \"Bearer \" & key"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "147", function: GetPage, note: "Web.Contents(url, [Headers, RelativePath, Query])"}
+    sub: {}
+  user-inputs:
+    values: [date-range, other]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "14-18", function: SolarWindsServiceDesk.ExpandCustomFields, note: "optional RangeStart and RangeEnd datetimes filter on updated date (GetQuery, 127-132)"}
+      - {file: SolarWindsServiceDesk.pq, lines: "17", function: SolarWindsServiceDesk.ExpandCustomFields, note: "other: optional CustomFieldsStr, a comma-separated list of custom field names to pivot into columns"}
+    sub: {}
+  paging:
+    values: [offset-limit]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "127-132", function: GetQuery, note: "page number sent as the page query parameter"}
+      - {file: SolarWindsServiceDesk.pq, lines: "247-257", function: GetNextPageNumber, note: "next page = X-Current-Page + 1 while it is <= X-Total-Pages (response headers)"}
+    sub:
+      paging-generator:
+        values: [table-generatebypage]
+        evidence:
+          - {file: SolarWindsServiceDesk.pq, lines: "115-125", function: GetAllPagesByNextLink, note: "Table.GenerateByPage; page number passed as meta [NextPageNumber]"}
+      paging-stop:
+        text: "Stops when the next page number would exceed X-Total-Pages; GetNextPageNumber returns null and GenerateByPage ends."
+        evidence:
+          - {file: SolarWindsServiceDesk.pq, lines: "255-257", function: GetNextPageNumber, note: "if next_page_number <= total_pages_number then next else null"}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "148", function: GetPage, note: "Json.Document on each page"}
+  schema:
+    values: [inferred-from-data]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "138", function: GetPage, note: "column names per entity from Columns.json (3), names only"}
+      - {file: SolarWindsServiceDesk.pq, lines: "151-154", function: GetPage, note: "Table.ExpandRecordColumn with those names; no types assigned, so values keep their JSON types"}
+    sub: {}
+  http-errors:
+    values: [default]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "147", function: GetPage, note: "the only request has no ManualStatusHandling"}
+    sub: {}
+  documentation:
+    values: [none]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "5-18", function: SolarWindsServiceDesk.ContentsV113, note: "shared functions are bound directly, with no Value.ReplaceType or Documentation metadata"}
+  navigation:
+    values: [fixed-list, hierarchical]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "37-54", function: SolarWindsServiceDesk.NavigationV, note: "hardcoded rows; All Objects and Assets are folders (IsLeaf false) holding hardcoded tables"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "286", function: SolarWindsServiceDesk, note: "TestConnection = {\"SolarWindsServiceDesk.Contents\"}, a shared entry function (the Beta navigator)"}
+  folding:
+    values: [none]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "136-159", function: GetPage, note: "no Table.View; the date range is applied as query parameters, not folded"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "1-307", function: SolarWindsServiceDesk, note: "one section document; Columns.json is a data file read with Extension.Contents, not a .pqm module"}
+      - {file: SolarWindsServiceDesk.pq, lines: "292", function: SolarWindsServiceDesk, note: "Extension.LoadString"}
+      - {file: SolarWindsServiceDesk.pq, lines: "304-307", function: SolarWindsServiceDesk.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+  diagnostics:
+    values: [tracing-always]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "63", function: SolarWindsServiceDeskImpl, note: "Diagnostics.Trace with no switch"}
+      - {file: SolarWindsServiceDesk.pq, lines: "146", function: GetPage, note: "Diagnostics.Trace around the URL on every page"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "115-125", function: GetAllPagesByNextLink, note: "plain paging; no job polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: SolarWindsServiceDesk.pq, lines: "1-307", function: SolarWindsServiceDesk, note: "GET requests only"}
+notes: |
+  Three shared entry functions: Contents (the older Beta navigator, incidents for the last two years, no parameters),
+  ContentsV110 and ContentsV113 (published). Answers cover all three.
+  The region (US/EU/AU) is decoded from the API token (GetDomain, 71-87), not supplied by the user.
+  Paging is page-number based; offset-limit is the closest id, since the checklist has none for page numbers.
+  No Beta field in Publish; "SolarWindsServiceDesk.Beta" is only a function name, so no beta-flag.

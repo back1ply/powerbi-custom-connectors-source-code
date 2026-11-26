@@ -74,6 +74,9 @@ questions:
     multi: true
     answers: [url-or-server, database-or-resource-id, options-record, region-or-environment, date-range, none, other]
     definitions:
+      other:
+        means: A parameter no other id fits, such as a raw connection-string fragment, a language code, or query text passed as its own parameter. Every parameter of the shared entry functions must be covered by some answer id, so check each one.
+        source: convention
       url-or-server:
         means: A parameter naming the connection target - a URL, host/server name, or an ODBC DSN.
         source: handling-resource-path
@@ -130,7 +133,7 @@ questions:
     answers: [json, csv, xml, parquet, excel, binary-compressed, arrow, driver-rows, other]
     definitions:
       json:
-        means: JSON payloads, whether parsed with Json.Document or by OData.Feed from an OData service.
+        means: JSON data payloads, whether parsed with Json.Document or by OData.Feed from an OData service. Parsing an OAuth token or other auth response does not count; this question is about the data the connector returns.
         source: handling-transformations
       arrow:
         means: Results arrive as Apache Arrow, including Arrow Flight SQL through an ADBC driver, even when the driver decodes it.
@@ -264,8 +267,11 @@ questions:
       custom-sql-generator:
         means: The connector writes its own SQL text generator outside the ODBC driver, usually behind Table.View handlers.
         source: samples/trippin/10-tableview1/readme
+      odata-folding:
+        means: The connector returns OData.Feed tables, so the OData connector folds filters, selects and paging into the request. Answer this, not none, even though the connector writes no folding code itself.
+        source: convention
       source-function-folding:
-        means: Folding is delegated to a source function that folds on its own, such as Sql.Database.
+        means: Folding is delegated to a source function that folds on its own, such as Sql.Database. Answer this, not none.
         source: convention
     sub:
       - id: table-view-handlers
