@@ -1,0 +1,148 @@
+{
+  "trial": "baseline-1",
+  "load_error": null,
+  "shared_functions": [
+    "Ledgerly.Contents"
+  ],
+  "checks": {
+    "navigation": {
+      "pass": true,
+      "note": "names ['Customers', 'Invoices', 'Payments']",
+      "seconds": 4.0,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "navigation_lazy": {
+      "pass": true,
+      "note": "no data requests",
+      "seconds": 4.0,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "invoices_rows": {
+      "pass": true,
+      "note": "ids ['in_1', 'in_2', 'in_3']",
+      "seconds": 4.1,
+      "mock": {
+        "RequestCount": 3,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "invoices_schema": {
+      "pass": true,
+      "note": "all columns typed",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "customers_rows": {
+      "pass": true,
+      "note": "ids ['c_1', 'c_2']",
+      "seconds": 4.1,
+      "mock": {
+        "RequestCount": 4,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "customers_schema": {
+      "pass": true,
+      "note": "all columns typed",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "payments_empty_schema": {
+      "pass": true,
+      "note": "all columns typed",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "payments_empty_rows": {
+      "pass": true,
+      "note": "ids []",
+      "seconds": 4.1,
+      "mock": {
+        "RequestCount": 2,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "error_401": {
+      "pass": true,
+      "note": "Ledgerly rejected the API key: it is wrong or has expired. Update the data source credential (HTTP 401, unauthorized): API key is invalid or expired.",
+      "seconds": 4.0,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "error_404": {
+      "pass": true,
+      "note": "Ledgerly found nothing at /invoices. Check the base URL (does it include /api/v2?) (HTTP 404)",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 2,
+        "FailedMatches": 1,
+        "UnmatchedRequests": [
+          "GET /api/v2/invoices"
+        ]
+      }
+    },
+    "error_429": {
+      "pass": true,
+      "note": "5 requests, 8.1s: Ledgerly is rate limiting requests. Try again in 1 seconds. (HTTP 429, rate_limited): Too many requests.",
+      "seconds": 8.1,
+      "mock": {
+        "RequestCount": 5,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "error_503": {
+      "pass": true,
+      "note": "5 requests, 33.9s: Ledgerly is temporarily unavailable. Try again later. (HTTP 503, unavailable): Ledgerly is briefly unavailable.",
+      "seconds": 33.9,
+      "mock": {
+        "RequestCount": 5,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "http_rejected": {
+      "pass": true,
+      "note": "The Ledgerly base URL must be an HTTPS address without a user name, query string or fragment, for example https://acme.ledgerly.example/api/v2.",
+      "seconds": 3.6,
+      "mock": {
+        "RequestCount": 0,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "test_connection_runs": {
+      "pass": true,
+      "note": "The remote name could not be resolved: 'ok.ledgerly.example'",
+      "seconds": 3.1
+    }
+  },
+  "passed": 14,
+  "total": 14
+}

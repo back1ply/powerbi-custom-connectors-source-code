@@ -1,0 +1,25 @@
+// Table.GenerateByPage, combining pages instead of expanding a column of tables.
+//
+// getNextPage receives the previous page (null on the first call) and returns the next
+// page as a table, or null to stop. Carry the next cursor or link in the page's
+// metadata. Every page, empty ones included, should have the declared table type.
+//
+// Microsoft's sample versions (TripPin 5, the GitHub sample, and the .pqm from TripPin 7
+// on, also shown on Learn's helper-functions page) expand a column of page tables. On
+// the Power Query engine that turns each empty page into a row of nulls, and the .pqm's
+// empty-first-page guard drops every later page. This version returns the right rows
+// in all of those cases; checked with PQTest 2.160.2 using
+// generatebypage-check.query.pq next to this file.
+(getNextPage as function) as table =>
+    let
+        listOfPages = List.Generate(
+            () => getNextPage(null),
+            (lastPage) => lastPage <> null,
+            (lastPage) => getNextPage(lastPage)
+        ),
+        firstPage = List.First(listOfPages, null)
+    in
+        if firstPage = null then
+            Table.FromRows({})
+        else
+            Value.ReplaceType(Table.Combine(listOfPages), Value.Type(firstPage))

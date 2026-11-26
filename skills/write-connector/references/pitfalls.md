@@ -1,8 +1,30 @@
 # Pitfalls found in certified connectors
 
-Certification did not catch everything. These come from reading archived source in
-`connectors/` (not from running it); each gives the correct pattern first, then where
-the mistake appears. Copy the pattern, not the example.
+Certification did not catch everything. Each entry gives the correct pattern first,
+then where the mistake appears. Copy the pattern, not the example. The first entry was
+confirmed on the Power Query engine (PQTest); the rest come from reading archived
+source in `connectors/`.
+
+## Empty pages that become null rows, or drop data
+
+**Pattern:** combine pages with `Table.Combine`, as in
+[Table.GenerateByPage.pqm](Table.GenerateByPage.pqm). Give every page, empty ones
+included, the declared table type. Test an empty endpoint, an empty first page that
+has a next cursor, and an empty page in the middle.
+
+**Seen in:** Microsoft's own sample helper, which builds a column of page tables and
+runs `Table.ExpandTableColumn` over it. On the engine each empty page becomes a row of
+nulls, so an empty endpoint returns one all-null row
+(`reference/microsoft-dataconnectors/samples/TripPin/5-Paging/TripPin.pq` 110-132,
+`samples/Github/github.pq` 188-202). The later module
+(`samples/TripPin/7-AdvancedSchema/Table.GenerateByPage.pqm`, also on Learn's
+[helper-functions](https://learn.microsoft.com/en-us/power-query/helper-functions)
+page) returns an empty first page as the whole result, dropping every later page, and
+still turns an empty middle page into a null row.
+[generatebypage-check.query.pq](generatebypage-check.query.pq) reproduces all three.
+32 archived connectors expand `tableOfPages` this way; whether one is affected depends
+on whether its page function can return an empty table. One authoring-trial connector
+built the same expansion by hand and returned a null row for an empty table.
 
 ## A retry that cannot retry
 

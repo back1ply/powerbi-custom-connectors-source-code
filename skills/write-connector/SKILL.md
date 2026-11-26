@@ -59,10 +59,14 @@ Finish each step's check before starting the next.
    are listed from the source where possible; keep `Data` lazy. Check: opening the
    navigator does not fetch table data.
 6. **Paging.** Use `Table.GenerateByPage` with an explicit stop rule from the API
-   (next link, cursor, or total). Build every request as
+   (next link, cursor, or total), copying
+   [references/Table.GenerateByPage.pqm](references/Table.GenerateByPage.pqm): Microsoft's
+   sample version turns empty pages into null rows
+   ([pitfalls](references/pitfalls.md)). Build every request as
    `Web.Contents(baseUrl, [RelativePath = ..., Query = [...]])`: the base URL stays
-   static, which the service needs in order to validate it for refresh. Check: the empty first page, the last page, and a
-   single page all return the right rows.
+   static, which the service needs in order to validate it for refresh. Check: an empty
+   endpoint returns zero rows, and an empty first page with a next cursor, an empty
+   middle page, the last page, and a single page all return the right rows.
 7. **Schema.** Declare a table type per entity and enforce it (`Table.ChangeType` or
    `Value.ReplaceType`) so empty and sparse pages keep their columns. Check: an empty
    result has the declared columns and types.
@@ -95,3 +99,18 @@ Finish each step's check before starting the next.
 Use the Power Query SDK for VS Code: evaluate queries in the SDK, then the SDK test
 framework and `PQTest` (links in [sources](references/sources.md)) for repeatable
 tests, including the failure cases each step's check names.
+
+`PQTest run-test --httpMock <file>` answers `Web.Contents` calls from a text file of
+request/response pairs, so each step's check runs on the real engine with no live
+service: empty pages, 401, 404, 429 with `Retry-After`, 503. Four behaviours of the
+mock (SdkTools 2.160.2):
+
+- It intercepts only hosts that appear in the file; other hosts go to the network.
+- A request matches the first entry whose query parameters are a subset of its own,
+  so list the most specific URL (with `cursor=`) before the bare one.
+- It is stateless: the same URL always gets the same response, so test retries by
+  sending the error every time and expecting a clean failure after the retry limit.
+- `test-connection` takes no mock; use `run-test` for everything that needs one.
+
+Store the key with `set-credential -cfp <file>` so tests never touch your own
+credentials. `evals/authoring/runtime.py` is a worked example of all of this.

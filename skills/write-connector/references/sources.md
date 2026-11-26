@@ -44,7 +44,9 @@ Official guidance first. All Learn links are under
 - `PQTest.exe` and `MakePQX.exe` ship in the
   [Microsoft.PowerQuery.SdkTools](https://www.nuget.org/packages/Microsoft.PowerQuery.SdkTools)
   NuGet package (Windows): build a `.mez`, then `info`, `validate`, `test-connection`
-  and `compare` run it on the real engine.
+  and `compare` run it on the real engine. The package's `content/pqtest.md` is the
+  full manual, including the HTTP mock file format (`run-test --httpMock`), which the
+  Learn pages do not cover.
 
 ## Further reading (link only)
 
