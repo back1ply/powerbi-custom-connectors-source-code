@@ -1,0 +1,315 @@
+{
+  "connector": "AptixInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "58-60",
+          "function": "AptixInsights",
+          "note": "Authentication record declares Key = [] as the only auth kind."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "39-41",
+          "function": "AptixInsightsImpl",
+          "note": "Reads the key from Extension.CurrentCredential() and sends it as a Bearer token in the Authorization header."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "AptixInsights.pq",
+              "lines": "41",
+              "function": "AptixInsightsImpl",
+              "note": "headers = [Authorization = \"Bearer \" & token] places the key in the request header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "Data is reached through OData.Feed(url, headers, serviceOptions)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "18-24",
+          "function": "AptixInsightsType",
+          "note": "Required url parameter names the target endpoint, so it is url-or-server."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "25-31",
+          "function": "AptixInsightsType",
+          "note": "Optional query parameter is passed straight through as the OData Query option, so it is other rather than options-record."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "46",
+          "function": "AptixInsightsImpl",
+          "note": "Query = if query = null then [] else query passes the parameter directly into serviceOptions."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The connector makes a single OData.Feed call and implements no paging of its own; any nextLink following is left to OData.Feed."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed with ODataVersion 4 consumes JSON responses."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "57",
+          "function": "AptixInsights",
+          "note": "TestConnection parses the data source path with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed takes column names and types from the service $metadata, and the connector does not redefine them."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The live OData.Feed data request sets no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "11-15",
+          "function": "ValidateUrlScheme",
+          "note": "The only error raised is for a non-HTTPS URL, which is invalid user input and is not a structured HTTP error record."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "32-34",
+          "function": "AptixInsightsType",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the function type."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "20, 27",
+          "function": "AptixInsightsType",
+          "note": "Documentation.FieldCaption is set on the url and query parameters."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "21, 28",
+          "function": "AptixInsightsType",
+          "note": "Documentation.FieldDescription is set on the url and query parameters."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "22, 29",
+          "function": "AptixInsightsType",
+          "note": "Documentation.SampleValues is set on the url and query parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "8-9",
+          "function": "AptixInsights.Feed",
+          "note": "The shared entry function returns OData.Feed on the user-supplied URL, so the navigator is built from the service document."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed is the call that discovers the navigation items."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "57",
+          "function": "AptixInsights",
+          "note": "TestConnection calls AptixInsights.Feed with the URL from the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "46",
+          "function": "AptixInsightsImpl",
+          "note": "The Query option is passed to OData.Feed, which folds supported query operations to the OData service."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed is the source function that performs the folding. The connector writes no Table.View handlers."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "AptixInsights.pq",
+          "note": "All connector logic is in one .pq file with no .pqm modules."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "19-22, 61, 68-69",
+          "function": "AptixInsightsType",
+          "note": "Extension.LoadString is used for captions, descriptions, labels and button text, which means localized strings."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "74-87",
+          "function": "AptixInsights.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "66",
+          "function": "AptixInsights.Publish",
+          "note": "Beta = false, so the beta flag does not apply."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "AptixInsights.pq",
+          "note": "No Diagnostics.Trace call appears in the code."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "37-52",
+          "function": "AptixInsightsImpl",
+          "note": "The connector makes a single synchronous feed request and runs no export jobs or polling."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "AptixInsights.pq",
+          "note": "The connector only reads through OData.Feed and defines no Action functions or table mutations."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:05:11Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004724900000000001,
+    "duration_ms": 21706
+  },
+  "source_sha256": "edd4059f61dfac8b5ddc96920f675a48d926a9597a75efefe069e51e98b83530",
+  "checklist_sha256": "b05c282311eeb8c0aa7b3b48753350292f3f74bcc7475a317f67b99b2858ae10",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,333 @@
+{
+  "connector": "CommonDataService",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "336-349",
+          "function": "CommonDataService",
+          "note": "Authentication record declares only Aad, with AuthorizationUri, Resource and DefaultClientApplication. No OAuth or other kind is declared."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "205-215",
+          "function": "GetAuthUri",
+          "note": "Discovers the Azure AD authorization URI by sending a Bearer request and reading WWW-Authenticate. This supports the Aad flow and is not a separate auth method."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73",
+          "function": "CommonDataService.Database",
+          "note": "Data tables are read through Sql.Database(validatedServer, database, sqlOptions)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159",
+          "function": "EnvironmentListTable",
+          "note": "Web.Contents(BapEndpoint) lists environments for the navigation table when server is null."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "210",
+          "function": "GetAuthUri",
+          "note": "Web.Contents call to the validated host, used for auth URI discovery."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "61-63",
+          "function": "CommonDataService.Database",
+          "note": "Entry signature takes optional server as text and optional options as nullable record."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "241-245",
+          "function": "ValidateServer",
+          "note": "server is a host name such as orgname.crm.dynamics.com and is validated as a host."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "103-111",
+          "function": "CommonDataService.Type",
+          "note": "Parameter metadata describes server as a host name and options as the optional settings record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts CreateNavigationProperties (nullable logical, default true; read at line 71) and EnableDisplayNames (hidden, default true; read at line 70). UnsafeTypeConversions is declared hidden with default false but is not read anywhere in the entry path. Any key not in OptionsMap raises an error (ValidateOptions, lines 258-281).",
+          "evidence": [
+            {
+              "file": "CommonDataService.pq",
+              "lines": "126-132",
+              "function": "OptionsMap",
+              "note": "Declares the valid option names, types, defaults and hidden flags."
+            },
+            {
+              "file": "CommonDataService.pq",
+              "lines": "70-71",
+              "function": "CommonDataService.Database",
+              "note": "Reads EnableDisplayNames and CreateNavigationProperties from validated options."
+            },
+            {
+              "file": "CommonDataService.pq",
+              "lines": "258-281",
+              "function": "ValidateOptions",
+              "note": "Rejects unknown option keys and invalid option values."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159",
+          "function": "EnvironmentListTable",
+          "note": "Json.Document parses the BAP environment list response."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73-90",
+          "function": "CommonDataService.Database",
+          "note": "Sql.Database returns driver-provided rows as the data table on the live path."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73",
+          "function": "CommonDataService.Database",
+          "note": "Sql.Database supplies column names and types; the connector does not redefine them."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "283-296",
+          "function": "AdjustTypeForCaptions",
+          "note": "Only adds caption metadata to existing column types; it does not declare or convert types or change names."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159",
+          "function": "EnvironmentListTable",
+          "note": "Web.Contents(BapEndpoint) is a live data request with no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "208",
+          "function": "GetAuthUri",
+          "note": "Sets ManualStatusHandling={401} and reads the WWW-Authenticate header on that response."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "114-121",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.Name, Caption and LongDescription are set on the function type."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "103-110",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.FieldCaption and FieldDescription are set on the server and options parameters."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "99-106",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.SampleValues are set for CreateNavigationProperties and server."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "157-177",
+          "function": "EnvironmentListTable",
+          "note": "Navigation rows are built at runtime from the BAP environment list response."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "195-203",
+          "function": "MakeIndirectTable",
+          "note": "Indirect rows re-invoke CommonDataService.Database, which returns a navigation table for the entity list."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "145-147",
+          "function": "EnvironmentListType",
+          "note": "Data column is marked NavigationTable.SupportsIndirection = true."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "327",
+          "function": "CommonDataService",
+          "note": "TestConnection returns the entry function name CommonDataService.Database together with ServerFromPath(path)."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "native-query",
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "74-89",
+          "function": "CommonDataService.Database",
+          "note": "Table.View on navTable has only an OnNativeQuery handler, which runs Value.NativeQuery."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73",
+          "function": "CommonDataService.Database",
+          "note": "Folding is delegated to Sql.Database, which folds on its own."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Native query support is enabled by the OnNativeQuery handler on the Table.View returned by CommonDataService.Database. It runs Value.NativeQuery against navTable and chooses between base and display-name variants by the DisplayNames and EnableFolding query options. The folding variant is built by SqlDatabase.View with NativeQueryOptions including EnableFolding.",
+          "evidence": [
+            {
+              "file": "CommonDataService.pq",
+              "lines": "74-89",
+              "function": "CommonDataService.Database",
+              "note": "OnNativeQuery handler and its option handling."
+            },
+            {
+              "file": "CommonDataService.pq",
+              "lines": "302-316",
+              "function": "ApplyDisplayNamesOption",
+              "note": "SqlDatabase.View declares NativeQueryOptions {EnableFolding, PreserveTypes}."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "1-423",
+          "function": "CommonDataService",
+          "note": "All code is in one .pq file with no .pqm module loading."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "98-119",
+          "function": "CommonDataService.Type",
+          "note": "Extension.LoadString is used for captions, button text and descriptions."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "417-420",
+          "function": "CommonDataService.Icons",
+          "note": "Icon PNGs are loaded through Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:07:08Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0088951,
+    "duration_ms": 41717
+  },
+  "source_sha256": "cff004c93a1863cc9ac740db7fa7249d8db8c17e3482f843a5d49b0a16b44a88",
+  "checklist_sha256": "b05c282311eeb8c0aa7b3b48753350292f3f74bcc7475a317f67b99b2858ae10",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

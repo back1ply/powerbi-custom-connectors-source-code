@@ -1,0 +1,369 @@
+{
+  "connector": "AzureResourceGraph",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "181-186",
+          "function": "AzureResourceGraph",
+          "note": "Authentication record declares Aad with AuthorizationUri and Resource from the cloud endpoint config. No key, basic, or anonymous record is declared."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "91-95",
+          "function": "WaitForResult",
+          "note": "Web.Contents posts the ARG query body to the Azure Resource Manager endpoint."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "22-30",
+          "function": "AzureResourceGraph.Query",
+          "note": "Optional subscription and managementGroup text parameters name resources inside the target."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "32-41",
+          "function": "AzureResourceGraph.Query",
+          "note": "Optional options record parameter."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "7-8",
+          "function": "AzureResourceGraphType",
+          "note": "The required query text is a Kusto (KQL) query string. It fits no listed id, so it is recorded as other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "resultTruncated (logical, optional). When it is unset, it defaults to true, which limits the request to one page of up to 1000 rows. Setting it to false enables paging.",
+          "evidence": [
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "33-38",
+              "function": "AzureResourceGraph.Query",
+              "note": "resultTruncated field definition."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "73",
+              "function": "GetPage",
+              "note": "Default value of resultTruncated when options does not set it."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "skip-token"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "56",
+          "function": "ARGImpl",
+          "note": "The next token is read from the previous page's metadata SkipToken."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "137",
+          "function": "BuildPostContent",
+          "note": "The $skipToken option is sent in the request body."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "153",
+          "function": "GetSkipToken",
+          "note": "The $skipToken field is read from the response."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "53-62",
+              "function": "ARGImpl",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "204-223",
+              "function": "Table.GenerateByPage",
+              "note": "The connector's own Table.GenerateByPage helper, which uses List.Generate internally. The connector does not call List.Generate itself to fetch pages."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no $skipToken. GetSkipToken returns null in that case, and ARGImpl then returns null for the next page. With the default resultTruncated = true, nextSkipToken is forced to null, so paging ends after the first page. Setting resultTruncated = false lets the $skipToken from the response continue paging.",
+          "evidence": [
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "78",
+              "function": "GetPage",
+              "note": "nextSkipToken is null when resultTruncated is true, otherwise it comes from the response."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "56-59",
+              "function": "ARGImpl",
+              "note": "A null next token yields a null page, which ends Table.GenerateByPage."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "153",
+              "function": "GetSkipToken",
+              "note": "Returns null when the response has no $skipToken."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "97",
+          "function": "WaitForResult",
+          "note": "Json.Document parses the response body."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "79-80",
+          "function": "GetPage",
+          "note": "Table.FromList of body[data], then Table.ExpandRecordColumn using field names taken from the first row."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "212-222",
+          "function": "Table.GenerateByPage",
+          "note": "Column types come from the first page's value type. The connector assigns no declared M column types."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "94",
+          "function": "WaitForResult",
+          "note": "ManualStatusHandling = {500, 400} on the only Web.Contents data call."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "103",
+          "function": "WaitForResult",
+          "note": "Status 500 is retried below 3 iterations. Status 400 and other non-200 statuses are returned as errors."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "85-108",
+          "function": "WaitForResult",
+          "note": "Value.WaitFor retries the request with a delay that grows by powers of two."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "110-118",
+          "function": "Value.WaitFor",
+          "note": "Generic retry loop, bounded by count."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Only HTTP 500 is retried. Status 400 returns an error at once, and 200 succeeds. Value.WaitFor is called with count 3, so there are at most 3 attempts (iterations 0-2). The delay before each attempt is 2^iteration seconds, which is 1, 2, and 4 seconds. There is no rate-limit (429) handling. The pagination delay of 1-3 seconds from Number.RandomBetween is a page delay, not a retry.",
+          "evidence": [
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "103",
+              "function": "WaitForResult",
+              "note": "500 retried while iteration < 3; 400 not retried."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "106",
+              "function": "WaitForResult",
+              "note": "Delay is #duration(0,0,0,Number.Power(2, iteration)) with count 3."
+            },
+            {
+              "file": "AzureResourceGraph.pq",
+              "lines": "58-59",
+              "function": "ARGImpl",
+              "note": "Random page delay of 1-3 seconds before each page request."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "42-49",
+          "function": "AzureResourceGraphType",
+          "note": "Documentation.Name, LongDescription, and Examples on the function type."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "9-10",
+          "function": "AzureResourceGraphType",
+          "note": "FieldCaption and FieldDescription on parameters."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "11-13",
+          "function": "AzureResourceGraphType",
+          "note": "SampleValues on the query parameter."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "20",
+          "function": "AzureResourceGraphType",
+          "note": "AllowedValues on the scope parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "4-5",
+          "function": "AzureResourceGraph.Query",
+          "note": "The shared function returns one table of query results directly, with no navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "180",
+          "function": "AzureResourceGraph",
+          "note": "TestConnection returns AzureResourceGraph.Query with \"resources | limit 1\"."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "1-223",
+          "function": "section AzureResourceGraph",
+          "note": "All code is in one .pq file. No .pqm modules are loaded."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "9",
+          "function": "AzureResourceGraphType",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "199-202",
+          "function": "AzureResourceGraph.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "AzureResourceGraph.pq",
+          "lines": "192",
+          "function": "AzureResourceGraph.Publish",
+          "note": "Beta = false, so this is not a beta flag."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:06:04Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0070465,
+    "duration_ms": 33555
+  },
+  "source_sha256": "88eaaf98223b47305fbfdbe2fbd8f734f4221a66765e8bb4c9315086a59c2332",
+  "checklist_sha256": "b05c282311eeb8c0aa7b3b48753350292f3f74bcc7475a317f67b99b2858ae10",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

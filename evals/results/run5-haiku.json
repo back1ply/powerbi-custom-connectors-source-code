@@ -1,0 +1,162 @@
+{
+  "connectors_scored": 13,
+  "missing": [
+    "ClickHouseArrowFlight",
+    "LakeHouse"
+  ],
+  "overall": {
+    "precision": 0.997,
+    "recall": 1.0,
+    "exact": 0.995,
+    "n": 220
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "transport/odbc-capabilities": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 3
+    },
+    "user-inputs": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "paging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "data-formats": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "schema": {
+      "precision": 0.947,
+      "recall": 1.0,
+      "exact": 0.923,
+      "n": 13
+    },
+    "http-errors": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "navigation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "folding": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "packaging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "diagnostics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "writes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "auth/oauth-pkce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 5
+    },
+    "auth/oauth-refresh": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 5
+    },
+    "paging/paging-generator": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 6
+    },
+    "auth/key-placement": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 3
+    },
+    "folding/table-view-handlers": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "schema/empty-result-columns": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 2
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "GoogleSheets",
+      "question": "schema",
+      "expected": [
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ]
+    }
+  ]
+}

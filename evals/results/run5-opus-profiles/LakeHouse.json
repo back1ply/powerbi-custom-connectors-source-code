@@ -1,0 +1,419 @@
+{
+  "connector": "LakeHouse",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "3093-3104",
+          "function": "Lakehouse",
+          "note": "The data source kind declares Aad authentication with an AuthorizationUri, ordered Power BI/SQL/Storage scopes and a default client application."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-314",
+          "function": "Utils.pqm",
+          "note": "Http.Request calls Web.Contents. It is used through Web.JsonContents for the Fabric REST APIs that list workspaces, lakehouses and warehouses."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "333-344",
+          "function": "GetLakehousePublicAPIWitoutData",
+          "note": "Lists lakehouses through Utils[Web.JsonContents]."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "2945-2954",
+          "function": "Sql.Contents",
+          "note": "Reads lakehouse and warehouse SQL endpoints through Sql.Database."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "2885-2897",
+          "function": "OneLake.Contents",
+          "note": "other: reaches OneLake storage through AzureStorage.DataLake (ADLS Gen2), which none of the listed ids covers."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "114-140",
+          "function": "LakehouseType",
+          "note": "Lakehouse.Contents takes only an optional options record of type LakehouseOptions."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Declared fields: HierarchicalNavigation (logical), EnableVorder (logical, default true) and OutputMetadataRefresh (logical, default true). The code also reads undeclared internal options: IncludeWarehouses, IsModelStorage, EnableFolding, StagingWorkspaceId, StagingLakehouseId, StagingWarehouseId, MetadataRefresh, UseSparkCompute, EnableOptimizedCopyToLakehouse, DeltaTableFastCopyMaxConcurrency, CommandTimeout, CreateNavigationProperties and EnableBulkInsert.",
+          "evidence": [
+            {
+              "file": "LakeHouse.pq",
+              "lines": "127-131",
+              "function": "LakehouseType",
+              "note": "The declared options record fields."
+            },
+            {
+              "file": "LakeHouse.pq",
+              "lines": "2950-2951",
+              "function": "Sql.Contents",
+              "note": "Options passed through to Sql.Database."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "287-290",
+          "function": "Utils.pqm",
+          "note": "JsonHandler parses Fabric API responses with Json.Document."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "2945-2954",
+          "function": "Sql.Contents",
+          "note": "Tables come from Sql.Database rows."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1534-1551",
+          "function": "GenerateNavTableUsingDeltaTable",
+          "note": "other: Delta Lake tables on OneLake are read with DeltaLake.Table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1632-1632",
+          "function": "GenerateSqlTableView",
+          "note": "Sql.Database supplies column names and types for SQL endpoint tables."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1538-1538",
+          "function": "GenerateNavTableUsingDeltaTable",
+          "note": "DeltaLake.Table supplies the schema from the Delta log."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-311",
+          "function": "Utils.pqm",
+          "note": "Every Web.Contents call goes through Http.Request, which sets ManualStatusHandling and sends each status to a handler."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "349-398",
+          "function": "Utils.pqm",
+          "note": "DefaultErrorHandler builds Error.Record values from the HTTP status and the error body."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "404-408",
+          "function": "Utils.pqm",
+          "note": "RetryHandler resends the request after Function.InvokeAfter."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "335-340",
+          "function": "GetLakehousePublicAPIWitoutData",
+          "note": "503 responses are retried up to 5 times."
+        },
+        {
+          "file": "MDSync.pqm",
+          "lines": "661-669",
+          "function": "MDSync.pqm",
+          "note": "Metadata-sync requests retry 500 and 503, and 400 while polling."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Listing lakehouses retries HTTP 503 up to 5 times, waiting iteration*0.2 seconds each time (Utils RetryHandler). Metadata-sync (DMS) calls retry 500 and 503, and 400 while polling, up to 4 times, waiting iteration*5 seconds. After that, DefaultErrorHandler raises a structured error.",
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "404-408",
+              "function": "Utils.pqm",
+              "note": "RetryHandler and its default delay."
+            },
+            {
+              "file": "LakeHouse.pq",
+              "lines": "340-340",
+              "function": "GetLakehousePublicAPIWitoutData",
+              "note": "The 503 retry handler with a count of 5."
+            },
+            {
+              "file": "MDSync.pqm",
+              "lines": "661-669",
+              "function": "MDSync.pqm",
+              "note": "The MDSync retry handlers."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "132-138",
+          "function": "LakehouseType",
+          "note": "Documentation.Name, Caption, Description and LongDescription on the function type."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "116-126",
+          "function": "LakehouseType",
+          "note": "Documentation.FieldCaption on each options field."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Workspace.pqm",
+          "lines": "26-84",
+          "function": "Workspace.pqm",
+          "note": "Workspaces are listed at runtime from /v1/workspaces into a NavigationTableView."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "304-313",
+          "function": "AddLakehouseTrivia",
+          "note": "Lakehouse rows use IsLeaf=false, so each opens a table navigation table."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1527-1583",
+          "function": "GenerateNavTableUsingDeltaTable",
+          "note": "Tables are discovered from the OneLake folder listing."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "not-defined"
+      ],
+      "evidence": []
+    },
+    "folding": {
+      "values": [
+        "source-function-folding",
+        "custom-sql-generator"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "2945-2954",
+          "function": "Sql.Contents",
+          "note": "SQL endpoint tables fold through Sql.Database."
+        },
+        {
+          "file": "SparkCompute.pqm",
+          "lines": "84-131",
+          "function": "SparkCompute.pqm",
+          "note": "The Spark compute path builds a Spark SQL view with SqlView.Generator and the connector's own SqlGenerator.pqm."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1561-1573",
+          "function": "GenerateNavTableUsingDeltaTable",
+          "note": "Each table is wired to SparkSqlViewOnDelta."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "3612-3683",
+          "function": "Extension.LoadFunction",
+          "note": "Loads the .pqm modules with Extension.LoadFunction."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "3110-3110",
+          "function": "Lakehouse",
+          "note": "The label comes from Extension.LoadString."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "3606-3609",
+          "function": "Lakehouse.Icons",
+          "note": "Icon set used by Publish."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "42-52",
+          "function": "IncludeFabricSensitivityLabels",
+          "note": "Calls Diagnostics.Trace with no gating switch."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "381-385",
+          "function": "Utils.pqm",
+          "note": "Web errors are always traced."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MDSync.pqm",
+          "lines": "465-541",
+          "function": "MDSync.pqm",
+          "note": "other: submits a SQL metadata-sync batch and polls its status with Value.WaitFor. This is not a data export."
+        },
+        {
+          "file": "SparkComputeUtils.pqm",
+          "lines": "179-233",
+          "function": "SparkComputeUtils.pqm",
+          "note": "Polls the status of Livy Spark statements."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Metadata sync: the batch is long-polled up to PollingCount=5 times. The delay is Number.Power(1, i+1)-1, which works out to 0 seconds. Polling continues on HTTP 204 or 500 and stops when the batch returns a progressState: success is parsed, anything else raises an error. After 5 polls it raises UnableToSyncTable. Lock conflicts resubmit up to 55 times, waiting 5 seconds when no batch is in progress. Spark statements are polled up to 55 times with a delay of 1.1^(i+1)-1 seconds while the state is waiting or running. The output status 'error' is terminal, and a TABLE_OR_VIEW_NOT_FOUND error triggers one retry after 15 seconds.",
+          "evidence": [
+            {
+              "file": "MDSync.pqm",
+              "lines": "26-30",
+              "function": "MDSync.pqm",
+              "note": "Polling configuration."
+            },
+            {
+              "file": "MDSync.pqm",
+              "lines": "482-539",
+              "function": "MDSync.pqm",
+              "note": "The long-poll loop."
+            },
+            {
+              "file": "MDSync.pqm",
+              "lines": "585-621",
+              "function": "MDSync.pqm",
+              "note": "Lock-conflict retry."
+            },
+            {
+              "file": "SparkComputeUtils.pqm",
+              "lines": "179-233",
+              "function": "SparkComputeUtils.pqm",
+              "note": "Spark statement polling."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "table-view-mutations"
+      ],
+      "evidence": [
+        {
+          "file": "LakeHouse.pq",
+          "lines": "822-952",
+          "function": "GenerateLakeHouseTablesView",
+          "note": "Table.View OnInsertRows and OnDeleteRows create and delete Delta tables in OneLake."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "2096-2354",
+          "function": "GenerateViewForVersionedTable",
+          "note": "Versioned inserts and deletes on Delta tables."
+        },
+        {
+          "file": "LakeHouse.pq",
+          "lines": "1030-1035",
+          "function": "GenerateViewForWarehouseSqlTableData",
+          "note": "Insert, update and delete handlers for the warehouse."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "opus",
+    "at": "2026-11-26T12:05:17Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "opus",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "cost_usd": 2.107812,
+    "duration_ms": 62828
+  },
+  "source_sha256": "92f300fed5c21e11865e8e603ba35f929f1d219ee3416e6ef907bdac9aa1c12a",
+  "checklist_sha256": "b05c282311eeb8c0aa7b3b48753350292f3f74bcc7475a317f67b99b2858ae10",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

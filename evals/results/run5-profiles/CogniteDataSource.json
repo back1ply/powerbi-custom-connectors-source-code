@@ -1,0 +1,520 @@
+{
+  "connector": "CogniteDataSource",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "214-221",
+          "function": "CogniteDataSource",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "84-115",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL with client_id, state, redirect_uri, scope and audience"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "117-155",
+          "function": "TokenMethod",
+          "note": "Token exchange against TokenUrl using authorization_code or refresh_token grants"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "87-90",
+              "function": "StartLogin",
+              "note": "Creates a code verifier and a SHA256 code challenge"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "103-104",
+              "function": "StartLogin",
+              "note": "Sends code_challenge_method = S256 and code_challenge"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "126",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier with the token request"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "177-189",
+              "function": "Refresh",
+              "note": "Refresh callback exchanges the refresh token for a new token"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "147-148",
+              "function": "TokenMethod",
+              "note": "Re-inserts the refresh token into the response so Power BI keeps it"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "132-133",
+          "function": "TokenMethod",
+          "note": "Web.Contents to the token endpoint"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "779",
+          "function": "RetryWithExponentialBackoff",
+          "note": "Web.Contents for every data and metadata request"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "544-545",
+          "function": "GetODataFeedImpl",
+          "note": "OData.Feed for the CDF OData endpoints"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "6-7",
+          "function": "CogniteDefaults",
+          "note": "Project and organization are the resource identifiers"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "61-67",
+          "function": "CogniteDataSourceType",
+          "note": "Declares the project and organization parameters the user supplies"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "248-249",
+          "function": "CogniteDataSourceImpl",
+          "note": "Entry takes project and organization text parameters"
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "cursor-token",
+        "graphql-cursor"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "700-704",
+          "function": "GetAllPagesByCursor",
+          "note": "Next cursor read from the Cursor metadata of the previous page"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1144-1149",
+          "function": "GetCursor",
+          "note": "Reads nextCursor from the REST response, null when hasNext is false"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1150-1156",
+          "function": "GetCursorGraphQL",
+          "note": "Reads pageInfo.endCursor when hasNextPage is true"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "696-697",
+              "function": "GetAllPagesByCursor",
+              "note": "Table.GenerateByPage drives REST pages"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "740-741",
+              "function": "GetAllGraphQLPagesByCursor",
+              "note": "Table.GenerateByPage drives GraphQL pages"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "1205",
+              "function": "Table.GenerateByPage",
+              "note": "Loads the Table.GenerateByPage helper"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging ends when the cursor is null: the REST GetCursor returns null when hasNext is false or nextCursor is absent, and GetCursorGraphQL returns null unless pageInfo.hasNextPage is true. Paging also ends when a follow-up page has zero rows (the REST path returns null at line 722, the GraphQL path at lines 755-762). Empty-row pages are dropped at lines 731-735.",
+          "evidence": [
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "722",
+              "function": "GetAllPagesByCursor",
+              "note": "Empty next page returns null, which stops paging"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "1144-1156",
+              "function": "GetCursor",
+              "note": "Cursor is null when hasNext is false or hasNextPage is not true"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "744-765",
+              "function": "GetAllGraphQLPagesByCursor",
+              "note": "Null cursor or empty page returns null to stop Table.GenerateByPage"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "884",
+          "function": "GetPage",
+          "note": "Json.Document parses REST responses"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1025",
+          "function": "GetGraphQLPage",
+          "note": "Json.Document parses GraphQL responses"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "663",
+          "function": "GetEnvironmentFromOrganization",
+          "note": "Json.Document parses the organization projects list"
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "973-976",
+          "function": "GetPage",
+          "note": "Table.FromRecords takes column names from the JSON fields with no declared M types"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1111-1118",
+          "function": "GetGraphQLPage",
+          "note": "Column names come from the GraphQL item field names"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "544-546",
+          "function": "GetODataFeedImpl",
+          "note": "OData.Feed supplies names and types from $metadata"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "570",
+          "function": "GetODataFeedImpl",
+          "note": "Value.ReplaceType keeps the OData type rather than redefining it"
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay",
+        "rate-limit-aware"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "544-545",
+          "function": "GetODataFeedImpl",
+          "note": "OData.Feed has no ManualStatusHandling, so Power Query handles its status codes"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "865",
+          "function": "GetPage",
+          "note": "ManualStatusHandling set and status inspected in code"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1014",
+          "function": "GetGraphQLPage",
+          "note": "ManualStatusHandling set for GraphQL requests"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "658",
+          "function": "GetEnvironmentFromOrganization",
+          "note": "ManualStatusHandling set on the organization lookup"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "899-907",
+          "function": "GetPage",
+          "note": "CogniteAPIError Error.Record built from HTTP status and error body"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1055-1057",
+          "function": "GetGraphQLPage",
+          "note": "CogniteAPIError Error.Record built from status code and error body"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "802-805",
+          "function": "RetryWithExponentialBackoff",
+          "note": "Retries scheduled with Function.InvokeAfter after a delay"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "788-789",
+          "function": "RetryWithExponentialBackoff",
+          "note": "429 is a retryable status"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "815-816",
+          "function": "RetryWithExponentialBackoff",
+          "note": "Rate-limit error type reported when 429 retries are exhausted"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "691-693",
+          "function": "GetAllPagesByCursor",
+          "note": "Pacing between /streams/ page fetches to avoid CDF rate limits"
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Retried statuses: 429, 502, 503 and 504 (up to MaxRetries = 10); 409 only when the cdf-is-auto-retryable header is \"true\" (up to 10); and 408 on all endpoints except /models/instances/query (up to MaxRetries408 = 2). Delay is exponential, base 1000 ms for most codes and 2000 ms for 408, doubling per retry (2^retryCount), capped at 60000 ms, with random jitter (Number.Random() times the capped delay), scheduled with Function.InvokeAfter. GraphQL responses that return HTTP 200 with both errors and data are retried up to 2 times with a 2000 ms base, the same cap and jitter. The /streams/ page pacing of 200 ms is spacing between successful pages, not a retry.",
+          "evidence": [
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "19-26",
+              "function": "CogniteDefaults",
+              "note": "Retry counts, base delays and the cap"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "784-793",
+              "function": "RetryWithExponentialBackoff",
+              "note": "Retryable codes, the 409 header rule and the 408 query-endpoint exclusion"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "794-807",
+              "function": "RetryWithExponentialBackoff",
+              "note": "Exponential delay with jitter and the retry call"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "1051-1052",
+              "function": "GetGraphQLPage",
+              "note": "Transient GraphQL errors reuse the 408 retry budget"
+            },
+            {
+              "file": "CogniteDataSource.pq",
+              "lines": "1127-1138",
+              "function": "GetGraphQLPage",
+              "note": "GraphQL retry delay and Function.InvokeAfter"
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "49-50",
+          "function": "CogniteDataSource.Contents",
+          "note": "Shared entry function with the value replaced by the annotated type"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "55-59",
+          "function": "CogniteDataSourceType",
+          "note": "Documentation.FieldCaption and FieldDescription on project"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "58",
+          "function": "CogniteDataSourceType",
+          "note": "Documentation.SampleValues on project"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "68-71",
+          "function": "CogniteDataSourceType",
+          "note": "Documentation.Name and LongDescription on the function"
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "284-300",
+          "function": "CogniteDataSourceImpl",
+          "note": "Hardcoded navigator rows: GraphQL, PostCDF, GetCDF, ODataCDF and ODataDataModel"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "301-303",
+          "function": "CogniteDataSourceImpl",
+          "note": "Table.ToNavigationTable builds the navigation table from the fixed list"
+        },
+        {
+          "file": "Table.ToNavigationTable.pqm",
+          "lines": "1-23",
+          "function": "Table.ToNavigationTable.pqm",
+          "note": "Adds the navigation column metadata to the table"
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "208-212",
+          "function": "CogniteDataSource",
+          "note": "TestConnection returns the CogniteDataSource.Contents call with project and organization"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "544-545",
+          "function": "GetODataFeedImpl",
+          "note": "OData.Feed with Implementation 2.0 supplies the OData query folding"
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "1197-1206",
+          "function": "Extension.LoadFunction",
+          "note": "Loads Value.ToText.pqm, Table.GenerateByPage.pqm and Table.ToNavigationTable.pqm through Extension.Contents"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "56-57",
+          "function": "CogniteDataSourceType",
+          "note": "Extension.LoadString for captions and descriptions"
+        },
+        {
+          "file": "CogniteDataSource.pq",
+          "lines": "234-245",
+          "function": "CogniteDataSource.Icons",
+          "note": "Extension.Contents loads the CDF PNG icon files"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:07:04Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0155079,
+    "duration_ms": 57876
+  },
+  "source_sha256": "067dd34b39df0f6bc9c18458a7257b4e4ca84e7f89266dd83a260d26bceb4176",
+  "checklist_sha256": "b05c282311eeb8c0aa7b3b48753350292f3f74bcc7475a317f67b99b2858ae10",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
