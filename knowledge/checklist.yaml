@@ -146,7 +146,7 @@ questions:
         means: The connector itself assigns M types to the named columns of the data tables it returns - a hardcoded schema table or table type, or its own mapping from source type names to M types. Column names without types do not count, nor do navigation tables or other helper tables the connector builds for itself.
         source: handling-schema
       inferred-from-data:
-        means: Column names come from the data itself (record field names, Table.FromRecords, Csv.Document Column1..N) and the connector assigns them no declared M types.
+        means: Column names come from the data itself (record field names, Table.FromRecords, Csv.Document Column1..N) and the connector assigns them no declared M types. Answer it alongside declared-schema when some tables have an empty or missing schema, or when columns the response returns beyond the declared ones are kept.
         source: handling-schema
       explicit-type-conversion:
         means: The connector converts column values of returned data to specific types - Table.TransformColumnTypes, Table.ChangeType, or per-value Date.From/Number.From on data cells. Rewriting driver metadata (for example SQLColumns type names) stays driver-provided, and converting values used only internally is not counted.
@@ -169,7 +169,7 @@ questions:
     answers: [default, manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]
     definitions:
       default:
-        means: At least one live data request (Web.Contents or OData.Feed, not an OAuth token or auth exchange) leaves status handling to Power Query, with no ManualStatusHandling.
+        means: At least one live data request (Web.Contents or OData.Feed, not an OAuth token or auth exchange) leaves status handling to Power Query, with no ManualStatusHandling. Metadata requests such as a schema lookup count as data requests. Answer it alongside manual-status-handling when only some requests set ManualStatusHandling.
         source: handling-status-codes
       manual-status-handling:
         means: At least one live call, token calls included, sets ManualStatusHandling and inspects the status itself.
@@ -207,10 +207,10 @@ questions:
         means: The navigation table's rows are a hardcoded list, even a single row. A hardcoded folder or action inside an otherwise discovered tree does not count.
         source: handling-navigation-tables
       discovered-from-api:
-        means: The navigator's items are listed at runtime from the source. OData.Feed on a service root counts, because it builds the navigator from the service document.
+        means: The navigator's items are listed at runtime from the source. A connector that returns OData.Feed on the URL the user supplies counts, even though it builds no navigation table itself, because OData.Feed builds the navigator from the service document. Answer this, not single-table.
         source: handling-navigation-tables
       hierarchical:
-        means: Some navigation rows are folders (IsLeaf false) that open further navigation tables.
+        means: Some navigation rows open further navigation tables - folders with IsLeaf false, or indirect rows (NavigationTable.SupportsIndirection) whose Data re-invokes a data source function that returns a navigation table.
         source: handling-navigation-tables
       none:
         means: No shared function returns a table (for example it only returns functions or scalar values).

@@ -122,9 +122,14 @@ answers:
     sub: {}
   http-errors:
     values:
+    - default
     - manual-status-handling
     - structured-error-records
     evidence:
+    - file: Asana.m
+      lines: 209-210
+      function: AsanaSchema
+      note: 'default: the /v1/schema request (run through GetType on every query) has no ManualStatusHandling'
     - file: Asana.m
       lines: 157-164
       function: TokenMethod

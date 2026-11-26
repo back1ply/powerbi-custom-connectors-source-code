@@ -123,9 +123,15 @@ answers:
     sub: {}
   http-errors:
     values:
+    - default
     - manual-status-handling
     - structured-error-records
     evidence:
+    - file: Anaplan.pq
+      lines: 631-632
+      function: getTaskStatus
+      note: 'default: the export task status request has no ManualStatusHandling, so Power Query handles its
+        status codes'
     - file: Anaplan.pq
       lines: 603-609
       function: GetWebContents

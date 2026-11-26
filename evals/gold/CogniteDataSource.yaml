@@ -177,11 +177,16 @@ answers:
     sub: {}
   http-errors:
     values:
+    - default
     - manual-status-handling
     - structured-error-records
     - retry-with-delay
     - rate-limit-aware
     evidence:
+    - file: CogniteDataSource.pq
+      lines: 544-546
+      function: GetODataFeedImpl
+      note: 'default: the OData.Feed data request has no ManualStatusHandling'
     - file: CogniteDataSource.pq
       lines: 859-866
       function: GetPage
