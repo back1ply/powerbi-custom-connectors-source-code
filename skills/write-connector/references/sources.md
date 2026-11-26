@@ -45,6 +45,11 @@ survive only in the Wayback Machine:
 
 ## This repository
 
+- `reference/microsoft-dataconnectors/`: Microsoft's sample connectors (TripPin parts
+  1-10, GitHub OAuth, PKCE, ODBC, native query, ADBC/Flight SQL) and the SDK test
+  framework's standard queries, vendored under MIT. These are written to be copied:
+  start a new connector from the TripPin part that matches the step you are on.
+
 - `knowledge/checklist.yaml`: the design questions and answer definitions.
 - `bundle/patterns/`: reviewed technique guides with exact excerpts.
 - `connectors/<Name>/`: archived certified connector source; `knowledge/profiles/` and

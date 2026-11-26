@@ -1,0 +1,399 @@
+{
+  "connector": "CCHTagetik",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "16-23",
+          "function": "CCHTagetik",
+          "note": "The data source kind offers only UsernamePassword authentication, labelled 'Username or Client id' and 'Password or Client secret'."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "291-314",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "If the URL contains /oauth2, the stored username and password are posted to /oauth2/token as client_id and client_secret, and the returned token is sent as a Bearer header. The kind does not declare OAuth, so this is not counted as oauth."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "328-328",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "All data requests go through Web.Contents against the AIH OData-style REST endpoints."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1742-1742",
+          "function": "CreateDataset",
+          "note": "Dataset pages are fetched with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "179-190",
+          "function": "CCHTagetikType4",
+          "note": "URL is the environment URL; Database names the CCH Tagetik database."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "52-71",
+          "function": "CCHTagetikType",
+          "note": "The optional AW (analytical workspace code) and Dataset parameters name resources inside the target."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "191-214",
+          "function": "CCHTagetikType4",
+          "note": "Optional options record (FinancialModel, AWDatasets, StartDate, EndDate). Contents3 instead takes FinancialOptions, AnalyticalOptions and AdvancedOptions records."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "103-110",
+          "function": "CCHTagetikType2",
+          "note": "Contents2 takes StartDate and EndDate datetime parameters (Range Start/End) used to filter the fact data."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "FinancialModel (text, '1' or '2'), AWDatasets (comma-separated workspace_dataset codes), StartDate (datetime), EndDate (datetime). Contents3 spreads the same fields over three records: FinancialOptions[FinancialModel], AnalyticalOptions[AWDatasets], AdvancedOptions[StartDate, EndDate].",
+          "evidence": [
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "260-271",
+              "function": "CCHTagetikNavTable4",
+              "note": "Reads FinancialModel, AWDatasets, StartDate and EndDate from the options record."
+            },
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "241-254",
+              "function": "CCHTagetikNavTable3",
+              "note": "Reads the same fields from the three option records."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "499-515",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Page-number paging: the page count N_PAGINATION is read from the server first (Dataset_AWT018)."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "542-595",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Each page is requested with a $filter of P eq '<n>' for n in {1..N_PAGINATION}, and the pages are combined."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1713-1764",
+          "function": "CreateDataset",
+          "note": "Dataset pages use the same P eq '<index>' filter over {1..DatasetNrPages}."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "587-588",
+              "function": "CCHTagetikNavTableFinancial",
+              "note": "Pages come from List.Transform over a precomputed index list {1..FactTableNrPages}, not from List.Generate or Table.GenerateByPage."
+            },
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "1760-1761",
+              "function": "CreateDataset",
+              "note": "List.Transform over {1..Number.From(DatasetNrPages)}."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging covers a fixed number of pages that the server reports up front: N_PAGINATION from Dataset_AWT018 for the fact table (1 if null) or from Dataset_AWT002 for analytical datasets. Every page from 1 to that count is fetched, and empty pages are filtered out afterwards.",
+          "evidence": [
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "514-521",
+              "function": "CCHTagetikNavTableFinancial",
+              "note": "Page count comes from N_PAGINATION, defaulting to 1."
+            },
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "587-590",
+              "function": "CCHTagetikNavTableFinancial",
+              "note": "Iterates 1..N and drops pages with no rows."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "570-579",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Responses are parsed with Json.Document; rows are expanded from the OData 'value' list and pipe-delimited K strings are split into columns."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "544-567",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Table.View GetType declares a typed table type for the fact table; every dimension source does the same."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1246-1258",
+          "function": "CCHTagetikNavTableAIH",
+          "note": "The connector maps source FIELD_TYPE names to M types to type dataset columns."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "596-597",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Table.TransformColumnTypes converts the fact-table columns to text and AMOUNT to number (en-US)."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1894-1899",
+          "function": "CreateDataset",
+          "note": "Dataset columns are converted with Table.TransformColumnTypes using the mapped types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "574-579",
+              "function": "CCHTagetikNavTableFinancial",
+              "note": "If the value list is empty, the page returns an empty table built with the declared column names."
+            },
+            {
+              "file": "CCHTagetik.pq",
+              "lines": "2000-2004",
+              "function": "CreateFinancialDimensionsFW",
+              "note": "Dimension sources fall back to an empty table with the declared column names."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "570-570",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Data requests set no ManualStatusHandling, so Power Query handles status codes. IsRetry=true on some calls only bypasses the cache; it is not a delayed retry."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "216-219",
+          "function": "CCHTagetikType4",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "180-190",
+          "function": "CCHTagetikType4",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on the parameters."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "193-197",
+          "function": "CCHTagetikType4",
+          "note": "Documentation.AllowedValues {\"1\",\"2\"} on FinancialModel."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "901-964",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "The financial navigation table is a hardcoded list of dimension and fact-table rows."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1445-1490",
+          "function": "CCHTagetikNavTableAIH",
+          "note": "Analytical dataset items are listed at runtime from the Dataset_AWT002 API."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1524-1536",
+          "function": "CCHTagetikNavTableAIH",
+          "note": "Folder rows with IsLeaf=false (Dimensions, Hierarchies, Datasets, Financial Features, User Rights) open nested navigation tables."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "8-14",
+          "function": "CCHTagetik",
+          "note": "TestConnection returns {\"CCHTagetik.Contents\", URL, Database}, so the gateway test runs a normal query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1-3",
+          "function": "",
+          "note": "All code is in a single section file."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "21-24",
+          "function": "CCHTagetik",
+          "note": "Labels come from Extension.LoadString."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "39-42",
+          "function": "CCHTagetik.Icons",
+          "note": "Icon16 and Icon32 PNG resources."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1078-1082",
+          "function": "CCHTagetikNavTableFinancial",
+          "note": "Diagnostics.Trace(TraceLevel.Error, ...) runs with no gating switch when the environment or model is invalid."
+        },
+        {
+          "file": "CCHTagetik.pq",
+          "lines": "1651-1658",
+          "function": "CCHTagetikNavTableAIH",
+          "note": "Ungated Diagnostics.Trace on error paths."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "opus",
+    "at": "2026-11-26T15:14:23Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "opus",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "cost_usd": 3.195598,
+    "duration_ms": 56279
+  },
+  "source_sha256": "20a077d1505ccfb9e73f4af35d88cdf4752d7a716443cdffead4fa846448fc5f",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

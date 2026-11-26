@@ -1,0 +1,490 @@
+{
+  "connector": "Dremio",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "key",
+        "username-password",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "71-77",
+          "function": "Dremio",
+          "note": "Dremio kind offers UsernamePassword and Aad"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "413-422",
+          "function": "DremioCloud",
+          "note": "DremioCloud kind offers Aad and Key (personal access token)"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "42-44",
+          "function": "DremioTesting",
+          "note": "DremioTesting kind offers Anonymous"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "908-919",
+          "function": "GetCredentialConnectionString",
+          "note": "Maps UsernamePassword, OAuth and Key credentials into the ODBC UID/PWD"
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header",
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "119-120",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "ADBC path sends the key as a Bearer authorization header"
+            },
+            {
+              "file": "Dremio.pq",
+              "lines": "916-917",
+              "function": "GetCredentialConnectionString",
+              "note": "ODBC path puts the key in PWD of the driver credential connection string (other)"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc",
+        "adbc-flight",
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "904",
+          "function": "DremioDatabaseCommon",
+          "note": "Odbc.DataSource with the Simba Drill driver"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "223-253",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Adbc.DataSource / Adbc.Connection with the Flight SQL driver"
+        },
+        {
+          "file": "DremioOAuthDiscovery.pqm",
+          "lines": "71-80",
+          "function": "DremioOAuthDiscovery.pqm",
+          "note": "Web.Contents fetches the server's OAuth discovery metadata (.well-known endpoints)"
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Dremio.pq",
+              "lines": "829-896",
+              "function": "DremioDatabaseCommon",
+              "note": "SqlCapabilities, SQLGetInfo, SQLGetFunctions, AstVisitor and SQLGetTypeInfo overrides"
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "267",
+          "function": "DremioDatabaseExportV370",
+          "note": "server parameter; encryption (TLS mode), engine, routingTag and routingQueue are other; plus an options record"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "687",
+          "function": "DremioCloudDatabaseByServerExportV370",
+          "note": "projectId names a project inside the target (database-or-resource-id)"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "279-298",
+          "function": "DremioDatabaseExportV370",
+          "note": "encryption (allowed values), engine and routing tag/queue parameters: other"
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Implementation (\"2.0\" selects ADBC), AuthorizationServerPort, AuthorizationServerDomain, AdbcMaxMessageSize, AdbcConnectTimeout, AdbcFetchTimeout, AdbcQueryTimeout, AdbcUpdateTimeout, UseAdbcConnection, UseNativeMetadataSQL, UseInformationSchemaSchemata, CreateNavigationProperties. UseAdbcByDefault is added internally. On the ODBC path, other fields are merged into the Odbc.DataSource options.",
+          "evidence": [
+            {
+              "file": "Dremio.pq",
+              "lines": "1006-1040",
+              "function": "FilterOptionsForOdbc",
+              "note": "Options that select or configure ADBC; the rest go through to ODBC"
+            },
+            {
+              "file": "Dremio.pq",
+              "lines": "899-903",
+              "function": "DremioDatabaseCommon",
+              "note": "User options merged into the ODBC options"
+            },
+            {
+              "file": "DremioAdbcOptions.pqm",
+              "lines": "65-165",
+              "function": "DremioAdbcOptions.pqm",
+              "note": "ADBC message size and timeout options"
+            },
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "202-221",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "CreateNavigationProperties and UseAdbcConnection"
+            },
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "417-439",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "UseNativeMetadataSQL and UseInformationSchemaSchemata"
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows",
+        "arrow"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "904",
+          "function": "DremioDatabaseCommon",
+          "note": "Rows come from the ODBC driver"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "237-244",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Arrow Flight SQL results through the ADBC driver"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "625-667",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Maps INFORMATION_SCHEMA DATA_TYPE names to M types through TypeFacets"
+        },
+        {
+          "file": "SqlGenerator.pqm",
+          "lines": "151-165",
+          "function": "SqlGenerator.pqm",
+          "note": "Mapping from Dremio type names to M types"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "606-623",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Table.TransformColumnTypes casts UUID columns to text"
+        },
+        {
+          "file": "DataTransform.pqm",
+          "lines": "14-31",
+          "function": "DataTransform.pqm",
+          "note": "ARRAY columns converted with Text.From"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "904",
+          "function": "DremioDatabaseCommon",
+          "note": "ODBC driver supplies column names and types"
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "293-311",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "Table.View GetType returns the declared result type no matter how many rows come back"
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "DremioOAuthDiscovery.pqm",
+          "lines": "51-80",
+          "function": "DremioOAuthDiscovery.pqm",
+          "note": "Discovery Web.Contents sets ManualStatusHandling and treats failure responses as null (falls back)"
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "304-314",
+          "function": "DremioDatabaseExportV370",
+          "note": "Documentation.Name, LongDescription and Examples"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "275-298",
+          "function": "DremioDatabaseExportV370",
+          "note": "FieldCaption, SampleValues, FieldDescription and AllowedValues"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "826",
+          "function": "DremioDatabaseCommon",
+          "note": "ODBC HierarchicalNavigation builds the navigator from the source"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "555-604",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Schemas (IsLeaf false) open table lists queried from INFORMATION_SCHEMA"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "70",
+          "function": "Dremio",
+          "note": "TestConnection names Dremio.DatabasesV370"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "407-411",
+          "function": "DremioCloud",
+          "note": "TestConnection names DremioCloud.DatabasesByServerV370"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities",
+        "custom-sql-generator",
+        "table-view-handlers",
+        "native-query"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "829-896",
+          "function": "DremioDatabaseCommon",
+          "note": "Odbc.DataSource folding shaped by SqlCapabilities, SQLGetInfo, AstVisitor LimitClause and SQLGetTypeInfo"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "192-212",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "SqlView.Generator with the connector's own Dremio SqlGenerator"
+        },
+        {
+          "file": "SqlGenerator.pqm",
+          "lines": "408-473",
+          "function": "SqlGenerator.pqm",
+          "note": "Custom SQL generator overrides"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "573-602",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "Navigation Table.Views implement OnSelectRows"
+        },
+        {
+          "file": "DremioAdbcDataSource.pqm",
+          "lines": "441-453",
+          "function": "DremioAdbcDataSource.pqm",
+          "note": "NativeQuery handler wired through OnNativeQuery at line 577"
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-rows"
+          ],
+          "evidence": [
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "576",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "OnSelectRows on the schemas navigation table"
+            },
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "600",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "OnSelectRows on the tables navigation table"
+            }
+          ]
+        },
+        "native-query-enabled": {
+          "text": "On the ADBC path, the schemas navigation Table.View has an OnNativeQuery handler. It checks Extension.HasPermission, gets the result type by running SELECT * FROM (cmd) WHERE 0 = 1, and returns the query as a FromQuery Verbatim reference through the SqlView generator. Publish sets NativeQueryProperties with EnableFolding = true. On the ODBC path, native queries are hidden (HideNativeQuery = true).",
+          "evidence": [
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "441-453",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "NativeQuery implementation"
+            },
+            {
+              "file": "DremioAdbcDataSource.pqm",
+              "lines": "577",
+              "function": "DremioAdbcDataSource.pqm",
+              "note": "OnNativeQuery handler"
+            },
+            {
+              "file": "Dremio.pq",
+              "lines": "145-154",
+              "function": "Dremio.Publish",
+              "note": "NativeQueryProperties"
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "985-990",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm modules with Extension.Contents"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "1083-1087",
+          "function": "AdbcDataSourceModule",
+          "note": "ADBC and OAuth .pqm modules"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "139",
+          "function": "Dremio.Publish",
+          "note": "Extension.LoadString for localized strings"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "157-170",
+          "function": "Dremio.Icons",
+          "note": "Icon set"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Dremio.pq",
+          "lines": "1042-1054",
+          "function": "TraceImplementation",
+          "note": "Calls Diagnostics.Trace directly with no EnableTraceOutput switch"
+        },
+        {
+          "file": "Dremio.pq",
+          "lines": "1064",
+          "function": "DremioXdbcDatabase",
+          "note": "Called on every V370 query"
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "opus",
+    "at": "2026-11-26T15:14:32Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "opus",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "cost_usd": 2.964432,
+    "duration_ms": 67556
+  },
+  "source_sha256": "4ebb0785c50e403e0f0de03de8048f0bfa1146587c802f9c07ac42c603fb7b99",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
