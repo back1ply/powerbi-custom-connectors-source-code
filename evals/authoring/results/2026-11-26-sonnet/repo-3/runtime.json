@@ -28,7 +28,7 @@
     "invoices_rows": {
       "pass": true,
       "note": "ids ['in_1', 'in_2', 'in_3']",
-      "seconds": 4.1,
+      "seconds": 4.2,
       "mock": {
         "RequestCount": 2,
         "FailedMatches": 0,
@@ -85,6 +85,16 @@
         "UnmatchedRequests": null
       }
     },
+    "preview_one_page": {
+      "pass": true,
+      "note": "1 requests for one row",
+      "seconds": 4.1,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
     "error_401": {
       "pass": true,
       "note": "Ledgerly rejected the API key (HTTP 401). It may be wrong or expired; update the data source credentials. API key is invalid or expired.",
@@ -109,8 +119,8 @@
     },
     "error_429": {
       "pass": true,
-      "note": "5 requests, 8.2s: Ledgerly returned an unexpected response for 'invoices'. Check the API URL.",
-      "seconds": 8.2,
+      "note": "5 requests, 8.1s: Ledgerly returned an unexpected response for 'invoices'. Check the API URL.",
+      "seconds": 8.1,
       "mock": {
         "RequestCount": 5,
         "FailedMatches": 0,
@@ -143,11 +153,6 @@
       "seconds": 1.7
     }
   },
-  "preview_requests": {
-    "RequestCount": 1,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
-  "passed": 12,
-  "total": 14
+  "passed": 13,
+  "total": 15
 }

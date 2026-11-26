@@ -18,7 +18,7 @@
     "navigation_lazy": {
       "pass": true,
       "note": "no data requests",
-      "seconds": 4.0,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -38,7 +38,7 @@
     "invoices_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -79,6 +79,16 @@
       "pass": true,
       "note": "ids []",
       "seconds": 4.1,
+      "mock": {
+        "RequestCount": 2,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "preview_one_page": {
+      "pass": false,
+      "note": "2 requests for one row",
+      "seconds": 4.2,
       "mock": {
         "RequestCount": 2,
         "FailedMatches": 0,
@@ -143,11 +153,6 @@
       "seconds": 1.5
     }
   },
-  "preview_requests": {
-    "RequestCount": 2,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
   "passed": 14,
-  "total": 14
+  "total": 15
 }

@@ -68,7 +68,7 @@
     "payments_empty_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.1,
+      "seconds": 4.2,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -79,6 +79,16 @@
       "pass": true,
       "note": "ids []",
       "seconds": 4.1,
+      "mock": {
+        "RequestCount": 2,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "preview_one_page": {
+      "pass": false,
+      "note": "2 requests for one row",
+      "seconds": 4.3,
       "mock": {
         "RequestCount": 2,
         "FailedMatches": 0,
@@ -130,7 +140,7 @@
     "http_rejected": {
       "pass": true,
       "note": "Enter the Ledgerly API URL as an HTTPS address without a query string, fragment or user name, for example https://acme.ledgerly.example/api/v2",
-      "seconds": 3.6,
+      "seconds": 3.5,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -143,11 +153,6 @@
       "seconds": 1.6
     }
   },
-  "preview_requests": {
-    "RequestCount": 2,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
   "passed": 14,
-  "total": 14
+  "total": 15
 }

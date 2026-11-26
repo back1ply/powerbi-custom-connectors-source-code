@@ -38,7 +38,7 @@
     "invoices_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -48,7 +48,7 @@
     "customers_rows": {
       "pass": true,
       "note": "ids ['c_1', 'c_2']",
-      "seconds": 4.1,
+      "seconds": 4.0,
       "mock": {
         "RequestCount": 4,
         "FailedMatches": 0,
@@ -78,6 +78,16 @@
     "payments_empty_rows": {
       "pass": true,
       "note": "ids []",
+      "seconds": 4.0,
+      "mock": {
+        "RequestCount": 2,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
+    "preview_one_page": {
+      "pass": false,
+      "note": "2 requests for one row",
       "seconds": 4.1,
       "mock": {
         "RequestCount": 2,
@@ -109,8 +119,8 @@
     },
     "error_429": {
       "pass": true,
-      "note": "5 requests, 8.1s: Ledgerly is rate limiting requests. Try again in 1 seconds. (HTTP 429, rate_limited): Too many requests.",
-      "seconds": 8.1,
+      "note": "5 requests, 8.0s: Ledgerly is rate limiting requests. Try again in 1 seconds. (HTTP 429, rate_limited): Too many requests.",
+      "seconds": 8.0,
       "mock": {
         "RequestCount": 5,
         "FailedMatches": 0,
@@ -143,11 +153,6 @@
       "seconds": 1.6
     }
   },
-  "preview_requests": {
-    "RequestCount": 2,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
   "passed": 14,
-  "total": 14
+  "total": 15
 }

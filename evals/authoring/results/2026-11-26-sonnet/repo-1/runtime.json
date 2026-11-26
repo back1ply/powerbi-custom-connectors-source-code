@@ -8,7 +8,7 @@
     "navigation": {
       "pass": true,
       "note": "names ['Customers', 'Invoices', 'Payments']",
-      "seconds": 3.8,
+      "seconds": 3.7,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -28,7 +28,7 @@
     "invoices_rows": {
       "pass": true,
       "note": "ids ['in_1', 'in_2', 'in_3']",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 2,
         "FailedMatches": 0,
@@ -68,7 +68,7 @@
     "payments_empty_schema": {
       "pass": true,
       "note": "all columns typed",
-      "seconds": 3.8,
+      "seconds": 3.9,
       "mock": {
         "RequestCount": 0,
         "FailedMatches": 0,
@@ -85,10 +85,20 @@
         "UnmatchedRequests": null
       }
     },
+    "preview_one_page": {
+      "pass": true,
+      "note": "1 requests for one row",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
     "error_401": {
       "pass": true,
       "note": "Ledgerly rejected the API key. It is wrong or has expired; update the data source credentials. (API key is invalid or expired.)",
-      "seconds": 4.2,
+      "seconds": 4.1,
       "mock": {
         "RequestCount": 1,
         "FailedMatches": 0,
@@ -109,8 +119,8 @@
     },
     "error_429": {
       "pass": true,
-      "note": "6 requests, 9.3s: Ledgerly is rate limiting requests to 'invoices' and the connector stopped retrying. Try again later or refresh less often. (Too many requests.) The service ask",
-      "seconds": 9.3,
+      "note": "6 requests, 9.2s: Ledgerly is rate limiting requests to 'invoices' and the connector stopped retrying. Try again later or refresh less often. (Too many requests.) The service ask",
+      "seconds": 9.2,
       "mock": {
         "RequestCount": 6,
         "FailedMatches": 0,
@@ -143,11 +153,6 @@
       "seconds": 1.7
     }
   },
-  "preview_requests": {
-    "RequestCount": 1,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
-  "passed": 14,
-  "total": 14
+  "passed": 15,
+  "total": 15
 }

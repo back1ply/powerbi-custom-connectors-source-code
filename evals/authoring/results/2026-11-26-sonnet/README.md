@@ -22,23 +22,23 @@ DirectQuery, Table.View folding, OAuth for the service), and try weaker models.
 
 ## Runtime grading (added 2026-11-27)
 
-`runtime.py` compiled each connector with MakePQX and ran 14 checks on the Power Query
+`runtime.py` compiled each connector with MakePQX and ran 15 checks on the Power Query
 engine with PQTest 2.160.2, its HTTP mock standing in for the API: navigation names,
 lazy navigation, two-page invoices with a sparse record, customers with an empty middle
-page, column types for all three tables, an empty table's rows, 401 (must raise the
+page, column types for all three tables, an empty table's rows, one request to preview one invoice, 401 (must raise the
 engine's credential error, per Learn's handling-status-codes), 404, 429 and 503 sent
 forever, an `http://` URL, and `validate` on the TestConnection call. A copy of repo-1
 with `TestConnection` deleted fails that last check, so it is not a free point.
 Results are in each trial's `runtime.json`.
 
-| Trial | Runtime | Failed | Requests to preview one invoice (unscored) |
-| --- | --- | --- | --- |
-| repo-1 | 14/14 | | 1 |
-| repo-2 | 14/14 | | 1 |
-| repo-3 | 12/14 | customers_rows, payments_empty_rows | 1 |
-| baseline-1 | 14/14 | | 2 |
-| baseline-2 | 14/14 | | 2 |
-| baseline-3 | 14/14 | | 2 |
+| Trial | Runtime | Failed |
+| --- | --- | --- |
+| repo-1 | 15/15 | |
+| repo-2 | 15/15 | |
+| repo-3 | 13/15 | customers_rows, payments_empty_rows |
+| baseline-1 | 14/15 | preview_one_page |
+| baseline-2 | 14/15 | preview_one_page |
+| baseline-3 | 14/15 | preview_one_page |
 
 repo-3 combines pages with `Table.ExpandTableColumn` over a column of page tables
 (`repo-3/connector/Ledgerly.pq` 195), so each empty page becomes a row of nulls: an
@@ -55,5 +55,7 @@ Every connector retried 429 and 503 and then failed with its own message: 5 or 6
 requests, about 8-9 s for 429 (`Retry-After: 1`) and 34-66 s for 503. The mock cannot
 send an error and then a success, so recovery after a retry is untested.
 
-The rubric's `table-generatebypage` point is in doubt: the trial that failed used the
-same expansion as Microsoft's helper, and the five that passed did not use it.
+The rubric no longer scores which helper builds the pages (`paging/paging-generator`,
+removed 2026-11-27): the trial that failed used the same expansion as Microsoft's
+helper, and the behaviour is now checked on the engine instead. Rescored from the
+stored profiles, all six get 23/23 (the `grade.json` files keep the original 23/24).

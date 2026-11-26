@@ -1,12 +1,13 @@
 # What a correct Ledgerly connector answers, in knowledge/checklist.yaml terms.
 # `require`: ids that must all be present; `forbid`: ids that must not appear.
 # Each item is one point. Derived from spec.md and Microsoft's SDK guidance.
+# Which helper builds the pages is not scored: runtime.py checks the behaviour
+# (empty tables, empty pages, one request for a preview) on the engine.
 auth: {require: [key]}
 auth/key-placement: {require: [header], forbid: [query-string]}
 transport: {require: [web-contents]}
 user-inputs: {require: [url-or-server]}
 paging: {require: [cursor-token], forbid: [none]}
-paging/paging-generator: {require: [table-generatebypage]}
 data-formats: {require: [json]}
 schema: {require: [declared-schema]}
 schema/empty-result-columns: {require: ["yes"]}

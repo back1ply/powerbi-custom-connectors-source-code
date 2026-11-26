@@ -126,6 +126,8 @@ CHECKS = {
     "customers_schema": query(url("ok"), schema("Customers")),
     "payments_empty_schema": query(url("ok"), schema("Payments")),
     "payments_empty_rows": query(url("ok"), table("Payments")),
+    # Invoices has two pages: showing one row should request only the first.
+    "preview_one_page": query(url("ok"), f"Table.FirstN({table('Invoices')}, 1)"),
     "error_401": query(url("auth"), table("Invoices")),
     "error_404": query(url("nav"), table("Invoices")),
     "error_429": query(url("limit"), table("Invoices")),
@@ -216,6 +218,9 @@ def judge(name: str, result: dict) -> dict:
         ok = run.get("Status") == "Passed" and not data_calls
         note = f"data requests while listing: {data_calls}" if data_calls else note
         note = "no data requests" if ok else note
+    elif name == "preview_one_page":
+        ok = run.get("Status") == "Passed" and ids(run) == ["in_1"] and requests == 1
+        note = f"{requests} requests for one row" if run.get("Status") == "Passed" else note
     elif name.endswith("_rows"):
         want = {"invoices_rows": ["in_1", "in_2", "in_3"], "customers_rows": ["c_1", "c_2"]}
         want = want.get(name, [])
@@ -273,16 +278,6 @@ def validate(tools: Path, base: list[str], work: Path) -> dict:
     return {"pass": run.get("Status") == "Success", "note": note, "seconds": result["seconds"]}
 
 
-def preview_requests(tools: Path, base: list[str], work: Path, mock: Path) -> dict:
-    # Unscored: requests made to show one invoice. Invoices has two pages, so 1 means
-    # a preview reads only the first page.
-    qfile = work / "queries" / "preview_requests.query.pq"
-    qfile.write_text(query(url("ok"), f"Table.FirstN({table('Invoices')}, 1)"), encoding="utf-8")
-    result = pqtest(tools, "run-test", *base, "-q", str(qfile), "-hm", str(mock))
-    save(work / "raw" / "preview_requests.json", result)
-    return mock_stats(first(result))
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run a trial connector on PQTest, mocked API.")
     parser.add_argument("trial_dir", type=Path)
@@ -325,7 +320,6 @@ def main(argv: list[str] | None = None) -> int:
         save(work / "raw" / f"{name}.json", result)
         record["checks"][name] = judge(name, result)
     record["checks"]["test_connection_valid"] = validate(tools, base, work)
-    record["preview_requests"] = preview_requests(tools, base, work, mock)
     passed = sum(c["pass"] for c in record["checks"].values())
     record["passed"], record["total"] = passed, len(record["checks"])
     save(trial / "runtime.json", record)

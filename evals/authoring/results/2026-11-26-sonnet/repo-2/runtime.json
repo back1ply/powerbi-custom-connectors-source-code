@@ -85,6 +85,16 @@
         "UnmatchedRequests": null
       }
     },
+    "preview_one_page": {
+      "pass": true,
+      "note": "1 requests for one row",
+      "seconds": 4.2,
+      "mock": {
+        "RequestCount": 1,
+        "FailedMatches": 0,
+        "UnmatchedRequests": null
+      }
+    },
     "error_401": {
       "pass": true,
       "note": "Ledgerly rejected the key. It is wrong or has expired; update the data source credentials. (HTTP 401 on /invoices) unauthorized API key is invalid or expired.",
@@ -109,8 +119,8 @@
     },
     "error_429": {
       "pass": true,
-      "note": "6 requests, 9.3s: Ledgerly is limiting requests. Try again later or refresh less often. (HTTP 429 on /invoices) rate_limited Too many requests.",
-      "seconds": 9.3,
+      "note": "6 requests, 9.2s: Ledgerly is limiting requests. Try again later or refresh less often. (HTTP 429 on /invoices) rate_limited Too many requests.",
+      "seconds": 9.2,
       "mock": {
         "RequestCount": 6,
         "FailedMatches": 0,
@@ -140,14 +150,9 @@
     "test_connection_valid": {
       "pass": true,
       "note": "TestConnection expression is valid: Ledgerly.Contents(\"https://ok.ledgerly.example/api/v2\", [TestConnection=true])",
-      "seconds": 1.6
+      "seconds": 1.7
     }
   },
-  "preview_requests": {
-    "RequestCount": 1,
-    "FailedMatches": 0,
-    "UnmatchedRequests": null
-  },
-  "passed": 14,
-  "total": 14
+  "passed": 15,
+  "total": 15
 }
