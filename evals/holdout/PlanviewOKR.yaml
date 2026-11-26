@@ -1,0 +1,90 @@
+connector: PlanviewOKR
+labelled_by: claude-code/claude-opus-5-5
+source_note: PlanviewOKR.m (191 lines); labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [oauth]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "13", function: PlanviewOKR, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Refresh]]"}
+    sub:
+      oauth-pkce:
+        values: ["yes"]
+        evidence:
+          - {file: PlanviewOKR.m, lines: "83-98", function: StartLogin, note: "code_verifier generated; code_challenge = base64url(SHA256(verifier)) sent to authorize (no code_challenge_method parameter)"}
+          - {file: PlanviewOKR.m, lines: "110-114", function: FinishLogin, note: "verifier passed to TokenMethod as code_verifier (line 65)"}
+      oauth-refresh:
+        values: ["yes"]
+        evidence:
+          - {file: PlanviewOKR.m, lines: "116-132", function: Refresh, note: "grant_type = refresh_token against /io/v1/oauth2/token"}
+  transport:
+    values: [odata-feed]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "171-175", function: PlanviewOKR.ContentsInternal, note: "OData.Feed(ValidateUrlScheme(OdataUrl)); Web.Contents is used only for the OAuth token calls"}
+    sub: {}
+  user-inputs:
+    values: [url-or-server]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "177-183", function: PlanviewOKR.ContentsType, note: "single required ODataURL (text), must be https"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "171-175", function: PlanviewOKR.ContentsInternal, note: "single OData.Feed call; any nextLink following happens inside OData.Feed"}
+    sub: {}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "173", function: PlanviewOKR.ContentsInternal, note: "OData JSON payloads parsed by OData.Feed"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "173", function: PlanviewOKR.ContentsInternal, note: "names and types from the service $metadata via OData.Feed; no schema code"}
+    sub: {}
+  http-errors:
+    values: [default]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "173", function: PlanviewOKR.ContentsInternal, note: "the only data request, OData.Feed, has no ManualStatusHandling; token calls (60-67, 121-128) are excluded"}
+    sub: {}
+  documentation:
+    values: [function-documentation, parameter-captions]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "5", function: PlanviewOKR.Contents, note: "Value.ReplaceType(ContentsInternal, ContentsType)"}
+      - {file: PlanviewOKR.m, lines: "185-191", function: PlanviewOKR.ContentsType, note: "Documentation.Description, DisplayName, Caption, Name, LongDescription"}
+      - {file: PlanviewOKR.m, lines: "179-182", function: PlanviewOKR.ContentsType, note: "FieldCaption on ODataURL; SampleValues = {} is empty, so not counted"}
+  navigation:
+    values: [discovered-from-api]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "171-175", function: PlanviewOKR.ContentsInternal, note: "returns OData.Feed on the user's URL, which builds the navigator from the service document"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "12", function: PlanviewOKR, note: "TestConnection = {\"PlanviewOKR.Contents\", resource}"}
+  folding:
+    values: [odata-folding]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "173", function: PlanviewOKR.ContentsInternal, note: "folding delegated to OData.Feed"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons, beta-flag]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "1-191", function: PlanviewOKR, note: "one section document, no .pqm modules"}
+      - {file: PlanviewOKR.m, lines: "14", function: PlanviewOKR, note: "Extension.LoadString"}
+      - {file: PlanviewOKR.m, lines: "26-39", function: PlanviewOKR.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+      - {file: PlanviewOKR.m, lines: "19", function: PlanviewOKR.Publish, note: "Beta = true"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "1-191", function: PlanviewOKR, note: "no Diagnostics.Trace"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "171-175", function: PlanviewOKR.ContentsInternal, note: "no polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: PlanviewOKR.m, lines: "1-191", function: PlanviewOKR, note: "read-only"}
+notes: |
+  GetNextLink (149-157) parses a Link header but is never called: dead code, so paging stays none.
+  PKCE sends code_challenge without code_challenge_method; the challenge is an S256 hash, so the server
+  must assume S256 for the flow to work. Still counted as PKCE.

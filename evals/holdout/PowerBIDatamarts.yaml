@@ -1,0 +1,89 @@
+connector: PowerBIDatamarts
+labelled_by: claude-code/claude-opus-5-5
+source_note: PowerBIDatamarts.pq (315 lines); labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [aad]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "18-24", function: PowerBIDatamarts, note: "Authentication = [Aad = [AuthorizationUri, Scope = .../user_impersonation]]"}
+    sub: {}
+  transport:
+    values: [web-contents, sql-database]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "151-159", function: Web.JsonContents, note: "Web.Contents for the Power BI metadata APIs"}
+      - {file: PowerBIDatamarts.pq, lines: "258-266", function: GetSQLTables, note: "Sql.Database(tdsEndPoint, \"\", [LegacyExtension = true])"}
+    sub: {}
+  user-inputs:
+    values: [url-or-server]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "98-100", function: DatamartsImpl, note: "optional server (a datamart TDS endpoint); without it the workspace navigator is returned"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "104-120", function: GetNavforWorkspaces, note: "one POST to datahub/artifacts; no paging"}
+    sub: {}
+  data-formats:
+    values: [json, driver-rows]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "156", function: Web.JsonContents, note: "Json.Document"}
+      - {file: PowerBIDatamarts.pq, lines: "263", function: GetSQLTables, note: "table rows from Sql.Database"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "263", function: GetSQLTables, note: "data table columns and types from Sql.Database; the connector only shapes navigation tables"}
+    sub: {}
+  http-errors:
+    values: [default, manual-status-handling, structured-error-records]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "271", function: GetTDSEndPoint, note: "default: the datamart metadata request has no ManualStatusHandling"}
+      - {file: PowerBIDatamarts.pq, lines: "155", function: Web.JsonContents, note: "ManualStatusHandling = ApiErrorStatusCodes {400, 403, 404, 500, 503}"}
+      - {file: PowerBIDatamarts.pq, lines: "161-182", function: Web.ErrorResponse, note: "Error.Record(errorCode, errorMessage, errorDetails) from the error body"}
+    sub: {}
+  documentation:
+    values: [function-documentation, parameter-captions, parameter-descriptions, sample-values]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "96", function: PowerBI.Datamarts, note: "Value.ReplaceType(DatamartsImpl, Datamarts.Type)"}
+      - {file: PowerBIDatamarts.pq, lines: "124-128", function: Datamarts.Type, note: "server: FieldCaption, FieldDescription, SampleValues"}
+      - {file: PowerBIDatamarts.pq, lines: "130-135", function: Datamarts.Type, note: "Documentation.Name, Caption, Description, LongDescription"}
+  navigation:
+    values: [discovered-from-api, hierarchical]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "104-120", function: GetNavforWorkspaces, note: "datamarts listed at runtime from the datahub API"}
+      - {file: PowerBIDatamarts.pq, lines: "209-238", function: CreateNavTable, note: "workspace folders (IsLeaf false) -> datamart databases (IsLeaf false) -> tables"}
+      - {file: PowerBIDatamarts.pq, lines: "248-256", function: GetNavforSqlTable, note: "tables from the Sql.Database navigator, filtered to model/metadata schemas"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "17", function: PowerBIDatamarts, note: "TestConnection = {\"PowerBI.Datamarts\", ServerFromPath(resourcePath)}"}
+  folding:
+    values: [source-function-folding]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "263", function: GetSQLTables, note: "data tables are Sql.Database tables, which fold on their own; no Table.View or OnNativeQuery"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons, beta-flag]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "1-315", function: PowerBIDatamarts, note: "one section document, no .pqm modules"}
+      - {file: PowerBIDatamarts.pq, lines: "125", function: Datamarts.Type, note: "Extension.LoadString"}
+      - {file: PowerBIDatamarts.pq, lines: "289-292", function: PowerBIDatamarts.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+      - {file: PowerBIDatamarts.pq, lines: "286", function: PowerBIDatamarts.Publish, note: "Beta = true"}
+  diagnostics:
+    values: [tracing-always]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "187", function: PBICommonHeaders, note: "Diagnostics.Trace with no switch; called from GetClusterUrl (146), which computes apiurl used by every API call"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "104-120", function: GetNavforWorkspaces, note: "no polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: PowerBIDatamarts.pq, lines: "1-315", function: PowerBIDatamarts, note: "read-only; the POST to datahub/artifacts is a search query"}
+notes: |
+  GetClusterUrl passes retryCountCodes {500} and maxRetryCount 5 to Web.JsonContents (146), but Web.JsonContents
+  never uses those parameters, so there is no retry.
+  GetTDSEndPoint (275) passes the status code as the url argument of Web.ErrorResponse; and because that request has
+  no ManualStatusHandling, error statuses are raised by the engine before this check runs.
+  DSRHandlers (35-90) only map data source references to formulas; they do not change the answers.

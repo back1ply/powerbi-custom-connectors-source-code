@@ -1,0 +1,91 @@
+connector: TIBCO
+labelled_by: claude-code/claude-opus-5-5
+source_note: TIBCO.ODBC.TDV.m (213 lines) and DSNList.txt; labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [username-password, windows, anonymous]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "168-176", function: TibcoTdv, note: "Authentication = [UsernamePassword, Windows (SupportsAlternateCredentials), Implicit]; Implicit is the anonymous kind (DSN-configured credentials)"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "66-76", function: DatabaseImpl, note: "UsernamePassword -> UID/PWD in the connection string; Windows adds nothing"}
+    sub: {}
+  transport:
+    values: [odbc]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "118", function: DatabaseImpl, note: "Odbc.DataSource(ConnectionString, Options)"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "115", function: DatabaseImpl, note: "Odbc.Query when options[Query] is set"}
+    sub:
+      odbc-capabilities:
+        values: ["yes"]
+        evidence:
+          - {file: TIBCO.ODBC.TDV.m, lines: "93-111", function: DatabaseImpl, note: "SqlCapabilities and SQLGetInfo overrides"}
+  user-inputs:
+    values: [url-or-server, options-record, other]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "55", function: DatabaseImpl, note: "required dsn (ODBC DSN, the connection target)"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "57", function: DatabaseImpl, note: "other: optional advancedOptions text appended raw to the ODBC connection string (line 84)"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "58", function: DatabaseImpl, note: "optional options record"}
+    sub:
+      options-fields:
+        text: "Query (text): a SQL statement run with Odbc.Query instead of returning the navigator."
+        evidence:
+          - {file: TIBCO.ODBC.TDV.m, lines: "135-144", function: DatabaseType, note: "options type declares only Query"}
+  paging:
+    values: [none]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "114-121", function: DatabaseImpl, note: "rows come from the ODBC driver; no paging code"}
+    sub: {}
+  data-formats:
+    values: [driver-rows]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "114-121", function: DatabaseImpl, note: "Odbc.DataSource / Odbc.Query rows"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "118", function: DatabaseImpl, note: "column names and types from the ODBC driver; no type overrides (no SQLColumns or SQLGetTypeInfo handler)"}
+    sub: {}
+  http-errors:
+    values: [not-applicable]
+  documentation:
+    values: [function-documentation, parameter-captions, sample-values]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "9", function: TibcoTdv.DataSource, note: "Value.ReplaceType(DatabaseImpl, DatabaseType)"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "146-151", function: DatabaseType, note: "function type meta Documentation.DisplayName, Caption, Name"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "127-144", function: DatabaseType, note: "FieldCaption and SampleValues on dsn, advancedOptions, options.Query; the only FieldDescription is an empty string, so not counted"}
+  navigation:
+    values: [hierarchical, discovered-from-api]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "91", function: DatabaseImpl, note: "HierarchicalNavigation = true"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "118-119", function: DatabaseImpl, note: "Odbc.DataSource lists catalogs and tables from the driver at runtime; with a single catalog it returns odbcDataSource{0}[Data]"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "162-167", function: TibcoTdv, note: "TestConnection = {\"TibcoTdv.DataSource\", DSN}"}
+  folding:
+    values: [odbc-sql-capabilities]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "87-112", function: DatabaseImpl, note: "Odbc.DataSource folding shaped by SqlCapabilities / SQLGetInfo; HideNativeQuery = true"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "1-213", function: TibcoTdv, note: "one section document; DSNList.txt is a data file read with Extension.Contents, not a .pqm module"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "128", function: DatabaseType, note: "Extension.LoadString"}
+      - {file: TIBCO.ODBC.TDV.m, lines: "200-213", function: TibcoTdv.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "1-213", function: TibcoTdv, note: "no Diagnostics.Trace"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "114-121", function: DatabaseImpl, note: "no polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: TIBCO.ODBC.TDV.m, lines: "1-213", function: TibcoTdv, note: "no Action or Table.View mutations"}
+notes: |
+  Beta = false (line 188), so no beta-flag.
+  options[Query] runs user SQL through Odbc.Query and returns one table (lines 114-115). This is not
+  Value.NativeQuery support (HideNativeQuery = true), so folding has no native-query; navigation is labelled
+  for the default navigator path only.

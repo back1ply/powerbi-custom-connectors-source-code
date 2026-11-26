@@ -1,0 +1,113 @@
+connector: Bitbucket
+labelled_by: claude-code/claude-opus-5-5
+source_note: Bitbucket.pq (373 lines); labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [key]
+    evidence:
+      - {file: Bitbucket.pq, lines: "254-256", function: Bitbucket, note: "Authentication = [Key = [...]] (bearer token)"}
+    sub:
+      key-placement:
+        values: [header]
+        evidence:
+          - {file: Bitbucket.pq, lines: "88", function: Bitbucket.RequestHeaders, note: "Authorization = \"Bearer \" & Extension.CurrentCredential()[Key]"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: Bitbucket.pq, lines: "90-114", function: Bitbucket.Request, note: "Web.Contents(url, requestOptions)"}
+    sub: {}
+  user-inputs:
+    values: [url-or-server, options-record]
+    evidence:
+      - {file: Bitbucket.pq, lines: "205", function: Bitbucket.ContentsImpl, note: "required url (API base URL), optional options record"}
+      - {file: Bitbucket.pq, lines: "230-241", function: Bitbucket.ContentsType, note: "url as text, optional options as record"}
+    sub:
+      options-fields:
+        text: "Only TestConnection (logical) is read; TestConnection sets it to route to the probe. No other fields."
+        evidence:
+          - {file: Bitbucket.pq, lines: "207-211", function: Bitbucket.ContentsImpl, note: "Record.FieldOrDefault(__options, \"TestConnection\", false)"}
+  paging:
+    values: [next-link-url]
+    evidence:
+      - {file: Bitbucket.pq, lines: "80", function: Bitbucket.Collections, note: "UserWorkspaces: Paging = [Style = \"nextLinkBody\", NextField = \"next\"]"}
+      - {file: Bitbucket.pq, lines: "175-187", function: Bitbucket.FetchCollection, note: "next URL read from the response body field and attached as meta [Next]"}
+    sub:
+      paging-generator:
+        values: [table-generatebypage]
+        evidence:
+          - {file: Bitbucket.pq, lines: "189-194", function: Bitbucket.FetchCollection, note: "Table.GenerateByPage over getPageNextLinkBody"}
+      paging-stop:
+        text: "Stops when the body's next field is null or empty (getPageNextLinkBody returns null)."
+        evidence:
+          - {file: Bitbucket.pq, lines: "176", function: Bitbucket.FetchCollection, note: "if nextUrl = null or nextUrl = \"\" then null"}
+  data-formats:
+    values: [json]
+    evidence:
+      - {file: Bitbucket.pq, lines: "116-117", function: Bitbucket.RequestJson, note: "Json.Document"}
+  schema:
+    values: [declared-schema, explicit-type-conversion, inferred-from-data]
+    evidence:
+      - {file: Bitbucket.pq, lines: "7-17", function: Bitbucket.Schemas, note: "declared Name/Type lists; only getUserWorkspaces has columns"}
+      - {file: Bitbucket.pq, lines: "341-348", function: ApplySchema, note: "Table.TransformColumnTypes on the declared columns that are present"}
+      - {file: Bitbucket.pq, lines: "170-172", function: Bitbucket.FetchCollection, note: "non-empty pages use Table.FromRecords, so extra API fields are kept; HookEvents and User have empty schemas and are fully inferred"}
+    sub:
+      empty-result-columns:
+        values: ["yes"]
+        evidence:
+          - {file: Bitbucket.pq, lines: "170-171", function: Bitbucket.FetchCollection, note: "empty page -> #table of the declared column names, then ApplySchema types them"}
+  http-errors:
+    values: [manual-status-handling, retry-with-delay, structured-error-records]
+    evidence:
+      - {file: Bitbucket.pq, lines: "92-96", function: Bitbucket.Request, note: "ManualStatusHandling = {500, 502} on every request"}
+      - {file: Bitbucket.pq, lines: "105-107", function: Bitbucket.Request, note: "retries 500/502 up to 2 times with Function.InvokeAfter, 1s then 2s"}
+      - {file: Bitbucket.pq, lines: "108-111", function: Bitbucket.Request, note: "Error.Record(\"HttpRequestFailed\", ..., [Status]) after retries"}
+    sub:
+      retry-rule:
+        text: "Statuses 500 and 502; up to 2 retries (3 attempts); delay (attempt + 1) seconds, so 1s then 2s; then Error.Record."
+        evidence:
+          - {file: Bitbucket.pq, lines: "92-111", function: Bitbucket.Request, note: "send(attempt) loop"}
+  documentation:
+    values: [function-documentation, parameter-captions, parameter-descriptions, sample-values]
+    evidence:
+      - {file: Bitbucket.pq, lines: "5", function: Bitbucket.Contents, note: "Value.ReplaceType(ContentsImpl, ContentsType)"}
+      - {file: Bitbucket.pq, lines: "232-240", function: Bitbucket.ContentsType, note: "FieldCaption and FieldDescription on url and options; SampleValues on url"}
+      - {file: Bitbucket.pq, lines: "243-247", function: Bitbucket.ContentsType, note: "Documentation.Name, Caption, Description"}
+  navigation:
+    values: [fixed-list]
+    evidence:
+      - {file: Bitbucket.pq, lines: "32-84", function: Bitbucket.Collections, note: "three hardcoded collections"}
+      - {file: Bitbucket.pq, lines: "213-226", function: Bitbucket.ContentsImpl, note: "Record.ToTable(Bitbucket.Collections) -> Table.ToNavigationTable, all IsLeaf = true"}
+  test-connection:
+    values: [dedicated-probe]
+    evidence:
+      - {file: Bitbucket.pq, lines: "253", function: Bitbucket, note: "TestConnection = {\"Bitbucket.Contents\", resource, [TestConnection = true]}"}
+      - {file: Bitbucket.pq, lines: "210-211", function: Bitbucket.ContentsImpl, note: "flag branches to Bitbucket.TestConnectionProbe (119-124)"}
+  folding:
+    values: [none]
+    evidence:
+      - {file: Bitbucket.pq, lines: "126-203", function: Bitbucket.FetchCollection, note: "no Table.View, no native query; all filtering is local"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons, beta-flag]
+    evidence:
+      - {file: Bitbucket.pq, lines: "1-373", function: Bitbucket, note: "one section document, no .pqm modules"}
+      - {file: Bitbucket.pq, lines: "233", function: Bitbucket.ContentsType, note: "Extension.LoadString"}
+      - {file: Bitbucket.pq, lines: "268-271", function: Bitbucket.Icons, note: "Icon16 / Icon32 via Extension.Contents, used by Publish"}
+      - {file: Bitbucket.pq, lines: "261", function: Bitbucket.Publish, note: "Beta = true"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: Bitbucket.pq, lines: "1-373", function: Bitbucket, note: "no Diagnostics.Trace"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: Bitbucket.pq, lines: "90-114", function: Bitbucket.Request, note: "retries only; no job polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: Bitbucket.pq, lines: "1-373", function: Bitbucket, note: "GET requests only"}
+notes: |
+  Statuses other than 500/502 (401, 404, 429) still come back through Web.Contents with ManualStatusHandling set,
+  so they are returned as a response body rather than raised; no request uses default handling.
+  The LimitParam/PageSize branches are never configured by any collection.
