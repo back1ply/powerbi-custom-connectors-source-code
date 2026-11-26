@@ -161,3 +161,20 @@ def test_functions_and_certification_accept_a_folder_outside_the_archive(tmp_pat
     empty.mkdir()
     assert main(["--repo", str(tmp_path), "certification", "--path", str(empty)]) == 2
     assert main(["--repo", str(tmp_path), "functions"]) == 2
+
+
+def test_profile_path_validates_citations_against_the_folder(repo, monkeypatch, tmp_path):  # noqa: F811
+    folder = tmp_path / "Outside"
+    folder.mkdir()
+    (folder / "Demo.pq").write_text("section Demo;\nshared Demo.Contents = 1;\n", encoding="utf-8")
+    monkeypatch.setattr(
+        profile_module,
+        "ask_claude",
+        lambda payload, model: (
+            {"answers": negative_profile()["answers"]},
+            {"requested_model": model, "models": ["claude-haiku-x"]},
+        ),
+    )
+    assert main(["--repo", str(repo), "profile", "--path", str(folder), "--out-dir", "out"]) == 0
+    stored = json.loads((repo / "out" / "Outside.json").read_text(encoding="utf-8"))
+    assert stored["connector"] == "Outside"

@@ -1,0 +1,474 @@
+{
+  "connector": "PowerPlatformDataflows",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1563-1574",
+          "function": "PowerPlatformDataflows",
+          "note": "The data source kind's only authentication kind is Aad, with an AuthorizationUri, Scope and DefaultClientApplication. The inner Anonymous/SAS credentials passed to InvokeWithCredentials are not kinds the user can pick."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "adonet-oledb",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-314",
+          "function": "Utils.pqm",
+          "note": "Http.Request calls Web.Contents for every metadata and API call."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1008-1023",
+          "function": "Workspace.GetPages",
+          "note": "Web.Contents lists blobs in a storage container."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1723-1732",
+          "function": "InvokeDataflowsProvider",
+          "note": "AdoDotNet.DataSource with the Microsoft.PowerBI.Dataflows provider reads cached entities."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1401-1414",
+          "function": "DataLake.Contents",
+          "note": "Other: AzureStorage.DataLakeContents and AzureStorage.BlobContents read the entity files. Mashup accessor expressions run through Expression.Evaluate (lines 1285-1295)."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "146-167",
+          "function": "DataflowsType",
+          "note": "The only parameter is an optional options record, validated against PpdfOptionsMap."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "EnableFolding (public, nullable logical, default true). Hidden fields: TenantId, DataflowId, WorkspaceId, TransactionId, IsInternalRewrite.",
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "158-167",
+              "function": "PpdfOptionsMap",
+              "note": "Table of option names, types and defaults."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1008-1023",
+          "function": "Workspace.GetPages",
+          "note": "The Azure blob list call is paged with the NextMarker token, which is sent back as the marker parameter."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1015-1020",
+              "function": "Workspace.GetPages",
+              "note": "The connector calls List.Generate itself, through the getPage helper."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the XML response's NextMarker is not text (null), so the next step returns null and the List.Generate condition (_ <> null) ends the loop.",
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1013-1018",
+              "function": "Workspace.GetPages",
+              "note": "nextMarker null check."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv",
+        "parquet",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "287-290",
+          "function": "Utils.pqm",
+          "note": "Json.Document parses the API responses (workspaces, dataflows, environments) that become the returned navigation data."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1360-1367",
+          "function": "GetEntityFile",
+          "note": "Csv.Document reads entity partition files."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1369-1371",
+          "function": "GetEntityFile",
+          "note": "Parquet.Document is used for parquet partitions."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1094-1096",
+          "function": "Workspace.GetCachedEntitiesFromCatalog",
+          "note": "Rows from the ADO.NET Dataflows provider."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "127-141",
+          "function": "TypeMap",
+          "note": "Connector's own mapping from CDM type names to M types."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1212-1227",
+          "function": "TableTypeFromAttributes",
+          "note": "Builds the table type from entity attributes using TypeMap."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1373-1374",
+          "function": "GetEntityFile",
+          "note": "Table.ChangeType applies the declared types; it uses Table.TransformColumnTypes (Table.ChangeType.pqm line 44)."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1094-1096",
+          "function": "Workspace.GetCachedEntitiesFromCatalog",
+          "note": "Table.TransformColumnTypes on date and time columns of the cached rows."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1178-1202",
+              "function": "FormatEntitiesForDataflow",
+              "note": "#table(row[tableType], {}) returns an empty table that keeps the declared type."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1011-1011",
+          "function": "Workspace.GetPages",
+          "note": "This blob-list Web.Contents call has no ManualStatusHandling."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "276-311",
+          "function": "Utils.pqm",
+          "note": "Http.Request sets ManualStatusHandling and sends each status to its handler."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "349-398",
+          "function": "Utils.pqm",
+          "note": "DefaultErrorHandler builds an Error.Record from the status and error body."
+        },
+        {
+          "file": "Fabric.GetClusterUrl.pqm",
+          "lines": "10-23",
+          "function": "Fabric.GetClusterUrl.pqm",
+          "note": "RetryHandler(5) is set for status 500."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "404-408",
+          "function": "Utils.pqm",
+          "note": "RetryHandler waits with Function.InvokeAfter before the request is sent again."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "The cluster discovery call retries HTTP 500 up to 5 times. Each retry waits Iteration*0.2 seconds via Function.InvokeAfter. After that, DefaultErrorHandler raises the error.",
+          "evidence": [
+            {
+              "file": "Fabric.GetClusterUrl.pqm",
+              "lines": "12-20",
+              "function": "Fabric.GetClusterUrl.pqm",
+              "note": "maxRetryCount = 5, set for status 500."
+            },
+            {
+              "file": "Utils.pqm",
+              "lines": "404-408",
+              "function": "Utils.pqm",
+              "note": "Retry delay logic."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "146-156",
+          "function": "DataflowsType",
+          "note": "Documentation.Name, Caption, Description and LongDescription on the function type."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "181-199",
+          "function": "DataflowsImpl",
+          "note": "The root is a hardcoded list with Environments and Workspaces folders."
+        },
+        {
+          "file": "Cdsa.Workspace.pqm",
+          "lines": "23-124",
+          "function": "Cdsa.Workspace.pqm",
+          "note": "Workspaces and dataflows are listed from the API."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "228-323",
+          "function": "Group.GetNavTableForGroups",
+          "note": "Environment and dataflow folders have IsLeaf = false and open further navigation tables."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1774-1774",
+          "function": "Handlers",
+          "note": "OnTestConnection handler on the Table.View that PowerPlatform.Dataflows returns."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "native-query",
+        "custom-sql-generator",
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1738-1775",
+          "function": "Handlers",
+          "note": "Table.View handlers on the root view (DataflowsView, lines 172-179)."
+        },
+        {
+          "file": "Table.NavigationTableView.pqm",
+          "lines": "47-63",
+          "function": "Table.NavigationTableView.pqm",
+          "note": "OnSelectRows folding on the navigation tables."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1772-1773",
+          "function": "Handlers",
+          "note": "OnNativeQuery handler."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1075-1097",
+          "function": "Workspace.GetCachedEntitiesFromCatalog",
+          "note": "SqlDatabase.View with the T-SQL dialect generates SQL text over the ADO.NET provider."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1235-1245",
+          "function": "GetEntityMashupExpression",
+          "note": "Folding is delegated to the source accessor expression; it is wrapped in Table.StopFolding when EnableFolding is false."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip",
+            "on-select-rows",
+            "on-select-columns",
+            "on-sort",
+            "on-group",
+            "on-add-columns",
+            "get-row-count",
+            "get-expression",
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1738-1775",
+              "function": "Handlers",
+              "note": "Also OnCombine, OnDistinct, OnInvoke, OnJoin, OnPivot, OnRenameColumns and OnUnpivot (other)."
+            }
+          ]
+        },
+        "native-query-enabled": {
+          "text": "The root Table.View has an OnNativeQuery handler that sends Value.NativeQuery to the underlying table. Cached entities run Value.NativeQuery on AdoDotNet.DataSource. Accessor expressions are evaluated under Extension.InvokeWithPermissions, which allows the NativeQuery permission.",
+          "evidence": [
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1772-1773",
+              "function": "Handlers",
+              "note": "OnNativeQuery."
+            },
+            {
+              "file": "PowerPlatformDataflows.pq",
+              "lines": "1285-1295",
+              "function": "WithNativeQueryPermission",
+              "note": "NativeQuery permission."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1793-1819",
+          "function": "Extension.LoadFunction",
+          "note": ".pqm modules loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1778-1785",
+          "function": "PowerPlatformDataflows.Publish",
+          "note": "Extension.LoadString for localized strings."
+        },
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "1787-1790",
+          "function": "PowerPlatformDataflows.Icons",
+          "note": "Icon images."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "PowerPlatformDataflows.pq",
+          "lines": "228-235",
+          "function": "Group.GetNavTableForGroups",
+          "note": "Diagnostics.Trace runs unconditionally."
+        },
+        {
+          "file": "Fabric.GetClusterUrl.pqm",
+          "lines": "26-31",
+          "function": "Fabric.GetClusterUrl.pqm",
+          "note": "Diagnostics.Trace runs unconditionally."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "opus",
+    "at": "2026-11-26T19:15:34Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "opus",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "cost_usd": 0.921548,
+    "duration_ms": 48577
+  },
+  "source_sha256": "4bf1e0e49b9639bc2cd973565fbd06a581ad28226574f3690e18e94faf34a540",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

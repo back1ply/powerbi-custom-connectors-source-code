@@ -4,7 +4,7 @@ title: 'Techniques: test-connection'
 description: 'Archived connectors by answer to: How is TestConnection wired for gateway refresh?'
 generated:
   by: process:pqkb-build
-  at: '2026-11-26T19:13:28Z'
+  at: '2026-11-26T19:15:54Z'
 ---
 
 # test-connection
@@ -13,11 +13,11 @@ Which archived connectors use each answer of the connector checklist (`knowledge
 
 ## test-connection: How is TestConnection wired for gateway refresh? ([Learn](https://learn.microsoft.com/en-us/power-query/handling-gateway-support))
 
-### `dedicated-probe`: 15 connectors
+### `dedicated-probe`: 16 connectors
 
 The gateway test runs a separate check rather than a full query - a TestConnection that names a probe function, an entry function called with a flag that branches to a probe, or an OnTestConnection handler on the returned Table.View.
 
-[Attio](../connectors/Attio.md) ✓ `Attio.pq:673`, [Bitbucket](../connectors/Bitbucket.md) ✓ `Bitbucket.pq:253`, [ClickHouseArrowFlight](../connectors/ClickHouseArrowFlight.md) ✓ `ClickHouseArrowFlight.pq:83`, [LakeHouse](../connectors/LakeHouse.md) ✓ `LakeHouse.pq:151`, [ZendeskData](../connectors/ZendeskData.md) ✓ `zendesk.pq:246`, [Bitly](../connectors/Bitly.md) `Bitly.pq:367`, [FactSetAnalytics](../connectors/FactSetAnalytics.md) `FactSetAnalytics.pq:59`, [FactSetRMS](../connectors/FactSetRMS.md) `FactSetRMS.m:9`, [FifteenFive](../connectors/FifteenFive.md) `FifteenFive.pq:1003`, [MicrosoftGraphSecurity](../connectors/MicrosoftGraphSecurity.md) `MicrosoftGraphSecurity.m:127`, [MicrostrategyDataset](../connectors/MicrostrategyDataset.md) `MicroStrategyDataset.m:29`, [Supermetrics](../connectors/Supermetrics.md) `Supermetrics.m:11`, [TimeSeriesInsights](../connectors/TimeSeriesInsights.md) `TimeSeriesInsightsConnector.m:126`, [Warehouse](../connectors/Warehouse.md) `Warehouse.pq:200`, [WorkplaceAnalytics](../connectors/WorkplaceAnalytics.md) `WorkplaceAnalytics.pq:978`
+[Attio](../connectors/Attio.md) ✓ `Attio.pq:673`, [Bitbucket](../connectors/Bitbucket.md) ✓ `Bitbucket.pq:253`, [ClickHouseArrowFlight](../connectors/ClickHouseArrowFlight.md) ✓ `ClickHouseArrowFlight.pq:83`, [LakeHouse](../connectors/LakeHouse.md) ✓ `LakeHouse.pq:151`, [ZendeskData](../connectors/ZendeskData.md) ✓ `zendesk.pq:246`, [Bitly](../connectors/Bitly.md) `Bitly.pq:367`, [FactSetAnalytics](../connectors/FactSetAnalytics.md) `FactSetAnalytics.pq:59`, [FactSetRMS](../connectors/FactSetRMS.md) `FactSetRMS.m:9`, [FifteenFive](../connectors/FifteenFive.md) `FifteenFive.pq:1003`, [MicrosoftGraphSecurity](../connectors/MicrosoftGraphSecurity.md) `MicrosoftGraphSecurity.m:127`, [MicrostrategyDataset](../connectors/MicrostrategyDataset.md) `MicroStrategyDataset.m:29`, [PowerPlatformDataflows](../connectors/PowerPlatformDataflows.md) `PowerPlatformDataflows.pq:1774`, [Supermetrics](../connectors/Supermetrics.md) `Supermetrics.m:11`, [TimeSeriesInsights](../connectors/TimeSeriesInsights.md) `TimeSeriesInsightsConnector.m:126`, [Warehouse](../connectors/Warehouse.md) `Warehouse.pq:200`, [WorkplaceAnalytics](../connectors/WorkplaceAnalytics.md) `WorkplaceAnalytics.pq:978`
 
 ### `reuses-entry-function`: 117 connectors
 

@@ -55,11 +55,15 @@ Rules:
   problems require."""
 
 
-def profile_inputs(repo: Path, name: str) -> tuple[dict, dict[str, str]]:
+def profile_inputs(
+    repo: Path, name: str, files: dict[str, str] | None = None
+) -> tuple[dict, dict[str, str]]:
+    """Model input for one connector; `files` overrides the archive lookup."""
     from pqkb.bundle import read_sources
 
-    records = load_index(repo / "connectors")
-    files = read_sources(repo / "connectors", {name: records[name]})[name]
+    if files is None:
+        records = load_index(repo / "connectors")
+        files = read_sources(repo / "connectors", {name: records[name]})[name]
     numbered = {
         file: "\n".join(f"{n}| {line}" for n, line in enumerate(text.splitlines(), start=1))
         for file, text in files.items()
@@ -163,12 +167,20 @@ def other_models(requested: str, used: list[str]) -> list[str]:
     return [m for m in used if requested.lower() not in m.lower()]
 
 
-def profile_connector(repo: Path, name: str, model: str) -> dict:
-    """Ask the model once; on validation problems, send them back for one repair."""
-    payload, files = profile_inputs(repo, name)
+def profile_connector(repo: Path, name: str, model: str, source_dir: Path | None = None) -> dict:
+    """Ask the model once; on validation problems, send them back for one repair.
+
+    `source_dir` profiles a connector folder outside the archive.
+    """
+    files = None
+    if source_dir is not None:
+        from pqkb.cli import folder_sources
+
+        name, files = folder_sources(source_dir)
+    payload, files = profile_inputs(repo, name, files)
     answer, identity = ask_claude(payload, model)
     profile = {"connector": name, "answers": normalize_answers(answer.get("answers", {}))}
-    problems = validate_profile(repo, profile, payload["checklist"])
+    problems = validate_profile(repo, profile, payload["checklist"], source_dir)
     if problems:
         repair = {
             **payload,
@@ -178,7 +190,7 @@ def profile_connector(repo: Path, name: str, model: str) -> dict:
         answer, second = ask_claude(repair, model)
         identity = _merge_identity(identity, second)
         profile = {"connector": name, "answers": normalize_answers(answer.get("answers", {}))}
-        problems = validate_profile(repo, profile, payload["checklist"])
+        problems = validate_profile(repo, profile, payload["checklist"], source_dir)
     if problems:
         raise ValueError(
             f"{len(problems)} validation problems after one repair, first: {problems[0]}"

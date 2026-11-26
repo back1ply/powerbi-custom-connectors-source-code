@@ -31,18 +31,18 @@ def load_checklist(repo: Path) -> list[dict]:
     return data["questions"]
 
 
-def _line_count(repo: Path, connector: str, file: str) -> int | None:
-    path = repo / "connectors" / connector / file
+def _line_count(source_dir: Path, file: str) -> int | None:
+    path = source_dir / file
     if not path.is_file():
         return None
     return len(path.read_text(encoding="utf-8-sig").splitlines())
 
 
-def _check_evidence(repo: Path, connector: str, where: str, answer: dict) -> list[str]:
+def _check_evidence(source_dir: Path, where: str, answer: dict) -> list[str]:
     problems = []
     for item in answer.get("evidence") or []:
         file, lines = item.get("file", ""), str(item.get("lines", ""))
-        total = _line_count(repo, connector, file)
+        total = _line_count(source_dir, file)
         if total is None:
             problems.append(f"{where}: cited file {file!r} does not exist")
             continue
@@ -58,14 +58,12 @@ def _check_evidence(repo: Path, connector: str, where: str, answer: dict) -> lis
     return problems
 
 
-def _check_answer(
-    repo: Path, connector: str, where: str, spec: dict, answer: dict | None
-) -> list[str]:
+def _check_answer(source_dir: Path, where: str, spec: dict, answer: dict | None) -> list[str]:
     if not isinstance(answer, dict):
         return [f"{where}: missing"]
     if spec.get("free_text"):
         problems = [] if answer.get("text") else [f"{where}: free-text answer is empty"]
-        return problems + _check_evidence(repo, connector, where, answer)
+        return problems + _check_evidence(source_dir, where, answer)
     values = answer_ids(answer.get("values"))
     allowed = set(spec["answers"]) | {NOT_APPLICABLE}
     problems = [f"{where}: unknown answer {v!r}" for v in values if v not in allowed]
@@ -75,14 +73,23 @@ def _check_answer(
         problems.append(f"{where}: several answers to a single-answer question")
     if set(values) - NEGATIVE and not answer.get("evidence"):
         problems.append(f"{where}: answer {values} has no evidence")
-    return problems + _check_evidence(repo, connector, where, answer)
+    return problems + _check_evidence(source_dir, where, answer)
 
 
-def validate_profile(repo: Path, profile: dict, checklist: list[dict] | None = None) -> list[str]:
-    """Problems with one connector's answer set; an empty list means it is well formed."""
+def validate_profile(
+    repo: Path,
+    profile: dict,
+    checklist: list[dict] | None = None,
+    source_dir: Path | None = None,
+) -> list[str]:
+    """Problems with one connector's answer set; an empty list means it is well formed.
+
+    Citations are checked against `source_dir`, by default `connectors/<connector>/`.
+    """
     checklist = checklist or load_checklist(repo)
     connector = profile.get("connector", "")
-    if not (repo / "connectors" / connector).is_dir():
+    source_dir = source_dir or repo / "connectors" / connector
+    if not source_dir.is_dir():
         return [f"unknown connector {connector!r}"]
     answers = profile.get("answers") or {}
     problems = [
@@ -93,7 +100,7 @@ def validate_profile(repo: Path, profile: dict, checklist: list[dict] | None = N
     for spec in checklist:
         where = f"{connector}/{spec['id']}"
         answer = answers.get(spec["id"])
-        problems += _check_answer(repo, connector, where, spec, answer)
+        problems += _check_answer(source_dir, where, spec, answer)
         if not isinstance(answer, dict):
             continue
         given = set(answer_ids(answer.get("values")))
@@ -102,7 +109,7 @@ def validate_profile(repo: Path, profile: dict, checklist: list[dict] | None = N
             required = "when" not in sub or bool(given & set(sub["when"]))
             if required:
                 problems += _check_answer(
-                    repo, connector, f"{where}/{sub['id']}", sub, subs.get(sub["id"])
+                    source_dir, f"{where}/{sub['id']}", sub, subs.get(sub["id"])
                 )
             elif sub["id"] in subs:
                 problems.append(f"{where}/{sub['id']}: answered but its condition is not met")

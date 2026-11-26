@@ -62,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     profile_parser.add_argument("--all", action="store_true", help="profile every connector")
     profile_parser.add_argument(
+        "--path", type=Path, help="profile a connector folder outside the archive"
+    )
+    profile_parser.add_argument(
         "--model", default="haiku", help="Claude model alias (default: haiku)"
     )
     profile_parser.add_argument(
@@ -141,6 +144,8 @@ def main(argv: list[str] | None = None) -> int:
 def run_profile_command(args) -> int:
     from pqkb.profile import run_profiles
 
+    if args.path is not None:
+        return profile_path(args)
     if args.all:
         names = sorted(refresh.load_index(args.repo / "connectors"))
     else:
@@ -157,6 +162,28 @@ def run_profile_command(args) -> int:
     )
     print(f"{len(names) - len(failures)} of {len(names)} connectors have a valid profile.")
     return 1 if failures else 0
+
+
+def profile_path(args) -> int:
+    """Profile one connector folder outside the archive into --out-dir/<name>.json."""
+    import json
+    import subprocess
+
+    from pqkb.profile import profile_connector
+
+    try:
+        profile = profile_connector(args.repo, "", args.model, source_dir=args.path)
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError) as error:
+        print(f"Profile failed for {args.path}: {error}")
+        return 1
+    out_dir = args.repo / args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{profile['connector']}.json"
+    out.write_text(
+        json.dumps(profile, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
+    )
+    print(f"Wrote {out}.")
+    return 0
 
 
 def run_eval_command(args) -> int:
