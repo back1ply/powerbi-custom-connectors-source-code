@@ -1,0 +1,372 @@
+{
+  "connector": "Usercube",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "34-41",
+          "function": "Usercube (data source kind)",
+          "note": "Authentication record uses UsernamePassword, with the client id and secret stored as the username and password."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "239-257",
+          "function": "UsercubeServerTokenRequest",
+          "note": "Requests an access token with a client_credentials OAuth grant to connect/token."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "195-214",
+          "function": "UsercubeServerRequest",
+          "note": "Sends the bearer token in the Authorization header on each data request."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "239-257",
+              "function": "UsercubeServerTokenRequest",
+              "note": "The client_credentials grant sends no code_verifier or code_challenge."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "220-225",
+              "function": "UsercubeServerRequest",
+              "note": "On a 401 it requests a new token with client_credentials. No refresh_token is used."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "198-214",
+          "function": "UsercubeServerRequest",
+          "note": "Data and metadata requests go through Web.Contents."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "243-254",
+          "function": "UsercubeServerTokenRequest",
+          "note": "The token request also uses Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "9-14",
+          "function": "UniversesNavTableType",
+          "note": "The only entry parameter is serverUrl, a DataSource.Path text parameter used as the server URL."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "176-178",
+          "function": "GetDataAllPages (getPage)",
+          "note": "Reads the ContinuationToken from the response and returns it as page metadata."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "181-185",
+          "function": "GetDataAllPages (getNextPage)",
+          "note": "Passes the stored continuation token to the next request."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "185",
+              "function": "GetDataAllPages",
+              "note": "Pages are produced by Table.GenerateByPage(getNextPage)."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the previous page has no ContinuationToken, which makes getNextPage return null (Usercube.m lines 181-182). It also stops after the first page when a Top limit is set, because the token is then forced to null (Usercube.m line 181). Table.GenerateByPage stops when getNextPage returns null (Table.GenerateByPage.pqm lines 3-7).",
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "179-185",
+              "function": "GetDataAllPages (getNextPage)",
+              "note": "Returns null when there is no continuation token or a Top limit is set."
+            },
+            {
+              "file": "Table.GenerateByPage.pqm",
+              "lines": "3-7",
+              "function": "Table.GenerateByPage",
+              "note": "Stops when the page function returns null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "215",
+          "function": "UsercubeServerRequest",
+          "note": "The response body is parsed with Json.Document."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "170",
+          "function": "GetDataAllPages (getPage)",
+          "note": "Reads json[Result] rows from the data payload."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "95-107",
+          "function": "ColumnTypes",
+          "note": "Maps Usercube enum type codes to M types."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "126-139",
+          "function": "GetDataTableType",
+          "note": "Builds the table type with declared M column types."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "186",
+          "function": "GetDataAllPages",
+          "note": "Table.ChangeType converts the returned data cells to the declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "171-173",
+              "function": "GetDataAllPages (getPage)",
+              "note": "An empty page is returned as #table(dataColumnsNames, {}), which keeps the declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "212-213",
+          "function": "UsercubeServerRequest",
+          "note": "ManualStatusHandling = {401} is set on every data request, and the status is inspected in lines 218-227."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "15-22",
+          "function": "UniversesNavTableType",
+          "note": "Documentation.Name, LongDescription and Examples are set on the function type."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "10-13",
+          "function": "UniversesNavTableType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues are set on serverUrl."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "65-75",
+          "function": "UniversesNavTable",
+          "note": "Universes and tables are listed at runtime from api/Universes/PowerBI/Model."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "80-82",
+          "function": "BuildUniversesNavigationTable",
+          "note": "Universe rows are folders with IsLeaf false, and their Items hold nested table navigation."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "89-91",
+          "function": "BuildTablesNavigationTable",
+          "note": "Table rows are leaves with Data returned from View."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "28-33",
+          "function": "Usercube (TestConnection)",
+          "note": "Returns { \"Usercube.Universes\", serverUrl }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "109-124",
+          "function": "View",
+          "note": "Builds a Table.View with GetType and GetRows handlers."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "117-121",
+          "function": "View",
+          "note": "Implements the OnTake handler."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take"
+          ],
+          "evidence": [
+            {
+              "file": "Usercube.m",
+              "lines": "117-121",
+              "function": "View",
+              "note": "OnTake applies a page-size Top limit to the request."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Usercube.m",
+          "lines": "275-284",
+          "function": "Extension.LoadFunction",
+          "note": "Loads Table.ChangeType.pqm, Table.GenerateByPage.pqm and Table.ToNavigationTable.pqm through Extension.Contents."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "49-51",
+          "function": "Usercube.Publish",
+          "note": "Beta = true, and ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "Usercube.m",
+          "lines": "57-60",
+          "function": "Usercube.Icons",
+          "note": "Icon PNGs are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:25:09Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.008559,
+    "duration_ms": 37373
+  },
+  "source_sha256": "fd7b9578969bca7124f00aa8a67454b01ceed3c20630e0fd03444dfad2d6c83a",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

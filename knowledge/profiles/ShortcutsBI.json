@@ -1,0 +1,299 @@
+{
+  "connector": "ShortcutsBI",
+  "answers": {
+    "auth": {
+      "values": [
+        "key",
+        "signed-request"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "89-91",
+          "function": "ShortcutsBI",
+          "note": "Data source kind declares a Key authentication kind."
+        },
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "30-36",
+          "function": "ShortcutsBIImpl",
+          "note": "The key is read from Extension.CurrentCredential()[Key] and split into consumer key, consumer secret, token, and token secret."
+        },
+        {
+          "file": "Function.OAuthSignatureGenerator.pqm",
+          "lines": "3-19",
+          "function": "OAuthSignatureGenerator",
+          "note": "Builds an OAuth 1.0 HMAC-SHA1 signature over the request parameters, so each request is signed by the connector."
+        },
+        {
+          "file": "Function.GetAccessCode.pqm",
+          "lines": "21-30",
+          "function": "GetAccessCode",
+          "note": "The signed OAuth parameters are sent in the Authorization header of the POST to /authenticate."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Function.GetAccessCode.pqm",
+              "lines": "24-26",
+              "function": "GetAccessCode",
+              "note": "The OAuth-signed Authorization header is sent on the authenticate call."
+            },
+            {
+              "file": "Function.GetData.pqm",
+              "lines": "32",
+              "function": "GetData",
+              "note": "The access code (JWT derived from the key) is sent in the Authorization header on data calls."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "29-36",
+          "function": "GetData",
+          "note": "Data is fetched with Web.Contents against api.shortcutssoftware.io/insights."
+        },
+        {
+          "file": "Function.GetAccessCode.pqm",
+          "lines": "21-31",
+          "function": "GetAccessCode",
+          "note": "Token exchange uses Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "28-28",
+          "function": "ShortcutsBIImpl",
+          "note": "ShortcutsBI.Contents takes no parameters. The credential is read from Extension.CurrentCredential, not from a function argument."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "12-19",
+          "function": "GetAllData",
+          "note": "Pages are requested by page_number with a max_rows page size. Total pages come from a COUNT call."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "Function.GetData.pqm",
+              "lines": "15-19",
+              "function": "GetAllData",
+              "note": "Page numbers are made with List.Numbers, turned into a table, and each page is fetched with Table.AddColumn. No Table.GenerateByPage, List.Generate, or recursion is used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops after totalPages pages, where totalPages is Number.RoundUp(count / max_rows) and count comes from a COUNT request. Pages 1 through totalPages are fetched.",
+          "evidence": [
+            {
+              "file": "Function.GetData.pqm",
+              "lines": "12-16",
+              "function": "GetAllData",
+              "note": "COUNT request, then totalPages computed and List.Numbers(1, totalPages) built."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "29-36",
+          "function": "GetData",
+          "note": "Response bodies are parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "14",
+          "function": "GetAllData",
+          "note": "Column names come from Record.FieldNames of the response records."
+        },
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "21",
+          "function": "GetAllData",
+          "note": "ExpandAll expands record columns using field names taken from the data. No M types are declared on the returned columns."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Function.GetData.pqm",
+          "lines": "29-36",
+          "function": "GetData",
+          "note": "Live data Web.Contents calls set no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "Function.GetAccessCode.pqm",
+          "lines": "21-30",
+          "function": "GetAccessCode",
+          "note": "The token call sets ManualCredentials but no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "24-25",
+          "function": "ShortcutsBI.Contents",
+          "note": "The shared function has only DataSource.Kind and Publish attributes. It has no documentation metadata."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "65-82",
+          "function": "ShortcutsBIImpl",
+          "note": "The navigation table is a hardcoded #table of 14 rows (CommunityID, Appointments, and so on)."
+        },
+        {
+          "file": "Table.ToNavigationTable.pqm",
+          "lines": "15-23",
+          "function": "Table.ToNavigationTable.pqm",
+          "note": "The hardcoded table is marked as a navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "87-88",
+          "function": "ShortcutsBI",
+          "note": "TestConnection returns \"ShortcutsBI.Contents\", so the gateway test runs the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "5-10",
+          "function": "Extension.LoadFunction",
+          "note": "Code is split into .pqm files loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "90-99",
+          "function": "ShortcutsBI",
+          "note": "Labels and button text come from Extension.LoadString."
+        },
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "106-107",
+          "function": "ShortcutsBI.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "ShortcutsBI.pq",
+          "lines": "97",
+          "function": "ShortcutsBI.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:21:33Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0071325,
+    "duration_ms": 33447
+  },
+  "source_sha256": "d6275937077e4d399978b1190b75381b291fc534ccb748b378454bea2ad23d64",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,390 @@
+{
+  "connector": "Windsor",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "15-22",
+          "function": "Windsor",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin, Refresh and Logout."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "60-183",
+          "function": "Windsor.Auth",
+          "note": "Authorization-code flow: StartLogin builds the authorize URL, FinishLogin and TokenMethod exchange the code at the token endpoint, and the API key is taken from the introspection response."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Windsor.pq",
+              "lines": "62-69",
+              "function": "Windsor.Auth",
+              "note": "createHash computes an S256 code challenge."
+            },
+            {
+              "file": "Windsor.pq",
+              "lines": "72-83",
+              "function": "Windsor.Auth.StartLogin",
+              "note": "PlainTextVerifier is sent as code_challenge with code_challenge_method S256."
+            },
+            {
+              "file": "Windsor.pq",
+              "lines": "150-152",
+              "function": "Windsor.Auth.TokenMethod",
+              "note": "code_verifier is sent with the token request."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Windsor.pq",
+              "lines": "19",
+              "function": "Windsor",
+              "note": "Refresh = Windsor.Auth[Refresh] is declared in the OAuth record."
+            },
+            {
+              "file": "Windsor.pq",
+              "lines": "110-119",
+              "function": "Windsor.Auth.RefreshLogin",
+              "note": "Exchanges refresh_token with grant_type refresh_token and keeps the same refresh token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "238",
+          "function": "Windsor.HttpClient.GetResponse",
+          "note": "All data and API calls go through Web.Contents."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "128-138",
+          "function": "Windsor.Auth.IntrospectToken",
+          "note": "Token introspection uses Web.Contents."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "160-170",
+          "function": "Windsor.Auth.TokenMethod",
+          "note": "Token exchange uses Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "189-205",
+          "function": "Windsor.HttpClient.ValidateResponse",
+          "note": "Responses are parsed with Json.Document, and list payloads are wrapped as data."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "333-337",
+          "function": "Windsor.Navigation.GetQueryResultTable",
+          "note": "Query result rows come from the parsed JSON data field, passed to Table.FromRecords."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "1030-1045",
+          "function": "Windsor.Utils.TransfromDataType and GetSchema",
+          "note": "Source field types are mapped to M types: BOOLEAN to Logical, NUMERIC to Decimal, otherwise Text."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "337",
+          "function": "Windsor.Navigation.GetQueryResultTable",
+          "note": "Column names come from the record fields of the response data via Table.FromRecords."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "350-351",
+          "function": "Windsor.Navigation.GetQueryResultTable",
+          "note": "Table.TransformColumnTypes applies the computed schema to the returned data."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Windsor.pq",
+              "lines": "336-353",
+              "function": "Windsor.Navigation.GetQueryResultTable",
+              "note": "An empty response yields a table with no columns, so TransformColumnTypes on the declared columns fails."
+            },
+            {
+              "file": "Windsor.pq",
+              "lines": "371-377",
+              "function": "Windsor.Navigation.GetQueryResultTable",
+              "note": "That failure falls into the otherwise branch, which raises a No data error instead of returning declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "225",
+          "function": "Windsor.HttpClient.GetOptions",
+          "note": "Data requests set ManualStatusHandling to the FailedStatusCodes list."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "136",
+          "function": "Windsor.Auth.IntrospectToken",
+          "note": "The introspection call sets ManualStatusHandling."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "168",
+          "function": "Windsor.Auth.TokenMethod",
+          "note": "The token call sets ManualStatusHandling and inspects resp[error]."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "142",
+          "function": "Windsor.Auth.IntrospectToken",
+          "note": "Error.Record is raised from the response error body."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "173-174",
+          "function": "Windsor.Auth.TokenMethod",
+          "note": "Error.Record is raised from the response error body."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "362-369",
+          "function": "Windsor.Navigation.GetQueryResultTable",
+          "note": "Error.Record is raised from the response error and status fields."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "621-627",
+          "function": "Windsor.Navigation.GetUserAccounts",
+          "note": "Error.Record is raised from the response error and status fields."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "779-782",
+          "function": "Windsor.Types.QueryTableTypeWithAccounts",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the table function type that Windsor.Main reaches through navigation. Windsor.Main itself has no meta."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "705-709",
+          "function": "Windsor.Types.DateTypeBuilder",
+          "note": "Parameter FieldCaption and FieldDescription are set, with a SampleValues entry."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "710-721",
+          "function": "Windsor.Types.allowedValuesBuilderSingle and Multiple",
+          "note": "FieldCaption, FieldDescription and AllowedValues are set on parameters."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "733-734",
+          "function": "Windsor.Types.AppendFields",
+          "note": "SampleValues and AllowedValues are set on a logical parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "685-697",
+          "function": "Windsor.Navigation.GetSavedQueries",
+          "note": "Navigation is built from saved queries returned by the API. When none are returned, a single hardcoded row is returned instead."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "838-860",
+          "function": "Windsor.Help.NoSavedQueries",
+          "note": "The no-queries navigation table is a hardcoded single-row list."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "258-273",
+          "function": "Windsor.Data.GetSavedQueries",
+          "note": "Saved query items are listed at runtime from the DataUrls API."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "669-684",
+          "function": "Windsor.Navigation.GetSavedQueriesTable",
+          "note": "Hardcoded saved-queries folder with leaf false. This folder alone does not count as fixed-list."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "650-668",
+          "function": "Windsor.Navigation.GetQueriesTable",
+          "note": "Each query row is a folder with leaf false, whose items are navigation tables built from further API data."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "14",
+          "function": "Windsor",
+          "note": "TestConnection returns {\"Windsor.Main\"}, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Windsor.pq",
+          "lines": "10",
+          "function": "Icons",
+          "note": "Icons.pqm is loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Icons.pqm",
+          "lines": "1-18",
+          "function": "Icons.pqm",
+          "note": "Icon lists are built from Extension.Contents PNG files."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "11",
+          "function": "LoadString",
+          "note": "Strings are loaded through Extension.LoadString."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "23-29",
+          "function": "Windsor and Windsor.Publish",
+          "note": "Labels and button text come from LoadString resources."
+        },
+        {
+          "file": "Windsor.pq",
+          "lines": "30-31",
+          "function": "Windsor.Publish",
+          "note": "SourceImage and SourceTypeImage use the icon lists."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:26:33Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0110331,
+    "duration_ms": 46314
+  },
+  "source_sha256": "b5578628bbe5f961014ad16780698c8148b80ff7ffba62c689c752c8c7acfe63",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

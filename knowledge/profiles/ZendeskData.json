@@ -1,0 +1,383 @@
+{
+  "connector": "ZendeskData",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "246-254",
+          "function": "ZendeskData",
+          "note": "Data source kind declares Authentication.OAuth with StartLogin and FinishLogin. No anonymous, key, or other credential kind."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "285-305",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL with response_type=code, client_id, scope, state and redirect_uri. No code_challenge or code_verifier, so no PKCE."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "307-337",
+          "function": "FinishLogin and TokenMethod",
+          "note": "Exchanges the authorization code at oauth/tokens using grant_type=authorization_code. No refresh_token grant or refresh logic."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "172-189",
+          "function": "GetPage",
+          "note": "Reaches the Zendesk REST API through Web.Contents with an X-Zendesk-Power-BI-Connector header."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "97-113",
+          "function": "GetTargetsEntity",
+          "note": "Calls Web.Contents for the targets entity."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "67-69",
+          "function": "ZendeskFunctionType",
+          "note": "First parameter url is a Uri.Type naming the Zendesk site."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "90-95",
+          "function": "GenerateFullUrl",
+          "note": "Takes the host from the user's URL to build https://<host>/api/v2/."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "73-77",
+          "function": "ZendeskFunctionType",
+          "note": "Optional options record parameter."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "135-136",
+          "function": "ZendeskNavTable",
+          "note": "Reads options[TestConnection] from the options record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is read for one field only: TestConnection (a logical flag, options[TestConnection] at line 136). No other fields are read.",
+          "evidence": [
+            {
+              "file": "zendesk.pq",
+              "lines": "135-137",
+              "function": "ZendeskNavTable",
+              "note": "options[TestConnection]?=true routes to TestImpl."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "210-229",
+          "function": "GetAllPagesByNextLink",
+          "note": "Each next request uses the URL from the previous page's metadata NextLink."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "233-234",
+          "function": "GetNextLink",
+          "note": "Reads links.next from the response body."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "zendesk.pq",
+              "lines": "210-229",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "zendesk.pq",
+              "lines": "351",
+              "function": "Table.GenerateByPage",
+              "note": "Loads Table.GenerateByPage.pqm, which is built on List.Generate. The connector itself does not call List.Generate."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the page's meta.has_more is false. GetHasMore reads it and GetAllPagesByNextLink returns null when it is false, so Table.GenerateByPage ends. The next URL comes from links.next, and a missing links.next yields null.",
+          "evidence": [
+            {
+              "file": "zendesk.pq",
+              "lines": "238-239",
+              "function": "GetHasMore",
+              "note": "Reads meta.has_more."
+            },
+            {
+              "file": "zendesk.pq",
+              "lines": "215-228",
+              "function": "GetAllPagesByNextLink",
+              "note": "Returns null when hasMore is false, which ends Table.GenerateByPage."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "172-189",
+          "function": "GetPage",
+          "note": "Parses the response with Json.Document and returns the data array as a table."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "97-113",
+          "function": "GetTargetsEntity",
+          "note": "Parses the targets response with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "GetSchemaForEntity.pqm",
+          "lines": "4-365",
+          "function": "GetSchemaForEntity.pqm",
+          "note": "Hardcoded M table types for each entity, with M types such as Int64.Type, text, logical and datetimezone."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "163-170",
+          "function": "GetEntity",
+          "note": "Applies Table.ChangeType(result, schema) to the returned data."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "97-113",
+          "function": "GetTargetsEntity",
+          "note": "Applies Table.ChangeType(data, schema) to the targets data."
+        },
+        {
+          "file": "Table.ChangeType.pqm",
+          "lines": "3-68",
+          "function": "Table.ChangeType",
+          "note": "Converts column values with Table.TransformColumnTypes and sets the table type."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "zendesk.pq",
+              "lines": "191-205",
+              "function": "TableFieldTypeTransform",
+              "note": "Expands the Column1 records using the schema field names, so an empty page keeps the declared columns."
+            },
+            {
+              "file": "Table.GenerateByPage.pqm",
+              "lines": "17-21",
+              "note": "An empty first page returns its expanded empty table, which keeps the declared columns.",
+              "function": "Table.GenerateByPage"
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "172-179",
+          "function": "GetPage",
+          "note": "Web.Contents with no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "97-107",
+          "function": "GetTargetsEntity",
+          "note": "Web.Contents with no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "67-81",
+          "function": "ZendeskFunctionType",
+          "note": "Documentation.Name and LongDescription on the function. FieldCaption, FieldDescription and SampleValues on the url and options parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "18-19",
+          "function": "RootEntityNames",
+          "note": "Hardcoded list of navigator rows."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "135-159",
+          "function": "ZendeskNavTable",
+          "note": "Builds the navigation table from the fixed RootEntityNames list plus Targets and Ticket Comments, all with IsLeaf true. No folders or indirect rows."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "246",
+          "function": "ZendeskData",
+          "note": "TestConnection calls ZendeskData.Contents with TestConnection = true."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "136-137",
+          "function": "ZendeskNavTable",
+          "note": "When the flag is set, the entry function branches to TestImpl instead of the full navigation build."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "83-88",
+          "function": "TestImpl",
+          "note": "Probe that fetches only the targets entity."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "zendesk.pq",
+          "lines": "344-353",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm files through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "69-70",
+          "function": "ZendeskFunctionType",
+          "note": "Documentation strings loaded with Extension.LoadString."
+        },
+        {
+          "file": "zendesk.pq",
+          "lines": "266-279",
+          "function": "ZendeskData.Icons",
+          "note": "Icon images loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:27:14Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.010201,
+    "duration_ms": 38137
+  },
+  "source_sha256": "af4879740d893e1411975537ea5adbd9e45e00e4f35128b3bf8dcaf14e2463b6",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

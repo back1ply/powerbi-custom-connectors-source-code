@@ -1,0 +1,312 @@
+{
+  "connector": "SumTotal",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "179-190",
+          "function": "SumTotal",
+          "note": "Data source kind declares an OAuth authentication record with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "192-211",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL and returns the login window settings."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "213-222",
+          "function": "FinishLogin",
+          "note": "Exchanges the callback code for a token through TokenMethod."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "224-244",
+          "function": "TokenMethod",
+          "note": "Posts the authorization_code or refresh_token grant to the token endpoint."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "246-246",
+          "function": "Refresh",
+          "note": "Refresh token grant through TokenMethod."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "SumTotal.pq",
+              "lines": "197-203",
+              "function": "StartLogin",
+              "note": "Authorize URL has no code_challenge or code_challenge_method parameters."
+            },
+            {
+              "file": "SumTotal.pq",
+              "lines": "226-232",
+              "function": "TokenMethod",
+              "note": "Token request sends no code_verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "SumTotal.pq",
+              "lines": "246-246",
+              "function": "Refresh",
+              "note": "Refresh function calls the token endpoint with grant_type refresh_token."
+            },
+            {
+              "file": "SumTotal.pq",
+              "lines": "234-234",
+              "function": "TokenMethod",
+              "note": "Builds the refresh_token form field when the grant type is refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "117-117",
+          "function": "SumTotalNavTable",
+          "note": "Data is read through OData.Feed."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "21-21",
+          "function": "SumTotal.ODataFeed",
+          "note": "Shared entry function returns SumTotalNavTable typed by SumTotalType."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "24-28",
+          "function": "SumTotalType",
+          "note": "The single url parameter is the customer environment URL, which names the connection target."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "117-117",
+          "function": "SumTotalNavTable",
+          "note": "OData.Feed returns OData JSON payloads to the user."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "21-21",
+          "function": "SumTotal.ODataFeed",
+          "note": "Return type is replaced with SumTotalType, which declares only table metadata and no column types."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "117-117",
+          "function": "SumTotalNavTable",
+          "note": "Column names and types come from OData.Feed $metadata."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "117-117",
+          "function": "SumTotalNavTable",
+          "note": "Live OData.Feed data request has no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "235-237",
+          "function": "TokenMethod",
+          "note": "Token call sets ManualStatusHandling = {400} and inspects the response itself."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "238-240",
+          "function": "TokenMethod",
+          "note": "Builds an Error.Record from the error and error_description fields in the token response body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "29-36",
+          "function": "SumTotalType",
+          "note": "Function-level Documentation.Name, LongDescription and Examples on the shared entry function type."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "25-25",
+          "function": "SumTotalType",
+          "note": "Documentation.FieldCaption on the url parameter."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "26-26",
+          "function": "SumTotalType",
+          "note": "Documentation.FieldDescription on the url parameter."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "27-27",
+          "function": "SumTotalType",
+          "note": "Documentation.SampleValues on the url parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "99-119",
+          "function": "SumTotalNavTable",
+          "note": "Returns OData.Feed on the user URL, so the navigator is built from the service document."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "21-21",
+          "function": "SumTotal.ODataFeed",
+          "note": "Shared entry function exposes that OData.Feed result."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "180-180",
+          "function": "SumTotal",
+          "note": "TestConnection names SumTotal.ODataFeed, the shared entry function, with the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "117-117",
+          "function": "SumTotalNavTable",
+          "note": "OData.Feed receives the Query record, so the OData connector folds filters into the request."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "SumTotal.pq",
+          "lines": "1-261",
+          "function": "SumTotal.pq",
+          "note": "All code is in one .pq file with no pqm modules."
+        },
+        {
+          "file": "SumTotal.pq",
+          "lines": "258-261",
+          "function": "SumTotal.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:23:13Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0069309,
+    "duration_ms": 30481
+  },
+  "source_sha256": "ae189d75cfdba64933208d4a22619d2f489c540f471e8476f0ceb4141b269fe0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

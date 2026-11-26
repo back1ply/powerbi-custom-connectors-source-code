@@ -1,0 +1,333 @@
+{
+  "connector": "SolarwindsServiceDesk",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "139-141",
+          "function": "GetPage",
+          "note": "Key is read from Extension.CurrentCredential()[Key] and sent as the X-Samanage-Authorization Bearer header."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "285-293",
+          "function": "SolarWindsServiceDesk",
+          "note": "Data source kind declares a Key authentication kind with KeyLabel and Label."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "140-141",
+              "function": "GetPage",
+              "note": "The key is placed in the X-Samanage-Authorization request header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "146-147",
+          "function": "GetPage",
+          "note": "Data is fetched with Web.Contents(url, [Headers, RelativePath, Query])."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "6-12",
+          "function": "SolarWindsServiceDesk.Contents / ContentsV110 / ContentsV113",
+          "note": "Shared entry functions take optional RangeStart and RangeEnd datetime parameters."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "12-18",
+          "function": "SolarWindsServiceDesk.ExpandCustomFields",
+          "note": "ContentsV113 also takes CustomFieldsStr, a comma-separated text list of custom field names. No other id fits it, so it is counted as other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "136-157",
+          "function": "GetPage",
+          "note": "Pages are requested by a page number query parameter, and the next page number comes from the X-Current-Page and X-Total-Pages response headers. This is page-number paging, not offset-limit, so it is counted as other."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "247-257",
+          "function": "GetNextPageNumber",
+          "note": "Computes the next page number from the response headers."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "91-110",
+              "function": "Table.GenerateByPage",
+              "note": "Local helper that builds the pages with List.Generate."
+            },
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "115-125",
+              "function": "GetAllPagesByNextLink",
+              "note": "Calls Table.GenerateByPage to fetch all pages. The connector does not call List.Generate directly, so list-generate is not answered."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when GetNextPageNumber returns null, which happens once the incremented current page exceeds X-Total-Pages. GetAllPagesByNextLink then returns null for the page, and Table.GenerateByPage stops when its List.Generate sees a null page.",
+          "evidence": [
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "247-257",
+              "function": "GetNextPageNumber",
+              "note": "Returns null when next_page_number is greater than total_pages_number."
+            },
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "119-122",
+              "function": "GetAllPagesByNextLink",
+              "note": "Sets page to null when there is no next page number."
+            },
+            {
+              "file": "SolarWindsServiceDesk.pq",
+              "lines": "93-96",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate stops when lastPage is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "148",
+          "function": "GetPage",
+          "note": "Response body is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "151-154",
+          "function": "GetPage",
+          "note": "Columns are expanded by name from the Columns.json list with no M types assigned. Types come from the data through Value.Type at lines 107-109."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "107-109",
+          "function": "Table.GenerateByPage",
+          "note": "The table type is taken from the first page's data, not declared by the connector."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "147",
+          "function": "GetPage",
+          "note": "Web.Contents is called without ManualStatusHandling, so Power Query handles status codes."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "5-18",
+          "function": "SolarWindsServiceDesk.Contents / ContentsV110 / ContentsV113",
+          "note": "Shared functions have only DataSource.Kind and Publish metadata, with no Documentation fields."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "25-28",
+          "function": "SolarWindsServiceDesk.Beta",
+          "note": "Hardcoded single-row navigation list."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "37-54",
+          "function": "SolarWindsServiceDesk.NavigationV",
+          "note": "Hardcoded navigation rows for objects and assets."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "51-52",
+          "function": "SolarWindsServiceDesk.NavigationV",
+          "note": "The All Objects and Assets rows are Folder items with IsLeaf false, which opens further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "285-287",
+          "function": "SolarWindsServiceDesk",
+          "note": "TestConnection returns the name of the shared entry function SolarWindsServiceDesk.Contents."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "285-293",
+          "function": "SolarWindsServiceDesk",
+          "note": "No Table.View handlers, OData.Feed, Odbc.DataSource, or native query support appear in the connector."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "1-307",
+          "function": "module",
+          "note": "All code is in one .pq file. No .pqm modules are loaded."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "33-34",
+          "function": "SolarWindsServiceDesk.NavigationV",
+          "note": "Strings come from Extension.LoadString resources."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "304-307",
+          "function": "SolarWindsServiceDesk.Icons",
+          "note": "Icons come from Extension.Contents PNG resources."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "63",
+          "function": "SolarWindsServiceDesk.ImplSolarWindsServiceDeskImpl",
+          "note": "Diagnostics.Trace runs on every data request with no EnableTraceOutput switch."
+        },
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "146",
+          "function": "GetPage",
+          "note": "Diagnostics.Trace runs on every page request with no switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "115-125",
+          "function": "GetAllPagesByNextLink",
+          "note": "Paging is synchronous. There is no export job or polling."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SolarWindsServiceDesk.pq",
+          "lines": "1-307",
+          "function": "module",
+          "note": "Only Web.Contents GET reads are made. No Action functions exist."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:22:52Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0076492999999999995,
+    "duration_ms": 33865
+  },
+  "source_sha256": "08979b6eefdcd63ddb72b701c004950abcaed4671b268314ccdbec5aaf924a25",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,324 @@
+{
+  "connector": "QubolePresto",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "username-password",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "92-97",
+          "function": "QubolePresto.Contents",
+          "note": "Implicit credential kind maps to Trusted_Connection=\"Yes\" (anonymous)."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "98-100",
+          "function": "QubolePresto.Contents",
+          "note": "UsernamePassword kind maps UID and PWD into the credential connection string."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "101-103",
+          "function": "QubolePresto.Contents",
+          "note": "Windows kind maps to Trusted_Connection=\"Yes\"."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "215-220",
+          "function": "QubolePresto",
+          "note": "Kind record declares only Implicit; the Windows and UsernamePassword branches in the entry function are still wired and reachable from it."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "190-204",
+          "function": "QubolePresto.Contents",
+          "note": "Odbc.DataSource(ConnectionString, ...) is the only data access call."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "QubolePresto.m",
+              "lines": "112-115",
+              "function": "QubolePresto.Contents",
+              "note": "SqlCapabilities overrides (FractionalSecondsScale) are added on top of the BuildOdbcConfig defaults."
+            },
+            {
+              "file": "QubolePresto.m",
+              "lines": "119-123",
+              "function": "QubolePresto.Contents",
+              "note": "SQLGetInfo overrides for SQL_SQL92_PREDICATES and SQL_AGGREGATE_FUNCTIONS."
+            },
+            {
+              "file": "QubolePresto.m",
+              "lines": "199-203",
+              "function": "QubolePresto.Contents",
+              "note": "SqlCapabilities, SQLGetInfo, SQLGetTypeInfo and SQLColumns are passed to Odbc.DataSource."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "75",
+          "function": "QubolePresto.Contents",
+          "note": "The only parameter is dsn as text, an ODBC DSN name (url-or-server per definition)."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "79-81",
+          "function": "QubolePresto.Contents",
+          "note": "dsn is placed into the connection string as DSN = dsn."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "190-204",
+          "function": "QubolePresto.Contents",
+          "note": "Results come back as driver rows through Odbc.DataSource."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "190-204",
+          "function": "QubolePresto.Contents",
+          "note": "Column names and types come from the ODBC driver through Odbc.DataSource."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "157-169",
+          "function": "QubolePresto.Contents",
+          "note": "SQLColumns handler returns the driver source table unchanged (or only logs it), so no M types are assigned."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "190-192",
+          "function": "QubolePresto.Contents",
+          "note": "Odbc.DataSource builds the navigator at runtime from the driver catalog (discovered-from-api)."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "192",
+          "function": "QubolePresto.Contents",
+          "note": "HierarchicalNavigation = true groups tables under schema folders (hierarchical)."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "210-214",
+          "function": "QubolePresto",
+          "note": "TestConnection returns { \"QubolePresto.Contents\", dsn }, which names the shared entry function itself."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "112-123",
+          "function": "QubolePresto.Contents",
+          "note": "SqlCapabilities and SQLGetInfo overrides shape folding through the ODBC driver."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "176-188",
+          "function": "QubolePresto.Contents",
+          "note": "AstVisitor LimitClause rewrites LIMIT for the ODBC SQL generator, which is part of the ODBC folding path."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "190-204",
+          "function": "QubolePresto.Contents",
+          "note": "Odbc.DataSource receives AstVisitor and SqlCapabilities. HideNativeQuery = true, so no native query is exposed."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "324-329",
+          "function": "Extension.LoadFunction",
+          "note": "Loads code from .pqm files via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "332",
+          "function": "Diagnostics",
+          "note": "Loads Diagnostics.pqm through Extension.LoadFunction."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "337",
+          "function": "ODBC",
+          "note": "Loads OdbcConstants.pqm through Extension.LoadFunction."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "221",
+          "function": "QubolePresto",
+          "note": "Label comes from Extension.LoadString(\"DataSourceLabel\")."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "228",
+          "function": "QubolePresto.Publish",
+          "note": "ButtonText comes from Extension.LoadString."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "236-237",
+          "function": "QubolePresto.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "226",
+          "function": "QubolePresto.Publish",
+          "note": "Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "QubolePresto.m",
+          "lines": "9",
+          "function": "EnableTraceOutput",
+          "note": "The switch is set to false."
+        },
+        {
+          "file": "QubolePresto.m",
+          "lines": "333",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue calls Diagnostics[LogValue] only when EnableTraceOutput is true; otherwise it is a no-op."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "The only Diagnostics.Trace call is inside LogValue, so it is reachable only behind the switch."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:19:49Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0125065,
+    "duration_ms": 24706
+  },
+  "source_sha256": "caa5d8ef6ff505342de0972b7ed702a39197c43385b5a5951677275db917000e",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

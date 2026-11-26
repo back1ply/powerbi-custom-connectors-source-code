@@ -1,0 +1,389 @@
+{
+  "connector": "TimeSeriesInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "57-67",
+          "function": "TimeSeriesInsights",
+          "note": "Legacy data source kind declares Authentication Aad with AuthorizationUri, Resource and DefaultClientApplication."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "129-139",
+          "function": "AzureTimeSeriesInsights",
+          "note": "Current data source kind declares Authentication Aad; AuthorizationUri is discovered from the WWW-Authenticate header."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "510-528",
+          "function": "WebRequestForTimeSeriesQuery",
+          "note": "Data queries are sent with Web.Contents and a POST body."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "492-508",
+          "function": "WebRequestForTimeSeriesModelQuery",
+          "note": "Model settings requests use Web.Contents."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "483-490",
+          "function": "WebRequestForTestConnection",
+          "note": "Test connection uses Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "78-82",
+          "function": "AzureTimeSeriesInsights.ContentsType",
+          "note": "The single query parameter is a record holding JsonPayload text."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "211-215",
+          "function": "ExecuteCustomQueries",
+          "note": "JsonPayload supplies environmentFqdn (the host, url-or-server), clientDataType and storeType. The payload text itself and storeType are raw parameters, so other applies."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "270-273",
+          "function": "ExecuteQuery",
+          "note": "timeSeriesId inside the payload selects the resource inside the environment, which is database-or-resource-id."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "214",
+          "function": "ExecuteCustomQueries",
+          "note": "isSearchSpanRelative and the searchSpan from/to values (lines 278-305) are user-supplied date ranges."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "583-590",
+          "function": "CheckForContinuationToken",
+          "note": "Sends the continuationToken back as the x-ms-continuation header and fetches the next page."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "522-524",
+          "function": "WebRequestForTimeSeriesQuery",
+          "note": "Checks the response for a continuationToken field and triggers the next page."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "TimeSeriesInsightsConnector.m",
+              "lines": "510-528",
+              "function": "WebRequestForTimeSeriesQuery",
+              "note": "WebRequestForTimeSeriesQuery calls CheckForContinuationToken, which calls WebRequestForTimeSeriesQuery again, combining results with Table.Combine."
+            },
+            {
+              "file": "TimeSeriesInsightsConnector.m",
+              "lines": "583-590",
+              "function": "CheckForContinuationToken",
+              "note": "The recursive call that fetches each next page."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no continuationToken field (checked at line 524). The recursion then returns the combined table from Table.Combine at line 526.",
+          "evidence": [
+            {
+              "file": "TimeSeriesInsightsConnector.m",
+              "lines": "524-526",
+              "function": "WebRequestForTimeSeriesQuery",
+              "note": "No continuationToken means the result is combined and returned."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "310",
+          "function": "GetTimeSeriesValue",
+          "note": "Json.Document parses the returned time series data."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "520",
+          "function": "WebRequestForTimeSeriesQuery",
+          "note": "Json.Document parses query responses."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "385-399",
+          "function": "AdjustColumnType",
+          "note": "Maps source type names (Bool, DateTime, Double, Dynamic, Long, String) to M types, which is declared-schema."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "409-424",
+          "function": "GetColumnName",
+          "note": "Column names come from the data's name and type properties, and some tables have empty schemas, so inferred-from-data applies."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "322",
+          "function": "GetTimeSeriesValueHelper",
+          "note": "Table.TransformColumnTypes converts the timestamp column to datetime."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "397",
+          "function": "AdjustColumnType",
+          "note": "Table.TransformColumnTypes converts returned value columns to their M types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "TimeSeriesInsightsConnector.m",
+              "lines": "378-382",
+              "function": "GetEmptyTable",
+              "note": "An empty result returns #table({}, {}) with no declared columns."
+            },
+            {
+              "file": "TimeSeriesInsightsConnector.m",
+              "lines": "312-313",
+              "function": "GetTimeSeriesValue",
+              "note": "An empty timestamps list returns GetEmptyTable."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "513-517",
+          "function": "WebRequestForTimeSeriesQuery",
+          "note": "Live data requests set ManualStatusHandling for 400, 401, 403, 404 and 500."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "483-490",
+          "function": "WebRequestForTestConnection",
+          "note": "The test-connection Web.Contents call does not set ManualStatusHandling, so Power Query handles its status (default)."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "160-163",
+          "function": "GetAuthorizationUrlFromWwwAuthenticate",
+          "note": "A token-less call sets ManualStatusHandling = {401} and inspects the WWW-Authenticate header."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "530-581",
+          "function": "ValidateResult",
+          "note": "Builds Error.Record values (and Extension.CredentialError) from HTTP status codes and error bodies."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "71-88",
+          "function": "TimeSeriesInsights.ContentsType",
+          "note": "Documentation.Name, FieldCaption, FieldDescription and SampleValues are set on the shared function's type."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "172-189",
+          "function": "AzureTimeSeriesInsights.ContentsType",
+          "note": "The same documentation metadata is set on the current shared function's type."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "49",
+          "function": "TimeSeriesInsights.Contents",
+          "note": "The shared function returns a data table directly."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "104",
+          "function": "AzureTimeSeriesInsights.Contents",
+          "note": "The shared function returns a data table directly. Table.ToNavigationTable (lines 633-654) is never called."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "126",
+          "function": "AzureTimeSeriesInsights",
+          "note": "TestConnection calls the entry function with a TestConnection flag."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "201-202",
+          "function": "AzureTimeSeriesInsightsImplementation/ContentsInternal",
+          "note": "When the flag is present, the entry function branches to WebRequestForTestConnection, which is a probe rather than a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "1-654",
+          "function": "",
+          "note": "No Table.View, ODBC, native query, OData or source-function folding appears in the file."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "1-654",
+          "function": "",
+          "note": "The connector is a single .m file. It has no pqm modules, icons or Beta field."
+        },
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "26-29",
+          "function": "DefaultRequestHeadersLegacy",
+          "note": "Strings are loaded with Extension.LoadString, so localized strings are used."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "623-628",
+          "function": "GetClientActivityId",
+          "note": "Only Diagnostics.ActivityId is read for correlation IDs. No Diagnostics.Trace call exists."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "1-654",
+          "function": "",
+          "note": "No async export or job polling exists."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "TimeSeriesInsightsConnector.m",
+          "lines": "1-654",
+          "function": "",
+          "note": "The connector only issues reads (POST queries and GET metadata). No Action functions exist."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:25:15Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0200814,
+    "duration_ms": 60322,
+    "repair_attempts": 1
+  },
+  "source_sha256": "a86227f707a6654b5171720a329cee1bce468340e42480f3df74f385a55ed496",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

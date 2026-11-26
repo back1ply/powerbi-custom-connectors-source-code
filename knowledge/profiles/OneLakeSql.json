@@ -1,0 +1,306 @@
+{
+  "connector": "OneLakeSql",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "45-51",
+          "function": "OneLakeSql",
+          "note": "Authentication record sets only the Aad kind (AuthorizationUri, Resource, Scope). The token is read through Utils GetCredential (Utils.pqm 486-496), called from GetSqlEndpointNavTable at OneLakeSql.pq 232."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-314",
+          "function": "Http.Request",
+          "note": "Control-plane REST calls (sqlEndpoints, warehouses, connectionString) go through Web.Contents via Http.Request."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "240-241",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "The data itself is reached through Sql.Database(tdsEndPoint, database, curatedOptions)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "137-148",
+          "function": "OneLakeSql.Type",
+          "note": "workspace and database are declared text parameters that name the workspace and the SQL endpoint or warehouse item."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "149-152",
+          "function": "OneLakeSql.Type",
+          "note": "The optional options record parameter."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "145-148",
+          "function": "OneLakeSql.Type",
+          "note": "artifactType (Lakehouse or Warehouse) is a text selector that fits no other id, so it is other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The code reads only CommandTimeout, CreateNavigationProperties and HierarchicalNavigation, which are passed to Sql.Database. Other fields are dropped by MissingField.Ignore. The documented sample ConnectionTimeout is never read.",
+          "evidence": [
+            {
+              "file": "OneLakeSql.pq",
+              "lines": "240-241",
+              "function": "GetSqlEndpointNavTable_WithPermissions",
+              "note": "curatedOptions selects CommandTimeout, CreateNavigationProperties and HierarchicalNavigation from options."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "241-248",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "Returned rows come from the Sql.Database driver as tables. The JSON parsed from the control-plane responses is used to locate endpoints and is not returned as data, so json is not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "241-248",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "Column names and types on returned tables come from Sql.Database. The connector assigns no M types to returned data."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-306",
+          "function": "Http.Request",
+          "note": "moreOptions sets ManualStatusHandling from the handler keys. Status is inspected through try and errorHandler, and the handler map is consulted. Applies to token and data calls alike."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "349-398",
+          "function": "DefaultErrorHandler",
+          "note": "Builds Error.Record values from HTTP response bodies and status codes (lines 363-375 and 386-395)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "161-164",
+          "function": "OneLakeSql.Type",
+          "note": "Documentation.Name, Caption, Description and LongDescription are set."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "138-151",
+          "function": "OneLakeSql.Type",
+          "note": "Documentation.FieldCaption is set on each parameter (lines 138, 142, 146, 150)."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "139-151",
+          "function": "OneLakeSql.Type",
+          "note": "Documentation.SampleValues is set on each parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "240-248",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "The navigator is built by Sql.Database, which lists schemas and tables from the server at runtime. System schemas are filtered at line 242. HierarchicalNavigation is only user-enabled, so hierarchical is not counted."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "44-44",
+          "function": "OneLakeSql",
+          "note": "TestConnection evaluates { \"OneLake.SqlAnalytics\" } & ParseResourcePath(...), which names the shared entry function."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "247-247",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "A separate OnTestConnection handler on the returned table delegates to DataSource.TestConnection(sqlAnalytics). The field-level wiring is still the entry function, so the answer is reuses-entry-function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "244-246",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "Table.View with an OnSelectRows handler and a GetExpression handler."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "241-241",
+          "function": "GetSqlEndpointNavTable_WithPermissions",
+          "note": "Folding is delegated to Sql.Database, which folds on its own."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-rows",
+            "get-expression"
+          ],
+          "evidence": [
+            {
+              "file": "OneLakeSql.pq",
+              "lines": "245-246",
+              "function": "GetSqlEndpointNavTable_WithPermissions",
+              "note": "OnSelectRows forwards the selector to sqlAnalytics. GetExpression returns Value.Expression(Value.Optimize(sqlAnalytics))."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "29-32",
+          "function": "OneLakeSql",
+          "note": "Code is loaded from Utils.pqm, Table.NavigationTableView.pqm, Workspace.PrivateLink.pqm and Workspace.pqm through Extension.LoadFunction."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "138-138",
+          "function": "OneLakeSql.Type",
+          "note": "Strings come from Extension.LoadString, which loads localized resources."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "349-352",
+          "function": "OneLakeSql.Icons",
+          "note": "Icons are loaded through Extension.Contents as PNG files."
+        },
+        {
+          "file": "OneLakeSql.pq",
+          "lines": "337-339",
+          "function": "OneLakeSql.Publish",
+          "note": "Beta = true is set on the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "381-385",
+          "function": "DefaultErrorHandler",
+          "note": "Diagnostics.Trace(TraceLevel.Warning, Connector.WebError) runs on the live error path with no switch."
+        },
+        {
+          "file": "Workspace.PrivateLink.pqm",
+          "lines": "108-117",
+          "function": "GetWorkspaceBaseUrl",
+          "note": "Diagnostics.Trace(TraceLevel.Warning, WorkspacePublicAccess) runs on every call from GetSqlEndPointsTable, with no switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:16:33Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0182039,
+    "duration_ms": 60013
+  },
+  "source_sha256": "4bf7c3f4f8019a0e8f3d13df2170e52e4ea48b3151e4f6eee7f755d5288822d5",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

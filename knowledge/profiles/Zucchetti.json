@@ -1,0 +1,284 @@
+{
+  "connector": "Zucchetti",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "57-59",
+          "function": "Zucchetti",
+          "note": "Authentication record declares UsernamePassword = []. No anonymous, key, OAuth, AAD, Windows, or signed-request flow is present."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "13-13",
+          "function": "ZucchettiImpl",
+          "note": "Csv.Document over Web.Contents for the connector list."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "40-40",
+          "function": "CallForData",
+          "note": "Web.Contents request for each table's data."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "region-or-environment"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "10-10",
+          "function": "ZucchettiImpl",
+          "note": "Url parameter is the server base URL (validated as https at line 12)."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "13-13",
+          "function": "ZucchettiImpl",
+          "note": "Environment parameter is sent as the env= query value selecting the Zucchetti deployment environment."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "87-91",
+          "function": "ZucchettiType",
+          "note": "Environment is documented as an environment code (for example 001, 000001)."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "csv",
+        "binary-compressed",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "13-13",
+          "function": "ZucchettiImpl",
+          "note": "Connector list is parsed with Csv.Document."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "41-42",
+          "function": "CallForData",
+          "note": "Table data is base64-decoded and decompressed with Compression.GZip."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "43-43",
+          "function": "CallForData",
+          "note": "Decompressed table data is split into rows and columns with a custom § delimiter (other: a custom delimited text format with no id of its own)."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "43-44",
+          "function": "CallForData",
+          "note": "Column names come from the first row via Table.FromList and Table.PromoteHeaders. No M types are assigned to the returned columns."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "13-13",
+          "function": "ZucchettiImpl",
+          "note": "Web.Contents with no ManualStatusHandling; Power Query handles status codes."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "40-40",
+          "function": "CallForData",
+          "note": "Data Web.Contents call with no ManualStatusHandling or custom error records."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "92-102",
+          "function": "ZucchettiType",
+          "note": "Documentation.Name, LongDescription and Examples on the function type."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "83-89",
+          "function": "ZucchettiType",
+          "note": "Documentation.FieldCaption and FieldDescription on Url and Environment."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "85-90",
+          "function": "ZucchettiType",
+          "note": "Documentation.SampleValues on Url and Environment."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "12-21",
+          "function": "ZucchettiImpl",
+          "note": "Navigator items are listed at runtime from the server's connector list."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "18-21",
+          "function": "ZucchettiImpl",
+          "note": "Folder rows with ItemKind Folder and IsLeaf false, whose Data opens CallForList."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "29-32",
+          "function": "CallForList",
+          "note": "Table rows under each folder with IsLeaf true."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "50-56",
+          "function": "Zucchetti",
+          "note": "TestConnection returns { \"Zucchetti.Contents\", Url, Environment }, which names the shared entry function, so the test evaluates a normal query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Zucchetti.m",
+          "lines": "1-121",
+          "function": "",
+          "note": "Entire connector is in one .m file; no .pqm modules are loaded."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "60-60",
+          "function": "Zucchetti",
+          "note": "Extension.LoadString used for localized strings."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "73-76",
+          "function": "Zucchetti.Icons",
+          "note": "Icon16 and Icon32 loaded with Extension.Contents."
+        },
+        {
+          "file": "Zucchetti.m",
+          "lines": "64-64",
+          "function": "Zucchetti.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:27:42Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0055324,
+    "duration_ms": 25688
+  },
+  "source_sha256": "d58be2b475f166758b59ed7634c1acde971979f022af4a85c866ed74e88ae421",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

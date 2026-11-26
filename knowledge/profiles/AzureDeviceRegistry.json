@@ -1,0 +1,411 @@
+{
+  "connector": "AzureDeviceRegistry",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "41-45",
+          "function": "AzureDeviceRegistry",
+          "note": "The data source kind's Authentication record uses the built-in Aad method with AuthorizationUri and Resource. No custom OAuth flow, key, or username/password is implemented."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "211-215",
+          "function": "WaitForResult",
+          "note": "Every data request is a Web.Contents POST to the Azure Resource Graph REST endpoint."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "118-119",
+          "function": "AdrNavTable",
+          "note": "AdrNavTable takes scope, optional subscriptions, optional namespaces, optional customAttributes and optional options. Subscriptions and namespaces name resources inside the tenant or subscription."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "87-104",
+          "function": "AdrType",
+          "note": "The optional options record (conventionally options) is the options-record parameter."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "65-70",
+          "function": "AdrType",
+          "note": "scope is a text scope selector (Tenant or Subscription) that is not a resource name, URL, or region, so it falls to other."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "81-86",
+          "function": "AdrType",
+          "note": "customAttributes is a raw comma-separated text list of attribute names, so it falls to other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts resultTruncated (logical, allowed values true or false, default false) and pagesize (number, allowed values 5,10,25,50,100,200,300,400,500,600,700,800,900,1000, default DefaultPageSize). An out-of-range pagesize falls back to the default.",
+          "evidence": [
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "88-100",
+              "function": "AdrType",
+              "note": "Declares the resultTruncated and pagesize fields and their allowed values."
+            },
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "386-388",
+              "function": "ValidateAndParseParameters",
+              "note": "Applies the pagesize and resultTruncated defaults and the range check."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "skip-token"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "150-150",
+          "function": "AzureDeviceRegistry.Contents",
+          "note": "The next token is read from the previous page's metadata SkipToken."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "175-175",
+          "function": "GetPage",
+          "note": "The skip token comes from the response's $skipToken field via GetSkipToken."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "309-309",
+          "function": "GetSkipToken",
+          "note": "Reads $skipToken from the parsed response body."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "147-165",
+              "function": "AzureDeviceRegistry.Contents",
+              "note": "Pages are produced by GenerateByPage, which is Table.GenerateByPage from CommonFunctions.pqm. List.Generate is not answered separately because it is only the helper's internal construct."
+            },
+            {
+              "file": "CommonFunctions.pqm",
+              "lines": "4-26",
+              "function": "Table.GenerateByPage",
+              "note": "Helper built on List.Generate that stops when a page returns null."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no $skipToken: GetSkipToken returns null (line 309), so the next call receives a null token and returns null (line 162), which ends the List.Generate in Table.GenerateByPage. When resultTruncated is true, the skip token is forced to null (line 175), so only one page is fetched.",
+          "evidence": [
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "162-162",
+              "function": "AzureDeviceRegistry.Contents",
+              "note": "Returns null when nextToken is null, ending generation."
+            },
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "175-175",
+              "function": "GetPage",
+              "note": "Forces the next skip token to null when resultTruncated is true."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "217-217",
+          "function": "WaitForResult",
+          "note": "Json.Document parses the Resource Graph response."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "176-176",
+          "function": "GetPage",
+          "note": "The data rows are read from the parsed body[data] field."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "QueryHelper.pqm",
+          "lines": "55-95",
+          "function": "AssetSchema",
+          "note": "Hardcoded Name and M Type table assigning type text to each asset column."
+        },
+        {
+          "file": "QueryHelper.pqm",
+          "lines": "129-156",
+          "function": "DeviceSchema",
+          "note": "Hardcoded Name and M Type table assigning type text to each device column."
+        },
+        {
+          "file": "CommonFunctions.pqm",
+          "lines": "46-97",
+          "function": "SchemaTransformTable",
+          "note": "Applies the declared schema to returned pages (called from GetPage line 179) with EnforceSchema.IgnoreExtraColumns, so extra response columns are kept."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "177-177",
+          "function": "GetPage",
+          "note": "Column names come from the data itself through Record.FieldNames of the first row."
+        },
+        {
+          "file": "CommonFunctions.pqm",
+          "lines": "58-59",
+          "function": "SchemaTransformTable",
+          "note": "Table.TransformColumnTypes converts returned column values to the declared M types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "178-178",
+              "function": "GetPage",
+              "note": "An empty result is replaced by a table with only a Results column reading No results, and the schema is not applied (line 179), so declared columns are not kept."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "211-215",
+          "function": "WaitForResult",
+          "note": "ManualStatusHandling = {500, 400} is set on the live Web.Contents call (line 214), and the status is inspected at lines 216-223. GetWebContents (241-283) also sets it, but no live path calls it, so it is ignored."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "205-228",
+          "function": "WaitForResult",
+          "note": "A failed request is sent again through Value.WaitFor, which is a retry and not a job poll."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Only HTTP 500 is retried: line 223 returns null while iteration is below 3, which makes Value.WaitFor call again. HTTP 400 returns an error at once with no retry, and no other status is retried. Value.WaitFor is called with count 3, and the delay is Number.Power(2, iteration) seconds, which is 1, 2 and then 4 seconds (line 226).",
+          "evidence": [
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "223-226",
+              "function": "WaitForResult",
+              "note": "Retry condition for status 500 and the 2^iteration delay with count 3."
+            },
+            {
+              "file": "AzureDeviceRegistry.pq",
+              "lines": "230-238",
+              "function": "Value.WaitFor",
+              "note": "Retry helper that generates attempts up to count."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "105-113",
+          "function": "AdrType",
+          "note": "Documentation.Name, LongDescription and Examples on the function type (function-documentation)."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "65-70",
+          "function": "AdrType",
+          "note": "Documentation.FieldCaption and FieldDescription on each parameter (parameter-captions, parameter-descriptions), with SampleValues and AllowedValues for scope."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "91-98",
+          "function": "AdrType",
+          "note": "Documentation.AllowedValues for resultTruncated and pagesize."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "135-139",
+          "function": "AdrNavTable",
+          "note": "The navigation table rows are hardcoded as Assets and Devices, both with IsLeaf true, through Table.ToNavigationTable."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "40-40",
+          "function": "AzureDeviceRegistry",
+          "note": "TestConnection names AzureDeviceRegistry.Query with the argument Tenant, so the test runs the normal entry function rather than a probe."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "4-6",
+          "function": "Diagnostics",
+          "note": "Code is loaded from .pqm files through Extension.LoadFunction (pqm-modules)."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "47-47",
+          "function": "AzureDeviceRegistry",
+          "note": "Extension.LoadString supplies localized strings."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "60-61",
+          "function": "AzureDeviceRegistry.Icons",
+          "note": "Extension.Contents loads icon PNG files."
+        },
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "52-52",
+          "function": "AzureDeviceRegistry.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "AzureDeviceRegistry.pq",
+          "lines": "121-125",
+          "function": "AdrNavTable",
+          "note": "Diagnostics.LogValue runs on every navigation call with no switch."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "4-10",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace directly with no EnableTraceOutput-style switch."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:12:43Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.013971899999999999,
+    "duration_ms": 58849
+  },
+  "source_sha256": "861c24b79eb5e14c26f1e19e676adf3002a7e8a5067e20dbf03cb41079ceb831",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,301 @@
+{
+  "connector": "MicrosoftAzureDataManagerForEnergy",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "205-212",
+          "function": "MicrosoftAzureDataManagerForEnergy",
+          "note": "Authentication record declares only Aad (AuthorizationUri, Resource, Scope). No Anonymous, key, or username-password kind is declared."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "131-135",
+          "function": "GetSearchResultPage",
+          "note": "Json.Document(Web.Contents(endpoint, [...])) sends a POST to the energy.azure.com search endpoint."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "57-62",
+          "function": "MicrosoftAzureDataManagerForEnergyImpl",
+          "note": "serviceName maps to url-or-server (builds the endpoint host at line 88). dataPartition maps to database-or-resource-id (data partition header). kind is a resource type identifier, so it maps to database-or-resource-id. query, limit, and returnedFields have no fitting id, so they map to other."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "88-88",
+          "function": "BuildEndpoint",
+          "note": "serviceName is used as the host part of the URL."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "14-46",
+          "function": "MicrosoftAzureDataManagerForEnergyType",
+          "note": "Parameter declarations: serviceName, dataPartition, kind, query, optional limit, optional returnedFields. No options record exists, so the options-fields sub-question does not apply."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "111-112",
+          "function": "GetSearchResults",
+          "note": "Each page's cursor is read from the previous page's metadata and passed to the next request."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "155-159",
+          "function": "GetReturnedCursor",
+          "note": "The next cursor is read from the response's cursor field."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "272-276",
+          "function": "GetQueryString",
+          "note": "The cursor is written into the request body when present."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "MicrosoftAzureDataManagerForEnergy.pq",
+              "lines": "108-118",
+              "function": "GetSearchResults",
+              "note": "Pages are produced by Table.GenerateByPage. Its internal List.Generate is not separately counted."
+            },
+            {
+              "file": "MicrosoftAzureDataManagerForEnergy.pq",
+              "lines": "278-297",
+              "function": "Table.GenerateByPage",
+              "note": "Local helper that calls List.Generate and then expands the pages into a table."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the returned page is null. That happens when RetrievedAllPages is true: the running count equals totalNumberOfRecords, or the running count reaches the user's limit. Otherwise paging continues while the cursor is present.",
+          "evidence": [
+            {
+              "file": "MicrosoftAzureDataManagerForEnergy.pq",
+              "lines": "115-116",
+              "function": "GetSearchResults",
+              "note": "Returns null to end pagination when RetrievedAllPages is true."
+            },
+            {
+              "file": "MicrosoftAzureDataManagerForEnergy.pq",
+              "lines": "161-177",
+              "function": "RetrievedAllPages",
+              "note": "True when collected equals total, or when a non-null limit is reached."
+            },
+            {
+              "file": "MicrosoftAzureDataManagerForEnergy.pq",
+              "lines": "282-282",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate stops when the page is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "131-135",
+          "function": "GetSearchResultPage",
+          "note": "The search response is parsed with Json.Document and its results and totalCount fields are returned as data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "138-140",
+          "function": "GetSearchResultPage",
+          "note": "Records come from results[results] and are wrapped with Table.FromList into a single column named Records. No M types are assigned."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "294-296",
+          "function": "Table.GenerateByPage",
+          "note": "Column names and type come from the first page's data via Table.ColumnNames and Value.Type. No declared schema is applied to the returned data."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "131-135",
+          "function": "GetSearchResultPage",
+          "note": "Web.Contents is called without ManualStatusHandling, so status handling is left to Power Query. IsRetry is a Web.Contents option and sets no delay."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "47-55",
+          "function": "MicrosoftAzureDataManagerForEnergyType",
+          "note": "Documentation.Name, LongDescription, and Examples are set on the function type."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "15-46",
+          "function": "MicrosoftAzureDataManagerForEnergyType",
+          "note": "Each parameter has Documentation.FieldCaption and Documentation.FieldDescription."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "18-45",
+          "function": "MicrosoftAzureDataManagerForEnergyType",
+          "note": "Each parameter has Documentation.SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "68-74",
+          "function": "MicrosoftAzureDataManagerForEnergyImpl",
+          "note": "The navigation table is a hardcoded one-row #table with the kind as the item. Nothing is discovered from the API."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "196-204",
+          "function": "MicrosoftAzureDataManagerForEnergy",
+          "note": "TestConnection returns the list {\"MicrosoftAzureDataManagerForEnergy.Search\", serviceName, dataPartition, kind, query}, so it names the shared entry function and runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "216-217",
+          "function": "MicrosoftAzureDataManagerForEnergy.Publish",
+          "note": "Publish sets Beta = true."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "16-17",
+          "function": "MicrosoftAzureDataManagerForEnergy.Search",
+          "note": "Extension.LoadString is used for localized strings."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "225-228",
+          "function": "MicrosoftAzureDataManagerForEnergy.Icons",
+          "note": "Icons are loaded with Extension.Contents PNG files."
+        },
+        {
+          "file": "MicrosoftAzureDataManagerForEnergy.pq",
+          "lines": "1-320",
+          "function": "section MicrosoftAzureDataManagerForEnergy",
+          "note": "All code is in one .pq file with no .pqm modules."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:15:23Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0139798,
+    "duration_ms": 49415,
+    "repair_attempts": 1
+  },
+  "source_sha256": "4cbc61ca0f7a84714eb5e82e36c98e1347eddc3c10cb62653e705b8c3e2dee31",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

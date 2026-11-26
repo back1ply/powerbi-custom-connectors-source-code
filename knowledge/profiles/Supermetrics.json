@@ -1,0 +1,375 @@
+{
+  "connector": "Supermetrics",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "10-16",
+          "function": "Supermetrics",
+          "note": "Authentication record sets OAuth = Auth"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "117-213",
+          "function": "Auth",
+          "note": "Auth record exposes StartLogin, FinishLogin and Refresh for OAuth"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Supermetrics.m",
+              "lines": "181-185",
+              "function": "Auth.startLogin",
+              "note": "Authorize request sends code_challenge_method = S256 and code_challenge from SHA-256 of the verifier"
+            },
+            {
+              "file": "Supermetrics.m",
+              "lines": "119-126",
+              "function": "Auth.createHash",
+              "note": "SHA-256 code challenge derivation"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Supermetrics.m",
+              "lines": "205-211",
+              "function": "Auth.refreshToken",
+              "note": "Refresh = this.refreshToken, which calls tokenMethod with grant_type refresh_token"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "336",
+          "function": "HttpClient.getResponse",
+          "note": "Data requests use Web.Contents(_url, _options)"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "264-412",
+          "function": "HttpClient",
+          "note": "Shared HTTP client built on Web.Contents with Json.Document parsing"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "30",
+          "function": "Supermetrics.Test",
+          "note": "Shared function takes no parameters"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "36",
+          "function": "Supermetrics.Render",
+          "note": "Shared navigator function takes no parameters"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "277-290",
+          "function": "HttpClient.pollForResults",
+          "note": "List.Generate is used only to poll and retry a single request, not to page through results"
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "354-364",
+          "function": "HttpClient.validateResponse",
+          "note": "Json.Document parses the data response"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "1316-1320",
+          "function": "Navigation.getQueryResultsAsTable",
+          "note": "Parsed _response[data] rows become the returned data table"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "80-104",
+          "function": "TableFn.getDataTypeAsNative and getTableSchema",
+          "note": "Connector maps source type names to M types (Logical, Date, DateTime, Time, Duration, Int64, Decimal, Text)"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "1316-1320",
+          "function": "Navigation.getQueryResultsAsTable",
+          "note": "Table.FromRows with schema names, then Table.TransformColumnTypes applies the declared types to returned data"
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Supermetrics.m",
+              "lines": "1316-1325",
+              "function": "Navigation.getQueryResultsAsTable",
+              "note": "Columns come from the response headers via Table.GetTableSchema and are passed as names to Table.FromRows. With an empty data list the table is still built with those names, and Table.TransformColumnTypes then applies the declared types, so an empty result keeps the declared columns. No error branch is hit for an empty data array."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "313",
+          "function": "HttpClient.getOptions",
+          "note": "ManualStatusHandling set on data requests"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "359-360",
+          "function": "HttpClient.validateResponse",
+          "note": "Connector inspects Response.Status against its manual status list and raises an error itself"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "366-375",
+          "function": "HttpClient.getError",
+          "note": "Builds Error.Record from the response error body"
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "473-476",
+          "function": "Types.textTypeBuilder",
+          "note": "Documentation.FieldCaption and Documentation.SampleValues on parameter types"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "479-484",
+          "function": "Types.dateTypeBuilder",
+          "note": "Documentation.FieldDescription, SampleValues and FieldCaption on date parameter types"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "485-496",
+          "function": "Types.allowedValuesBuilderSingle and allowedValuesBuilderMultiple",
+          "note": "Documentation.AllowedValues and FieldDescription on parameter types. These attach to the navigator-generated functions, not to the shared functions, which have no parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "1604-1622",
+          "function": "Navigation.getLogins",
+          "note": "Navigator items are listed at runtime from the API"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "1775",
+          "function": "Navigation.getGroupsTable",
+          "note": "Group rows have kind Database and leaf false, so they open further tables"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "1805",
+          "function": "Navigation.getDataSourcesTable",
+          "note": "Data source rows have leaf false and open nested tables"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "1209-1211",
+          "function": "Tools.getNavigationToolsTable",
+          "note": "Folder row with leaf false"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "11",
+          "function": "Supermetrics",
+          "note": "TestConnection names the Supermetrics.Test probe function, not the entry function"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "30",
+          "function": "Supermetrics.Test",
+          "note": "Probe performs a single profile GET through HttpClient"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "6-9",
+          "function": "Extension.LoadFunction and Icons",
+          "note": "Icons.pqm is loaded through Extension.LoadFunction, which uses Expression.Evaluate"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "15",
+          "function": "Supermetrics",
+          "note": "Extension.LoadString(\"AuthTitle\")"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "21",
+          "function": "Supermetrics.Publish",
+          "note": "Extension.LoadString for ButtonText"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "23-24",
+          "function": "Supermetrics.Publish",
+          "note": "SourceImage and SourceTypeImage set to the icon record"
+        },
+        {
+          "file": "Icons.pqm",
+          "lines": "2-18",
+          "function": "Icons",
+          "note": "Icon16 and Icon32 from Extension.Contents PNG files"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "Supermetrics.m",
+          "lines": "611-632",
+          "function": "SupermetricsClient.getQueryResults2",
+          "note": "Schedules a query job and polls its status until it reaches a terminal state"
+        },
+        {
+          "file": "Supermetrics.m",
+          "lines": "624",
+          "function": "SupermetricsClient.getQueryResults2",
+          "note": "Re-polls via Function.InvokeAfter with a 5 second delay"
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Polling interval is 5 seconds (Function.InvokeAfter, line 624). It keeps polling while the status is SCHEDULED, QUEUED or RUNNING. Terminal states are SUCCESS (fetch results), FAILURE (Error 'Query failure'), STOPPED (Error 'Query stopped') and any other status (Error 'Unknown error'). No explicit timeout or attempt cap is set, so polling runs until a terminal status is reached. The HttpClient pollForResults timeout path is not reached, because no RetryFn is ever set.",
+          "evidence": [
+            {
+              "file": "Supermetrics.m",
+              "lines": "618-632",
+              "function": "SupermetricsClient.getQueryResults2",
+              "note": "Status checks and terminal-state branches"
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:24:10Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0278754,
+    "duration_ms": 73750,
+    "repair_attempts": 1
+  },
+  "source_sha256": "d49d0d3b433bcd774a4cb09a6b40c465c3c183ef1b0b50090396f5789d2e70b0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

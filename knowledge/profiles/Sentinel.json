@@ -1,0 +1,329 @@
+{
+  "connector": "Sentinel",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "127-133",
+          "function": "MicrosoftSentinel",
+          "note": "Authentication record sets Aad with AuthorizationUri, Resource and Scope. Not an OAuth kind, so no oauth sub-questions apply."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "101",
+          "function": "AadResource",
+          "note": "AAD resource GUID used by the Aad authentication record."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "Data is fetched through AzureDataExplorer.Contents (the Kusto/ADX connector), which is not one of the listed transports."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "152",
+          "function": "AzureDataExplorer.Contents",
+          "note": "Loads the ADX function from the shared Kusto connector."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other",
+        "options-record",
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "6",
+          "function": "MicrosoftSentinelCluster",
+          "note": "Default cluster URL. The cluster parameter of MicrosoftSentinel.Contents is the connection target, covered by url-or-server."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "108-116",
+          "function": "MicrosoftSentinelImpl",
+          "note": "Entry parameters cluster, database, query and options are passed through to AzureDataExplorerContents. database is covered by database-or-resource-id, and query is covered by other because it is query text passed as its own parameter."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "111-112",
+          "function": "MicrosoftSentinelImpl",
+          "note": "start and end options set the time range, covered by date-range."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "50-59",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "options record type (_Kusto.OptionsRecord) declares the settings the user can supply."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The declared _Kusto.OptionsRecord fields are MaxRows, MaxSize, NoTruncate, AdditionalSetStatements, start and end. start and end are read by the connector: they accept a relative offset ending in 'h' or 'd' (for example '24h' or '7d') or a DateTime text value, and end defaults to the current UTC time. Any other options field is merged into the options record and passed through to AzureDataExplorer.Contents.",
+          "evidence": [
+            {
+              "file": "Sentinel.pq",
+              "lines": "50-59",
+              "function": "_MicrosoftSentinel.ContentsDocs",
+              "note": "Declares the optional options fields MaxRows, MaxSize, NoTruncate, AdditionalSetStatements, start and end."
+            },
+            {
+              "file": "Sentinel.pq",
+              "lines": "111-113",
+              "function": "MicrosoftSentinelImpl",
+              "note": "start and end are read from options and converted with StringToDateTime; the options record is merged with AdditionalRequestFields before the call."
+            },
+            {
+              "file": "Sentinel.pq",
+              "lines": "80-98",
+              "function": "StringToDateTime",
+              "note": "Parses relative offsets ending in h or d, or DateTime text."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "No paging code in this file; any paging is inside the ADX connector."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "Results are returned by AzureDataExplorer.Contents from the Kusto service. This file does not parse any format itself, and none of the listed format ids fits, so other is used."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "Column names and types come from the ADX transport and are not redefined here."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "8-78",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "Types declared here apply only to parameters, not to returned data columns."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "Transport is other, not web-contents or odata-feed, so this question's applies_when excludes the connector."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "67-78",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "Function-level Documentation.Description, DisplayName, Caption, Name, LongDescription and Examples."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "10-48",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "Each parameter type has Documentation.FieldCaption."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "12",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "Documentation.SampleValues on parameter types, for example the cluster sample."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "database and query are optional and passed through, so when they are omitted the navigator is listed at runtime from the ADX cluster."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "118-119",
+          "function": "MicrosoftSentinel.Contents",
+          "note": "Shared entry function that exposes that behaviour."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "126",
+          "function": "MicrosoftSentinel",
+          "note": "TestConnection names MicrosoftSentinel.Contents with the resource path, so the test runs the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "103-106",
+          "function": "AzureDataExplorerContents",
+          "note": "Queries are passed to AzureDataExplorer.Contents, which folds on its own. No Table.View handlers or native query support are written in this file."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "137-145",
+          "function": "MicrosoftSentinel.Publish",
+          "note": "SupportsDirectQuery = true."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "1-152",
+          "function": "",
+          "note": "The connector is a single .pq file with no pqm modules."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "11",
+          "function": "_MicrosoftSentinel.ContentsDocs",
+          "note": "Strings come from Extension.LoadString, so the connector uses localized strings."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "147-150",
+          "function": "Sentinel.Icons",
+          "note": "Icon16 and Icon32 are defined from PNG files."
+        },
+        {
+          "file": "Sentinel.pq",
+          "lines": "137-145",
+          "function": "MicrosoftSentinel.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "1-152",
+          "function": "",
+          "note": "No Diagnostics.Trace call exists in the file."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "1-152",
+          "function": "",
+          "note": "No export or job polling exists in the file."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Sentinel.pq",
+          "lines": "1-152",
+          "function": "",
+          "note": "No Action functions or table mutations exist in the file."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:21:41Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0110629,
+    "duration_ms": 42006,
+    "repair_attempts": 1
+  },
+  "source_sha256": "5bdf6195353cfa693fc6fe16aa0c67459be2dc89381ab011e0588c03220e37eb",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

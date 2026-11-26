@@ -1,0 +1,322 @@
+{
+  "connector": "SoftOneBI",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "215-226",
+          "function": "SoftOneBI",
+          "note": "Data source kind declares only an OAuth Authentication record with StartLogin, FinishLogin, Refresh and Logout."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "280-298",
+          "function": "StartLogin",
+          "note": "Builds the authorization URL with client_id, redirect_uri, state, scope and response_type=code."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "309-320",
+          "function": "FinishLogin",
+          "note": "Reads the authorization code from the callback URI and exchanges it through TokenMethod."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "324-324",
+          "function": "Refresh",
+          "note": "Exchanges a refresh_token through TokenMethod."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "SoftOneBI.m",
+              "lines": "282-290",
+              "function": "StartLogin",
+              "note": "The authorization query has no code_challenge or code_challenge_method, and no code_verifier is generated or sent."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "SoftOneBI.m",
+              "lines": "324-324",
+              "function": "Refresh",
+              "note": "Implements token refresh with grant_type refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "140-140",
+          "function": "GetTable",
+          "note": "Web.Contents against the Azure Data Lake base_url with a filesystem query."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "177-177",
+          "function": "LoadTables",
+          "note": "Web.Contents for the filesystem listing."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "121-121",
+          "function": "ParseTable",
+          "note": "Web.Contents for each zip file's content."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "39-44",
+          "function": "CreateNavTable",
+          "note": "The shared entry function takes no parameters. The serial is read from Extension.CurrentCredential(), not supplied by the user."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "csv",
+        "binary-compressed"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "124-128",
+          "function": "ParseTable",
+          "note": "Returned data is parsed with Csv.Document (delimiter ';', UTF-8)."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "76-112",
+          "function": "unzip",
+          "note": "Zip container is parsed manually with BinaryFormat and each entry is inflated with Binary.Decompress(Compression.Deflate)."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "55-72",
+          "function": "ChangeType",
+          "note": "The connector maps source type names (datetime, string, integer, float) to M types (datetime, text, Int32.Type, number)."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "62-70",
+          "function": "ChangeType",
+          "note": "Table.TransformColumnTypes is applied to the returned data columns."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "132-132",
+          "function": "ParseTable",
+          "note": "List.Accumulate applies ChangeType across all columns of the combined data."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "SoftOneBI.m",
+              "lines": "126-129",
+              "function": "ParseTable",
+              "note": "Column types come from the first CSV (getBinary{0}), so an empty file list fails, while a header-only result keeps its columns. The code does not show which case applies to an empty folder."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "140-140",
+          "function": "GetTable",
+          "note": "Live data request with no ManualStatusHandling, so Power Query handles status codes (default)."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "177-183",
+          "function": "LoadTables",
+          "note": "Sets ManualStatusHandling = {400, 404, 500, 503} and inspects Response.Status itself."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "146-157",
+          "function": "loadTableErrors",
+          "note": "Builds Error.Record values for HTTP 400, 404, 500 and 503."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "181-182",
+          "function": "LoadTables",
+          "note": "Raises the matching loadTableErrors record when the status is not 200."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "27-36",
+          "function": "NavTableType",
+          "note": "Function type meta sets Documentation.Name, Documentation.LongDescription and Documentation.Examples on SoftOneBI.Contents."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "175-185",
+          "function": "LoadTables",
+          "note": "Lists the filesystem at runtime from the Data Lake."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "160-171",
+          "function": "ParseNavTable",
+          "note": "Builds the navigator rows from the directory names returned by the API."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "216-216",
+          "function": "SoftOneBI",
+          "note": "TestConnection returns { \"SoftOneBI.Contents\" }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "SoftOneBI.m",
+          "lines": "1-358",
+          "function": "(file)",
+          "note": "The whole connector is one .m file with no .pqm modules."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "17-17",
+          "function": "(file)",
+          "note": "Extension.LoadString resources are used for strings such as ButtonTitle, Category and LearnMoreUrl (also lines 29-36 and 232-239)."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "242-245",
+          "function": "SoftOneBI.Icons",
+          "note": "Icons are loaded with Extension.Contents from the PNG files."
+        },
+        {
+          "file": "SoftOneBI.m",
+          "lines": "232-233",
+          "function": "SoftOneBI.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:22:21Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0072329000000000004,
+    "duration_ms": 30406
+  },
+  "source_sha256": "5c0662fd2434556f6498eb6bac6bef6a1ae758009c0b02becd36d40b8ce3c95c",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

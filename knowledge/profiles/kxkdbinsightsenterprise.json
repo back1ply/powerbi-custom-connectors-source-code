@@ -1,0 +1,463 @@
+{
+  "connector": "kxkdbinsightsenterprise",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "566-573",
+          "function": "kxkdbinsightsenterprise",
+          "note": "Authentication record exposes only an OAuth kind; no Anonymous, key, or other kind is defined."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AuthHelpers.pqm",
+              "lines": "62-80",
+              "function": "AuthHelpers.StartLogin",
+              "note": "Generates a code verifier and sends code_challenge with code_challenge_method = S256."
+            },
+            {
+              "file": "AuthHelpers.pqm",
+              "lines": "18-24",
+              "function": "AuthHelpers.TokenMethod",
+              "note": "Sends code_verifier with the authorization_code token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AuthHelpers.pqm",
+              "lines": "47-48",
+              "function": "AuthHelpers.Refresh",
+              "note": "Implements refresh_token grant through AuthHelpers.TokenMethod, wired at kxkdbinsightsenterprise.pq 568-571."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "345-358",
+          "function": "Web.Contents.KX.Base",
+          "note": "All data and metadata requests go through Web.Contents with RelativePath to the service gateway."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "49",
+          "function": "kxkdbinsightsenterpriseType",
+          "note": "HostUrl parameter of the shared Contents function is the server URL."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "57-72",
+          "function": "kxkdbinsightsenterprise.View.Type",
+          "note": "optional startTS and endTS datetime parameters form a date range."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "73-99",
+          "function": "kxkdbinsightsenterprise.View.Type",
+          "note": "filter, agg and groupBy are query text passed as their own parameters, covered by other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "211-217",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "One getData request per GetRows call; the payload is read directly with no loop, cursor, or next link."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "282",
+          "function": "Web.Contents.KX",
+          "note": "Response parsed with Json.Document."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "216-217",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "payload from the JSON response is turned into rows with Table.FromRecords."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "237-271",
+          "function": "CreateSchema",
+          "note": "Maps column names and type codes from the metadata to M types via CommonHelpers.DataTypes."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "217",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "Column names come from the data records with Table.FromRecords."
+        },
+        {
+          "file": "CommonHelpers.pqm",
+          "lines": "126-182",
+          "function": "CommonHelpers.SchemaTransformTable",
+          "note": "Enforce mode 3 (IgnoreMissingColumns) keeps extra returned columns; the schema types are applied to the declared columns."
+        },
+        {
+          "file": "CommonHelpers.pqm",
+          "lines": "144",
+          "function": "CommonHelpers.SchemaTransformTable",
+          "note": "Table.TransformColumnTypes converts returned column values to the declared types."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "223",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "SchemaTransformTable applied to every result."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "CommonHelpers.pqm",
+              "lines": "165-174",
+              "function": "CommonHelpers.SchemaTransformTable",
+              "note": "With enforce mode 3, the column list is the found names; an empty payload has no columns, so no declared columns are added."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "353",
+          "function": "Web.Contents.KX.Base",
+          "note": "Every data and metadata request sets ManualStatusHandling = HANDLE_MANUALLY_CODES, so the default id does not apply to data calls."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "279-299",
+          "function": "Web.Contents.KX",
+          "note": "Status code is read from metadata and checked by the connector itself."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "305-317",
+          "function": "Web.ErrorResponse",
+          "note": "Builds an error record with Reason, Message and Detail from the HTTP status and error body."
+        },
+        {
+          "file": "AuthHelpers.pqm",
+          "lines": "41-44",
+          "function": "AuthHelpers.TokenMethod",
+          "note": "Token error bodies are raised as Error.Record values."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "319-343",
+          "function": "Web.Contents.KX.CustomRetry",
+          "note": "Failed requests are sent again through CommonHelpers.Value.WaitFor."
+        },
+        {
+          "file": "CommonHelpers.pqm",
+          "lines": "92-109",
+          "function": "CommonHelpers.Value.WaitFor",
+          "note": "Retries use Function.InvokeAfter with a delay function."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "330",
+          "function": "Web.Contents.KX.CustomRetry",
+          "note": "Delay is iteration * 0.25 seconds."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Retried statuses: HTTP 400 when the response header ac is 10, and HTTP 500 and 502 (HANDLE_MANUALLY_CODES). Retry count: MAX_RETRIES = 4, passed as WaitFor count, so up to five further attempts after the initial request. Delay before attempt i is i * 0.25 s (0, 0.25, 0.5, 0.75, 1.0 s). Any other non-200 status is returned as an error without retry.",
+          "evidence": [
+            {
+              "file": "kxkdbinsightsenterprise.pq",
+              "lines": "286-299",
+              "function": "Web.Contents.KX",
+              "note": "Decides which statuses go to CustomRetry: 400 with ac 10, and 500/502."
+            },
+            {
+              "file": "kxkdbinsightsenterprise.pq",
+              "lines": "15-16",
+              "function": "MAX_RETRIES",
+              "note": "MAX_RETRIES = 4 and HANDLE_MANUALLY_CODES = {500, 502}."
+            },
+            {
+              "file": "kxkdbinsightsenterprise.pq",
+              "lines": "321-332",
+              "function": "Web.Contents.KX.CustomRetry",
+              "note": "WaitFor with count and iteration-based delay."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "49-54",
+          "function": "kxkdbinsightsenterpriseType",
+          "note": "Documentation.Name, Description and LongDescription on the shared function type."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "43-47",
+          "function": "kxkdbinsightsenterpriseType",
+          "note": "HostUrl has FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "56-102",
+          "function": "kxkdbinsightsenterprise.View.Type",
+          "note": "Each parameter has FieldCaption, FieldDescription and SampleValues; the function has Documentation.Name."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "116-138",
+          "function": "GetAssembliesNavTable",
+          "note": "Navigator rows are built from the getMeta response payload at runtime."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "126-134",
+          "function": "GetAssembliesNavTable",
+          "note": "Database rows have IsLeaf false and open a nested table list."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "140-182",
+          "function": "GetDatabaseTable",
+          "note": "Table rows are leaves (IsLeaf true) whose Data is a function returning a table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "563-565",
+          "function": "kxkdbinsightsenterprise",
+          "note": "TestConnection calls kxkdbinsightsenterprise.Contents with the data source path, with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "188-230",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "Table.View with custom GetRows and OnTake handlers."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "226",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "OnTake stores Top in the state, which is folded into the request limit."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "203-208",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "state[Top] is used as the row limit sent to getData."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take"
+          ],
+          "evidence": [
+            {
+              "file": "kxkdbinsightsenterprise.pq",
+              "lines": "226",
+              "function": "kxkdbinsightsenterprise.View",
+              "note": "Only OnTake is implemented as a folding handler."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "580-588",
+          "function": "Extension.LoadFunction",
+          "note": "AuthHelpers, CommonHelpers and Diagnostics are loaded from .pqm files with Extension.Contents."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "536-537",
+          "function": "kxkdbinsightsenterprise.Publish",
+          "note": "Button text is loaded with Extension.LoadString; other strings use LoadString too."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "545-558",
+          "function": "kxkdbinsightsenterprise.Icons",
+          "note": "Icons loaded with Extension.Contents(kx-*.png)."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "533",
+          "function": "kxkdbinsightsenterprise.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "590-592",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue, LogFailure and WrapHandlers are used only when ENABLE_TRACING is true, otherwise no-ops."
+        },
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "28",
+          "function": "ENABLE_TRACING",
+          "note": "Switch is set to false."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "4-12",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.Trace calls live only behind the ENABLE_TRACING switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "319-343",
+          "function": "Web.Contents.KX.CustomRetry",
+          "note": "Bounded retry of failed requests, not polling a job until it finishes."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "kxkdbinsightsenterprise.pq",
+          "lines": "211-217",
+          "function": "kxkdbinsightsenterprise.View",
+          "note": "Only getData reads are issued; no Action functions are defined."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:29:01Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0249763,
+    "duration_ms": 73898,
+    "repair_attempts": 1
+  },
+  "source_sha256": "41bc210272222314b034fc22c1788bb643f647f2e8c2b790bb74ea5185bbf5fd",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

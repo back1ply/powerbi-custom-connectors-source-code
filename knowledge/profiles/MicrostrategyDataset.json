@@ -1,0 +1,532 @@
+{
+  "connector": "MicrostrategyDataset",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "30-33",
+          "function": "MicroStrategyDataset",
+          "note": "Data source kind declares a UsernamePassword authentication kind."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1130-1159",
+          "function": "Rest.Login",
+          "note": "Username and password are posted to auth/login in standard or LDAP login mode."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "34-39",
+          "function": "MicroStrategyDataset",
+          "note": "Data source kind declares an OAuth authentication kind with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "155-159",
+          "function": "OAuth.StartLogin",
+          "note": "OAuth login starts the library or OIDC authorization flow."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "186-194",
+              "function": "OAuth.LoginOptionsForOIDC",
+              "note": "Authorization request sends code_challenge with code_challenge_method S256."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "313-318",
+              "function": "OAuth.GenerateCodeChallenge",
+              "note": "Code challenge is the base64url SHA-256 of the code verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "228-242",
+              "function": "OAuth.Refresh",
+              "note": "Refresh-token grant is exchanged for new tokens."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "999-1000",
+              "function": "CheckResponse",
+              "note": "A 401 response triggers a credential refresh and repeats the request."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1112-1127",
+          "function": "Rest.GetStatus",
+          "note": "Plain Web.Contents calls against the Strategy REST API."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1219-1250",
+          "function": "Rest.GetProjects",
+          "note": "Plain Web.Contents calls against the Strategy REST API."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "100",
+          "function": "MicroStrategyDataset.Contents.Impl",
+          "note": "libraryUrl parameter names the connection target."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "61-65",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "libraryUrl is typed as a Uri with documentation."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "94",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Optional options record parameter."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "93,66-70,105-108",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "authMode selects StandardAuth or LDAPAuth login mode. No other id fits, so it is other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts limit (nullable number, maximum rows, default 25000) and timeout (nullable number, seconds, default 100; negative values raise an error).",
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "71-85",
+              "function": "MicroStrategyDataset.Contents.Type",
+              "note": "Declares the limit and timeout fields of the options type."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "109-117",
+              "function": "MicroStrategyDataset.Contents.Impl",
+              "note": "Reads limit and timeout from options and applies defaults."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "634-641",
+          "function": "GetRows",
+          "note": "Pages are derived as offset/limit pairs with a generated list."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1536-1537",
+          "function": "Rest.GetInstance",
+          "note": "offset and limit are sent as query parameters."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "640-641",
+              "function": "GetRows",
+              "note": "pagesToFetch is built with List.Generate directly, not Table.GenerateByPage."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the next offset reaches paging[rowCount], the total row count from the instance paging total. The List.Generate condition is _{0} < paging[rowCount].",
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "636-641",
+              "function": "GetRows",
+              "note": "remaining rows and the List.Generate continuation condition."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "407",
+              "function": "HandleDataset",
+              "note": "rowCount is read from the instance paging total."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1014-1019",
+          "function": "HandleResponse",
+          "note": "Data responses are parsed with Json.Document."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1017",
+          "function": "HandleResponse",
+          "note": "Json.Document parses the checked response body."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "672-700",
+          "function": "V1.TYPEMAP / V2.TYPEMAP",
+          "note": "Connector maps source type names to M types."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "727",
+          "function": "mapType",
+          "note": "Falls back to Text.Type for unmapped types."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "902-908",
+          "function": "ColumnHeaders.ToTableType",
+          "note": "Builds the table type with M types for each column."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "507-513",
+          "function": "MicroStrategyDataset.View",
+          "note": "Table.TransformColumnTypes converts returned cell values to the declared column types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "505-515",
+              "function": "MicroStrategyDataset.View",
+              "note": "Column names come from Instance deDuplicatedHeaders, so #table keeps the columns even with no rows."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1112-1127",
+          "function": "Rest.GetStatus",
+          "note": "Live Web.Contents data request with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1197",
+          "function": "Rest.GetPrivilege",
+          "note": "Sets ManualStatusHandling = {400, 401, 500}."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1003-1011",
+          "function": "CheckResponse",
+          "note": "Builds Error.Record MstrApi.Error from the error body of an HTTP response."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "95-97",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Documentation.Name on the function type."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "62,67,73,78,87",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Documentation.FieldCaption on parameters."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "63,68,74,79",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Documentation.FieldDescription on parameters."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "64,75,80",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Documentation.SampleValues on parameters."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "69",
+          "function": "MicroStrategyDataset.Contents.Type",
+          "note": "Documentation.AllowedValues for authMode."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "424-426",
+          "function": "HandleDataset",
+          "note": "Hardcoded single-row navigation table with an Import row."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "536",
+          "function": "CreatePromptNavTable",
+          "note": "Hardcoded row for closing all prompts."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "322-333",
+          "function": "FindProjects",
+          "note": "Projects are listed at runtime from Rest.GetProjects."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "347-348,372-387",
+          "function": "FindRootFolders / HandleNavigation",
+          "note": "Folder rows with IsLeaf false open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "29",
+          "function": "MicroStrategyDataset",
+          "note": "TestConnection names MicroStrategyDataset.TestConnection."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "21-25",
+          "function": "MicroStrategyDataset.TestConnection",
+          "note": "Calls Rest.GetStatus only, a probe rather than a full query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "496-522",
+          "function": "MicroStrategyDataset.View",
+          "note": "Table.View with custom handlers on the data table."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "519",
+          "function": "MicroStrategyDataset.View",
+          "note": "OnTake handler."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "521",
+          "function": "MicroStrategyDataset.View",
+          "note": "OnSkip handler."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip",
+            "get-row-count"
+          ],
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "517",
+              "function": "MicroStrategyDataset.View",
+              "note": "GetRowCount handler."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "519",
+              "function": "MicroStrategyDataset.View",
+              "note": "OnTake handler."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "521",
+              "function": "MicroStrategyDataset.View",
+              "note": "OnSkip handler."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1-3",
+          "function": "section header",
+          "note": "All connector code is in one .m file."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "9",
+          "function": "MicroStrategyDataset",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "53-56",
+          "function": "MicroStrategyDataset.Icons",
+          "note": "Icons are loaded with Extension.Contents PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1463-1481",
+          "function": "Rest.WaitForInstance",
+          "note": "Polls report instance status until it is ready. It is not an export job, so other is used."
+        },
+        {
+          "file": "MicroStrategyDataset.m",
+          "lines": "1423",
+          "function": "Rest.PostInstance",
+          "note": "Prefer respond-async creates the instance before it is ready."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Polls the instance status once per second using Function.InvokeAfter with a 1 second delay. It stops after 7200 iterations (about 120 minutes) or when status is 1 or 2. A 202 response is mocked as status 0.",
+          "evidence": [
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "1471-1473",
+              "function": "Rest.WaitForInstance",
+              "note": "Terminal states 1 and 2, the 7200-iteration cap, and the 1 second InvokeAfter delay."
+            },
+            {
+              "file": "MicroStrategyDataset.m",
+              "lines": "1034-1035",
+              "function": "CheckResponseForStatusCall",
+              "note": "A 202 status is mocked to a body with status 0."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:15:50Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0186167,
+    "duration_ms": 48124
+  },
+  "source_sha256": "01824cf12e7f8805f8fcc77fd0962bab73f3d97602d2f7d1f720dfd5f2995614",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

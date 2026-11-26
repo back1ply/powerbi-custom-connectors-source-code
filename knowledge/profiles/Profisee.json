@@ -1,0 +1,387 @@
+{
+  "connector": "Profisee",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "240-251",
+          "function": "Profisee",
+          "note": "Data source kind declares Authentication with an OAuth record (StartLogin, FinishLogin, Refresh, Logout)."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "182-201",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL and returns LoginUri, CallbackUri and window settings."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "203-207",
+          "function": "FinishLogin",
+          "note": "Exchanges the callback code for tokens through GetTokenFromCode."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "209-221",
+          "function": "Refresh",
+          "note": "Posts grant_type=refresh_token to the token endpoint."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Profisee.m",
+              "lines": "182-201",
+              "function": "StartLogin",
+              "note": "Authorize URL has no code_challenge or code_challenge_method parameter."
+            },
+            {
+              "file": "Profisee.m",
+              "lines": "223-235",
+              "function": "GetTokenFromCode",
+              "note": "Token request sends the code with no code_verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Profisee.m",
+              "lines": "209-221",
+              "function": "Refresh",
+              "note": "Posts grant_type=refresh_token to the token endpoint and returns the parsed response."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "37-42",
+          "function": "GetRawResponse",
+          "note": "Reaches the REST API through Web.Contents wrapped in Json.Document."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "44-54",
+          "function": "GetRawDQResponse",
+          "note": "Reaches the data quality endpoints through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "4-11",
+          "function": "Profisee.Tables",
+          "note": "The only user parameter is the Profisee instance URL (url as Uri.Type), which names the connection target."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "180-180",
+          "function": "GetNextLink",
+          "note": "Reads the nextPage URL from the response body."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "129-138",
+          "function": "GetAllPagesByNextLink",
+          "note": "Each page request uses the NextLink URL stored in the previous page's metadata."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "149-163",
+          "function": "GetPage",
+          "note": "Stores the next URL in the page's NextLink metadata."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Profisee.m",
+              "lines": "129-138",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "Profisee.m",
+              "lines": "140-147",
+              "function": "GetAllDQPagesByNextLink",
+              "note": "Data quality pages are produced by Table.GenerateByPage."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the nextPage field is missing or null. GetNextLink returns null through Record.FieldOrDefault, GetAllPagesByNextLink then returns a null page once nextLink is null, and the List.Generate inside Table.GenerateByPage ends when a page is null.",
+          "evidence": [
+            {
+              "file": "Profisee.m",
+              "lines": "180-180",
+              "function": "GetNextLink",
+              "note": "Missing nextPage yields null."
+            },
+            {
+              "file": "Profisee.m",
+              "lines": "129-138",
+              "function": "GetAllPagesByNextLink",
+              "note": "Page function returns null when nextLink is null."
+            },
+            {
+              "file": "Table.GenerateByPage.pqm",
+              "lines": "3-6",
+              "function": "Table.GenerateByPage.pqm",
+              "note": "List.Generate stops when the page is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "37-39",
+          "function": "GetRawResponse",
+          "note": "Data payloads are parsed with Json.Document."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "44-52",
+          "function": "GetRawDQResponse",
+          "note": "Data quality payloads are parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "105-124",
+          "function": "GetEntitySchema",
+          "note": "Assigns M types to entity columns from Profisee data types, plus hardcoded additional attribute types (line 108)."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "87-89",
+          "function": "GetDataQualitiesTable",
+          "note": "Data quality rules table takes column names from the data with no declared M types."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "171-173",
+          "function": "GetDQPage",
+          "note": "Data quality issue table takes column names from the data with no declared M types."
+        },
+        {
+          "file": "SchemaTransformTable.pqm",
+          "lines": "14-15",
+          "function": "SchemaTransformTable.pqm",
+          "note": "Table.TransformColumnTypes converts returned data cells to the declared types."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "160-160",
+          "function": "GetPage",
+          "note": "Entity data pages are passed through SchemaTransformTable, so the type conversion runs on the live path."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "Profisee.m",
+              "lines": "149-163",
+              "function": "GetPage",
+              "note": "No guard for an empty data list; line 155 indexes (newDataList){0} without ?, so an empty page errors rather than returning a typed empty table."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "39-40",
+          "function": "GetRawResponse",
+          "note": "Sets ManualStatusHandling={400} and builds an Error.Record from the response error body."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "46-53",
+          "function": "GetRawDQResponse",
+          "note": "Sets ManualStatusHandling={400, 401, 404}, reads Response.Status, and raises Error.Record values for 404 and error bodies."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "7-20",
+          "function": "ProfiseeImplType",
+          "note": "Sets Documentation.Name, LongDescription and Examples on the function type, applied to Profisee.Tables on line 5."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "8-10",
+          "function": "ProfiseeImplType",
+          "note": "Sets Documentation.FieldCaption, FieldDescription and SampleValues on the url parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "56-66",
+          "function": "GetEntitiesTable",
+          "note": "Entity rows are listed at runtime from the entities endpoint (line 59-60) and combined with Table.ToNavigationTable (line 64)."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "80-94",
+          "function": "GetDataQualitiesTable",
+          "note": "Navigation table has a single hardcoded row, Profisee_DataQualityRules (line 90), concatenated into the main navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "240-241",
+          "function": "Profisee",
+          "note": "TestConnection returns {\"Profisee.Tables\", dataSourcePath}, which names the shared entry function, so the test runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Profisee.m",
+          "lines": "270-279",
+          "function": "Extension.LoadFunction",
+          "note": "Loads Table.ToNavigationTable.pqm, Table.GenerateByPage.pqm and SchemaTransformTable.pqm via Extension.Contents."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "8-18",
+          "function": "ProfiseeImplType",
+          "note": "Uses Extension.LoadString for localized documentation text."
+        },
+        {
+          "file": "Profisee.m",
+          "lines": "263-266",
+          "function": "Profisee.Icons",
+          "note": "Loads icon images with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:20:35Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.017883499999999997,
+    "duration_ms": 75948,
+    "repair_attempts": 1
+  },
+  "source_sha256": "25a33c45007704bf6e1d99e862f380e3f3957fb6c4cd31b5c2c9b9d45d243035",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,267 @@
+{
+  "connector": "PlanviewProjectplace",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "13-13",
+          "function": "PlanviewProjectplace",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh; no anonymous or other kind."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "65-76",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL from client_id, state and redirect_uri."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "78-82",
+          "function": "FinishLogin",
+          "note": "Reads the authorization code from the callback and exchanges it for a token."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "84-96",
+          "function": "Refresh",
+          "note": "Exchanges a refresh_token for a new access token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "PlanviewProjectplace.m",
+              "lines": "68-68",
+              "function": "StartLogin",
+              "note": "Authorize URL carries client_id, state and redirect_uri only; no code_challenge or code_verifier is sent."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "PlanviewProjectplace.m",
+              "lines": "84-96",
+              "function": "Refresh",
+              "note": "Implements refresh_token grant against the OAuth host."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "131-135",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "Data is read with OData.Feed. Web.Contents at lines 53 and 86 is used only for token exchange, not for the data source."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "131-133",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "The single user parameter ODataURL is the service URL."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "137-143",
+          "function": "PlanviewProjectplace.ContentsType",
+          "note": "The only parameter is typed as a URL text field."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "133-133",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "OData.Feed returns OData (JSON) payloads. Token responses parsed at lines 61 and 94 are not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "133-133",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "Column names and types come from the OData service metadata. No declared M types or type conversions are added."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "133-133",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "OData.Feed data request with no ManualStatusHandling; status handling is left to Power Query."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "53-60",
+          "function": "TokenMethod",
+          "note": "Token Web.Contents call has no ManualStatusHandling option. Auth calls are not counted as data requests."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "145-151",
+          "function": "PlanviewProjectplace.ContentsType",
+          "note": "Function-level Documentation.Description, DisplayName, Caption, Name and LongDescription are set."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "139-142",
+          "function": "PlanviewProjectplace.ContentsType",
+          "note": "Parameter sets Documentation.FieldCaption. No FieldDescription, and SampleValues is an empty list, so those are not counted."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "131-135",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "Returns OData.Feed on the user URL, so the navigator is built from the service document."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "12-12",
+          "function": "PlanviewProjectplace",
+          "note": "TestConnection evaluates {\"PlanviewProjectplace.Contents\", resource}, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "133-133",
+          "function": "PlanviewProjectplace.ContentsInternal",
+          "note": "OData.Feed folds filters, selects and paging into the request. No Table.View handlers are written."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "1-151",
+          "function": "PlanviewProjectplace",
+          "note": "All code is in one .m file; no .pqm modules are loaded."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "14-14",
+          "function": "PlanviewProjectplace",
+          "note": "Label uses Extension.LoadString, and Publish strings at lines 20 and 140 do too."
+        },
+        {
+          "file": "PlanviewProjectplace.m",
+          "lines": "26-39",
+          "function": "PlanviewProjectplace.Icons",
+          "note": "Icon16 and Icon32 are built from Extension.Contents PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:19:10Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0091685,
+    "duration_ms": 154586
+  },
+  "source_sha256": "26c8525ef35c446fc774f4a55c2310504e17abd42af3a69385d5094d69a5314c",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

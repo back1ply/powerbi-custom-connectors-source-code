@@ -1,0 +1,351 @@
+{
+  "connector": "Tenforce",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "22-24",
+          "function": "Tenforce",
+          "note": "Data source kind declares UsernamePassword and Windows authentication. No OAuth, key, or anonymous kind is declared."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "121-127",
+          "function": "Tenforce.Data",
+          "note": "Data is fetched with Web.Contents and parsed with Json.Document. No OData.Feed, ODBC, or other driver is used."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "56-60",
+          "function": "SelectionData.Parameters",
+          "note": "ApplicationUrl is the Tenforce application base URL, which is the connection target."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "61-65",
+          "function": "SelectionData.Parameters",
+          "note": "ListId selects a list inside the Tenforce application, so it is a resource inside the target."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "66-70",
+          "function": "SelectionData.Parameters",
+          "note": "DataType is an Include/Exclude selection mode. No other id fits, so it is recorded as other."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "254-262",
+          "function": "SelectionData.GetUrlData",
+          "note": "DataType (loadType) is passed into the request URL as the full= flag."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "121-127",
+          "function": "Tenforce.Data",
+          "note": "A single Web.Contents request is made and the response is parsed once. No paging loop is present."
+        }
+      ],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "121-127",
+          "function": "Tenforce.Data",
+          "note": "The returned item and schema data is parsed with Json.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "154-163",
+          "function": "Tenforce.SchemaAsTable",
+          "note": "The schema is mapped from Tenforce field types to M types through TypeMappingTable."
+        },
+        {
+          "file": "TypeMappingTable.pqm",
+          "lines": "1-52",
+          "function": "TypeMappingTable.pqm",
+          "note": "Hardcoded mapping from Tenforce field type names to M types, such as Text.Type, Logical.Type, and Number.Type."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "274-280",
+          "function": "Schema.SchemaToTableType",
+          "note": "Builds the M table type from the mapped schema column types."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "146-148",
+          "function": "Tenforce.ItemsTable",
+          "note": "Table.ChangeType is applied to the returned item rows, converting their values to the declared types."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "221-221",
+          "function": "Tenforce.ItemRelationsTable",
+          "note": "Table.TransformColumnTypes converts returned relation values to text, Int64, and text."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Tenforce.m",
+              "lines": "146-148",
+              "function": "Tenforce.ItemsTable",
+              "note": "ExpandRecordColumn uses the declared field list, so an empty item list still gets the declared columns."
+            },
+            {
+              "file": "Table.ChangeType.pqm",
+              "lines": "35-35",
+              "function": "Table.ChangeType",
+              "note": "Table.SelectColumns with MissingField.UseNull keeps every declared column, including when the table is empty."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "124-124",
+          "function": "Tenforce.Data",
+          "note": "Web.Contents sets only Headers and Timeout. ManualStatusHandling is not set, so status handling is left to Power Query."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "72-75",
+          "function": "SelectionData.Parameters",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the shared function's return type."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "57-69",
+          "function": "SelectionData.Parameters",
+          "note": "Documentation.FieldCaption and Documentation.FieldDescription are set on each parameter."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "59-69",
+          "function": "SelectionData.Parameters",
+          "note": "Documentation.SampleValues is set on ApplicationUrl and ListId, and Documentation.AllowedValues on DataType."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "82-86",
+          "function": "Tenforce.NavTable",
+          "note": "The top-level navigation rows (Items, Relationships) are a hardcoded list."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "84-85",
+          "function": "Tenforce.NavTable",
+          "note": "The Items and Relationships rows are folders with IsLeaf false, so they open further navigation tables."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "97-101",
+          "function": "Tenforce.ItemsNavTable",
+          "note": "Hardcoded leaf rows for Items and MultiValueFields inside the folder."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "14-21",
+          "function": "Tenforce",
+          "note": "TestConnection returns the name Tenforce.Contents with the parsed ApplicationUrl, ListId, and DataType, so the gateway evaluates the normal entry function."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "121-127",
+          "function": "Tenforce.Data",
+          "note": "No Table.View, OnTake, OnSelectRows, native query, or OData folding is implemented. Data is loaded through Web.Contents and Json.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "314-327",
+          "function": "Extension.LoadFunction",
+          "note": "Library code is loaded from separate .pqm files through Extension.LoadFunction (Diagnostics.pqm, Table.ChangeType.pqm, Table.ToNavigationTable.pqm, TypeMappingTable.pqm)."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "25-25",
+          "function": "Tenforce",
+          "note": "Labels and UI strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "42-45",
+          "function": "Tenforce.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "33-33",
+          "function": "Tenforce.Publish",
+          "note": "Beta = false, so the beta flag is not set."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "Tenforce.m",
+          "lines": "6-6",
+          "function": "EnableTraceOutput",
+          "note": "The switch EnableTraceOutput is defined as false."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "322-322",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue runs Diagnostics.Trace only when EnableTraceOutput is true."
+        },
+        {
+          "file": "Tenforce.m",
+          "lines": "123-123",
+          "function": "Tenforce.Data",
+          "note": "Live tracing goes through Diagnostics.LogValue, which is gated by the switch."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-2",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.Trace is called only inside LogValue. LogFailure is not called by any live code path."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:24:57Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0198347,
+    "duration_ms": 57699,
+    "repair_attempts": 1
+  },
+  "source_sha256": "4d01bd2cfaa020a9858092d03ebe8ed6ea21edda44774e503b1ff4341cfb7f98",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

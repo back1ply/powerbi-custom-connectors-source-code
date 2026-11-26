@@ -1,0 +1,332 @@
+{
+  "connector": "LinkedInLearning",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "383-391",
+          "function": "LinkedInLearning",
+          "note": "Authentication declares only UsernamePassword (labels Client ID / Client Secret). Key, Windows and Anonymous are commented out."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "359-361",
+          "function": "LinkedInLearning.Contents",
+          "note": "Client id and secret are read from Extension.CurrentCredential Username and Password."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "26-40",
+          "function": "get_token",
+          "note": "Hand-built OAuth 2.0 client_credentials grant. Credentials go in a Basic Authorization header to /oauth/v2/accessToken, and the returned access_token is used as a Bearer token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "29-36",
+          "function": "get_token",
+          "note": "Web.Contents to https://www.linkedin.com for the token exchange."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "44-49",
+          "function": "get_total_pages_learning_assets",
+          "note": "Web.Contents to https://api.linkedin.com for data requests."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "355-358",
+          "function": "LinkedInLearning.Contents",
+          "note": "Optional start_date and end_date datetime parameters, defaulting to one year back and now. Both are covered by date-range. Credentials come from the data source credential, not parameters."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "54-59",
+          "function": "get_learning_urls",
+          "note": "Adds a start offset to the query record for each page."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "64",
+          "function": "get_initial_table_learning_assets",
+          "note": "List.Generate steps the start offset by 100 up to the total."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "158",
+          "function": "make_number_list",
+          "note": "List.Generate steps the start offset by 1000 for reports."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "183-191",
+          "function": "get_single_url",
+          "note": "Sets start (page index) and count query parameters on each report page request."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "LinkedInLearning.pq",
+              "lines": "64",
+              "function": "get_initial_table_learning_assets",
+              "note": "The connector calls List.Generate itself to build page offsets. Table.GenerateByPage is not used."
+            },
+            {
+              "file": "LinkedInLearning.pq",
+              "lines": "169",
+              "function": "get_initial_table",
+              "note": "List.Generate builds the epoch-week list for reports."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Learning assets: paging stops when the generated offset exceeds paging.total from the first response (condition _ <= end). Reports: the offset list runs from 0 while _ < total pages (make_number_list, condition _ < end). Both totals come from the response paging.total field, with a fallback of 0 on error.",
+          "evidence": [
+            {
+              "file": "LinkedInLearning.pq",
+              "lines": "41-53",
+              "function": "get_total_pages_learning_assets",
+              "note": "Reads paging.total from the response and falls back to 0."
+            },
+            {
+              "file": "LinkedInLearning.pq",
+              "lines": "155-160",
+              "function": "make_number_list",
+              "note": "Generates offsets while _ < end."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "37",
+          "function": "get_token",
+          "note": "Json.Document on the token response (auth exchange only)."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "43-49",
+          "function": "get_total_pages_learning_assets",
+          "note": "Json.Document on the data response."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "73-79",
+          "function": "get_page_data",
+          "note": "Json.Document on the data response that is returned as the table content."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "123-136",
+          "function": "get_learning_assets",
+          "note": "Column names come from the JSON data via ExpandRecordColumn. No M types are declared for them."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "202-210",
+          "function": "filter_account_popular_courses_report",
+          "note": "Column names come from the JSON data via ExpandRecordColumn. No M types are declared."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "137-138",
+          "function": "get_learning_assets",
+          "note": "Per-value conversion of epoch milliseconds in returned data to datetime (lastUpdatedAtDT, publishedAtDT)."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "332-334",
+          "function": "filter_reports",
+          "note": "Per-value conversion of epoch milliseconds in returned data to datetime (latestDataAtDT, lastEngagedAtDT, firstEngagedAtDT)."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "44-49",
+          "function": "get_total_pages_learning_assets",
+          "note": "Data Web.Contents call with no ManualStatusHandling. Errors are swallowed by try ... otherwise null, which is not manual status handling."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "74-79",
+          "function": "get_page_data",
+          "note": "Data Web.Contents call with no ManualStatusHandling."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "145-150",
+          "function": "get_total_pages_reports",
+          "note": "Data Web.Contents call with no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "362-378",
+          "function": "LinkedInLearning.Contents",
+          "note": "Navigation rows are a hardcoded #table list of 12 named reports and learning assets, all IsLeaf true."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "4-25",
+          "function": "Table.ToNavigationTable",
+          "note": "Builds the navigation table from the hardcoded list."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "384",
+          "function": "LinkedInLearning",
+          "note": "TestConnection returns the text \"LinkedInLearning.Contents\", naming the shared entry function, with no separate probe."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "1-405",
+          "function": "LinkedInLearning",
+          "note": "All code is in one .pq file with no pqm modules."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "402-405",
+          "function": "LinkedInLearning.Icons",
+          "note": "Icons loaded with Extension.Contents at 16, 20, 24, 32, 40, 48 and 64 px."
+        },
+        {
+          "file": "LinkedInLearning.pq",
+          "lines": "1",
+          "function": "LinkedInLearning",
+          "note": "Version metadata 1.0.10. No Beta field is set in the Publish or data source record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:14:28Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.009729599999999998,
+    "duration_ms": 34548
+  },
+  "source_sha256": "3778eed80bef17063c2d6d7888291ec17095eb1ed5e90e2507d550b328282858",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

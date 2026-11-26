@@ -1,0 +1,355 @@
+{
+  "connector": "OpenSearchProject",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "key",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "38-57",
+          "function": "OpenSearchProjectImpl",
+          "note": "Credential[AuthenticationKind] selects UsernamePassword (Auth=BASIC, UID, PWD), Key (Auth=AWS_SIGV4), or else Auth=NONE."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "193-203",
+          "function": "OpenSearchProject",
+          "note": "Authentication record declares Implicit (Label NONE), UsernamePassword (BASIC) and Key (AWS_SIGV4, KeyLabel Region)."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "194-196",
+          "function": "OpenSearchProject",
+          "note": "Implicit kind is the credential-free kind, so anonymous applies."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "OpenSearchProject.m",
+              "lines": "49-53",
+              "function": "OpenSearchProjectImpl",
+              "note": "The key is not sent as a header, query string or body. It is passed as the ODBC connection-string property Region = Credential[Key] for AWS_SIGV4 signing, which the driver performs."
+            },
+            {
+              "file": "OpenSearchProject.m",
+              "lines": "152-154",
+              "function": "OpenSearchProjectImpl",
+              "note": "The Region property is merged into FullConnectionString given to Odbc.DataSource."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "154",
+          "function": "OpenSearchProjectImpl",
+          "note": "OdbcDatasource = Odbc.DataSource(FullConnectionString, OdbcOptions); all data is reached through the OpenSearch SQL ODBC driver."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OpenSearchProject.m",
+              "lines": "116-125",
+              "function": "OpenSearchProjectImpl",
+              "note": "SqlCapabilities record is declared and passed in OdbcOptions (line 144)."
+            },
+            {
+              "file": "OpenSearchProject.m",
+              "lines": "82-85",
+              "function": "OpenSearchProjectImpl",
+              "note": "SQLGetInfo override is declared and passed in OdbcOptions (line 142)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "16-19",
+          "function": "OpenSearchProjectType",
+          "note": "Server (text) is the hostname of the OpenSearch server, so url-or-server."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "21-25",
+          "function": "OpenSearchProjectType",
+          "note": "Port (number) is a port number with no other id fit; it is combined with the host in FinalServerString. Answered as other."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "26-30",
+          "function": "OpenSearchProjectType",
+          "note": "UseSSL (logical) is a flag with no other id fit, so other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "154",
+          "function": "OpenSearchProjectImpl",
+          "note": "Paging is left to the ODBC driver; the connector does no page requests."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "154",
+          "function": "OpenSearchProjectImpl",
+          "note": "Returned data are tables from the ODBC driver."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "185",
+          "function": "OpenSearchProject (TestConnection)",
+          "note": "Json.Document parses the data source path, not returned data, so json does not count."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "98-110",
+          "function": "SQLColumns",
+          "note": "Driver column metadata is passed through, keeping Value.Type(source) with no declared M types."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "87-95",
+          "function": "SQLGetTypeInfo",
+          "note": "Type info is only re-wrapped with the source's own type."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": []
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "32-34",
+          "function": "OpenSearchProjectType",
+          "note": "Documentation.Name = \"OpenSearch Project\" on the function return type."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "17-18",
+          "function": "OpenSearchProjectType",
+          "note": "Documentation.FieldCaption and FieldDescription on Server."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "19",
+          "function": "OpenSearchProjectType",
+          "note": "Documentation.SampleValues on Server."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "24",
+          "function": "OpenSearchProjectType",
+          "note": "Documentation.SampleValues on Port."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "29",
+          "function": "OpenSearchProjectType",
+          "note": "Documentation.AllowedValues on UseSSL."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "154",
+          "function": "OpenSearchProjectImpl",
+          "note": "Odbc.DataSource builds the navigator at runtime from the server's catalog."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "129",
+          "function": "OpenSearchProjectImpl",
+          "note": "HierarchicalNavigation = false, so the tables are not grouped into folders."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "183-190",
+          "function": "OpenSearchProject",
+          "note": "TestConnection returns { \"OpenSearchProject.Contents\", Server, Port, UseSSL }, so it names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "116-125",
+          "function": "OpenSearchProjectImpl",
+          "note": "SqlCapabilities sets SupportsTop, LimitClauseKind, Sql92Conformance and literal support, shaping folding through the ODBC driver."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "127-131",
+          "function": "OpenSearchProjectImpl",
+          "note": "HideNativeQuery = true, so Value.NativeQuery is not enabled and native-query does not apply."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "244-256",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded through Extension.Contents and Expression.Evaluate, so the code is split into .pqm modules."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "222",
+          "function": "OpenSearchProject",
+          "note": "Label = Extension.LoadString(\"DataSourceLabel\") is a localized string."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "229",
+          "function": "OpenSearchProject.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "239-240",
+          "function": "OpenSearchProject.Icons / OpenSearch.Icons",
+          "note": "Icons are loaded with Extension.Contents(\"OpenSearch*.png\")."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "227",
+          "function": "OpenSearchProject.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "9",
+          "function": "EnableTraceOutput",
+          "note": "EnableTraceOutput = false is the switch."
+        },
+        {
+          "file": "OpenSearchProject.m",
+          "lines": "253",
+          "function": "Diagnostics.LogValue",
+          "note": "When the switch is false, LogValue is a pass-through and Diagnostics.Trace is never reached."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-3",
+          "function": "Diagnostics.LogValue / LogValue2",
+          "note": "Diagnostics.Trace is called only through these helpers, which are reached only when EnableTraceOutput is true (SQLGetTypeInfo and SQLColumns also check it, lines 88 and 99)."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:16:27Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.012929500000000002,
+    "duration_ms": 34064
+  },
+  "source_sha256": "340c804fced370f3fd44f87236857ebb8b2540bed2a2a34f141e399463b7ca09",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,344 @@
+{
+  "connector": "Witivio",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "29-38",
+          "function": "Witivio",
+          "note": "Authentication record declares only an Aad method (AuthorizationUri, Resource, DefaultClientApplication). No anonymous, key, or username-password kind is declared."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "191-191",
+          "function": "GetPage",
+          "note": "Data is fetched with Web.Contents(url, [Headers = DefaultRequestHeaders])."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "149-150",
+          "function": "Witivio.Contents",
+          "note": "Shared entry function; its only parameter is botId."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "152-157",
+          "function": "WitivioType",
+          "note": "botId is documented as 'Chatbot ID', a resource identifier inside the Witivio service."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "216-216",
+          "function": "GetNextLink",
+          "note": "The next page URL is read from the response's nextLink field."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "193-193",
+          "function": "GetPage",
+          "note": "nextLink is taken from the parsed body and stored in the page metadata."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Witivio.pq",
+              "lines": "203-212",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are produced by calling Table.GenerateByPage."
+            },
+            {
+              "file": "Witivio.pq",
+              "lines": "245-264",
+              "function": "Table.GenerateByPage",
+              "note": "Local helper that wraps List.Generate. Only the outer construct is named here."
+            }
+          ],
+          "sub": {}
+        },
+        "paging-stop": {
+          "text": "Paging stops when the previous page's NextLink metadata is null. GetNextLink returns null when the nextLink field is absent (Record.FieldOrDefault), so GetAllPagesByNextLink returns null (line 209) and List.Generate ends (line 249).",
+          "evidence": [
+            {
+              "file": "Witivio.pq",
+              "lines": "207-209",
+              "function": "GetAllPagesByNextLink",
+              "note": "NextLink is read with ? from the previous page's metadata; a null value makes page null."
+            },
+            {
+              "file": "Witivio.pq",
+              "lines": "216-216",
+              "function": "GetNextLink",
+              "note": "Returns null when no nextLink field exists."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "192-194",
+          "function": "GetPage",
+          "note": "Response body is parsed with Json.Document and rows are built with Table.FromRecords."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "78-145",
+          "function": "SchemaTable",
+          "note": "Hardcoded per-entity table of column names with M types (DateTime.Type, Int32.Type, Double.Type, type text)."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "288-288",
+          "function": "SchemaTransformTable",
+          "note": "Table.TransformColumnTypes applies the declared types to returned data cells, on the live path from GetPage line 196."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Witivio.pq",
+              "lines": "274-325",
+              "function": "SchemaTransformTable",
+              "note": "Strict mode adds the schema columns (ExpandRecordColumn) and applies ReplaceType, so an empty page still carries the declared columns."
+            },
+            {
+              "file": "Witivio.pq",
+              "lines": "258-259",
+              "function": "Table.GenerateByPage",
+              "note": "The empty-table fallback is only reached when no page exists, which cannot happen because the first call always has a URL."
+            }
+          ],
+          "sub": {}
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "191-191",
+          "function": "GetPage",
+          "note": "Web.Contents is called with only Headers. No ManualStatusHandling, no error record, no retry or rate-limit logic exists anywhere in the live path."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "158-160",
+          "function": "WitivioType",
+          "note": "Documentation.Name and Documentation.LongDescription on the return type."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "153-157",
+          "function": "WitivioType",
+          "note": "botId has Documentation.FieldCaption, Documentation.FieldDescription and Documentation.SampleValues."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "70-76",
+          "function": "RootEntities",
+          "note": "Hardcoded list of five entity names."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "163-177",
+          "function": "WitivioNavTable",
+          "note": "The navigation table is built from RootEntities via Table.FromList."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "173-173",
+          "function": "WitivioNavTable",
+          "note": "Every row has IsLeaf = true, so there is no hierarchy."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "23-28",
+          "function": "Witivio",
+          "note": "TestConnection returns { \"Witivio.Contents\", botId }, which names the shared entry function and runs it as a normal query. No probe function is used."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "179-187",
+          "function": "Witivio.Feed",
+          "note": "Data is read through Web.Contents and Json.Document. No Table.View, OData.Feed, native query, or source-function folding is used."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "1-338",
+          "function": "Witivio",
+          "note": "All code is in one Witivio.pq file. No .pqm modules are loaded."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "54-57",
+          "function": "Witivio.Icons",
+          "note": "Icons are supplied as PNG files through Extension.Contents."
+        },
+        {
+          "file": "Witivio.pq",
+          "lines": "44-45",
+          "function": "Witivio.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "1-338",
+          "function": "Witivio",
+          "note": "No Diagnostics.Trace call exists in the file."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "1-338",
+          "function": "Witivio",
+          "note": "No job submission, status polling, or wait/delay logic exists."
+        }
+      ],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Witivio.pq",
+          "lines": "1-338",
+          "function": "Witivio",
+          "note": "Only GET requests through Web.Contents. No Action functions and no table mutations."
+        }
+      ],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:26:25Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0068387,
+    "duration_ms": 28043
+  },
+  "source_sha256": "02f7281713ff3a7ac229f40e7fc19d2c9b7871ded1e70789896497964a2d5cb1",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

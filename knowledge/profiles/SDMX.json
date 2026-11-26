@@ -1,0 +1,298 @@
+{
+  "connector": "SDMX",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "71-73",
+          "function": "SDMX",
+          "note": "Authentication = [Implicit = []], a credential-free kind, so it maps to anonymous."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "41",
+          "function": "GetData",
+          "note": "Data is fetched with Web.Contents(url, [Headers=myHeaders])."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "16-18",
+          "function": "GetDataType",
+          "note": "The url parameter is the SDMX RESTful query URL, which is the connection target (url-or-server)."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "19-22",
+          "function": "GetDataType",
+          "note": "The Option parameter selects a display format from the DisplayFormatList labels. No other id fits, so it is other."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "23-25",
+          "function": "GetDataType",
+          "note": "The optional Language parameter is a language code (for example \"fr-CH, fr, en\") passed as the Accept-Language header, so it is other."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "38-48",
+          "function": "GetData",
+          "note": "A single Web.Contents request is made and parsed; no paging construct is present."
+        }
+      ],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "42-43",
+          "function": "GetData",
+          "note": "The response is parsed with Lines.FromBinary and Csv.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "44",
+          "function": "GetData",
+          "note": "Table.PromoteHeaders takes column names from the CSV header row. No M types are assigned to the columns."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "52-64",
+          "function": "TransformToLabelsOnly",
+          "note": "Columns are renamed and trimmed as text only (Table.RenameColumns and Table.TransformColumns). No type conversion is applied, and the Number.From at line 55 runs on header names, not data cells."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "15-35",
+          "function": "GetDataType",
+          "note": "The type function declares only the return type 'table' with no column types, so no declared schema exists."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "41",
+          "function": "GetData",
+          "note": "The Web.Contents data request has no ManualStatusHandling option and no custom error handling, so Power Query handles status codes."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "27-34",
+          "function": "SDMX.Contents",
+          "note": "Documentation.Name, LongDescription and Examples are set on the function."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "17, 20, 24",
+          "function": "GetDataType",
+          "note": "Documentation.FieldCaption is set on each parameter."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "18, 25",
+          "function": "GetDataType",
+          "note": "Documentation.SampleValues is set on the url and Language parameters."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "22",
+          "function": "GetDataType",
+          "note": "Documentation.AllowedValues = DisplayFormatLabels is set on the Option parameter."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "5",
+          "function": "SDMX.Contents",
+          "note": "The shared function returns one data table directly, with no navigation table."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "69-70",
+          "function": "SDMX",
+          "note": "TestConnection returns {\"SDMX.Contents\", dataSourcePath, \"Show labels only\", \"en\"}, which runs the shared entry function as a normal query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "38-48",
+          "function": "GetData",
+          "note": "No Table.View, native query, ODBC, or source-function folding is present."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "1-90",
+          "function": "SDMX.Contents",
+          "note": "All code is in one SDMX.m file with no .pqm modules or LoadFunction/LoadExpression calls."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "17, 28, 74, 81",
+          "function": "GetDataType",
+          "note": "Text is loaded through Extension.LoadString, which indicates localized strings."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "83-89",
+          "function": "SDMX.Icons",
+          "note": "Icons come from Extension.Contents(\"SDMX16.png\") and related PNG files."
+        },
+        {
+          "file": "SDMX.m",
+          "lines": "79",
+          "function": "SDMX.Publish",
+          "note": "Beta = true is set in the Publish record."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "1-90",
+          "function": "SDMX.Contents",
+          "note": "No Diagnostics.Trace call exists in the code."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "38-48",
+          "function": "GetData",
+          "note": "There is a single synchronous request and no job polling."
+        }
+      ],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SDMX.m",
+          "lines": "1-90",
+          "function": "SDMX.Contents",
+          "note": "The connector only reads data and defines no Action functions."
+        }
+      ],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:20:57Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004568900000000001,
+    "duration_ms": 19198
+  },
+  "source_sha256": "110106d5ade5f4e505f01ed357ded52004dfe7a9724a93c1c83af8b95230ac7b",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

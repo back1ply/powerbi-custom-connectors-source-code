@@ -1,0 +1,295 @@
+{
+  "connector": "MarkLogicODBC",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "355-357",
+          "function": "MarkLogicODBC",
+          "note": "Authentication record declares only UsernamePassword = []."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "132-139",
+          "function": "MarkLogicODBCImpl",
+          "note": "Reads Extension.CurrentCredential(), takes UID and PWD from Username and Password, and errors on any other AuthenticationKind."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "315-334",
+          "function": "MarkLogicODBCImpl",
+          "note": "Reaches the data source through Odbc.DataSource(ConnectionString, ...)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MarkLogicODBC.m",
+              "lines": "146-149",
+              "function": "MarkLogicODBCImpl",
+              "note": "SqlCapabilities is overridden with FractionalSecondsScale and merged with defaultConfig."
+            },
+            {
+              "file": "MarkLogicODBC.m",
+              "lines": "153-165",
+              "function": "MarkLogicODBCImpl",
+              "note": "SQLGetInfo is overridden for SQL_CONVERT_* flags, SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_GROUP_BY and SQL_DATETIME_LITERALS."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "92-102",
+          "function": "MarkLogicODBCType",
+          "note": "server (text) is the host name and is covered by url-or-server."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "98-101",
+          "function": "MarkLogicODBCType",
+          "note": "port (number) is a port number that fits no other id, so it is recorded as other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "315-336",
+          "function": "MarkLogicODBCImpl",
+          "note": "Result tables come from the ODBC driver through Odbc.DataSource. No JSON, CSV, XML or other format is parsed."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "180-273",
+          "function": "MarkLogicODBCImpl",
+          "note": "SQLGetTypeInfo supplies driver type metadata. This is driver metadata, not M types assigned to returned columns."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "285-297",
+          "function": "MarkLogicODBCImpl",
+          "note": "SQLColumns passes the driver's table through and only logs it when tracing is on. It does not redefine column types."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": []
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "103-106",
+          "function": "MarkLogicODBCType",
+          "note": "Function-level Documentation.Name and Documentation.LongDescription."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "94-96",
+          "function": "MarkLogicODBCType",
+          "note": "server parameter has Documentation.FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "99-101",
+          "function": "MarkLogicODBCType",
+          "note": "port parameter has Documentation.FieldCaption, FieldDescription and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "315-317",
+          "function": "MarkLogicODBCImpl",
+          "note": "Odbc.DataSource with HierarchicalNavigation = true builds the navigator at runtime from driver catalog metadata, with schema folders that are not leaves."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "347-353",
+          "function": "MarkLogicODBC",
+          "note": "TestConnection returns { \"MarkLogicODBC.Contents\", server, port }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "315-334",
+          "function": "MarkLogicODBCImpl",
+          "note": "Odbc.DataSource is shaped by SqlCapabilities and SQLGetInfo overrides, which drive query folding."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "303-313",
+          "function": "MarkLogicODBCImpl",
+          "note": "AstVisitor LimitClause emits LIMIT and OFFSET. This belongs under odbc-sql-capabilities, not custom-sql-generator."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "464-477",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "358",
+          "function": "MarkLogicODBC",
+          "note": "Label uses Extension.LoadString(\"DataSourceLabel\")."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "365",
+          "function": "MarkLogicODBC.Publish",
+          "note": "ButtonText uses Extension.LoadString for the title and help strings."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "374-377",
+          "function": "MarkLogicODBC.Icons",
+          "note": "Icon16 and Icon32 are loaded through Extension.Contents with PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "12",
+          "function": "EnableTraceOutput",
+          "note": "EnableTraceOutput is the switch and is set to false."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "472-473",
+          "function": "Diagnostics.LogValue",
+          "note": "LogValue is the real Diagnostics trace only when EnableTraceOutput is true. Otherwise it is a no-op."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace. It is reached only through the gated LogValue wrapper."
+        },
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "286-288",
+          "function": "SQLColumns",
+          "note": "Diagnostics.LogValue calls are behind the EnableTraceOutput check."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "MarkLogicODBC.m",
+          "lines": "119",
+          "function": "MarkLogicODBCImpl",
+          "note": "ApplicationIntent = \"readonly\". The connector exposes no Action functions."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:14:59Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0149407,
+    "duration_ms": 30890
+  },
+  "source_sha256": "02e464d6dc5460dcd614d95e183527efaae34eed7103e6d2baae48246891d62f",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

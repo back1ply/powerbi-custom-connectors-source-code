@@ -1,0 +1,414 @@
+{
+  "connector": "VesselInsight",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "VesselInsight.m",
+          "lines": "425-438",
+          "function": "VesselInsight",
+          "note": "Authentication record defines OAuth with StartLogin, FinishLogin, Refresh and Logout handlers from VIAuth."
+        },
+        {
+          "file": "VIAuth.pqm",
+          "lines": "13-41",
+          "function": "VIAuth.StartLogin",
+          "note": "Builds the authorize URL and login window for the OAuth authorization code flow."
+        },
+        {
+          "file": "VIAuth.pqm",
+          "lines": "45-60",
+          "function": "VIAuth.FinishLogin",
+          "note": "Reads the authorization code from the callback and exchanges it for a token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "VIAuth.pqm",
+              "lines": "22-22",
+              "function": "VIAuth.StartLogin",
+              "note": "Generates a code verifier (codeChallenge)."
+            },
+            {
+              "file": "VIAuth.pqm",
+              "lines": "30-31",
+              "function": "VIAuth.StartLogin",
+              "note": "Sends code_challenge and code_challenge_method (plain) in the authorize request."
+            },
+            {
+              "file": "VIAuth.pqm",
+              "lines": "40-40",
+              "function": "VIAuth.StartLogin",
+              "note": "Stores the verifier in the login Context, which FinishLogin passes on."
+            },
+            {
+              "file": "VIAuth.pqm",
+              "lines": "87-87",
+              "function": "VIAuth.TokenMethod",
+              "note": "Adds code_verifier to the token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "VIAuth.pqm",
+              "lines": "113-113",
+              "function": "VIAuth.Refresh",
+              "note": "Refresh handler exchanges the refresh_token through TokenMethod."
+            },
+            {
+              "file": "VIAuth.pqm",
+              "lines": "65-73",
+              "function": "VIAuth.TokenMethod",
+              "note": "Refresh-token grant branch reads the old credential's refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "VIServices.pqm",
+          "lines": "96-98",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Web.Contents call to the Galore query API."
+        },
+        {
+          "file": "VoyageServices.pqm",
+          "lines": "42-49",
+          "function": "VoyageServices.GaloreVoyage",
+          "note": "Web.Contents call to the Voyage API."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "VesselInsight.m",
+          "lines": "6-6",
+          "function": "VesselInsight.Contents",
+          "note": "The only shared data source function takes no parameters."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "VIServices.pqm",
+          "lines": "96-101",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Json.Document parses the Galore response, which is returned as a table."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "23-23",
+          "function": "VIServices.FetchAssetViews",
+          "note": "Json.Document parses the asset view list used by navigation."
+        },
+        {
+          "file": "VoyageServices.pqm",
+          "lines": "618-625",
+          "function": "VoyageServices.Decoder",
+          "note": "Json.Document parses the voyage AIS response, which is returned as a table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "VIServices.pqm",
+          "lines": "133-150",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Assigns M types to named columns (Timestamp datetime, Vessel and Full Path text, others number)."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "273-294",
+          "function": "VIServices.ExecuteGaloreStateTqlQuery",
+          "note": "Assigns M types to named state-event columns."
+        },
+        {
+          "file": "VoyageServices.pqm",
+          "lines": "499-530",
+          "function": "VoyageServices.ExpandVoyageColumn",
+          "note": "Declares M types for voyage columns."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "104-130",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Column names come from event metadata at runtime."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "222-225",
+          "function": "VesselInsight.m createVesselInfoRow",
+          "note": "Attribute field names come from Record.FieldNames of the data and are used as column names with no types."
+        },
+        {
+          "file": "VoyageServices.pqm",
+          "lines": "457-457",
+          "function": "VoyageServices.TransformVoyageColumn",
+          "note": "Table.FromRecords takes column names from the data; extra fields are kept."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "150-150",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Table.TransformColumnTypes converts returned data columns."
+        },
+        {
+          "file": "VoyageServices.pqm",
+          "lines": "499-530",
+          "function": "VoyageServices.ExpandVoyageColumn",
+          "note": "Table.TransformColumns converts returned values with Number.From, Text.From and DateTime.From."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "VIServices.pqm",
+              "lines": "249-271",
+              "function": "VIServices.ExecuteGaloreStateTqlQuery",
+              "note": "An empty result falls back to a #table with the declared columns."
+            },
+            {
+              "file": "VoyageServices.pqm",
+              "lines": "422-453",
+              "function": "VoyageServices.TransformVoyageColumn",
+              "note": "An empty response yields an empty table with the declared headers."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "VIServices.pqm",
+          "lines": "96-98",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Live Web.Contents data request with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "VIAuth.pqm",
+          "lines": "100-100",
+          "function": "VIAuth.TokenMethod",
+          "note": "ManualStatusHandling = {400, 401} on the token call."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "166-175",
+          "function": "VIServices.ExecuteGaloreFleetTqlQuery",
+          "note": "ManualStatusHandling = {400} on the metadata request."
+        },
+        {
+          "file": "VIAuth.pqm",
+          "lines": "104-106",
+          "function": "VIAuth.TokenMethod",
+          "note": "Error.Record built from the token response error body."
+        },
+        {
+          "file": "VIServices.pqm",
+          "lines": "152-153",
+          "function": "VIServices.ExecuteGaloreTqlQuery",
+          "note": "Error.Record built from the query response error field."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Documentation.galoreEdgeDataQueryType.pqm",
+          "lines": "2-34",
+          "function": "galoreEdgeDataQueryType",
+          "note": "FieldCaption and FieldDescription on each parameter of the navigator data function (applied via Value.ReplaceType in VesselInsight.m line 211)."
+        },
+        {
+          "file": "Documentation.galoreEdgeDataQueryType.pqm",
+          "lines": "15-21",
+          "function": "galoreEdgeDataQueryType",
+          "note": "SampleValues on startDate and endDate."
+        },
+        {
+          "file": "Documentation.galoreEdgeDataQueryType.pqm",
+          "lines": "5-33",
+          "function": "galoreEdgeDataQueryType",
+          "note": "AllowedValues on interval, timeDimensionType, startDate, endDate and useOldStyle."
+        },
+        {
+          "file": "Documentation.galoreCustomDataQueryType.pqm",
+          "lines": "3-4",
+          "function": "galoreCustomDataQueryType",
+          "note": "FieldCaption and FieldDescription for the TQL query parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "VesselInsight.m",
+          "lines": "16-16",
+          "function": "VesselInsight.Contents",
+          "note": "Navigator items come from a runtime GaloreLoadEdges call."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "25-27",
+          "function": "VesselInsight.Contents",
+          "note": "Asset view list is fetched from the API and used to build navigation rows."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "22-22",
+          "function": "VesselInsight.Contents",
+          "note": "Folder rows with IsLeaf false, so the navigation tree is nested."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "313-345",
+          "function": "galoreEdgeToNavTableRow",
+          "note": "Recursive child navigation tables for asset nodes."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "VesselInsight.m",
+          "lines": "425-426",
+          "function": "VesselInsight",
+          "note": "TestConnection returns the shared VesselInsight.Contents entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "VesselInsight.m",
+          "lines": "469-473",
+          "function": "Extension.LoadFunction",
+          "note": "Loads code from .pqm files via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "486-493",
+          "function": "VesselInsight.m",
+          "note": "VIAuth.pqm, VIServices.pqm and VoyageServices.pqm are loaded through LoadFunction."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "427-427",
+          "function": "VesselInsight",
+          "note": "Label is loaded with Extension.LoadString."
+        },
+        {
+          "file": "VesselInsight.m",
+          "lines": "452-465",
+          "function": "VesselInsight.Icons",
+          "note": "Icon16 and Icon32 are loaded from PNG files via Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:25:55Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.017402300000000002,
+    "duration_ms": 55061
+  },
+  "source_sha256": "ad78a93873d48f3cc3b46106740d830bd3d11efe36a1c3fd5fc307975334d565",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

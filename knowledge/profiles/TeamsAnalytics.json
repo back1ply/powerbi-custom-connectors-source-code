@@ -1,0 +1,376 @@
+{
+  "connector": "TeamsAnalytics",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "212-215",
+          "function": "TeamsAnalytics",
+          "note": "Authentication record offers only Aad (AuthorizationUri and Resource). No anonymous kind is declared."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "60-66",
+          "function": "UserAnalytics",
+          "note": "Web.Contents call to v2/me/summary-timeseries"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "84-91",
+          "function": "CrossTeamAnalyticsSummarySinglePage",
+          "note": "Web.Contents call to v2/me/teams/summary-timeseries"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "146-153",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "Web.Contents call to v2/me/teams/summary-timeseries"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "35-38",
+          "function": "TeamsAnalytics.Contents",
+          "note": "Shared function is Navigation = ()=> with no parameters"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "48-51",
+          "function": "NavigationType",
+          "note": "type function () as table, so zero user parameters. Environment comes from a FeatureSwitch, not a parameter."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "90-90",
+          "function": "CrossTeamAnalyticsSummarySinglePage",
+          "note": "nextCursor query parameter carries the cursor token"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "152-152",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "nextCursor query parameter carries the cursor token"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "155-155",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "Next cursor read from Interpret[paging]?[nextCursor]?"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "109-116",
+              "function": "CrossTeamAnalyticsSummaryPagination",
+              "note": "Pages produced by Table.GenerateByPageCrossTeamAnalyticsSummary"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "166-173",
+              "function": "CrossTeamAnalyticsPagination",
+              "note": "Pages produced by Table.GenerateByPageCrossTeamAnalytics"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "118-124",
+              "function": "Table.GenerateByPageCrossTeamAnalyticsSummary",
+              "note": "Helper is built on List.Generate; only the outer helper is named"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "175-181",
+              "function": "Table.GenerateByPageCrossTeamAnalytics",
+              "note": "Helper is built on List.Generate; only the outer helper is named"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging ends when the page function returns null. The next cursor is read from Interpret[paging]?[nextCursor]? and passed as NextLink metadata. When it is absent, nextLink is null, the page is null, and List.Generate stops because its condition lastPage <> null fails. An error on the first page is swallowed by try ... otherwise null, which also ends paging with an empty table.",
+          "evidence": [
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "112-113",
+              "function": "CrossTeamAnalyticsSummaryPagination",
+              "note": "nextLink from NextLink metadata; page is null when nextLink is null"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "120-124",
+              "function": "Table.GenerateByPageCrossTeamAnalyticsSummary",
+              "note": "List.Generate stops on null page; first page wrapped in try otherwise null"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "169-170",
+              "function": "CrossTeamAnalyticsPagination",
+              "note": "nextLink from NextLink metadata; page is null when nextLink is null"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "177-181",
+              "function": "Table.GenerateByPageCrossTeamAnalytics",
+              "note": "List.Generate stops on null page; first page wrapped in try otherwise null"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "67-67",
+          "function": "UserAnalytics",
+          "note": "Json.Document parses the returned user payload"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "92-92",
+          "function": "CrossTeamAnalyticsSummarySinglePage",
+          "note": "Json.Document parses the returned team payload"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "154-154",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "Json.Document parses the returned team payload"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "246-297",
+          "function": "CrossTeamAnalyticsSchema, UserAnalyticsSchema, CrossTeamAnalyticsSummarySchema",
+          "note": "Hardcoded schema tables assign M types (DataType column) to named columns"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "73-73",
+          "function": "UserAnalytics",
+          "note": "Table.TransformColumnTypes applies declared types to returned data"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "103-103",
+          "function": "CrossTeamAnalyticsSummarySinglePage",
+          "note": "Table.TransformColumnTypes applies declared types to returned data"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "160-160",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "Table.TransformColumnTypes applies declared types to returned data"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "203-204",
+          "function": "fxTARecordToTable",
+          "note": "Per-cell conversion of date and value columns"
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "77-77",
+              "function": "UserAnalytics",
+              "note": "try ... otherwise TableSchema returns the typed declared columns on failure or empty input"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "128-131",
+              "function": "Table.GenerateByPageCrossTeamAnalyticsSummary",
+              "note": "Empty result returns an empty table with declared FriendlyName columns and types"
+            },
+            {
+              "file": "TeamsAnalytics.pq",
+              "lines": "185-188",
+              "function": "Table.GenerateByPageCrossTeamAnalytics",
+              "note": "Empty result returns an empty table with declared FriendlyName columns and types"
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "60-66",
+          "function": "UserAnalytics",
+          "note": "Web.Contents data request with no ManualStatusHandling"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "84-91",
+          "function": "CrossTeamAnalyticsSummarySinglePage",
+          "note": "Web.Contents data request with no ManualStatusHandling"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "146-153",
+          "function": "CrossTeamAnalyticsSinglePage",
+          "note": "Web.Contents data request with no ManualStatusHandling"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "48-51",
+          "function": "NavigationType",
+          "note": "Documentation.Name and Documentation.LongDescription metadata on the shared function type"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "37-46",
+          "function": "Navigation",
+          "note": "Navigation rows are a hardcoded #table list of three leaf items built with Table.ToNavigationTable"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "211-211",
+          "function": "TeamsAnalytics",
+          "note": "TestConnection names TeamsAnalytics.Contents, the shared entry function"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings"
+      ],
+      "evidence": [
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "1-297",
+          "function": "section TeamsAnalytics",
+          "note": "All code is in one .pq file with no LoadFunction or pqm split"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "40-42",
+          "function": "Navigation",
+          "note": "Extension.LoadString supplies localized labels"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "49-50",
+          "function": "NavigationType",
+          "note": "Extension.LoadString supplies localized documentation strings"
+        },
+        {
+          "file": "TeamsAnalytics.pq",
+          "lines": "216-216",
+          "function": "TeamsAnalytics",
+          "note": "Extension.LoadString supplies the localized Label"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:24:29Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0097846,
+    "duration_ms": 47781
+  },
+  "source_sha256": "27357d9e2322e6de2fd0f6b5e7f87b3691b8199a7e90d4f734f3c29c080df359",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

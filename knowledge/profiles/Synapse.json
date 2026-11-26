@@ -1,0 +1,333 @@
+{
+  "connector": "Synapse",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "451-475",
+          "function": "Synapse",
+          "note": "The data source kind record sets Authentication with an Aad block: AuthorizationUri, Scope, and DefaultClientApplication. No anonymous, key, or username-password kind is declared."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "348-390",
+          "function": "GetWebContents",
+          "note": "Reaches the Synapse and ARM REST APIs through Web.Contents."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "392-396",
+          "function": "GetSynapseDatabase",
+          "note": "Reaches serverless and dedicated SQL databases through Sql.Database."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "38-40",
+          "function": "Synapse.Contents",
+          "note": "Shared entry function takes one optional record parameter, options."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "42-43",
+          "function": "SynapseType",
+          "note": "Declares the optional option as record parameter type."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is accepted but never read. The Synapse.Contents body ignores it, so no fields are accepted in practice.",
+          "evidence": [
+            {
+              "file": "Synapse.pq",
+              "lines": "38-40",
+              "function": "Synapse.Contents",
+              "note": "options is declared but not referenced in the body."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "348-390",
+          "function": "GetWebContents",
+          "note": "Each request is a single Web.Contents call. No next-link, token, or offset loop exists."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "350-351",
+          "function": "GetWebContents",
+          "note": "Response bodies are parsed with Json.Document. The workspaces, databases, tables, and relationships returned by the connector are JSON payloads."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "392-396",
+          "function": "GetSynapseDatabase",
+          "note": "Sql.Database returns driver-provided tables, which become the data tables in CreateNavForTables (line 124)."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "185-187",
+          "function": "CombineColumnMetadata",
+          "note": "Maps source TypeName boolean to M type logical for named columns. This is the connector's own source-type-to-M-type mapping."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "178-190",
+          "function": "CombineColumnMetadata",
+          "note": "Applies Table.TransformColumnTypes to returned data tables. Called from CombineTableMetadata (line 173)."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "286-295",
+          "function": "GetWorkspaces",
+          "note": "Navigator column names come from JSON record fields (id, name) with no declared M types."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "218",
+          "function": "FormatRelationships",
+          "note": "Table.FromRecords builds helper table columns from the JSON records."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "392-396",
+          "function": "GetSynapseDatabase",
+          "note": "Column names and types come from the Sql.Database driver."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "Synapse.pq",
+              "lines": "185-187",
+              "function": "CombineColumnMetadata",
+              "note": "The boolean mapping fires only on metadata entries. Whether an empty result keeps the declared columns depends on metadata that may be empty, so the answer is unclear."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "348-350",
+          "function": "GetWebContents",
+          "note": "Web.Contents sets ManualStatusHandling = {400, 404, 408, 500, 504}. Because of operator precedence, the options ?? [] & [...] expression may drop ManualStatusHandling when options is non-null, which GetARMContents (line 292) and the other callers with options pass. Those calls fall back to default status handling. The precedence reading is uncertain."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "363-386",
+          "function": "GetWebContents",
+          "note": "Builds Error.Record values for HTTP 400, 404, 408/504, and 5xx responses."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "42-49",
+          "function": "SynapseType",
+          "note": "Sets Documentation.Name, Caption, and LongDescription on the Synapse.Contents function type. Examples is empty, so no sample values."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "80-92",
+          "function": "CreateNavForWorkspaces",
+          "note": "The navigator's workspace rows are listed at runtime from the ARM Resource Graph."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "89",
+          "function": "CreateNavForWorkspaces",
+          "note": "Workspace rows have IsLeaf false and open database navigation tables, so they are folders."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "111",
+          "function": "CreateNavForDatabases",
+          "note": "Database rows have IsLeaf false and open table navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "455",
+          "function": "Synapse",
+          "note": "TestConnection = (resource) => {\"Synapse.Contents\"}, which names the shared entry function itself."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "392-396",
+          "function": "GetSynapseDatabase",
+          "note": "Folding is delegated to Sql.Database. No Table.View handlers or native query support are written."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "1-490",
+          "function": "Synapse.pq",
+          "note": "The whole connector is a single .pq file."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "45-47",
+          "function": "SynapseType",
+          "note": "Extension.LoadString is used for localized strings."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "487-490",
+          "function": "Synapse.Icons",
+          "note": "Icon PNGs are loaded with Extension.Contents."
+        },
+        {
+          "file": "Synapse.pq",
+          "lines": "478-479",
+          "function": "Synapse.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "415-431",
+          "function": "GetResourceCredential",
+          "note": "Diagnostics.Trace runs on the live credential path (TraceLevel.Error at 415 and TraceLevel.Information at 424) with no EnableTraceOutput-style switch. GetResourceCredential is called from the live ARM, Synapse, and SQL paths."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "336-390",
+          "function": "GetARMContents",
+          "note": "Requests are synchronous with no job polling."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Synapse.pq",
+          "lines": "286-340",
+          "function": "GetWorkspaces",
+          "note": "All calls are read-only GET or resource-graph queries. No Action functions exist."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:23:55Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0097728,
+    "duration_ms": 46711
+  },
+  "source_sha256": "ab84dc1c920d64aabc5f3290f8ea47498f89ac40ad38404cfbe89987cc358126",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

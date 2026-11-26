@@ -1,0 +1,352 @@
+{
+  "connector": "WorkforceDimensions",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "oauth",
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "420-423",
+          "function": "WorkforceDimensions",
+          "note": "Data source kind declares Authentication UsernamePassword; the credential is read via Extension.CurrentCredential() at line 96."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "402-417",
+          "function": "getAuthToken",
+          "note": "OAuth2 password grant (grant_type=password) posted to accessTokenRequestUrl; the returned access_token is used as the Authorization header."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "322-322",
+          "function": "findEmployeeBatches",
+          "note": "Tenant-issued appkey sent as an 'appkey' request header on API calls (value taken from tenant settings at line 394)."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "373-373",
+          "function": "postRequest",
+          "note": "appkey sent as a request header on the data POST."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "WorkforceDimensions.m",
+              "lines": "404-412",
+              "function": "getAuthToken",
+              "note": "Token request uses the password grant with client_secret; no code_challenge or code_verifier is produced."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "WorkforceDimensions.m",
+              "lines": "402-417",
+              "function": "getAuthToken",
+              "note": "The token is fetched once per load; no refresh_token grant or expiry handling exists."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "WorkforceDimensions.m",
+              "lines": "322-322",
+              "function": "findEmployeeBatches",
+              "note": "appkey is placed in the Headers record."
+            },
+            {
+              "file": "WorkforceDimensions.m",
+              "lines": "373-373",
+              "function": "postRequest",
+              "note": "appkey is placed in the Headers record."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "319-323",
+          "function": "findEmployeeBatches",
+          "note": "Web.Contents call to the hyperfind endpoint."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "370-374",
+          "function": "postRequest",
+          "note": "Web.Contents POST for multi_read data."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "382-389",
+          "function": "getTenantSettings",
+          "note": "Web.Contents call to the configuration server."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "404-414",
+          "function": "getAuthToken",
+          "note": "Web.Contents call to the token endpoint."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "45-77",
+          "function": "WorkforceDimensionsType",
+          "note": "configurationServer and workForceDimensionsServer are URL parameters; symbolicPeriod, startDate and endDate are the user-picked date range."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "280-312",
+          "function": "loadDataByDateRecursively",
+          "note": "Recursion splits the date range into 100-day requests and merges them; this is request chunking, not paging with a next token or URL."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "314-328",
+          "function": "findEmployeeBatches",
+          "note": "Employee IDs are split into batches of 250; no page or cursor is followed."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "324-324",
+          "function": "findEmployeeBatches",
+          "note": "Json.Document parses the hyperfind response."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "375-375",
+          "function": "postRequest",
+          "note": "Json.Document parses the returned time and person data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "23-38",
+          "function": "PERSON_DATA_FIELDS",
+          "note": "Hardcoded field table assigns M types (text, number, date, Int64.Type, logical) to named columns."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "168-174",
+          "function": "filterColumns",
+          "note": "Column names come from the response aliases, and response columns beyond the declared set are kept without types."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "193-193",
+          "function": "loadPersonData",
+          "note": "Table.TransformColumnTypes converts returned person data to the declared types."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "217-217",
+          "function": "loadTimeData",
+          "note": "Table.TransformColumnTypes converts returned time data to the declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "WorkforceDimensions.m",
+              "lines": "123-125",
+              "function": "loadTimePersonData",
+              "note": "An empty time or person result is replaced by a text message (NoDataFound), so the declared columns are not kept."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "370-374",
+          "function": "postRequest",
+          "note": "Data Web.Contents call with no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "319-323",
+          "function": "findEmployeeBatches",
+          "note": "Metadata-style data request, also without ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "45-77",
+          "function": "WorkforceDimensionsType",
+          "note": "Documentation.Name and LongDescription on the function; FieldCaption and FieldDescription on each parameter; SampleValues on each parameter; AllowedValues = Record.FieldNames(SYMBOLIC_PERIODS) at line 61."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "79-107",
+          "function": "WorkforceDimensionsImpl",
+          "note": "The entry function returns one data table from loadTimePersonData, with no navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "424-430",
+          "function": "WorkforceDimensions (TestConnection)",
+          "note": "TestConnection returns WorkforceDimensions.Contents with the server URLs and the symbolic period Today, so it runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "1-447",
+          "function": "file",
+          "note": "The connector is a single .m file."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "47-48",
+          "function": "WorkforceDimensionsType",
+          "note": "Text comes from Extension.LoadString, which loads localized strings."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "444-447",
+          "function": "WorkforceDimensions.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "WorkforceDimensions.m",
+          "lines": "435-437",
+          "function": "WorkforceDimensions.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:26:44Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0086991,
+    "duration_ms": 34546
+  },
+  "source_sha256": "197d988a2a60a892093f865efd04077c8662f44edf1548f1bc2cfc473434e6a0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

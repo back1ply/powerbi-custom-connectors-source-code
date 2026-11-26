@@ -1,0 +1,454 @@
+{
+  "connector": "Vena",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "50-57",
+          "function": "VenaImpl",
+          "note": "VenaBasic reads Extension.CurrentCredential Username and Password and builds a Basic Authorization header."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "217-223",
+          "function": "Vena",
+          "note": "Data source kind Authentication declares UsernamePassword with apiUser and apiKey labels."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "39-61",
+          "function": "Generic.Fetch",
+          "note": "All data calls go through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "region-or-environment",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "17-22",
+          "function": "VenaInputs",
+          "note": "source is the Source Region parameter, a region name such as us2."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "43-48",
+          "function": "VenaImpl",
+          "note": "source is used as a full http URL when it starts with http, otherwise it is turned into https://<region>.vena.io."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "23-28",
+          "function": "VenaInputs",
+          "note": "modelQuery is MQL query text passed as its own parameter, so it is other."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "29-33",
+          "function": "VenaInputs",
+          "note": "apiVersion is an endpoint version selector (v1/v2), not a resource or region, so it is other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "209-219",
+          "function": "Values.CreateTableForModelWithNewExportApiJson",
+          "note": "Each next page is requested from the nextPage URL in the response metadata."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "197-222",
+              "function": "Values.CreateTableForModelWithNewExportApiJson",
+              "note": "The connector calls List.Generate directly. Table.GenerateByPage is not used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when metadata.nextPage is null, which makes the next item null and ends List.Generate (lines 206 and 214-215). It also stops when FetchWithRetry returns null after its attempts run out (lines 176-184).",
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "206-206",
+              "function": "Values.CreateTableForModelWithNewExportApiJson",
+              "note": "List.Generate continues only while the item is not null."
+            },
+            {
+              "file": "Utils.pqm",
+              "lines": "214-215",
+              "function": "Values.CreateTableForModelWithNewExportApiJson",
+              "note": "A null nextPage returns null, which ends paging."
+            },
+            {
+              "file": "Utils.pqm",
+              "lines": "176-184",
+              "function": "FetchWithRetry",
+              "note": "Returns null after the final attempt fails."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "10-14",
+          "function": "User.FetchModels",
+          "note": "Model list JSON is parsed with Json.Document."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "162-166",
+          "function": "Values.FetchWithNewExportAPI",
+          "note": "Export API JSON pages are parsed with Json.Document and returned as data."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "103-110",
+          "function": "Hierarchy.Buffer",
+          "note": "Hierarchy CSV responses are parsed with Csv.Document."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "139-159",
+          "function": "Values.Fetch",
+          "note": "Values CSV responses are parsed with Csv.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "358-372",
+          "function": "CSV.CreateTableForModel",
+          "note": "Maps source field types NUMERIC, DATE and TEXT to M types and applies them to operational table columns."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "125-129",
+          "function": "Hierarchies.CreateTablesForModel",
+          "note": "Promoted headers are converted to text."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "240-244",
+          "function": "Values.CreateTableForModelWithNewExportApiJson",
+          "note": "Data columns are converted to text, then values are converted to number."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "259-263",
+          "function": "Values.CreateTableForModel",
+          "note": "Data columns are converted to text, then values are converted to number."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "225-236",
+          "function": "Values.CreateTableForModelWithNewExportApiJson",
+          "note": "Column names come from response metadata headers, and the tables are built with Table.FromRows."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "248-248",
+          "function": "Values.CreateTableForModelWithNewExportApiJson",
+          "note": "The fallback Table.FromValue returns a table with no declared schema."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "372-376",
+              "function": "CSV.CreateTableForModel",
+              "note": "If an empty response lacks the declared columns, the type transform fails and the fallback Table.FromValue is returned, so the declared columns may not be kept. The result depends on the path and the server's response."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "39-61",
+          "function": "Generic.Fetch",
+          "note": "Generic.Fetch sets ManualStatusHandling for 400, 401, 403, 404, 422, 429, 500 and 503."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "94-94",
+          "function": "VenaImpl",
+          "note": "The splitConfig Web.Contents call does not set ManualStatusHandling. It is a configuration lookup, handled by try."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "118-131",
+          "function": "VenaImpl",
+          "note": "The split evaluator Web.Contents call does not set ManualStatusHandling. It is a feature-flag lookup, handled by try."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "64-76",
+          "function": "Response.Handle",
+          "note": "Inspects the response status code itself."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "71-72",
+          "function": "Response.Handle",
+          "note": "Raises an error with a message built from the 401 status response."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "169-186",
+          "function": "FetchWithRetry",
+          "note": "Failed export page requests are sent again after a 5-second delay using Function.InvokeAfter."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Every failed call in FetchWithRetry is retried, whatever the status. Failures are a thrown error or a non-record result, and both are caught by try and returned as null. It makes 1 initial attempt plus 3 retries (4 total), with a 5-second delay, and then returns null.",
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "169-186",
+              "function": "FetchWithRetry",
+              "note": "Retries on null or non-record results using Function.InvokeAfter with a 5-second delay, up to 4 attempts in total."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "35-37",
+          "function": "Vena.Contents",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the shared function's return type."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "19-21",
+          "function": "VenaInputs",
+          "note": "source has Documentation.FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "24-27",
+          "function": "VenaInputs",
+          "note": "modelQuery has FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "30-33",
+          "function": "VenaInputs",
+          "note": "apiVersion has FieldCaption, FieldDescription, AllowedValues and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Main.pqm",
+          "lines": "17-19",
+          "function": "Main.pqm",
+          "note": "Model items are listed at runtime from the API."
+        },
+        {
+          "file": "Main.pqm",
+          "lines": "52-52",
+          "function": "Main.pqm",
+          "note": "Model rows have IsLeaf false, so they open further navigation tables."
+        },
+        {
+          "file": "Main.pqm",
+          "lines": "63-63",
+          "function": "Main.pqm",
+          "note": "The Operational Tables folder row has IsLeaf false and opens a navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "209-215",
+          "function": "Vena",
+          "note": "TestConnection returns {Vena.Contents, source}, which names the shared entry function with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "40-200",
+          "function": "VenaImpl",
+          "note": "No Table.View, OData.Feed, ODBC or native query folding is used."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "62-64",
+          "function": "VenaImpl",
+          "note": "Main.pqm and Utils.pqm are loaded with Expression.Evaluate."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "203-206",
+          "function": "CodeDTO.Fetch",
+          "note": "Loads Main.pqm and Utils.pqm with Extension.Contents."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "224-224",
+          "function": "Vena",
+          "note": "Label uses Extension.LoadString."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "230-230",
+          "function": "Vena.Publish",
+          "note": "ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "Vena.pq",
+          "lines": "236-239",
+          "function": "Vena.Icons",
+          "note": "Icon images are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Vena.pq",
+          "lines": "1-239",
+          "function": "Vena.pq",
+          "note": "No live Diagnostics.Trace call is present."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "169-186",
+          "function": "FetchWithRetry",
+          "note": "Only retries, not job polling. The paginated export uses paging, not a status poll."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "39-61",
+          "function": "Generic.Fetch",
+          "note": "POST calls send queries and read results. No Action functions or mutations are present."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:26:07Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.020842,
+    "duration_ms": 85036,
+    "repair_attempts": 1
+  },
+  "source_sha256": "8bad815576bcf073fa1abfaf3c8643e0acc46f0e3742e488ff3e9c797cd51506",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

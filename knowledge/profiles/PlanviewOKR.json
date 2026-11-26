@@ -1,0 +1,279 @@
+{
+  "connector": "PlanviewOKR",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "13-13",
+          "function": "PlanviewOKR",
+          "note": "Authentication record is OAuth with StartLogin, FinishLogin and Refresh; no key, username-password or anonymous kind."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "81-107",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL with client_id, state, redirect_uri, scope and PKCE code_challenge."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "116-132",
+          "function": "Refresh",
+          "note": "Exchanges a refresh_token at the OAuth token endpoint."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "PlanviewOKR.m",
+              "lines": "83-85",
+              "function": "StartLogin",
+              "note": "Generates codeVerifier and sends SHA256 code_challenge."
+            },
+            {
+              "file": "PlanviewOKR.m",
+              "lines": "55-65",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier with the authorization_code token request."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "PlanviewOKR.m",
+              "lines": "116-132",
+              "function": "Refresh",
+              "note": "Implements the refresh_token grant."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-175",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "Data is read with OData.Feed on the validated URL. Web.Contents is used only for OAuth token calls, not for data."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-173",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "The only user parameter is OdataUrl, the OData service URL that names the connection target."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "179-183",
+          "function": "PlanviewOKR.ContentsType",
+          "note": "Declares the single text parameter ODataURL, captioned as a URL."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "149-157",
+          "function": "GetNextLink",
+          "note": "Next-link parser exists but no function in the connector calls it. Paging is left to OData.Feed."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-173",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "Returned data is an OData payload read by OData.Feed, which counts as json. Json.Document at lines 68 and 129 parses only auth responses and is not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-173",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "Column names and types come from OData.Feed metadata. The connector does not redefine them."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-173",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "The live OData.Feed data request has no ManualStatusHandling, so status handling is left to Power Query."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "185-190",
+          "function": "PlanviewOKR.ContentsType",
+          "note": "Function-level Documentation.Description, DisplayName, Caption, Name and LongDescription are set."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "179-181",
+          "function": "PlanviewOKR.ContentsType",
+          "note": "Documentation.FieldCaption is set on the URL parameter. SampleValues is an empty list, so sample-values is not counted."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-175",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "Returns OData.Feed on the user-supplied URL, so the navigator is built from the service document."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "12-12",
+          "function": "PlanviewOKR",
+          "note": "TestConnection = {\"PlanviewOKR.Contents\", resource}, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "171-173",
+          "function": "PlanviewOKR.ContentsInternal",
+          "note": "Returned tables come from OData.Feed, so filters, selects and paging fold into the OData request. No Table.View handlers are written."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "1-191",
+          "function": "PlanviewOKR",
+          "note": "All code is in one .m file; no .pqm modules are loaded."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "14-14",
+          "function": "PlanviewOKR",
+          "note": "Labels come from Extension.LoadString, so the connector uses localized strings."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "26-39",
+          "function": "PlanviewOKR.Icons",
+          "note": "Icon16 and Icon32 are built from bundled PNG files via Extension.Contents."
+        },
+        {
+          "file": "PlanviewOKR.m",
+          "lines": "18-19",
+          "function": "PlanviewOKR.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:19:15Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0106576,
+    "duration_ms": 164974
+  },
+  "source_sha256": "32b4da967fada7aa2ebc9aebf1c029af73c0b042d0a016d4058b2f0590b759e0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

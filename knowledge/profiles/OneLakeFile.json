@@ -1,0 +1,314 @@
+{
+  "connector": "OneLakeFile",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "46-53",
+          "function": "OneLakeFile",
+          "note": "Authentication record declares an Aad method with an AuthorizationUri and an ordered scope."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "189-192",
+          "function": "ResolveArtifact",
+          "note": "Calls Extension.InvokeWithCredentials, using the AAD credential for the Fabric items lookup."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "Calls Extension.InvokeWithCredentials with the AAD storage resource credential."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "203-203",
+          "function": "ResolveArtifactId",
+          "note": "Fabric items list is fetched with Utils[Web.JsonContents], which calls Web.Contents in Utils.pqm."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "292-344",
+          "function": "Http.Request / Web.JsonContents",
+          "note": "Web.Contents is called from Http.Request (line 303)."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "File data is read through AzureStorage.DataLake, which has no listed transport id."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "139-146",
+          "function": "OneLakeFile.Type",
+          "note": "The path parameter names a workspace, artifact and partial path inside OneLake."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "147-150",
+          "function": "OneLakeFile.Type",
+          "note": "The optional options record parameter."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "172-174",
+          "function": "OneLakeFileImpl",
+          "note": "Path is parsed into workspace, artifact and path segments."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "265-294",
+          "function": "ParseOneLakePath",
+          "note": "Parses workspace, artifact and partial path segments."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "OneLakeFileImpl declares an optional options record but never reads any field from it. The only field name in the connector is the ConnectionTimeout example in the Documentation.SampleValues metadata. The record is accepted but not used.",
+          "evidence": [
+            {
+              "file": "OneLakeFile.pq",
+              "lines": "172-187",
+              "function": "OneLakeFileImpl",
+              "note": "The options parameter is declared but not referenced in the body."
+            },
+            {
+              "file": "OneLakeFile.pq",
+              "lines": "147-150",
+              "function": "OneLakeFile.Type",
+              "note": "Sample value shows [ ConnectionTimeout = 0 ]."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "200-203",
+          "function": "ResolveArtifactId",
+          "note": "Single items-list request with no continuation token followed."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "Returns raw file binaries from AzureStorage.DataLake. The connector parses no data format itself. The Fabric items JSON response is metadata used for ID resolution, not returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "Column names and types come from the AzureStorage.DataLake navigation table. The connector does not redefine them."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-296",
+          "function": "Http.Request",
+          "note": "Sets ManualStatusHandling on every Web.Contents call, and the handler table inspects statuses."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "303-311",
+          "function": "Http.Request",
+          "note": "Each response status is read and dispatched to a handler."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "349-398",
+          "function": "DefaultErrorHandler",
+          "note": "Builds Error.Record values from HTTP status and error body."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "203-203",
+          "function": "ResolveArtifactId",
+          "note": "Live Fabric items call that goes through these handlers."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "139-170",
+          "function": "OneLakeFile.Type",
+          "note": "Function-level Documentation.Name, Caption, Description, LongDescription and Examples. Parameter FieldCaption on path and options. SampleValues on path and options."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "AzureStorage.DataLake with HierarchicalNavigation = true lists the navigator from storage at runtime, with folders (IsLeaf false)."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "44-44",
+          "function": "OneLakeFile",
+          "note": "TestConnection returns { \"OneLake.Contents\" } & the parsed resource path, so the shared entry function is evaluated."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "296-299",
+          "function": "OneLakeDataLake",
+          "note": "No Table.View handlers or native query are reachable. The Table.NavigationTableView module is only used by the unreachable Workspace module."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "10-30",
+          "function": "Extension.LoadFunction",
+          "note": "Code is split into .pqm modules loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "303-303",
+          "function": "OneLakeFile.Publish",
+          "note": "Uses Extension.LoadString for localized labels."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "313-314",
+          "function": "OneLakeFile.Icons",
+          "note": "Icon files loaded with Extension.Contents."
+        },
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "302-302",
+          "function": "OneLakeFile.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "OneLakeFile.pq",
+          "lines": "213-214",
+          "function": "ResolveArtifactId",
+          "note": "Diagnostics.Trace(TraceLevel.Error, ...) runs without any switch."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "381-385",
+          "function": "DefaultErrorHandler",
+          "note": "Diagnostics.Trace(TraceLevel.Warning, ...) runs without a switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:16:10Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0154175,
+    "duration_ms": 44844
+  },
+  "source_sha256": "12e41b778a94779b8739c143feb1fb260a5827f5425584767f17f7ea5f9dc8e1",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

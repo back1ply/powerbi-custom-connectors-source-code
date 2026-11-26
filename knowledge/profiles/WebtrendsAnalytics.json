@@ -1,0 +1,333 @@
+{
+  "connector": "WebtrendsAnalytics",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "8-16",
+          "function": "WebtrendsAnalytics",
+          "note": "Data source kind declares Authentication = [UsernamePassword = []]. The connector sets no custom headers or key, and the code does not use anonymous access."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "90-92",
+          "function": "WebtrendsAnalytics.ReportContentsInternal",
+          "note": "Csv.Document(Web.Contents(...)) for the KeyMetrics report; this line range is in KeyMetricsInternal."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "111-113",
+          "function": "WebtrendsAnalytics.ReportContentsInternal",
+          "note": "Csv.Document(Web.Contents(...)) for individual report contents."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "128",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "Csv.Document(Web.Contents(...)) for the report list."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "4-5",
+          "function": "WebtrendsAnalytics.Tables",
+          "note": "Shared entry function. Its parameters are ProfileId, Period, reportType, startDate, endDate, startPeriod and endPeriod."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "118",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "ProfileId names the Webtrends profile (resource inside the service) and maps to database-or-resource-id. startDate/endDate and startPeriod/endPeriod, plus Period (Custom Date vs Report Period), select the date range. reportType (Summary/Trend/Individual) fits no other id and maps to other."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "48",
+          "function": "baseurl",
+          "note": "The base URL is hardcoded, so url-or-server does not apply."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "90-93",
+          "function": "WebtrendsAnalytics.KeyMetricsInternal",
+          "note": "Each report is fetched with a single Web.Contents request. No page or next-link loop exists."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "90-92",
+          "function": "WebtrendsAnalytics.KeyMetricsInternal",
+          "note": "Report payloads are parsed with Csv.Document."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "111-113",
+          "function": "WebtrendsAnalytics.ReportContentsInternal",
+          "note": "Report payloads are parsed with Csv.Document."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "128",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "The report list is parsed with Csv.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "93-95",
+          "function": "WebtrendsAnalytics.KeyMetricsInternal",
+          "note": "Column names come from the CSV header through Table.PromoteHeaders. No M types are assigned to the data columns."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "114-116",
+          "function": "WebtrendsAnalytics.ReportContentsInternal",
+          "note": "Column names come from the CSV header through Table.PromoteHeaders. No M types are assigned to the data columns."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "130",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "Value.ReplaceType types the report-list helper table only. That table is a navigation helper, so it does not count as declared-schema."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "90-92",
+          "function": "WebtrendsAnalytics.KeyMetricsInternal",
+          "note": "Web.Contents with no ManualStatusHandling option, so Power Query handles status codes."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "111-113",
+          "function": "WebtrendsAnalytics.ReportContentsInternal",
+          "note": "Web.Contents with no ManualStatusHandling option."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "128",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "Web.Contents with no ManualStatusHandling option. This is a metadata request and counts as a data request."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "189-195",
+          "function": "WebtrendsAnalytics.TablesTypes",
+          "note": "Documentation.Description, DisplayName, Caption, Name and LongDescription are set on the function type."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "153-183",
+          "function": "WebtrendsAnalytics.TablesTypes",
+          "note": "Documentation.FieldCaption is set on each parameter."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "155-184",
+          "function": "WebtrendsAnalytics.TablesTypes",
+          "note": "Documentation.FieldDescription is set on each parameter."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "154-179",
+          "function": "WebtrendsAnalytics.TablesTypes",
+          "note": "Documentation.SampleValues is set on the ProfileId, startDate, endDate, startPeriod and endPeriod parameters."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "160,185",
+          "function": "WebtrendsAnalytics.TablesTypes",
+          "note": "Documentation.AllowedValues is set on Period ({Custom Date, Report Period}) and reportType ({Summary, Trend, Individual})."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "128",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "Navigator items (report keys and names) are listed at runtime from the Webtrends reports endpoint."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "146",
+          "function": "WebtrendsAnalytics.TablesInternal",
+          "note": "Table.ToNavigationTable builds the navigation table from the discovered rows. All rows are leaves (IsLeaf = true), so the tree is not hierarchical."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "14",
+          "function": "WebtrendsAnalytics",
+          "note": "TestConnection names \"WebtrendsAnalytics.Tables\" with the profile id and runs the normal Tables query with Report Period and Individual."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "90-116",
+          "function": "WebtrendsAnalytics.KeyMetricsInternal",
+          "note": "No Table.View, OnTake, OnSelectRows or native-query handlers exist. Filtering happens in M after the full CSV load."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "1-195",
+          "function": "WebtrendsAnalytics",
+          "note": "The whole connector is in one .pq file with no pqm modules."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "21",
+          "function": "WebtrendsAnalytics.Publish",
+          "note": "Extension.LoadString is used for the ButtonText strings, and the documentation strings are loaded the same way (lines 153-194)."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "22-31",
+          "function": "WebtrendsAnalytics.Publish",
+          "note": "SourceImage and SourceTypeImage use Extension.Contents icon files."
+        },
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "20",
+          "function": "WebtrendsAnalytics.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "1-195",
+          "function": "WebtrendsAnalytics",
+          "note": "No Diagnostics.Trace call exists in the file."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "1-195",
+          "function": "WebtrendsAnalytics",
+          "note": "No export job or polling logic exists. Each request is a single synchronous CSV fetch."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "WebtrendsAnalytics.pq",
+          "lines": "1-195",
+          "function": "WebtrendsAnalytics",
+          "note": "All requests are GET reads through Web.Contents. No Action functions exist."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:25:45Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0065507,
+    "duration_ms": 27090
+  },
+  "source_sha256": "57535a86f51aa9927a997861a6f8f36aca3b314335ce8846daa92bea4eb34090",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,399 @@
+{
+  "connector": "StarburstPresto",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "windows",
+        "oauth",
+        "key",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "30-33",
+          "function": "StarburstPresto",
+          "note": "UsernamePassword authentication kind declared for the Starburst kind."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "34-36",
+          "function": "StarburstPresto",
+          "note": "Windows authentication (Kerberos) declared."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "37-43",
+          "function": "StarburstPresto",
+          "note": "OAuth authentication with StartLogin, FinishLogin, Refresh and Logout handlers."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "44-47",
+          "function": "StarburstPresto",
+          "note": "Key authentication (access token JWT) declared."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "67-72",
+          "function": "StarburstAad",
+          "note": "Aad authentication kind (Entra ID) declared for the StarburstAad kind."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "515-518",
+              "function": "OAuthStartLogin",
+              "note": "code_challenge_method S256 and code_challenge from a hashed code verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "553-558",
+              "function": "OAuthRefresh",
+              "note": "Refresh handler exchanges refresh_token via OAuthGetToken."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "218-222",
+              "function": "StarburstImpl",
+              "note": "Key token is not sent in an HTTP header, query or body; it is passed as the AccessToken ODBC connection string property."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "425",
+          "function": "StarburstImpl",
+          "note": "Data is reached through Odbc.DataSource. Web.Contents is used only for OAuth and config requests, not data."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "336-344",
+              "function": "StarburstImpl",
+              "note": "SqlCapabilities and SQLGetInfo overrides supplied to the ODBC options."
+            },
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "347-380",
+              "function": "StarburstImpl",
+              "note": "SQLColumns override supplied to the ODBC options."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "143-154",
+          "function": "StarburstType",
+          "note": "Host and Port parameters name the server connection target."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "162-167",
+          "function": "StarburstType",
+          "note": "Catalog option names a catalog inside the server."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "155-181",
+          "function": "StarburstType",
+          "note": "Optional options record with Role, Catalog, UseSystemProxy and ExtraConnectionString fields."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Role (system role name), Catalog (catalog to restrict navigation and enable native queries), UseSystemProxy (No or Yes), and ExtraConnectionString (whitelisted non-credential ODBC connection properties).",
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "155-181",
+              "function": "StarburstType",
+              "note": "Field list of the options record."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "425",
+          "function": "StarburstImpl",
+          "note": "Result tables come from the ODBC driver."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "696-701",
+          "function": "ToSchemaNavigation",
+          "note": "Odbc.Query returns metadata rows as tables."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "425",
+          "function": "StarburstImpl",
+          "note": "Column names and types come from the ODBC driver."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "347-380",
+          "function": "StarburstImpl",
+          "note": "SQLColumns only normalises driver TYPE_NAME strings, so it stays driver-provided rather than declared."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "425",
+          "function": "StarburstImpl",
+          "note": "Transport is odbc only, which excludes web-contents and odata-feed from applies_when."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "183-185",
+          "function": "StarburstType",
+          "note": "Documentation.Name on the function return type."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "146-154",
+          "function": "StarburstType",
+          "note": "Documentation.FieldCaption and FieldDescription on Host and Port."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "159-165",
+          "function": "StarburstType",
+          "note": "Documentation.SampleValues on options fields."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "171-171",
+          "function": "StarburstType",
+          "note": "Documentation.AllowedValues on UseSystemProxy."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "660-692",
+          "function": "ToCatalogNavigation",
+          "note": "Catalog navigator is built at runtime from the ODBC data source."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "694-713",
+          "function": "ToSchemaNavigation",
+          "note": "Schemas are listed at runtime from information_schema."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "668-668",
+          "function": "ToCatalogNavigation",
+          "note": "IsLeaf = false on catalog rows, so they open further navigation tables."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "706-708",
+          "function": "ToSchemaNavigation",
+          "note": "IsLeaf = false on schema rows."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "51-57",
+          "function": "StarburstPresto",
+          "note": "TestConnection returns the StarburstPresto.Contents entry function with Host and Port."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "native-query",
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "108-129",
+          "function": "StarburstPublish",
+          "note": "NativeQueryProperties with NavigationSteps and EnableFolding default."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "336-344",
+          "function": "StarburstImpl",
+          "note": "SqlCapabilities and SQLGetInfo handlers shape folding through Odbc.DataSource."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "383-393",
+          "function": "StarburstImpl",
+          "note": "AstVisitor LimitClause rewrites TOP to LIMIT and OFFSET."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Enabled by the Publish record NativeQueryProperties, which exposes the catalog NativeData step, with DefaultOptions EnableFolding = true. HideNativeQuery = true in Odbc.DataSource hides the native query from the navigator.",
+          "evidence": [
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "107-129",
+              "function": "StarburstPublish",
+              "note": "NativeQueryProperties NavigationSteps and DefaultOptions."
+            },
+            {
+              "file": "StarburstEnterprise.pq",
+              "lines": "413-413",
+              "function": "StarburstImpl",
+              "note": "HideNativeQuery = true."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "1074-1074",
+          "function": "ODBC",
+          "note": "Loads OdbcConstants.pqm through Extension.LoadFunction."
+        },
+        {
+          "file": "StarburstEnterprise.pq",
+          "lines": "132-135",
+          "function": "Starburst.Icons",
+          "note": "Icon16 and Icon32 loaded from PNG extension contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:23:06Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0163305,
+    "duration_ms": 41862
+  },
+  "source_sha256": "8cadf0de2613672f29d24d572487389b5fddd31dd11a3889cdb0fec2ba08ca10",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

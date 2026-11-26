@@ -1,0 +1,291 @@
+{
+  "connector": "PowerBIDatamarts",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "18-24",
+          "function": "PowerBIDatamarts",
+          "note": "Authentication record declares an Aad block with AuthorizationUri and Scope. No anonymous, key, or generic OAuth kind is declared."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "151-159",
+          "function": "Web.JsonContents",
+          "note": "Calls Web.Contents for the cluster, artifact, and datamart metadata APIs."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "258-266",
+          "function": "GetSQLTables",
+          "note": "Calls Sql.Database on the TDS endpoint to list the tables of a datamart."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "95-96",
+          "function": "PowerBI.Datamarts",
+          "note": "The only shared entry function takes one optional server text parameter, which is a server/endpoint name. Workspace and datamart IDs come from navigation, not from user parameters."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "129",
+          "function": "Datamarts.Type",
+          "note": "Declares the server parameter as optional text."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "156",
+          "function": "Web.JsonContents",
+          "note": "Parses JSON responses with Json.Document for the workspace/artifact list and cluster details."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "272",
+          "function": "GetTDSEndPoint",
+          "note": "Parses the datamart metadata JSON with Json.Document."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "259-263",
+          "function": "GetSQLTables",
+          "note": "Sql.Database driver supplies the table rows that the navigation tables expose."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "259-263",
+          "function": "GetSQLTables",
+          "note": "Sql.Database supplies the names and types of the table columns; the connector does not redefine them."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "198-202",
+          "function": "ConvertToTable",
+          "note": "Column names come from the JSON record fields via Table.ExpandRecordColumn, and no M types are assigned."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "155",
+          "function": "Web.JsonContents",
+          "note": "Web.Contents sets ManualStatusHandling = ApiErrorStatusCodes, so status is inspected manually."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "271",
+          "function": "GetTDSEndPoint",
+          "note": "Web.Contents is called without ManualStatusHandling, so Power Query handles status for this live metadata request."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "161-182",
+          "function": "Web.ErrorResponse",
+          "note": "Builds error Error.Record values from HTTP status codes and error bodies."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "122-137",
+          "function": "Datamarts.Type",
+          "note": "Function metadata sets Documentation.Name, Caption, Description, and LongDescription, and is applied to PowerBI.Datamarts at line 96."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "124-128",
+          "function": "Datamarts.Type",
+          "note": "The server parameter sets Documentation.FieldCaption, FieldDescription, and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "104-120",
+          "function": "GetNavforWorkspaces",
+          "note": "Workspaces and artifacts are listed at runtime from the datahub API."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "209-220",
+          "function": "CreateNavTable",
+          "note": "Workspace rows are built with IsLeaf false and their Data re-invokes a navigation table, which makes the tree hierarchical."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "228-238",
+          "function": "GetDataMarts",
+          "note": "Datamart rows with IsLeaf false open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "17",
+          "function": "PowerBIDatamarts",
+          "note": "TestConnection names the shared PowerBI.Datamarts function with the server from the path, so it evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "263",
+          "function": "GetSQLTables",
+          "note": "Data tables come from Sql.Database, which folds on its own. The connector writes no Table.View handlers."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "1-315",
+          "function": "PowerBIDatamarts",
+          "note": "All code is in one PowerBIDatamarts.pq file with no .pqm modules."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "124-134",
+          "function": "Datamarts.Type",
+          "note": "Extension.LoadString is used for localized captions and descriptions."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "289-292",
+          "function": "PowerBIDatamarts.Icons",
+          "note": "Icon16 and Icon32 are loaded through Extension.Contents from PNG files."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "277-287",
+          "function": "PowerBIDatamarts.Publish",
+          "note": "The Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "184-187",
+          "function": "PBICommonHeaders",
+          "note": "Diagnostics.Trace runs with no EnableTraceOutput-style switch."
+        },
+        {
+          "file": "PowerBIDatamarts.pq",
+          "lines": "139-146",
+          "function": "GetClusterUrl",
+          "note": "GetClusterUrl calls PBICommonHeaders on the live path, through apiurl."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:19:21Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.00832032,
+    "duration_ms": 159986
+  },
+  "source_sha256": "6c341e8f754d5f7cc58aefdd4ecfc37d33592582f60de10a154774cab5f56ecd",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

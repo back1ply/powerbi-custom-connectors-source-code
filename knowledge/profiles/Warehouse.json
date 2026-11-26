@@ -1,0 +1,378 @@
+{
+  "connector": "Warehouse",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "75-81",
+          "function": "Warehouse",
+          "note": "Authentication record declares only an Aad method (AuthorizationUri, Resource, Scope)."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "350-373",
+          "function": "GetWarehouse",
+          "note": "Credentials come from Utils[GetCredential](AadSqlResource) via Extension.InvokeWithCredentials."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "sql-database"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "350-357",
+          "function": "GetWarehouse",
+          "note": "Data tables are read through Sql.Database(tdsEndPoint, ...) with EnableCrossDatabaseFolding."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "292-314",
+          "function": "Http.Request",
+          "note": "Fabric REST calls go through Web.Contents, used for workspace, warehouse and endpoint lookups."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "228-237",
+          "function": "GetWarehouses",
+          "note": "Warehouse listing is fetched with Utils Web.JsonContents, which calls Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "196-197",
+          "function": "WarehouseImpl",
+          "note": "Shared entry takes optional options as record; no URL or resource id parameter."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "215-218",
+          "function": "Warehouse.Type",
+          "note": "WarehouseOptions type declares the optional options record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Declared field: HierarchicalNavigation (logical). GetWarehouse also reads CommandTimeout, CreateNavigationProperties, HierarchicalNavigation and EnableBulkInsert from the record via Record.SelectFields.",
+          "evidence": [
+            {
+              "file": "Warehouse.pq",
+              "lines": "215-217",
+              "function": "Warehouse.Type",
+              "note": "Declared options type has HierarchicalNavigation only."
+            },
+            {
+              "file": "Warehouse.pq",
+              "lines": "355",
+              "function": "GetWarehouse",
+              "note": "curatedOptions selects CommandTimeout, CreateNavigationProperties, HierarchicalNavigation, EnableBulkInsert."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "287-290",
+          "function": "JsonHandler",
+          "note": "Json.Document parses the Fabric REST response payloads returned to the navigator."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "237-238",
+          "function": "GetWarehouses",
+          "note": "jsonResponse[value] supplies the workspace/warehouse data rows."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "356",
+          "function": "GetWarehouse",
+          "note": "Table data comes from the Sql.Database driver (ODBC/TDS driver rows)."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "350-373",
+          "function": "GetWarehouse",
+          "note": "Column names and types come from Sql.Database; no M type is assigned to returned data columns."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "292-309",
+          "function": "Http.Request",
+          "note": "Every Web.Contents call sets ManualStatusHandling and inspects the status to pick a handler, including the token-refresh path on 401/403."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "349-398",
+          "function": "DefaultErrorHandler",
+          "note": "Builds Error.Record values from HTTP status codes and JSON error bodies."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "410-426",
+          "function": "RequestFailureHandler",
+          "note": "Builds Error.Record for failed requests."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "210-226",
+          "function": "Warehouse.Type",
+          "note": "Documentation.Name, Caption, Description and LongDescription on the shared function type."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "212-214",
+          "function": "Warehouse.Type",
+          "note": "Documentation.FieldCaption on the HierarchicalNavigation option."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Workspace.pqm",
+          "lines": "26-40",
+          "function": "GetWorkspacesNavTable",
+          "note": "Workspaces are listed at runtime from /v1/workspaces."
+        },
+        {
+          "file": "Workspace.pqm",
+          "lines": "72-82",
+          "function": "GetWorkspacesNavTable",
+          "note": "Workspace rows are folders with IsLeaf false."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "279-284",
+          "function": "WarehouseImpl / GetWarehouses",
+          "note": "Warehouse rows are non-leaf navigation rows that open schema and table tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "200-206",
+          "function": "WarehouseImpl",
+          "note": "testConnection runs a separate Sql.TestServerConnection probe rather than the entry query."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "286-294",
+          "function": "GetWarehouses",
+          "note": "Navigation table OnTestConnection calls Sql.TestServerConnection."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "395-409",
+          "function": "Sql.TestServerConnection",
+          "note": "Probe uses Sql.Databases(serverInstance) instead of the warehouse database."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "340-348",
+          "function": "FilterSystemSchemas",
+          "note": "Table.View with OnSelectRows and GetExpression handlers."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "299-306",
+          "function": "WrapContainer",
+          "note": "Table.View with an OnSelectRows handler that keeps folding."
+        },
+        {
+          "file": "Table.NavigationTableView.pqm",
+          "lines": "57-60",
+          "function": "Table.NavigationTableView",
+          "note": "Table.View with OnSelectRows folding handler for navigation tables."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "356",
+          "function": "GetWarehouse",
+          "note": "Sql.Database folds on its own with EnableCrossDatabaseFolding=true."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-rows",
+            "get-expression"
+          ],
+          "evidence": [
+            {
+              "file": "Warehouse.pq",
+              "lines": "299-306",
+              "function": "WrapContainer",
+              "note": "OnSelectRows handler."
+            },
+            {
+              "file": "Warehouse.pq",
+              "lines": "345-346",
+              "function": "FilterSystemSchemas",
+              "note": "OnSelectRows and GetExpression handlers."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "4-21",
+          "function": "Extension.LoadFunction",
+          "note": "Code is split into .pqm modules loaded with Extension.Contents."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "423-426",
+          "function": "Warehouse.Icons",
+          "note": "Icon assets are declared as Extension.Contents PNG files."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "380",
+          "function": "Sql.TestConnection",
+          "note": "Localized resource strings loaded with Extension.LoadString."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Workspace.pqm",
+          "lines": "50-59",
+          "function": "GetWorkspacesNavTable",
+          "note": "Diagnostics.Trace(TraceLevel.Information) runs unconditionally with no switch."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "381-385",
+          "function": "DefaultErrorHandler",
+          "note": "Diagnostics.Trace(TraceLevel.Warning) runs on error paths with no switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "table-view-mutations"
+      ],
+      "evidence": [
+        {
+          "file": "Warehouse.pq",
+          "lines": "307-326",
+          "function": "WrapContainer",
+          "note": "Table.View OnInsertRows handler writes through the interceptor; reachable only when the UseOutputInterceptorVersionedWrites flag is on (WrapDatabase path)."
+        },
+        {
+          "file": "Warehouse.pq",
+          "lines": "382-394",
+          "function": "WrapLeaf",
+          "note": "Table.View OnInsertRows and OnDeleteRows handlers mutate leaf tables."
+        },
+        {
+          "file": "WarehouseOutputInterceptor.pqm",
+          "lines": "532-536",
+          "function": "replacePhysicalTable",
+          "note": "Action functions (TableAction.InsertRows, ValueAction.NativeStatement) run inside these Table.View handlers. Single-answer question, so the Table.View mutation handlers are named as the mechanism; the Action functions are their implementation."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:26:30Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.040400099999999994,
+    "duration_ms": 76208,
+    "repair_attempts": 1
+  },
+  "source_sha256": "8124d4780db0b178d9b56a24c898e888d0dc1f7f14b2852a1ffe5f29247e16f9",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

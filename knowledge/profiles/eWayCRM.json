@@ -1,0 +1,403 @@
+{
+  "connector": "eWayCRM",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "421-432",
+          "function": "eWayCRM",
+          "note": "Data source kind record declares Authentication.OAuth with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "370-389",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL with the user's browser login window."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "391-395",
+          "function": "FinishLogin",
+          "note": "Exchanges the authorization code for tokens via TokenMethod."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "413-418",
+          "function": "Refresh",
+          "note": "Refreshes the token using the refresh_token grant."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "370-379",
+              "function": "StartLogin",
+              "note": "Generates a code verifier and sends code_challenge with code_challenge_method S256."
+            },
+            {
+              "file": "eWay_CRM.m",
+              "lines": "397-401",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier with the authorization_code token request."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "413-418",
+              "function": "Refresh",
+              "note": "Implements token refresh with grant_type refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "20-26",
+          "function": "eWayCRM.Data",
+          "note": "Data is read with Web.Contents against the eWay API endpoints."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "83-89",
+          "function": "UseQuery",
+          "note": "Query requests go through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "5-6",
+          "function": "eWayCRM.Contents",
+          "note": "Shared entry function takes an optional IncludeRelations logical flag, which is a parameter no other id fits."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "9",
+          "function": "eWayCRM.Contents2",
+          "note": "Shared entry function takes an optional options record."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "221-250",
+          "function": "eWayCRM_Type2",
+          "note": "Declares the options record type."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "259-263",
+          "function": "eWayCRM_Implementation2",
+          "note": "Reads options as a record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "options accepts IncludeRelations (logical, load relations between items), Query (text, eWay query JSON) and QueryAmount (logical, return only the item count).",
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "221-250",
+              "function": "eWayCRM_Type2",
+              "note": "Field definitions for IncludeRelations, Query and QueryAmount."
+            },
+            {
+              "file": "eWay_CRM.m",
+              "lines": "317",
+              "function": "eWayCRM_GetNavTable",
+              "note": "Reads options[Query] and options[QueryAmount]."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "142-143",
+          "function": "AddPagingToQuery",
+          "note": "Adds Take and Skip paging fields to the query."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "145-160",
+          "function": "GetItemsByItemGuids",
+          "note": "Fetches item batches by index times itemsPerPage (offset style)."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "94-95",
+              "function": "UseQuery",
+              "note": "UseQuery calls @UseQuery recursively with Skip + QueryPageSize and combines results with Table.Combine."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "UseQuery stops when the query has no Paging field and the response holds fewer rows than QueryPageSize (1000); otherwise it returns the page. eWayCRM.Data computes PageCount from the identifier count divided by itemsPerPage (2000) and stops after that many batches.",
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "92-97",
+              "function": "UseQuery",
+              "note": "Recursion continues only while the count equals QueryPageSize and no Paging field was supplied."
+            },
+            {
+              "file": "eWay_CRM.m",
+              "lines": "43-46",
+              "function": "eWayCRM.Data",
+              "note": "PageCount and PageIndices determine the number of batches."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "83-89",
+          "function": "UseQuery",
+          "note": "Query response parsed with Json.Document."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "151-158",
+          "function": "GetItemsByItemGuids",
+          "note": "Data batch parsed with Json.Document and returned as rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "542-1386",
+          "function": "SchemaTable",
+          "note": "Hardcoded per-entity schema with M types."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "438-489",
+          "function": "SchemaTransformTable",
+          "note": "Applies the declared schema and types to returned tables."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "97",
+          "function": "UseQuery",
+          "note": "Query results use Table.FromRecords, so column names come from the data with no declared types."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "452",
+          "function": "SchemaTransformTable",
+          "note": "Table.TransformColumnTypes converts column values to the declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "eWay_CRM.m",
+              "lines": "474-489",
+              "function": "SchemaTransformTable",
+              "note": "Strict enforcement adds the schema columns and replaces the table type even when the input has no rows."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "20-26",
+          "function": "eWayCRM.Data",
+          "note": "Live data Web.Contents call with no ManualStatusHandling."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "151-157",
+          "function": "GetItemsByItemGuids",
+          "note": "Live data Web.Contents call with no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "parameter-captions",
+        "parameter-descriptions",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "215-218",
+          "function": "eWayCRM_Type",
+          "note": "Documentation.FieldCaption and FieldDescription on IncludeRelations."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "223-246",
+          "function": "eWayCRM_Type2",
+          "note": "FieldCaption and FieldDescription on options fields, plus Documentation.AllowedValues for IncludeRelations and QueryAmount."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "277-309",
+          "function": "eWayCRM_GetNavTable",
+          "note": "Navigation rows are a hardcoded list of entities, all leaves."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "326",
+          "function": "eWayCRM_GetNavTable",
+          "note": "Table.ToNavigationTable builds the navigation table from that list."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "422",
+          "function": "eWayCRM",
+          "note": "TestConnection returns the name \"eWayCRM.Contents\", so the test evaluates the normal entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "eWay_CRM.m",
+          "lines": "1-1430",
+          "function": "eWayCRM.Contents",
+          "note": "Connector code is in one .m file with no pqm modules."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "428-431",
+          "function": "eWayCRM",
+          "note": "Extension.LoadString for localized labels."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "1421",
+          "function": "eWayCRM.Publish",
+          "note": "Publish ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "eWay_CRM.m",
+          "lines": "1427-1430",
+          "function": "eWayCRM.Icons",
+          "note": "Icon16 and Icon32 load PNG files via Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:28:08Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0136585,
+    "duration_ms": 42615
+  },
+  "source_sha256": "79fe7f5b6bbd8953adca9ce6aa9fba9884048e07ab6c7e28babf875f962a588a",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

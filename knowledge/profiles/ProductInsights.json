@@ -1,0 +1,289 @@
+{
+  "connector": "ProductInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "167-177",
+          "function": "ProductInsights",
+          "note": "Authentication record uses the Aad field (AuthorizationUri, Resource, DefaultClientApplication). The StartLogin, FinishLogin, Refresh and TokenMethod functions are not referenced by any Authentication field, so they are not wired and no oauth id applies."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "215-215",
+          "function": "ProductInsights.MakeRequest",
+          "note": "Web.Contents reaches the GraphQL and metric endpoints."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "229-229",
+          "function": "ProductInsights.MakeGetRequest",
+          "note": "Web.Contents for document and metadata GET requests."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "152-153",
+          "function": "ProductInsights.Contents",
+          "note": "The navigation entry function ProductInsights.Contents takes no user parameters (type function () as table)."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "155-156",
+          "function": "ProductInsights.QueryMetric",
+          "note": "Single parameter urlAndQuery is a text blob carrying a JSON object with a url and a query. No other id fits it, so it is other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "223-223",
+          "function": "ProductInsights.MakeRequest",
+          "note": "Json.Document parses GraphQL response data returned to the navigator and tables."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "236-236",
+          "function": "ProductInsights.MakeGetRequest",
+          "note": "Json.Document parses document metadata responses."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "246-256",
+          "function": "ProductInsights.QueryMetricData",
+          "note": "Metric series JSON returned to the user is parsed and turned into the result table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "262-262",
+          "function": "ProductInsights.QueryMetricData",
+          "note": "Declared M types: Time as DateTime.Type and each series column as Double.Type."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "264-264",
+          "function": "ProductInsights.QueryMetricData",
+          "note": "Table.TransformColumnTypes applies the declared types to the returned metric table."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "277-277",
+          "function": "ProductInsights.QueryMetricData",
+          "note": "Table.TransformColumnTypes sets the value column to Number.Type on returned data."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "199-199",
+          "function": "ProductInsights.NavTable",
+          "note": "Table.FromRecords builds tables with column names taken from the GraphQL data and no declared types."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "257-257",
+          "function": "ProductInsights.QueryMetricData",
+          "note": "Series dimension titles come from the data itself."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "ProductInsightsConnector.m",
+              "lines": "258-264",
+              "function": "ProductInsights.QueryMetricData",
+              "note": "The Time column name and type are always declared, but with an empty series list the timestamp list, the List.Generate wrapper and Table.FromColumns combine in a way that is hard to trace, so whether the declared columns survive an empty result is not clear from the code. The empty-list error paths at lines 357, 376 and 416 are errors, not empty results."
+            }
+          ],
+          "sub": {}
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "213-225",
+          "function": "ProductInsights.MakeRequest",
+          "note": "Live GraphQL data Web.Contents call with no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "227-238",
+          "function": "ProductInsights.MakeGetRequest",
+          "note": "Live document metadata Web.Contents call with no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "196-211",
+          "function": "ProductInsights.NavTable",
+          "note": "Navigator items (teams) are listed at runtime from the GraphQL groups query."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "204-206",
+          "function": "ProductInsights.NavTable",
+          "note": "Team rows are Folder items with IsLeaf false."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "288-288",
+          "function": "NestedProjectsTable",
+          "note": "Project rows are folders with IsLeaf false, which open further navigation tables for dashboards, pages and charts."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "166-166",
+          "function": "ProductInsights",
+          "note": "TestConnection returns the list containing the shared entry function name \"ProductInsights.Contents\", so the test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "1-2",
+          "function": "",
+          "note": "Single .m file with no .pqm module loading."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "178-178",
+          "function": "ProductInsights",
+          "note": "Label loaded with Extension.LoadString."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "186-186",
+          "function": "ProductInsights.UI",
+          "note": "ButtonText loaded with Extension.LoadString."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "192-193",
+          "function": "ProductInsights.Icons",
+          "note": "Icons loaded with Extension.Contents PNG files."
+        },
+        {
+          "file": "ProductInsightsConnector.m",
+          "lines": "185-185",
+          "function": "ProductInsights.UI",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:20:09Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0173166,
+    "duration_ms": 54681,
+    "repair_attempts": 1
+  },
+  "source_sha256": "e5462c11981bc28d8a94e0827c90c77b930ba500f2d257f9522f229635eded9e",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,294 @@
+{
+  "connectors_scored": 17,
+  "missing": [
+    "LakeHouse"
+  ],
+  "overall": {
+    "precision": 0.97,
+    "recall": 0.998,
+    "exact": 0.958,
+    "n": 286
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "transport/odbc-capabilities": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "user-inputs": {
+      "precision": 0.865,
+      "recall": 1.0,
+      "exact": 0.765,
+      "n": 17
+    },
+    "paging": {
+      "precision": 0.95,
+      "recall": 1.0,
+      "exact": 0.941,
+      "n": 17
+    },
+    "data-formats": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "schema": {
+      "precision": 0.846,
+      "recall": 1.0,
+      "exact": 0.765,
+      "n": 17
+    },
+    "http-errors": {
+      "precision": 0.97,
+      "recall": 1.0,
+      "exact": 0.941,
+      "n": 17
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "navigation": {
+      "precision": 0.96,
+      "recall": 1.0,
+      "exact": 0.941,
+      "n": 17
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "folding": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "packaging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "diagnostics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "writes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 17
+    },
+    "auth/oauth-pkce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 7
+    },
+    "auth/oauth-refresh": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 7
+    },
+    "paging/paging-generator": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 6
+    },
+    "auth/key-placement": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 3
+    },
+    "folding/table-view-handlers": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 1
+    },
+    "schema/empty-result-columns": {
+      "precision": 0.667,
+      "recall": 0.667,
+      "exact": 0.667,
+      "n": 3
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "AptixInsights",
+      "question": "schema",
+      "expected": [
+        "driver-provided"
+      ],
+      "got": [
+        "driver-provided",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "Asana",
+      "question": "schema",
+      "expected": [
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "Attio",
+      "question": "paging",
+      "expected": [
+        "cursor-token",
+        "offset-limit"
+      ],
+      "got": [
+        "cursor-token",
+        "none",
+        "offset-limit"
+      ]
+    },
+    {
+      "connector": "AzureResourceGraph",
+      "question": "http-errors",
+      "expected": [
+        "manual-status-handling",
+        "retry-with-delay"
+      ],
+      "got": [
+        "manual-status-handling",
+        "retry-with-delay",
+        "structured-error-records"
+      ]
+    },
+    {
+      "connector": "ClickHouse",
+      "question": "user-inputs",
+      "expected": [
+        "database-or-resource-id",
+        "options-record",
+        "url-or-server"
+      ],
+      "got": [
+        "database-or-resource-id",
+        "options-record",
+        "other",
+        "url-or-server"
+      ]
+    },
+    {
+      "connector": "ClickHouseArrowFlight",
+      "question": "user-inputs",
+      "expected": [
+        "database-or-resource-id",
+        "options-record",
+        "url-or-server"
+      ],
+      "got": [
+        "database-or-resource-id",
+        "options-record",
+        "other",
+        "url-or-server"
+      ]
+    },
+    {
+      "connector": "ClickHouseArrowFlight",
+      "question": "schema/empty-result-columns",
+      "expected": [
+        "yes"
+      ],
+      "got": [
+        "unclear"
+      ]
+    },
+    {
+      "connector": "CogniteDataSource",
+      "question": "user-inputs",
+      "expected": [
+        "database-or-resource-id"
+      ],
+      "got": [
+        "database-or-resource-id",
+        "date-range",
+        "other"
+      ]
+    },
+    {
+      "connector": "CogniteDataSource",
+      "question": "navigation",
+      "expected": [
+        "fixed-list"
+      ],
+      "got": [
+        "discovered-from-api",
+        "fixed-list"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "schema",
+      "expected": [
+        "driver-provided"
+      ],
+      "got": [
+        "declared-schema",
+        "driver-provided"
+      ]
+    },
+    {
+      "connector": "GoogleSheets",
+      "question": "schema",
+      "expected": [
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "MarkLogicODBC",
+      "question": "user-inputs",
+      "expected": [
+        "url-or-server"
+      ],
+      "got": [
+        "other",
+        "url-or-server"
+      ]
+    }
+  ]
+}

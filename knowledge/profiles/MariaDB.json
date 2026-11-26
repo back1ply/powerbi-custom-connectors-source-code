@@ -1,0 +1,357 @@
+{
+  "connector": "MariaDB",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "305-307",
+          "function": "MariaDB",
+          "note": "Authentication record declares only UsernamePassword = []."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "108-113",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Reads Extension.CurrentCredential() and requires AuthenticationKind = \"UsernamePassword\", otherwise errors."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "268-291",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Data access goes through Odbc.DataSource(ConnectionString, ...)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MariaDB.m",
+              "lines": "145-151",
+              "function": "MariaDBDatabaseImplOdbc",
+              "note": "SqlCapabilities override (SupportsTop, GroupByCapabilities, FractionalSecondsScale) on top of the defaults."
+            },
+            {
+              "file": "MariaDB.m",
+              "lines": "155-176",
+              "function": "MariaDBDatabaseImplOdbc",
+              "note": "SQLGetInfo override (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "28-33",
+          "function": "MariaDBDatabaseType",
+          "note": "The server parameter (\"MariaDB Data Source\", host:port;database) names the connection target."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "34-38",
+          "function": "MariaDBDatabaseType",
+          "note": "Optional database parameter names a database inside the server."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "39-42",
+          "function": "MariaDBDatabaseType",
+          "note": "Optional CreateNavigationProperties logical is a parameter passed straight through to Odbc.DataSource as an option, so it counts as other."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "280",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "CreateNavigationProperties is forwarded into the Odbc.DataSource options record."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "268-294",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Returned rows come from the ODBC driver as tables."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "301",
+          "function": "MariaDB",
+          "note": "Json.Document in TestConnection parses the data source path, not returned data, so it is not counted as json."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "268-291",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Column names and types come from the ODBC driver through Odbc.DataSource."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "232-266",
+          "function": "SQLColumns",
+          "note": "Rewrites driver metadata type names (ENUM to VARCHAR, REAL to DOUBLE). That is driver metadata rewriting, not a declared schema, so it does not count as declared-schema."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "268-291",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Transport is odbc, which is outside applies_when (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "44-65",
+          "function": "MariaDBDatabaseType",
+          "note": "Function-level Documentation.Name and LongDescription."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "29-33",
+          "function": "MariaDBDatabaseType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on the server parameter."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "34-38",
+          "function": "MariaDBDatabaseType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on the database parameter."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "39-42",
+          "function": "MariaDBDatabaseType",
+          "note": "Documentation.FieldCaption, FieldDescription and AllowedValues { true, false } on CreateNavigationProperties."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "268-270",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Odbc.DataSource builds the navigator from the driver catalog at runtime, with HierarchicalNavigation = true."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "292",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "Without a database, the result is a navigation table of databases; with one, OdbcDataSource{[Name = database]}[Data] opens a further navigation level."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "46-49",
+          "function": "MariaDBDatabaseType",
+          "note": "Documentation says the result is a table of databases, and tables/views when a database is given."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "299-304",
+          "function": "MariaDB",
+          "note": "TestConnection returns { \"MariaDB.Contents\", server }, naming the shared entry function itself with no probe or flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "145-151",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "SqlCapabilities override shapes folding through Odbc.DataSource."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "155-176",
+          "function": "MariaDBDatabaseImplOdbc",
+          "note": "SQLGetInfo override shapes folding through Odbc.DataSource."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "433",
+          "function": "Config_LimitClauseKind",
+          "note": "LimitClauseKind.LimitOffset configures the LIMIT/OFFSET folding shape."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "371",
+          "function": "ODBC",
+          "note": "Extension.LoadFunction(\"OdbcConstants.pqm\") loads a separate .pqm module."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "581",
+          "function": "Diagnostics",
+          "note": "Extension.LoadFunction(\"Diagnostics.pqm\") loads a separate .pqm module."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "30-31",
+          "function": "MariaDBDatabaseType",
+          "note": "Extension.LoadString for captions and descriptions (localized strings)."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "318",
+          "function": "MariaDB.Publish",
+          "note": "ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "324-327",
+          "function": "MariaDB.Icons",
+          "note": "Icons come from Extension.Contents PNG files."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "315",
+          "function": "MariaDB.Publish",
+          "note": "Beta = false, so no beta flag."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "MariaDB.m",
+          "lines": "9",
+          "function": "EnableTraceOutput",
+          "note": "Master switch, set to false."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "582",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue is the no-op passthrough unless EnableTraceOutput is true."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "213",
+          "function": "SQLGetTypeInfo",
+          "note": "Per-row trace is reached only when EnableTraceOutput = true."
+        },
+        {
+          "file": "MariaDB.m",
+          "lines": "255-257",
+          "function": "SQLColumns",
+          "note": "Trace calls sit behind EnableTraceOutput <> true."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace, reached only through the gated wrapper in MariaDB.m."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:14:40Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.014832100000000003,
+    "duration_ms": 30895
+  },
+  "source_sha256": "d280314bc728ed0f093b6770f6139c83eb4fee079c1197dde2171d9885b3942c",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

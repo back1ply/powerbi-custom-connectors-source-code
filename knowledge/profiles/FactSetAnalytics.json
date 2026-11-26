@@ -1,0 +1,452 @@
+{
+  "connector": "FactSetAnalytics",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "59-69",
+          "function": "FactSetAnalytics",
+          "note": "Authentication record declares an OAuth kind (util-oauth.pqm) and a UsernamePassword kind (API Key)."
+        },
+        {
+          "file": "util-oauth.pqm",
+          "lines": "56-80",
+          "function": "StartLogin",
+          "note": "Authorization request carries a PKCE code_challenge built from a code verifier."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "util-oauth.pqm",
+              "lines": "24-30",
+              "function": "CreateCodeChallenge",
+              "note": "SHA-256 hash of the code verifier, base64url-encoded as the challenge."
+            },
+            {
+              "file": "util-oauth.pqm",
+              "lines": "69-70",
+              "function": "StartLogin",
+              "note": "code_challenge_method = S256 is sent in the authorize URL."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "util-oauth.pqm",
+              "lines": "81-84",
+              "function": "TokenMethod",
+              "note": "Grant-type branch that sends refresh_token for the refresh_token grant."
+            },
+            {
+              "file": "util-oauth.pqm",
+              "lines": "120",
+              "function": "Refresh",
+              "note": "Refresh = (resourceUrl, refreshToken) => TokenMethod(refreshToken, \"refresh_token\"), exported in the OAuth record at line 125."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "29-31",
+          "function": "datastore",
+          "note": "Data requests use Web.Contents."
+        },
+        {
+          "file": "request-request.pqm",
+          "lines": "46",
+          "function": "Request",
+          "note": "Shared request path calls Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "72-73",
+          "function": "FactSetAnalytics.ConnectionCheck",
+          "note": "Shared function takes no parameters."
+        },
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "119-120",
+          "function": "FactSetAnalytics.Contents",
+          "note": "Shared entry function takes no parameters."
+        },
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "167-168",
+          "function": "FactSetAnalytics.Functions",
+          "note": "Shared entry function takes no parameters."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "request-request.pqm",
+          "lines": "63-65",
+          "function": "Request",
+          "note": "Pagination runs only when a caller sets Pagination = true. No caller in the supplied code sets it, so GetAllPagesCursor is unreachable."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "request-request.pqm",
+          "lines": "106-112",
+          "function": "TransformToJson",
+          "note": "Response payloads are parsed with Json.Document."
+        },
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "34",
+          "function": "datastore",
+          "note": "Datastore data is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "api-factset-irn.pqm",
+          "lines": "722-747",
+          "function": "FactSetIRN.V1.GetNoteImpl",
+          "note": "Table.TransformColumnTypes assigns M types to named columns of the returned note table."
+        },
+        {
+          "file": "api-factset-irn.pqm",
+          "lines": "820",
+          "function": "FactSetIRN.V1.GetMeetingImpl",
+          "note": "Table.TransformColumnTypes assigns type text to id."
+        },
+        {
+          "file": "api-factset-irn.pqm",
+          "lines": "914-928",
+          "function": "FactSetIRN.V1.GetCustomSymbolImpl",
+          "note": "Table.TransformColumnTypes assigns M types to named custom-symbol columns."
+        },
+        {
+          "file": "api-factset-irn.pqm",
+          "lines": "173",
+          "function": "FactSetIRN.V1.GetNotesTable",
+          "note": "Table.TransformColumns with type text converts relatedSymbols values."
+        },
+        {
+          "file": "api-factset-analytics-util.pqm",
+          "lines": "66-81",
+          "function": "HandleCalculationV3PBIResult",
+          "note": "Column names come from the response via Table.FromRecords and are renamed from the definition, with no declared M types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "api-factset-irn.pqm",
+              "lines": "722-747",
+              "function": "FactSetIRN.V1.GetNoteImpl",
+              "note": "The declared M types are applied only to a single-record note lookup, which cannot return an empty table, so the empty-result case is not exercised here."
+            },
+            {
+              "file": "api-factset-irn.pqm",
+              "lines": "142-207",
+              "function": "FactSetIRN.V1.GetNotesTable",
+              "note": "Table.FromList on an empty response followed by ExpandRecordColumn is not traced to a declared-column outcome, so whether empty results keep the columns is unverified."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "api-factset-irn.pqm",
+          "lines": "144-146",
+          "function": "FactSetIRN.V1.GetNotesTable",
+          "note": "Live data Web.Contents call with no ManualStatusHandling, so status is left to Power Query."
+        },
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "31",
+          "function": "datastore",
+          "note": "Web.Contents sets ManualStatusHandling = {200,400,404,500} and inspects the status itself."
+        },
+        {
+          "file": "util-oauth.pqm",
+          "lines": "36",
+          "function": "GetOAuthConfigurations",
+          "note": "Manual status handling on a metadata call."
+        },
+        {
+          "file": "request-request.pqm",
+          "lines": "124-160",
+          "function": "HandleHttpErrors",
+          "note": "Builds Error.Record values from status codes and the response body."
+        },
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "36-39",
+          "function": "datastore",
+          "note": "Error.Record values are raised for 400, 404, 500 and other statuses."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "api-factset-analytics.pqm",
+          "lines": "183-186",
+          "function": "GetSwivelAsOfDateType",
+          "note": "Documentation.Name and LongDescription on the function type."
+        },
+        {
+          "file": "api-factset-analytics.pqm",
+          "lines": "155-157",
+          "function": "GetSwivelAsOfDateType",
+          "note": "Documentation.FieldCaption on parameters."
+        },
+        {
+          "file": "api-formula.pqm",
+          "lines": "101-104",
+          "function": "GetTimeSeriesByIds",
+          "note": "Documentation.Description on a parameter."
+        },
+        {
+          "file": "api-factset-analytics.pqm",
+          "lines": "157-158",
+          "function": "GetSwivelAsOfDateType",
+          "note": "Documentation.SampleValues on parameters."
+        },
+        {
+          "file": "api-formula.pqm",
+          "lines": "120-122",
+          "function": "GetTimeSeriesByIds",
+          "note": "Documentation.AllowedValues on symbolType."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "119-128",
+          "function": "FactSetAnalytics.Contents",
+          "note": "Navigation rows come from a hardcoded list of APIs and Utilities."
+        },
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "172-174",
+          "function": "FactSetAnalytics.Functions",
+          "note": "Hardcoded folder rows with IsLeaf = false open further navigation tables."
+        },
+        {
+          "file": "api-factset-analytics.pqm",
+          "lines": "1-1",
+          "function": "FactSetAnalyticsNavTable",
+          "note": "Nested folders such as Datastore, PA and Lookups have IsLeaf = false."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "59-60",
+          "function": "FactSetAnalytics",
+          "note": "TestConnection names FactSetAnalytics.ConnectionCheck, a probe rather than the entry function."
+        },
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "72-83",
+          "function": "FactSetAnalytics.ConnectionCheck",
+          "note": "Probe performs a single Web.Contents call to a frequencies endpoint."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "119-128",
+          "function": "FactSetAnalytics.Contents",
+          "note": "No Table.View, OData.Feed, Value.NativeQuery or Odbc/Sql source appears in the reachable code."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "26-30",
+          "function": "ApiLoader",
+          "note": "Code is split into .pqm files loaded with Extension.LoadFunction."
+        },
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "94-107",
+          "function": "FactSetAnalytics.Icons",
+          "note": "Icons loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "1-437",
+          "function": "FactSetAnalytics",
+          "note": "No Diagnostics.Trace call appears in the supplied code."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "70-89",
+          "function": "GetCalculationStatus",
+          "note": "Polls the job status Location URL while Queued or Executing."
+        },
+        {
+          "file": "api-factset-analytics-request.pqm",
+          "lines": "142-158",
+          "function": "GetCalculationV3Status",
+          "note": "Polls with Value.WaitFor on 202 responses."
+        },
+        {
+          "file": "request-long-running.pqm",
+          "lines": "36-88",
+          "function": "LongRunningStatus",
+          "note": "Polls the Location URL for async formula requests."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Interval: 5 seconds (#duration(0,0,0,5) in GetCalculationStatus and GetCalculationV3Status; Settings[LongRunningDefaultDelay] = 5 in LongRunningStatus). Timeout: none. The Value.WaitFor loop has no count limit. Terminal states: 200 or Completed with Success returns the result; Failed or Cancelled raises Error.Record; other statuses raise errors.",
+          "evidence": [
+            {
+              "file": "api-factset-analytics-request.pqm",
+              "lines": "74-87",
+              "function": "GetCalculationStatus",
+              "note": "Queued and Executing keep polling; Completed returns the result; other statuses raise an error."
+            },
+            {
+              "file": "api-factset-analytics-request.pqm",
+              "lines": "142-158",
+              "function": "GetCalculationV3Status",
+              "note": "200 returns the result, 202 keeps polling, and error statuses raise Error.Record."
+            },
+            {
+              "file": "request-long-running.pqm",
+              "lines": "77-85",
+              "function": "LongRunningStatus",
+              "note": "Delay is longRunningDelay seconds after the first iteration."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetAnalytics.pq",
+          "lines": "1-437",
+          "function": "FactSetAnalytics",
+          "note": "No Action functions or insert, update or delete calls appear. Only read requests are made."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:14:26Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.3965025,
+    "duration_ms": 96797,
+    "repair_attempts": 1
+  },
+  "source_sha256": "11fb129805055c562f0578148931e533f0628272daa50a3d5deefafd28212e62",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,413 @@
+{
+  "connector": "OneStream",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "833-843",
+          "function": "OneStream",
+          "note": "Authentication record sets OAuth with StartLogin, FinishLogin and Refresh. No anonymous, key or other auth kind."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "853-873",
+              "function": "StartLogin",
+              "note": "Generates a code verifier and S256 code_challenge (lines 856-862), so the authorization request uses PKCE."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "912-912",
+              "function": "Refresh",
+              "note": "Refresh handler posts a refresh_token grant through TokenMethod (lines 885-910)."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "785-827",
+          "function": "GetWebContentData",
+          "note": "All data and metadata calls go through Web.Contents (line 791)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "885-910",
+          "function": "TokenMethod",
+          "note": "Token exchange also uses Web.Contents (line 895)."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "46-56",
+          "function": "OneStreamNavigationType",
+          "note": "OneStreamURL is the environment URL the user supplies (url-or-server)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "80-84",
+          "function": "GetCubesType",
+          "note": "Selected Application is a user-supplied resource name inside the environment (database-or-resource-id)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "171-185",
+          "function": "GetCubeDataType",
+          "note": "Application and Cube are user-supplied resource names (database-or-resource-id)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "365-374",
+          "function": "GetDataAdapterDataType",
+          "note": "Workspace Name and Adapter Name are resource names (database-or-resource-id)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "176-200",
+          "function": "GetCubeDataType",
+          "note": "SessionInfoBody, Scenario, Time and the other cube filter parameters are passed as their own text parameters, covered by other."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "375-384",
+          "function": "GetDataAdapterDataType",
+          "note": "ResultDataTableName and CustomSubstVarsAsCommaSeparatedPairs are passed straight through as query text, covered by other."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "725-744",
+          "function": "LoopAndGetData",
+          "note": "Pages are built with List.Numbers and Table.AddColumn, requesting each page by a page number (page query param, line 765). This is not offset-limit, Table.GenerateByPage, List.Generate or recursion."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "701-715",
+          "function": "GetRefinedData",
+          "note": "Decides between single-page and multi-page retrieval based on TotalPages."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "725-744",
+              "function": "LoopAndGetData",
+              "note": "Page list generated with List.Numbers(1, count, 1) and mapped with Table.AddColumn; no Table.GenerateByPage, List.Generate or self-recursive paging."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops once the pages reported by the first response's TotalPages field have been requested: LoopAndGetData fetches pages 1 through TotalPages (List.Numbers(1, count, 1)).",
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "701-744",
+              "function": "GetRefinedData / LoopAndGetData",
+              "note": "TotalPages from the first result sets the count; the loop ends after that many pages."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "808-809",
+          "function": "GetWebContentData",
+          "note": "Response body parsed with Json.Document; this carries the returned data (DataResult rows)."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "331-351",
+          "function": "GetCubeDataImpl",
+          "note": "Table.TransformColumnTypes assigns hardcoded M types (text, datetime, number) to named columns of the returned table (declared-schema and explicit-type-conversion)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "747-754",
+          "function": "ExpandCells",
+          "note": "Column names come from the data (Record.ToTable(Column1)[Name]) with no declared M types, used for metadata and data adapter tables."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "317-351",
+              "function": "GetCubeDataImpl",
+              "note": "Declared columns are applied by ExpandRecordColumn and TransformColumnTypes, but the code does not show how an empty list behaves at runtime."
+            },
+            {
+              "file": "OneStream.pq",
+              "lines": "747-754",
+              "function": "ExpandCells",
+              "note": "table{0} fails on an empty table, so the metadata and adapter tables cannot be confirmed to keep columns when empty."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "785-795",
+          "function": "GetWebContentData",
+          "note": "Every data request sets ManualStatusHandling = {500,400}, so no call relies on default Power Query status handling."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "894-902",
+          "function": "TokenMethod",
+          "note": "Token calls also set ManualStatusHandling = {401,403} and inspect the response."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "808-825",
+          "function": "GetWebContentData",
+          "note": "HTTP 500 and 400 responses are turned into Error.Record values (Invalid Request, Error)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "878-910",
+          "function": "FinishLogin / TokenMethod",
+          "note": "Token error responses are raised as Error.Record values."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "96-99",
+          "function": "GetCubesType",
+          "note": "Documentation.Name and Documentation.LongDescription on shared functions (function-documentation)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "47-51",
+          "function": "OneStreamNavigationType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on parameters (parameter-captions, parameter-descriptions, sample-values)."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "56-76",
+          "function": "OneStreamNavigationImpl",
+          "note": "Authorized applications are listed at runtime from the logon response, so the navigator is discovered from the API."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "409-424",
+          "function": "CreateFirstLevelNav",
+          "note": "Cube folder rows use IsLeaf false (line 416), so navigation rows open further navigation tables (hierarchical)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "427-438",
+          "function": "CreateSecondLevelNav",
+          "note": "Hardcoded function rows inside the discovered tree do not count as fixed-list."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "833-835",
+          "function": "OneStream",
+          "note": "TestConnection = (dataSourcePath) => {\"OneStream.Navigation\", dataSourcePath} names the shared entry function, OneStream.Navigation."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "1-932",
+          "function": "(whole file)",
+          "note": "The connector is a single .pq file with no pqm modules or LoadFunction helpers (single-file)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "842-842",
+          "function": "OneStream",
+          "note": "Label uses Extension.LoadString(\"DataSourceLabel\") (localized-strings)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "923-923",
+          "function": "OneStream.Publish",
+          "note": "ButtonText uses Extension.LoadString (localized-strings)."
+        },
+        {
+          "file": "OneStream.pq",
+          "lines": "929-932",
+          "function": "OneStream.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents (icons)."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "OneStream.pq",
+          "lines": "757-782",
+          "function": "WaitAndCallDataRequest / InvokeNextDataRequest",
+          "note": "Analytics data-request job (RequestId) is polled with GetDataRequest until it completes. This is a data job, not an export."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "The first poll waits FirstRetryInterval = 5 s (line 768), and later polls wait RetryInterval = 10 s (line 779). The timeout is RequestTimeOut = 1800 s, converted to a retry count of 1800/10 (line 759). The terminal state is Status = \"Completed\" (lines 769 and 706). On exhaustion, it raises an Error.Record with code Timeout (line 779).",
+          "evidence": [
+            {
+              "file": "OneStream.pq",
+              "lines": "757-782",
+              "function": "WaitAndCallDataRequest / InvokeNextDataRequest",
+              "note": "Polling interval, timeout and completion checks."
+            },
+            {
+              "file": "OneStream.pq",
+              "lines": "31-33",
+              "function": "RequestTimeOut / FirstRetryInterval / RetryInterval",
+              "note": "Constants: timeout 1800, first retry 5, retry interval 10."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:16:38Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.012650999999999999,
+    "duration_ms": 49801
+  },
+  "source_sha256": "2fc21b3407c60333654d395c714c4569262f2d635332ffaf850842e6e65e01e8",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

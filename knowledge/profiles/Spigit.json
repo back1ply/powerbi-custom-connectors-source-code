@@ -1,0 +1,281 @@
+{
+  "connector": "Spigit",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "13-13",
+          "function": "Spigit",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "84-96",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL and returns the login record."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "98-102",
+          "function": "FinishLogin",
+          "note": "Exchanges the authorization code for a token via TokenMethod."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Spigit.m",
+              "lines": "88-88",
+              "function": "StartLogin",
+              "note": "Authorize URL carries client_id, nonce, redirect_uri, response_type and state but no code_challenge or code_challenge_method."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Spigit.m",
+              "lines": "104-118",
+              "function": "Refresh",
+              "note": "Posts grant_type=refresh_token to the token endpoint and returns the parsed token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "130-134",
+          "function": "Spigit.ContentsInternal",
+          "note": "Data is read with OData.Feed on the user-supplied URL."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "130-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "The only parameter is ODataURL, the service URL."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "138-141",
+          "function": "Spigit.ContentsType",
+          "note": "ODataURL parameter is typed as text with a field caption."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "132-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "No connector-side paging; OData.Feed follows the service's own next links. GetNextLink (lines 120-128) is never called from a reachable function."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "132-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "OData.Feed returns OData JSON payloads as the data. The Json.Document call at line 62 parses only the OAuth token response and is not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "132-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "Column names and types come from the OData service metadata via OData.Feed."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "142-142",
+          "function": "Spigit.ContentsType",
+          "note": "The function type declares only the parameter and a table return, with no column schema."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "132-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "The live OData.Feed data request sets no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "54-61",
+          "function": "TokenMethod",
+          "note": "Token Web.Contents call also sets no ManualStatusHandling."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "144-150",
+          "function": "Spigit.ContentsType",
+          "note": "Function-level Documentation.Description, DisplayName, Caption, Name and LongDescription are set."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "139-139",
+          "function": "Spigit.ContentsType",
+          "note": "Documentation.FieldCaption is set on the ODataURL parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "130-134",
+          "function": "Spigit.ContentsInternal",
+          "note": "Returns OData.Feed on the user-supplied URL, so the navigator is built from the service document."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "12-12",
+          "function": "Spigit",
+          "note": "TestConnection returns {\"Spigit.Contents\", resource}, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "132-132",
+          "function": "Spigit.ContentsInternal",
+          "note": "OData.Feed folds filters, selects and paging into the request. The connector writes no Table.View handlers."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Spigit.m",
+          "lines": "1-150",
+          "function": "Spigit.m",
+          "note": "All code is in one file with no .pqm modules."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "14-14",
+          "function": "Spigit",
+          "note": "Extension.LoadString(\"ResourceLabel\") loads a localized string."
+        },
+        {
+          "file": "Spigit.m",
+          "lines": "25-38",
+          "function": "Spigit.Icons",
+          "note": "Icon16 and Icon32 are built from Extension.Contents PNG resources."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:22:40Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004720500000000001,
+    "duration_ms": 18130
+  },
+  "source_sha256": "16d0128c8b0d6f6b720816f39fab539e4b4e449260c5d63bd30e374e29f1c299",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,326 @@
+{
+  "connector": "ZohoCreator",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "132-139",
+          "function": "ZohoCreator",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin, Refresh and Logout handlers"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "143-163",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL with client_id, redirect_uri, scope and state"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "184-210",
+          "function": "TokenMethod",
+          "note": "Exchanges the authorization code or refresh token at the token endpoint using client_id and client_secret"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "ZohoCreator.m",
+              "lines": "146-155",
+              "function": "StartLogin",
+              "note": "Authorize URL has no code_challenge or code_challenge_method, and the token request sends no code_verifier"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "ZohoCreator.m",
+              "lines": "180",
+              "function": "Refresh",
+              "note": "Refresh handler calls TokenMethod with the refresh_token grant"
+            },
+            {
+              "file": "ZohoCreator.m",
+              "lines": "184-194",
+              "function": "TokenMethod",
+              "note": "grant_type is a parameter, so the refresh_token grant is sent to the token URI"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "61-62",
+          "function": "GetRecords",
+          "note": "Data export request made with Web.Contents"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "196",
+          "function": "TokenMethod",
+          "note": "Token request made with Web.Contents"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "region-or-environment",
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "88-93",
+          "function": "DialogInput",
+          "note": "creatordomain is a Zoho domain picked by name from AllowedValues (zoho.com, zoho.eu and others)"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "30-36",
+          "function": "GetDomain",
+          "note": "Maps the chosen domain to its host, which makes it a region selection"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "94-107",
+          "function": "DialogInput",
+          "note": "scopname (workspace), applinkname and reportlinkname identify the Creator workspace, application and report"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "79-81",
+          "function": "ConnectorEntryPoint",
+          "note": "Passes all four user parameters to fetchData"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "48-54",
+          "function": "GetRec",
+          "note": "Requests a single page: List.Transform over {0 .. 0}"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "61-62",
+          "function": "GetRecords",
+          "note": "One export request with no next-page or offset parameter"
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "66",
+          "function": "GetRecords",
+          "note": "Returned report data is parsed with Csv.Document"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "61",
+          "function": "GetRecords",
+          "note": "Export URL requests filetype=csv"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "75",
+          "function": "fetchData",
+          "note": "Table.PromoteHeaders takes column names from the first CSV row"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "66",
+          "function": "GetRecords",
+          "note": "Csv.Document yields Column1..N style columns with no declared M types"
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "62",
+          "function": "GetRecords",
+          "note": "Data request sets ManualStatusHandling = {401,400,500}"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "202",
+          "function": "TokenMethod",
+          "note": "Token request sets ManualStatusHandling = {400}"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "205-206",
+          "function": "TokenMethod",
+          "note": "Error body from the token response is raised as Error.Record"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "109-111",
+          "function": "ZohoCreator.Contents",
+          "note": "Documentation.Name and Documentation.LongDescription on the shared function"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "88-107",
+          "function": "DialogInput",
+          "note": "Documentation.FieldCaption and FieldDescription on each parameter"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "92",
+          "function": "DialogInput",
+          "note": "Documentation.AllowedValues for creatordomain"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "97",
+          "function": "DialogInput",
+          "note": "Documentation.SampleValues on the workspace parameter"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "79-86",
+          "function": "ZohoCreator.Contents",
+          "note": "Returns one data table from ConnectorEntryPoint with no navigation table"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "122-130",
+          "function": "TestConnection",
+          "note": "Returns {\"ZohoCreator.Contents\", creatordomain, scopname, ...} so the gateway test evaluates the normal entry function with no probe"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "ZohoCreator.m",
+          "lines": "1-234",
+          "function": "section ZohoCreator",
+          "note": "All connector code is in one .m file"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "225",
+          "function": "ZohoCreator.Publish",
+          "note": "ButtonText loaded with Extension.LoadString"
+        },
+        {
+          "file": "ZohoCreator.m",
+          "lines": "231-234",
+          "function": "ZohoCreator.Icons",
+          "note": "Icon16 and Icon32 loaded with Extension.Contents PNG files"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:27:23Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0075441,
+    "duration_ms": 36726
+  },
+  "source_sha256": "7227caac16a270267c559a0c9099ff0596cbc5558a092a36bcb5fc340128a864",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

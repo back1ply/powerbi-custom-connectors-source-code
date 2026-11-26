@@ -1,0 +1,365 @@
+{
+  "connector": "TeamDesk.PowerBI.DataConnector",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "13-16",
+          "function": "TeamDesk",
+          "note": "Data source kind declares UsernamePassword authentication with a username label. No code reads the username; the engine supplies the credential."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "17-20",
+          "function": "TeamDesk",
+          "note": "Data source kind declares Key authentication."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "266-267",
+          "function": "GetApiJson",
+          "note": "Key credentials are sent as an Authorization Bearer header."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "TeamDesk.m",
+              "lines": "267",
+              "function": "GetApiJson",
+              "note": "Authorization = \"Bearer \" & credentials[Key] is the only place the key is sent."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "268",
+          "function": "GetApiJson",
+          "note": "All API calls go through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "40-41",
+          "function": "TeamDesk.Database",
+          "note": "url parameter is the TeamDesk database URL (url-or-server)."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "62-66",
+          "function": "TeamDesk.SelectView",
+          "note": "table parameter names a table inside the database (database-or-resource-id)."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "67-71",
+          "function": "TeamDesk.SelectView",
+          "note": "view parameter names a view inside the database (database-or-resource-id)."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "72-75",
+          "function": "TeamDesk.SelectView",
+          "note": "filter is query text passed as its own parameter (other)."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "111-124",
+          "function": "TeamDesk.Select",
+          "note": "columns, filter and orderBy are passed as their own parameters (other)."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "222-229",
+          "function": "SelectGetPage",
+          "note": "Pages are requested with top (page size) and skip (offset) query parameters."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "TeamDesk.m",
+              "lines": "213-219",
+              "function": "GenerateByPage",
+              "note": "The connector's own GenerateByPage helper calls List.Generate directly. It is not the Table.GenerateByPage library function."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when a page returns fewer rows than pageSize (stop = List.Count(rawData) < pageSize). GenerateByPage then returns null for the next step when stop is true.",
+          "evidence": [
+            {
+              "file": "TeamDesk.m",
+              "lines": "226",
+              "function": "SelectGetPage",
+              "note": "stop = List.Count(rawData) < pageSize."
+            },
+            {
+              "file": "TeamDesk.m",
+              "lines": "217-218",
+              "function": "GenerateByPage",
+              "note": "The List.Generate condition and next-page step end on stop."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "269",
+          "function": "GetApiJson",
+          "note": "Response data is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "312-336",
+          "function": "CreateColumnTransforms",
+          "note": "Maps source column types (Numeric, Checkbox, Timestamp, Date, Time, Duration, etc.) to M types."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "339-349",
+          "function": "CreateResult",
+          "note": "Builds a typed table with Table.TransformColumnTypes and Table.FromRecords using the declared type."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "328-335",
+          "function": "CreateColumnTransforms",
+          "note": "Per-value conversions with Date.FromText, DateTimeZone.FromText, Time.FromText and #duration on data cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "TeamDesk.m",
+              "lines": "339-349",
+              "function": "CreateResult",
+              "note": "typedTableType from the empty typed table is passed to Table.FromRecords, so an empty result keeps the declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "268",
+          "function": "GetApiJson",
+          "note": "ManualStatusHandling = {400,403,404,405,409,500,503} is set on the data request."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "272-283",
+          "function": "GetApiJson",
+          "note": "The status is inspected and error records are built from the JSON error body."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "274-281",
+          "function": "GetApiJson",
+          "note": "Extension.CredentialError and Error.Record are raised from the error body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "40-53",
+          "function": "TeamDesk.Database",
+          "note": "Documentation.Name, LongDescription and Examples on the shared function."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "41-44",
+          "function": "TeamDesk.Database",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "143",
+          "function": "DatabaseImpl",
+          "note": "Tables are listed at runtime from the describe API."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "146-163",
+          "function": "DatabaseImpl",
+          "note": "Navigation table is built from discovered tables and views."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "155",
+          "function": "DatabaseImpl",
+          "note": "View rows are leaves (IsLeaf true)."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "157-160",
+          "function": "DatabaseImpl",
+          "note": "Table rows have IsLeaf false and their Data re-invokes a function that returns a navigation table of views."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "12",
+          "function": "TeamDesk",
+          "note": "TestConnection calls the shared TeamDesk.Database entry function with the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "TeamDesk.m",
+          "lines": "1-367",
+          "function": "TeamDesk",
+          "note": "All code is in one .m file."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "11",
+          "function": "TeamDesk",
+          "note": "Extension.LoadString is used for localized strings."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "34-37",
+          "function": "TeamDesk.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "TeamDesk.m",
+          "lines": "26",
+          "function": "TeamDesk.Publish",
+          "note": "Beta = true in the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:24:37Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0166588,
+    "duration_ms": 60335,
+    "repair_attempts": 1
+  },
+  "source_sha256": "d4e3426bce9b52fadb799712b8b6d8ed9e1df71ae4a2f7f310c911f87a4a50a0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

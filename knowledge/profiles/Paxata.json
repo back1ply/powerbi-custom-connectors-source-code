@@ -1,0 +1,346 @@
+{
+  "connector": "Paxata",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "8-13",
+          "function": "Paxata",
+          "note": "Data source kind declares a Key authentication kind with the label 'REST Access Token'."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "215-221",
+          "function": "PaxataRequest",
+          "note": "Reads the key from Extension.CurrentCredential()[Key] and sends it as a Basic Authorization header on every request."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Paxata.m",
+              "lines": "218-221",
+              "function": "PaxataRequest",
+              "note": "The key is placed in the Authorization request header. It is not placed in the query string or body."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "222",
+          "function": "PaxataRequest",
+          "note": "All live requests use Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "25-26",
+          "function": "Paxata.Contents",
+          "note": "The shared function takes a single url parameter, which names the Paxata server."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "29-34",
+          "function": "PaxataType",
+          "note": "The url parameter is typed as a Uri with documentation for the base URL."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "39-53",
+          "function": "PaxataDatasets",
+          "note": "Each list endpoint is requested once and parsed in full. No page, offset, cursor, or next-link loop exists."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "47-48",
+          "function": "PaxataDatasets",
+          "note": "The answer-set catalogue is returned as JSON via Json.Document."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "161-162",
+          "function": "PaxataTags",
+          "note": "Tags are returned as JSON via Json.Document."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "181-182",
+          "function": "PaxataDataSet",
+          "note": "Answer-set data is returned as CSV and parsed with Csv.Document. This is the returned data, not an auth response."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "190-199",
+          "function": "CreateSchemaTable",
+          "note": "Maps the source type names String, Number, and DateTime to the M types Text.Type, Number.Type, and DateTime.Type, which is the connector's own mapping."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "276-327",
+          "function": "SchemaTransformTable",
+          "note": "Strict mode applies Value.ReplaceType with a table type built from the schema to the returned data."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "183-188",
+          "function": "PaxataDataSet",
+          "note": "Column names come from Table.PromoteHeaders on the CSV. When the schema is null, the columns get no declared types."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "190-191",
+          "function": "CreateSchemaTable",
+          "note": "Returns null when the answer set has no schema, so those tables keep inferred columns."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Paxata.m",
+              "lines": "312-325",
+              "function": "SchemaTransformTable",
+              "note": "Under Strict mode, the schema column list is selected with MissingField.Ignore and the table type is reapplied. The declared columns should remain on a zero-row result that still has a header. Confidence is moderate because a CSV with no header at all is not covered."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "222",
+          "function": "PaxataRequest",
+          "note": "Every live request sets ManualStatusHandling={404}, so no request leaves status handling to Power Query."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "226-228",
+          "function": "PaxataRequest",
+          "note": "The response status is inspected with Value.Metadata. A 404 becomes an error 'No Matching library data', which is an Error.Record built from the HTTP response."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "29-37",
+          "function": "PaxataType",
+          "note": "The function type carries Documentation.Name 'From Paxata' on its return type."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "31",
+          "function": "PaxataType",
+          "note": "Documentation.FieldCaption is set for the url parameter."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "32",
+          "function": "PaxataType",
+          "note": "Documentation.FieldDescription is set for the url parameter."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "33",
+          "function": "PaxataType",
+          "note": "Documentation.SampleValues is set for the url parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "55-85",
+          "function": "ListDataSets",
+          "note": "The navigator items are listed at runtime from the Paxata library and are grouped into folders."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "129-142",
+          "function": "CreateNavTable",
+          "note": "Root folder rows have IsLeaf false and hold nested navigation tables, so the tree is hierarchical."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "145-155",
+          "function": "CreateSubNavTable",
+          "note": "Leaf rows are answer-set tables. These are built from the discovered data."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "7",
+          "function": "Paxata",
+          "note": "TestConnection names the shared Paxata.Contents entry function with the url, so the test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "1-327",
+          "function": "Paxata",
+          "note": "No Table.View, OnTake, OnSelectRows, native query, or ODBC folding code appears in the connector."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "1-327",
+          "function": "Paxata",
+          "note": "All connector code is in one Paxata.m file, with no .pqm modules."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "19",
+          "function": "Paxata.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "Paxata.m",
+          "lines": "232-235",
+          "function": "Paxata.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "1-327",
+          "function": "Paxata",
+          "note": "No live code calls Diagnostics.Trace."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "39-53",
+          "function": "PaxataDatasets",
+          "note": "Requests are synchronous single fetches. No job creation or polling occurs."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Paxata.m",
+          "lines": "176-188",
+          "function": "PaxataDataSet",
+          "note": "The request body is a format parameter for an export read. No action function changes data in the source."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:19:05Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0181705,
+    "duration_ms": 169821,
+    "repair_attempts": 1
+  },
+  "source_sha256": "05dd714378b3fb292f1a90d9f85af9d6269a921ffad1a13e9ee35cdef53fed94",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

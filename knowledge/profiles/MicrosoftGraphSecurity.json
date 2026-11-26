@@ -1,0 +1,331 @@
+{
+  "connector": "MicrosoftGraphSecurity",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "126-137",
+          "function": "MicrosoftGraphSecurity",
+          "note": "Data source kind declares Authentication = [OAuth = [StartLogin, FinishLogin, Refresh, Logout]]."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "188-206",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL with client_id, redirect_uri, state, scope, response_type=code. No code_challenge or code_verifier parameter appears, so PKCE is not used."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "231-231",
+          "function": "Refresh",
+          "note": "Implements token refresh by calling TokenMethod with grant_type refresh_token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "MicrosoftGraphSecurity.m",
+              "lines": "190-198",
+              "function": "StartLogin",
+              "note": "Authorization request has no code_challenge or code_challenge_method fields."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "MicrosoftGraphSecurity.m",
+              "lines": "231-231",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod(\"refresh_token\", \"refresh_token\", refresh_token)."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "106-114",
+          "function": "GraphSecurity.Feed",
+          "note": "Data requests go through OData.Feed(urlWithFilter, null, options)."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "52-52",
+          "function": "MicrosoftGraphSecurityImpl",
+          "note": "Parameters are (version as text, optional options as record). The options record is the optional record parameter."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "78-85",
+          "function": "MicrosoftGraphSecurityType",
+          "note": "version is an API version selector (beta or v1.0) that fits no other id. It is not a URL, resource, or region, so it is other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts a Test field (logical). When options[Test] is true, the entry function returns only a minimal alerts request with $select = id and $top = 5 instead of the navigation table.",
+          "evidence": [
+            {
+              "file": "MicrosoftGraphSecurity.m",
+              "lines": "53-55",
+              "function": "MicrosoftGraphSecurityImpl",
+              "note": "options[Test]? = true triggers the minimal credential-check request."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "106-114",
+          "function": "GraphSecurity.Feed",
+          "note": "The connector writes no paging code. Next-page following is left to OData.Feed, so the connector itself has no paging construct."
+        }
+      ],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "106-114",
+          "function": "GraphSecurity.Feed",
+          "note": "OData.Feed returns JSON payloads from the Graph security API. The Json.Document call at line 256 parses only the OAuth token response and does not count."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "20-24",
+          "function": "ODataOptions",
+          "note": "MoreColumns = true keeps columns returned beyond the declared metadata, so column names come from the data."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "111-112",
+          "function": "GraphSecurity.Feed",
+          "note": "Column names and types come from OData.Feed and the service $metadata. The connector assigns no M column types."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "112-112",
+          "function": "GraphSecurity.Feed",
+          "note": "The live data request via OData.Feed sets no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "248-255",
+          "function": "TokenMethod",
+          "note": "The token Web.Contents call sets ManualStatusHandling = {400} and inspects the status itself."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "256-260",
+          "function": "TokenMethod",
+          "note": "An error body from the token response is raised as Error.Record(body[error], body[error_description], body)."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "78-103",
+          "function": "MicrosoftGraphSecurityType",
+          "note": "Function-level meta has Documentation.Name, Description, LongDescription and Examples."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "79-84",
+          "function": "MicrosoftGraphSecurityType",
+          "note": "The version parameter has Documentation.FieldCaption, FieldDescription and AllowedValues = SupportedVersions."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "32-47",
+          "function": "NavTable",
+          "note": "The navigation rows are a hardcoded table of entities for v1.0 and beta."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "67-73",
+          "function": "MicrosoftGraphSecurityImpl",
+          "note": "A hardcoded custom-function row is added and the table is converted with Table.ToNavigationTable. All rows are leaves, with no folders or indirection."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "127-127",
+          "function": "MicrosoftGraphSecurity",
+          "note": "TestConnection calls the entry function MicrosoftGraphSecurity.Contents with [Test = true]."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "53-55",
+          "function": "MicrosoftGraphSecurityImpl",
+          "note": "The Test flag branches to a minimal alerts probe instead of the full navigation table."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "106-114",
+          "function": "GraphSecurity.Feed",
+          "note": "Returned tables come from OData.Feed, which folds filters, selects and paging into the request. The connector writes no Table.View handlers."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "277-284",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ToNavigationTable is loaded from Table.ToNavigationTable.pqm via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "136-136",
+          "function": "MicrosoftGraphSecurity",
+          "note": "Label uses Extension.LoadString, so the connector has localized strings."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "151-154",
+          "function": "MicrosoftGraphSecurity.Icons",
+          "note": "Icon16 and Icon32 are loaded from PNG files via Extension.Contents."
+        },
+        {
+          "file": "MicrosoftGraphSecurity.m",
+          "lines": "142-143",
+          "function": "MicrosoftGraphSecurity.UI",
+          "note": "The Publish record sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:15:17Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0074886,
+    "duration_ms": 33934
+  },
+  "source_sha256": "d6978b9a34b6b0e5443a5f1b92a346d1a614e67a47e0f8d07ce4c375b66877b5",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

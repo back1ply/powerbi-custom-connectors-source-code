@@ -1,0 +1,417 @@
+{
+  "connector": "Samsara",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.pq",
+          "lines": "67-72",
+          "function": "Samsara",
+          "note": "Authentication record declares a single Key credential kind."
+        },
+        {
+          "file": "Samsara.Credentials.pqm",
+          "lines": "4-7",
+          "function": "Samsara.Credentials",
+          "note": "Reads the access token from Extension.CurrentCredential()[Key]."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Samsara.Client.Headers.pqm",
+              "lines": "9-13",
+              "function": "Samsara.Client.Headers",
+              "note": "The key is sent as an Authorization: Bearer header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.Retry.pqm",
+          "lines": "45-51",
+          "function": "Samsara.Client.Retry",
+          "note": "All requests go through Context[Web.Contents](Url, Options)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "region-or-environment",
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "4-11",
+          "function": "Samsara.Input.Parameters",
+          "note": "Region is a choice of US, EU or CA, which selects the base URL in Samsara.Configuration.Defaults."
+        },
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "16-30",
+          "function": "Samsara.Input.Parameters",
+          "note": "RangeStart and RangeEnd are date parameters."
+        },
+        {
+          "file": "Samsara.pq",
+          "lines": "19-20",
+          "function": "Samsara.Records",
+          "note": "The shared entry function takes Region, RangeStart and optional RangeEnd."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.Depage.pqm",
+          "lines": "63-64",
+          "function": "Samsara.Client.Depage",
+          "note": "The next page is requested with the pagination endCursor token."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "Samsara.Client.Depage.pqm",
+              "lines": "68-70",
+              "function": "Samsara.Client.Depage",
+              "note": "Depage calls itself with NextContext and combines the results with Data.AsList & @Depage(...)."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when pagination.hasNextPage is false or pagination is missing, or when the requested page limit PageLimit is reached. The next cursor is pagination.endCursor.",
+          "evidence": [
+            {
+              "file": "Samsara.Client.Depage.pqm",
+              "lines": "63-70",
+              "function": "Samsara.Client.Depage",
+              "note": "MoreDataAvailable and PageNo < PageLimit gate the recursive call."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.Depage.pqm",
+          "lines": "50-52",
+          "function": "Samsara.Client.Depage",
+          "note": "Response bodies are parsed with Json.Document and the data is returned as table rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.ListTables.pqm",
+          "lines": "7-33",
+          "function": "Samsara.Client.ListTables",
+          "note": "Maps source column type names (int, float, datetime, bool) to M types and cast functions."
+        },
+        {
+          "file": "Samsara.Table.Fetch.pqm",
+          "lines": "26-26",
+          "function": "Samsara.Table.Fetch",
+          "note": "Table.Type is built from the declared column types."
+        },
+        {
+          "file": "Samsara.Table.Fetch.pqm",
+          "lines": "76-81",
+          "function": "Samsara.Table.Fetch",
+          "note": "Each data cell is converted with the column's Cast function."
+        },
+        {
+          "file": "Samsara.Table.Fetch.pqm",
+          "lines": "94-94",
+          "function": "Samsara.Table.Fetch",
+          "note": "Table.FromRows is applied with the declared Table.Type."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Samsara.Table.Fetch.pqm",
+              "lines": "94-94",
+              "function": "Samsara.Table.Fetch",
+              "note": "An empty row list is still built with Table.Type, so the declared columns are kept."
+            },
+            {
+              "file": "Samsara.Table.Fetch.pqm",
+              "lines": "142-142",
+              "function": "Samsara.Table.Fetch",
+              "note": "The custom reports preview returns Table.FromRows({}, Table.Type)."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay",
+        "rate-limit-aware"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.Retry.pqm",
+          "lines": "45-45",
+          "function": "Samsara.Client.Retry",
+          "note": "ManualStatusHandling = {400..599} is set on the Web.Contents call."
+        },
+        {
+          "file": "Samsara.Client.ErrorTranslation.pqm",
+          "lines": "32-115",
+          "function": "Samsara.Client.ErrorTranslation",
+          "note": "Error.Record values are built for each failure status."
+        },
+        {
+          "file": "Samsara.Client.Retry.pqm",
+          "lines": "48-49",
+          "function": "Samsara.Client.Retry",
+          "note": "Function.InvokeAfter delays the request before a retry."
+        },
+        {
+          "file": "Samsara.Client.Retry.pqm",
+          "lines": "66-71",
+          "function": "Samsara.Client.Retry",
+          "note": "429 responses are retried, and the Retry-After header sets the delay."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Retries HTTP 5xx and 429. The default is 3 retries (Samsara.Configuration.Defaults Retry.Max.Count = 3). An X-Max-Retries response header can raise the limit, clamped to 100. The delay is exponential backoff of 1 * 2^retry seconds with roughly +/-1 s jitter, or the Retry-After value if that is larger.",
+          "evidence": [
+            {
+              "file": "Samsara.Client.Retry.pqm",
+              "lines": "55-71",
+              "function": "Samsara.Client.Retry",
+              "note": "Parses X-Max-Retries, clamps it to 100, and computes the delay from Retry-After and backoff."
+            },
+            {
+              "file": "Samsara.Client.Retry.pqm",
+              "lines": "7-14",
+              "function": "Backoff",
+              "note": "Exponential backoff with jitter."
+            },
+            {
+              "file": "Samsara.Configuration.Defaults.pqm",
+              "lines": "29-32",
+              "function": "Samsara.Configuration.Defaults",
+              "note": "Default retry count and backoff settings."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "31-34",
+          "function": "Samsara.Input.Parameters",
+          "note": "Result.NavTable carries Documentation.Name and Documentation.LongDescription."
+        },
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "4-15",
+          "function": "Samsara.Input.Parameters",
+          "note": "Region has FieldCaption, FieldDescription, AllowedValues and SampleValues."
+        },
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "16-30",
+          "function": "Samsara.Input.Parameters",
+          "note": "RangeStart and RangeEnd have captions, descriptions and sample values."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Table.Navigate.pqm",
+          "lines": "18-34",
+          "function": "Samsara.Table.Navigate",
+          "note": "Navigation rows are built from the tables listed at runtime."
+        },
+        {
+          "file": "Samsara.Client.ListTables.pqm",
+          "lines": "51-57",
+          "function": "Samsara.Client.ListTables",
+          "note": "Tables are listed from the /tables endpoint."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.pq",
+          "lines": "59-66",
+          "function": "Samsara",
+          "note": "TestConnection returns { \"Samsara.Records\", Region, RangeStart, RangeEnd }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Table.Fetch.pqm",
+          "lines": "128-143",
+          "function": "Samsara.Table.Fetch",
+          "note": "OnTake handler in Table.View."
+        },
+        {
+          "file": "Samsara.Table.Fetch.pqm",
+          "lines": "145-152",
+          "function": "Samsara.Table.Fetch",
+          "note": "Table.View is built with GetType, GetRows and OnTake handlers."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take"
+          ],
+          "evidence": [
+            {
+              "file": "Samsara.Table.Fetch.pqm",
+              "lines": "128-143",
+              "function": "Samsara.Table.Fetch",
+              "note": "Only OnTake is implemented, and it loads a single page for preview."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.pq",
+          "lines": "9-15",
+          "function": "Samsara.Credentials",
+          "note": "Code is split into .pqm files loaded with Extension.LoadFunction."
+        },
+        {
+          "file": "Samsara.Input.Parameters.pqm",
+          "lines": "5-5",
+          "function": "Samsara.Input.Parameters",
+          "note": "UI strings come from Extension.LoadString."
+        },
+        {
+          "file": "Samsara.pq",
+          "lines": "77-87",
+          "function": "Samsara.Publish",
+          "note": "SourceImage and SourceTypeImage use Samsara.Icons."
+        },
+        {
+          "file": "Samsara.Icons.pqm",
+          "lines": "3-16",
+          "function": "Samsara.Icons",
+          "note": "Icons are loaded with Extension.Contents(\"64.jpg\")."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Samsara.Client.ErrorTranslation.pqm",
+          "lines": "117-123",
+          "function": "Samsara.Client.ErrorTranslation",
+          "note": "Diagnostics.Trace(TraceLevel.Critical, ...) runs on every failed HTTP response, with no switch."
+        },
+        {
+          "file": "Samsara.Metrics.ReportError.pqm",
+          "lines": "17-21",
+          "function": "Samsara.Metrics.ReportError",
+          "note": "Diagnostics.Trace(TraceLevel.Error, ...) runs on every reported error, with no switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:21:20Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.013237599999999999,
+    "duration_ms": 37142
+  },
+  "source_sha256": "db17ef22cc76f212a28c501faee3167abc553fca77699763b6cf5c41c6c83946",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

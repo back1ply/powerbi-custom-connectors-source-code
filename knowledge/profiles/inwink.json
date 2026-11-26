@@ -1,0 +1,405 @@
+{
+  "connector": "inwink",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "auth.startlogin.pqm",
+          "lines": "24-53",
+          "function": "authSettings",
+          "note": "OAuth record with StartLogin, FinishLogin and Refresh, plus a 'connect to inwink' label"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "30-30",
+          "function": "inwink",
+          "note": "Data source kind Authentication = AuthSetup(authSettings), which loads the OAuth record"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "auth.startlogin.pqm",
+              "lines": "27-33",
+              "function": "StartLogin",
+              "note": "Authorize URL carries client_id, scope, state, response_type and redirect_uri only, with no code_challenge or code_verifier"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "auth.startlogin.pqm",
+              "lines": "47-51",
+              "function": "Refresh",
+              "note": "Refresh(resourceUrl, refresh_token) calls TokenMethod with grant_type refresh_token"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "420-423",
+          "function": "GetDataPage",
+          "note": "Json.Document(Web.Contents(url, ...)) posts the paged query body"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "333-335",
+          "function": "GetEntitySchema",
+          "note": "Web.Contents call for the worktemplate schema lookup"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "52-71",
+          "function": "InwinkScopeType",
+          "note": "customerId (organization) and scopeId (audience, event or community id) are the user-supplied resource identifiers"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "58-61",
+          "function": "InwinkScopeType",
+          "note": "scope is a text choice among Audience, Event and Community. It selects the scope type and is not a resource id, region or URL, so it falls under other"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "97-97",
+          "function": "GetScopeEntities",
+          "note": "Shared entry function signature takes customerId, scope and scopeId"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "408-416",
+          "function": "GetDataPage",
+          "note": "Requests a page index and page size in the body (page = [index, size])"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "428-428",
+          "function": "GetDataPage",
+          "note": "Next page number is pagenumber + 1 while full pages are returned"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "inwink.pq",
+              "lines": "364-372",
+              "function": "GetEntityData",
+              "note": "Pages are produced by Table.GenerateByPage"
+            },
+            {
+              "file": "inwink.pq",
+              "lines": "442-464",
+              "function": "Table.GenerateByPage",
+              "note": "Connector-defined helper that builds the pages"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when a page returns fewer records than the page size. NextPage metadata is then null, so GetEntityData's getNextPage returns null, and the List.Generate condition lastPage <> null ends the loop.",
+          "evidence": [
+            {
+              "file": "inwink.pq",
+              "lines": "428-428",
+              "function": "GetDataPage",
+              "note": "nextPageNumber is null unless the record count equals the page size"
+            },
+            {
+              "file": "inwink.pq",
+              "lines": "367-369",
+              "function": "GetEntityData",
+              "note": "A null NextPage makes the next page null"
+            },
+            {
+              "file": "inwink.pq",
+              "lines": "444-448",
+              "function": "Table.GenerateByPage",
+              "note": "Stops when the function returns null"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "420-423",
+          "function": "GetDataPage",
+          "note": "Returned entity data is parsed with Json.Document"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "333-335",
+          "function": "GetEntitySchema",
+          "note": "Worktemplate JSON parsed with Json.Document"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "383-405",
+          "function": "TransformSchemaFields",
+          "note": "Maps schema fields whose source type is Date to DateTime, the connector's own mapping from source type names to M types"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "376-377",
+          "function": "GetEntityData",
+          "note": "Column names come from the schema keys and the record field names of the data"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "392-392",
+          "function": "TransformSchemaFields",
+          "note": "DateTime.FromText converts each date cell of the returned data"
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "inwink.pq",
+              "lines": "427-427",
+              "function": "GetDataPage",
+              "note": "An empty page returns EmptyTable with only Column1 and Column2"
+            },
+            {
+              "file": "inwink.pq",
+              "lines": "440-440",
+              "function": "EmptyTable",
+              "note": "Hardcoded empty table with columns Column1 and Column2, not the declared fields"
+            },
+            {
+              "file": "inwink.pq",
+              "lines": "458-459",
+              "function": "Table.GenerateByPage",
+              "note": "An empty first page is returned as is, so declared columns are lost"
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "420-423",
+          "function": "GetDataPage",
+          "note": "Live data Web.Contents call with no ManualStatusHandling"
+        },
+        {
+          "file": "auth.startlogin.pqm",
+          "lines": "13-15",
+          "function": "TokenMethod",
+          "note": "Token Web.Contents call with no ManualStatusHandling, and its error check is commented out"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "68-71",
+          "function": "InwinkScopeType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "54-54",
+          "function": "InwinkScopeType",
+          "note": "Documentation.FieldCaption on customerId, and similar captions on scope and scopeId"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "55-55",
+          "function": "InwinkScopeType",
+          "note": "Documentation.FieldDescription on customerId, and similar descriptions on the other parameters"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "56-56",
+          "function": "InwinkScopeType",
+          "note": "Documentation.SampleValues on customerId and scopeId"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "61-61",
+          "function": "InwinkScopeType",
+          "note": "Documentation.AllowedValues for scope"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "303-327",
+          "function": "GetEntitiesNavTable",
+          "note": "Navigation rows come from Record.FieldNames of hardcoded scope config records, all with IsLeaf true"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "120-164",
+          "function": "EventEntitiesConfig",
+          "note": "Hardcoded entity list for the event navigator"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "22-29",
+          "function": "inwink",
+          "note": "TestConnection returns {\"inwink.ScopeContents\", customerId, scope, scopeId}, naming the shared entry function itself"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "inwink.pq",
+          "lines": "18-18",
+          "function": "AuthSetup",
+          "note": "Loads auth.startlogin.pqm through Extension.LoadFunction"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "433-438",
+          "function": "Extension.LoadFunction",
+          "note": "Evaluates the .pqm file contents"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "38-38",
+          "function": "inwink.Contents",
+          "note": "Extension.LoadString for ButtonTitle and ButtonHelp"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "45-46",
+          "function": "inwink.Icons",
+          "note": "Extension.Contents icon files"
+        },
+        {
+          "file": "inwink.pq",
+          "lines": "36-36",
+          "function": "inwink.Contents",
+          "note": "Beta = true"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:28:25Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0100214,
+    "duration_ms": 43960
+  },
+  "source_sha256": "0f826ad369321b8fb11db523fe1c9721851eb925398f8572f0012977c4a36f31",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

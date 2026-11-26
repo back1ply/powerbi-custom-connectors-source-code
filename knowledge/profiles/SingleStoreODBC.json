@@ -1,0 +1,357 @@
+{
+  "connector": "SingleStoreODBC",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "153-162",
+          "function": "GetODBCDataSource",
+          "note": "Credential is read via Extension.CurrentCredential(); UsernamePassword maps to UID/PWD and Windows maps to Trusted_Connection=Yes."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "454-457",
+          "function": "SingleStoreODBC",
+          "note": "Data source kind declares Authentication = [Windows = [], UsernamePassword = []]."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "308-331",
+          "function": "GetODBCDataSource",
+          "note": "Odbc.DataSource(...) is the only data access path, reached from every entry function."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "188-194",
+              "function": "GetODBCDataSource",
+              "note": "SqlCapabilities overrides (SupportsNumericLiterals, PrepareStatements, FractionalSecondsScale, Sql92Translation)."
+            },
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "198-202",
+              "function": "GetODBCDataSource",
+              "note": "SQLGetInfo overrides for SQL_SQL92_PREDICATES and SQL_AGGREGATE_FUNCTIONS."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "335-336",
+          "function": "SingleStoreConnectorImplMain",
+          "note": "ServerAddr (host[:port]) is the connection target; Database names the database."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "166-170",
+          "function": "GetODBCDataSource",
+          "note": "Optional options record is read for the UseSSL field."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "355",
+          "function": "SingleStoreConnectorImpl",
+          "note": "Optional UseSSL logical is passed as its own parameter, which fits no other id."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "375",
+          "function": "SingleStoreConnectorImplCustomSQL",
+          "note": "Optional Query text is passed as its own parameter, which fits no other id."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is read only for UseSSL. When the record has a UseSSL field that is not null, its value sets the SSL flag. Otherwise SSL falls back to the credential's EncryptConnection setting, defaulting to true.",
+          "evidence": [
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "166-170",
+              "function": "GetODBCDataSource",
+              "note": "Reads options[UseSSL] when Record.HasFields(options, \"UseSSL\") and the value is not null."
+            },
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "110-114",
+              "function": "SingleStoreConnectorMeta",
+              "note": "Declares UseSSL as the optional logical field of the connector's options."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "308-331",
+          "function": "GetODBCDataSource",
+          "note": "Results are tables returned by the ODBC driver through Odbc.DataSource; no JSON, CSV, or other parser is present."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "243-283",
+          "function": "SQLColumns",
+          "note": "The SQLColumns handler only rewrites driver metadata (TYPE_NAME, sizes) and keeps the source type via Value.ReplaceType; it assigns no M types to data columns."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "308-331",
+          "function": "GetODBCDataSource",
+          "note": "Transport is odbc only, so the web-contents and odata-feed applies_when does not match."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "79-97",
+          "function": "SingleStoreConnectorMetaMain",
+          "note": "Documentation.Name and LongDescription on the function, plus FieldCaption, FieldDescription and SampleValues on parameters."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "110-114",
+          "function": "SingleStoreConnectorMeta",
+          "note": "UseSSL has Documentation.AllowedValues = {true, false}."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "131-135",
+          "function": "SingleStoreConnectorMetaCustomSQL",
+          "note": "Query parameter has FieldCaption, SampleValues and FieldDescription."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "308-331",
+          "function": "GetODBCDataSource",
+          "note": "Odbc.DataSource with HierarchicalNavigation = true builds the navigator from the driver catalog at runtime (schema folders, then tables), and the function returns the chosen database's Data."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "446-452",
+          "function": "SingleStoreODBC",
+          "note": "TestConnection returns the shared SingleStoreODBC.Database entry function call, so the gateway evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities",
+        "native-query"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "188-202",
+          "function": "GetODBCDataSource",
+          "note": "Folding is shaped by SqlCapabilities and SQLGetInfo overrides."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "290-300",
+          "function": "GetODBCDataSource",
+          "note": "AstVisitor LimitClause rewrites LIMIT/OFFSET, which is an ODBC-side folding override."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "395",
+          "function": "SingleStoreConnectorImplCustomSQL",
+          "note": "Value.NativeQuery(DataSource, Query, null, [EnableFolding = true]) runs the native query."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Native query support is enabled by calling Value.NativeQuery with EnableFolding = true in SingleStoreConnectorImplCustomSQL, exposed through the shared SingleStoreODBC.Query function. The Publish record also sets NativeQueryProperties DefaultOptions EnableFolding = true.",
+          "evidence": [
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "395",
+              "function": "SingleStoreConnectorImplCustomSQL",
+              "note": "Value.NativeQuery call with EnableFolding = true."
+            },
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "408-409",
+              "function": "SingleStoreODBC.Query",
+              "note": "Shared function that exposes the custom SQL path."
+            },
+            {
+              "file": "SingleStoreODBC.m",
+              "lines": "476-480",
+              "function": "SingleStoreODBC.Publish",
+              "note": "NativeQueryProperties DefaultOptions set EnableFolding = true."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "562-567",
+          "function": "Extension.LoadFunction",
+          "note": "Loads Diagnostics.pqm and OdbcConstants.pqm via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "570-575",
+          "function": "Diagnostics",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded through LoadFunction."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "16",
+          "function": "Config_DriverName",
+          "note": "Extension.LoadString is used for localized strings, for example DriverName and the labels in the meta records."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "483-486",
+          "function": "SingleStoreODBC.Icons",
+          "note": "Icon16 and Icon32 are loaded from PNG files via Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "9",
+          "function": "EnableTraceOutput",
+          "note": "Trace switch defaults to false."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "571",
+          "function": "Diagnostics.LogValue",
+          "note": "LogValue is a no-op unless EnableTraceOutput is true."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "219-225",
+          "function": "GetODBCDataSource",
+          "note": "SQLGetTypeInfo's Diagnostics.LogValue calls run only when EnableTraceOutput = true."
+        },
+        {
+          "file": "SingleStoreODBC.m",
+          "lines": "272-278",
+          "function": "GetODBCDataSource",
+          "note": "SQLColumns's Diagnostics.LogValue calls sit behind if (EnableTraceOutput <> true) then Transform else."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:22:20Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0288403,
+    "duration_ms": 54414,
+    "repair_attempts": 1
+  },
+  "source_sha256": "98babe36dcc86f82d4c9a15128bdf55628181b96c352fcd6c46a065368db65c7",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
