@@ -1,0 +1,412 @@
+{
+  "connector": "EntersoftBusinessSuite",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "288-304",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL and returns LoginUri, CallbackUri and window settings for the OAuth flow."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "312-324",
+          "function": "FinishLogin, TokenMethod",
+          "note": "Takes the code from the callback URI and builds the access token record."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "274-286",
+          "function": "EntersoftBusinessSuite",
+          "note": "Data source kind wires Authentication OAuth to StartLogin, FinishLogin and Logout."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "132",
+          "function": "ESWebAPI_GetTopLevelMenu",
+          "note": "Sends the access_token from Extension.CurrentCredential() as a Bearer header on every request."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "290-296",
+              "function": "StartLogin",
+              "note": "Authorize URL uses response_type=token and has no code_challenge or code_verifier parameter."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "320-324",
+              "function": "TokenMethod",
+              "note": "Token is built from the code only. No refresh token is read or used."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "132",
+          "function": "ESWebAPI_GetTopLevelMenu",
+          "note": "Web.Contents call."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "143",
+          "function": "ESWebAPI_ExecuteZoom",
+          "note": "Web.Contents call."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "204",
+          "function": "ESWebAPI_GetPQData",
+          "note": "Web.Contents POST call with content."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "15",
+          "function": "EntersoftBusinessSuite.Contents",
+          "note": "The shared data source function takes no parameters."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "198-206",
+          "function": "ESWebAPI_GetPQData",
+          "note": "Requests one numbered page at a time with Page and PageSize in X-ESPQOptions."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "212-216",
+          "function": "ExecutePQ",
+          "note": "Increments the page number for each request."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "212-216",
+              "function": "ExecutePQ",
+              "note": "Calls List.Generate directly to fetch pages. Table.GenerateByPage is not used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when a page returns no rows: the List.Generate condition not List.IsEmpty([Result][Rows]) fails. When fetchAll is true, one request with Page -1 is made instead.",
+          "evidence": [
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "214",
+              "function": "ExecutePQ",
+              "note": "Continue condition checks for an empty Rows list."
+            },
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "217-218",
+              "function": "ExecutePQ",
+              "note": "Non-paged branch requests Page -1 in one call."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "133-134",
+          "function": "ESWebAPI_GetTopLevelMenu",
+          "note": "Text.FromBinary then Json.Document on the returned data."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "143",
+          "function": "ESWebAPI_ExecuteZoom",
+          "note": "Json.Document on zoom rows."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "204",
+          "function": "ESWebAPI_GetPQData",
+          "note": "Json.Document on the PublicQuery response rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "233-248",
+          "function": "ESChangeType",
+          "note": "Maps source DataTypeName and NetType values to Int64, Logical, Number, DateTime and Date. This is the connector's own mapping to M types."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "221",
+          "function": "ExecutePQ",
+          "note": "Expands all record field names from the data, so columns beyond the declared ones are kept."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "243-246",
+          "function": "ESChangeType",
+          "note": "Table.TransformColumns converts returned cell values to the declared types."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "167-169",
+          "function": "ChangeZoomType",
+          "note": "Table.TransformColumns converts returned zoom data to typed values."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "229-231, 236",
+              "function": "CreateSchemaTable, ESChangeType",
+              "note": "An empty result becomes an empty table with the metadata column names, and the types are then applied."
+            },
+            {
+              "file": "Entersoft_Business_Suite.m",
+              "lines": "153-155, 161",
+              "function": "CreateZoomSchema, ChangeZoomType",
+              "note": "An empty zoom result keeps the declared column names."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "132",
+          "function": "ESWebAPI_GetTopLevelMenu",
+          "note": "Web.Contents with no ManualStatusHandling option, so Power Query handles status codes."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "204",
+          "function": "ESWebAPI_GetPQData",
+          "note": "Web.Contents with no ManualStatusHandling option."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "177, 185, 193",
+          "function": "ESWebAPI_GetAllZooms, ESWebAPI_GetODSInfo, ESWebAPI_PQInfo",
+          "note": "Metadata requests with no status handling option."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "15",
+          "function": "EntersoftBusinessSuite.Contents",
+          "note": "No documentation meta record on the shared function."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "173-179",
+          "function": "ESWebAPI_GetAllZooms",
+          "note": "Module and zoom list is fetched at runtime and used to build the navigator."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "126-136, 63-71",
+          "function": "ESWebAPI_GetTopLevelMenu, GetDataSets",
+          "note": "Menu groups come from the live top-level menu response."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "87, 68",
+          "function": "GetDimensionAnalysis, GetDataSets",
+          "note": "Folder rows are built with IsLeaf = false, so navigation is hierarchical."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "275",
+          "function": "EntersoftBusinessSuite",
+          "note": "TestConnection returns the name EntersoftBusinessSuite.Contents, which is the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "1-340",
+          "function": "(file)",
+          "note": "No Table.View, Value.NativeQuery, Odbc.DataSource, OData.Feed or Sql.Database usage."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "1-340",
+          "function": "(file)",
+          "note": "Connector is one .m file with no .pqm module loading."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "281, 284, 330",
+          "function": "EntersoftBusinessSuite, EntersoftBusinessSuite.Publish",
+          "note": "Extension.LoadString is used for localized strings."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "337-338",
+          "function": "EntersoftBusinessSuite.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents."
+        },
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "327-329",
+          "function": "EntersoftBusinessSuite.Publish",
+          "note": "Beta = true is set on the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "1-340",
+          "function": "(file)",
+          "note": "No Diagnostics.Trace calls."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "1-340",
+          "function": "(file)",
+          "note": "No async export or polling loop."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Entersoft_Business_Suite.m",
+          "lines": "1-340",
+          "function": "(file)",
+          "note": "No Action functions or write calls. All requests are reads."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:47:32Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0150057,
+    "duration_ms": 49542,
+    "repair_attempts": 1
+  },
+  "source_sha256": "d2f6dcea88b6bc1e1c754cd9b1e69645128d60171b658ca07954cb3e62040351",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

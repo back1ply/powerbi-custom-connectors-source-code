@@ -1,0 +1,398 @@
+{
+  "connector": "ClickHouseArrowFlight",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "92-95",
+          "function": "ClickHouseArrowFlight",
+          "note": "Authentication record declares only UsernamePassword; Windows is commented out."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "412-412",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Credential is read via Extension.CurrentCredential()."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "430-433",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Username and Password are sent as a static Basic authorization header on every call."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "adbc-flight"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "220-225",
+          "function": "Adbc.Connection",
+          "note": "Resolves the host Adbc.Connection function used to reach the server."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "441-441",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Opens the Flight SQL ADBC driver connection (FlightSqlClickHouse)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "19-23",
+          "function": "ClickHouseArrowFlight.Database",
+          "note": "server parameter names the connection host (url-or-server)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "24-28",
+          "function": "ClickHouseArrowFlight.Database",
+          "note": "port is a raw Arrow Flight port number that no other id fits (other); the note explains it is the port of the server target."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "29-33",
+          "function": "ClickHouseArrowFlight.Database",
+          "note": "database parameter filters the database navigation."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "34-41",
+          "function": "ClickHouseArrowFlight.Database",
+          "note": "optional options record of advanced settings."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Accepts only HighPrecision (optional nullable logical, default true). true keeps ClickHouse Decimal aggregates exact; false downcasts to double precision. Other keys are rejected by ValidateOptions.",
+          "evidence": [
+            {
+              "file": "ClickHouseArrowFlight.pq",
+              "lines": "34-41",
+              "function": "ClickHouseArrowFlight.Database",
+              "note": "Declares the HighPrecision field."
+            },
+            {
+              "file": "ClickHouseArrowFlight.pq",
+              "lines": "51-65",
+              "function": "ValidOptionsMap",
+              "note": "Valid option table with HighPrecision default true."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "442-447",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Exec runs one ExecuteQuery call per statement with no page loop or next token."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "arrow"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "441-447",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Results come back from the Flight SQL ADBC driver, which delivers Arrow data."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "450-465",
+          "function": "GetData",
+          "note": "Returned tables are built from the ADBC result, not from ODBC or Sql.Database rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "300-339",
+          "function": "MapClickHouseType",
+          "note": "Connector maps ClickHouse type names to M types with its own mapping table."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "360-364",
+          "function": "ClickHouseLeafTable",
+          "note": "Builds the table type with Type.ForRecord from the mapped types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "ClickHouseArrowFlight.pq",
+              "lines": "360-370",
+              "function": "ClickHouseLeafTable",
+              "note": "The declared table type comes from DESCRIBE, independent of rows, but no code path tests an empty result, so the runtime behavior is not verified."
+            },
+            {
+              "file": "ClickHouseArrowFlight.pq",
+              "lines": "448-465",
+              "function": "GetData",
+              "note": "Columns are aligned to the declared result type in GetRows; for empty data the alignment is not exercised here."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "403-441",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Transport is adbc-flight, so the applies_when transports web-contents and odata-feed are excluded."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "42-49",
+          "function": "DatabaseType",
+          "note": "Documentation.Name, LongDescription and Examples on the function type (function-documentation)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "19-23",
+          "function": "DatabaseType",
+          "note": "Documentation.FieldCaption and FieldDescription on server (parameter-captions, parameter-descriptions)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "22-22",
+          "function": "DatabaseType",
+          "note": "Documentation.SampleValues on server (sample-values)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "24-28",
+          "function": "DatabaseType",
+          "note": "Caption, description and sample values on port."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "29-33",
+          "function": "DatabaseType",
+          "note": "Caption, description and sample values on database."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "384-400",
+          "function": "ClickHouseDatabasesNav",
+          "note": "Databases are listed at runtime via SHOW DATABASES; database rows set IsLeaf false (line 398), so they are folders."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "373-381",
+          "function": "ClickHouseTablesNav",
+          "note": "Table rows are discovered via SHOW TABLES and each Data cell is a navigation table, so a database folder opens a further navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "83-90",
+          "function": "ClickHouseArrowFlight",
+          "note": "TestConnection names the probe function ClickHouseArrowFlight.ValidateConnection rather than the entry function."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "102-104",
+          "function": "ClickHouseArrowFlight.ValidateConnection",
+          "note": "Probe runs a separate authenticated connection and row count."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "native-query",
+        "custom-sql-generator"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "480-484",
+          "function": "ClickHouseAdbcConnection",
+          "note": "Table.View with an OnNativeQuery handler supports Value.NativeQuery."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "229-237",
+          "function": "SqlView.Generator",
+          "note": "SqlView.Generator is wired with the connector's own ClickHouseSqlGenerator (line 471) and used for leaf tables (line 367)."
+        },
+        {
+          "file": "ClickHouseSqlGenerator.pqm",
+          "lines": "15-18",
+          "function": "ClickHouseSqlGenerator.pqm",
+          "note": "Connector-written ClickHouse SQL dialect generator."
+        },
+        {
+          "file": "ClickHouseSqlGenerator.pqm",
+          "lines": "768-768",
+          "function": "ClickHouseSqlGenerator.pqm",
+          "note": "Generator is built by MergeOverrides over Sql92 with the connector's overrides."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Enabled by an OnNativeQuery handler on the navigation Table.View in ClickHouseAdbcConnection; it runs the statement verbatim through Exec and rejects query parameters.",
+          "evidence": [
+            {
+              "file": "ClickHouseArrowFlight.pq",
+              "lines": "480-485",
+              "function": "ClickHouseAdbcConnection",
+              "note": "OnNativeQuery handler and parameter rejection."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "207-207",
+          "function": "Diagnostics",
+          "note": "Loads Diagnostics.pqm via Extension.LoadFunction."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "237-237",
+          "function": "ClickHouseSqlGenerator",
+          "note": "Loads ClickHouseSqlGenerator.pqm via Extension.LoadExpression."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "96-96",
+          "function": "ClickHouseArrowFlight",
+          "note": "Label from Extension.LoadString (localized strings)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "111-111",
+          "function": "ClickHouseArrowFlight.Publish",
+          "note": "ButtonText from Extension.LoadString (localized strings)."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "118-131",
+          "function": "ClickHouseArrowFlight.Icons",
+          "note": "Icon files loaded with Extension.Contents, reached from Publish."
+        },
+        {
+          "file": "ClickHouseArrowFlight.pq",
+          "lines": "109-109",
+          "function": "ClickHouseArrowFlight.Publish",
+          "note": "Beta = true in the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseSqlGenerator.pqm",
+          "lines": "141-146",
+          "function": "TryVisit",
+          "note": "Diagnostics.Trace runs directly with no EnableTraceOutput switch when a folding visitor errors; this is live during folding. The top-level Diagnostics.LogValue (line 209) is gated, so it does not count."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:44:00Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0205763,
+    "duration_ms": 49474
+  },
+  "source_sha256": "fdf4c5c7959f87e8fd4325f7b6c5966c042ca72f037abde51fa4f2deb5103a42",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

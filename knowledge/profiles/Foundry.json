@@ -1,0 +1,325 @@
+{
+  "connector": "Foundry",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "key",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "365-381",
+          "function": "Foundry",
+          "note": "Authentication record declares OAuth, Key, and UsernamePassword kinds. No anonymous kind is declared."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "216-226",
+          "function": "Foundry.AuthedWebRequest",
+          "note": "Bearer token is attached as an Authorization header for non-OAuth credentials, and OAuth is delegated to Power BI."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "93-98",
+          "function": "Foundry.ClientCredentials",
+          "note": "Username and Password are exchanged for a token through the client_credentials grant."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Foundry.m",
+              "lines": "259-272",
+              "function": "Foundry.StartLogin",
+              "note": "Generates a code verifier and challenge, and sends code_challenge_method S256 with the authorize request."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Foundry.m",
+              "lines": "295-305",
+              "function": "Foundry.Refresh",
+              "note": "Implements the refresh_token grant against the token endpoint."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Foundry.m",
+              "lines": "222-223",
+              "function": "Foundry.AuthedWebRequest",
+              "note": "The key is sent as an Authorization Bearer header on the request."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "224",
+          "function": "Foundry.AuthedWebRequest",
+          "note": "Web.Contents is used for the navigation and metadata requests that reach the service."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "139-173",
+          "function": "Foundry.OdbcFlatNavTable",
+          "note": "Odbc.DataSource is used to read the dataset rows."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Foundry.m",
+              "lines": "151-172",
+              "function": "Foundry.OdbcFlatNavTable",
+              "note": "Declares SqlCapabilities and SQLGetInfo overrides, and SQLGetFunctions."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "24-28",
+          "function": "Foundry.Type",
+          "note": "BaseUri is the connection target URL."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "29-38",
+          "function": "Foundry.Type",
+          "note": "datasetRid and branch name a dataset and its branch inside the target."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "102-103",
+          "function": "Foundry.NestedNavTable",
+          "note": "Navigation data is parsed from the JSON resources list and returned to the user as the navigation table."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "224",
+          "function": "Foundry.AuthedWebRequest",
+          "note": "Json.Document parses the JSON payload returned by the navigation requests."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "131-134",
+          "function": "Foundry.OdbcSingleDatasetTable",
+          "note": "Dataset data is returned as driver rows from Odbc.DataSource."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "103-105",
+          "function": "Foundry.NestedNavTable",
+          "note": "Table.FromRecords and Table.RenameColumns take column names from the data without assigning M types."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "139-173",
+          "function": "Foundry.OdbcFlatNavTable",
+          "note": "The ODBC driver supplies the names and types of the dataset columns, and the connector does not redefine them."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "224",
+          "function": "Foundry.AuthedWebRequest",
+          "note": "Web.Contents is called without ManualStatusHandling, so Power Query handles status codes."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "24-42",
+          "function": "Foundry.Type",
+          "note": "Parameter captions, descriptions, sample values, and the function Name and LongDescription are set in the meta records."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "57",
+          "function": "Foundry.Impl",
+          "note": "When datasetRid is given, one data table is returned directly with no navigation table."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "100-113",
+          "function": "Foundry.NestedNavTable",
+          "note": "The navigator is built at runtime from the /powerbi/navigation API response."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "107-108",
+          "function": "Foundry.NestedNavTable",
+          "note": "Folder rows (IsLeaf false) have Data that re-invokes NestedNavTable, which makes the navigation hierarchical."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "383-387",
+          "function": "Foundry.Contents",
+          "note": "TestConnection calls Foundry.Contents with the base URI, which is a normal navigation query with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "151-172",
+          "function": "Foundry.OdbcFlatNavTable",
+          "note": "Folding is shaped by SqlCapabilities and SQLGetInfo overrides on Odbc.DataSource."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Foundry.m",
+          "lines": "1-435",
+          "function": "section Foundry",
+          "note": "The connector is a single .m file with no .pqm modules."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "25-41",
+          "function": "Foundry.Type",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "Foundry.m",
+          "lines": "401-402",
+          "function": "Foundry.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:49:06Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0084784,
+    "duration_ms": 34454
+  },
+  "source_sha256": "66f4ea4c32c2041368d526352fa959fb4d85363fa478df637c54c16373190b27",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

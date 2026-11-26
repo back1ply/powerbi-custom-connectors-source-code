@@ -1,0 +1,233 @@
+{
+  "connector": "BIConnector",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "19-24",
+          "function": "BIConnector.ContentsX",
+          "note": "Extension.CurrentCredential() supplies Username and Password, passed as UID and PWD in CredentialConnectionString."
+        },
+        {
+          "file": "BIConnector.pq",
+          "lines": "89-91",
+          "function": "BIConnector",
+          "note": "Data source kind declares Authentication = [UsernamePassword = []]."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "39-59",
+          "function": "BIConnector.ContentsX",
+          "note": "Reaches the data source through Odbc.DataSource with a DSN connection string."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "BIConnector.pq",
+              "lines": "43-54",
+              "function": "BIConnector.ContentsX",
+              "note": "Odbc.DataSource is given a SqlCapabilities record."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "13-16",
+          "function": "BIConnector.ContentsX",
+          "note": "The only user parameter is dsnname, which is used as the ODBC DSN. This matches the url-or-server definition."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "39-40",
+          "function": "BIConnector.ContentsX",
+          "note": "Rows are returned as tables from the ODBC driver through Odbc.DataSource."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "39-59",
+          "function": "BIConnector.ContentsX",
+          "note": "Column names and types come from the ODBC driver. The connector declares no schema and does no type conversion."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "39-59",
+          "function": "BIConnector.ContentsX",
+          "note": "Transport is odbc only, which is outside applies_when (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "66-67",
+          "function": "BIConnector.ContentsType",
+          "note": "Documentation.FieldCaption and Documentation.SampleValues on the dsnname parameter type."
+        },
+        {
+          "file": "BIConnector.pq",
+          "lines": "72-77",
+          "function": "BIConnector.ContentsType",
+          "note": "Documentation.Description, DisplayName, Name and Caption on the function type's meta record."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "39-40",
+          "function": "BIConnector.ContentsX",
+          "note": "Odbc.DataSource builds the navigator from the driver catalog at runtime. HierarchicalNavigation = true yields folders with IsLeaf false."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "83-88",
+          "function": "BIConnector",
+          "note": "TestConnection returns { \"BIConnector.Contents\", dsnname }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "43-54",
+          "function": "BIConnector.ContentsX",
+          "note": "Folding is shaped by SqlCapabilities passed to Odbc.DataSource. No OnNativeQuery or Table.View handlers exist."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "BIConnector.pq",
+          "lines": "1-120",
+          "function": "BIConnector",
+          "note": "All code is in one .pq file with no pqm modules."
+        },
+        {
+          "file": "BIConnector.pq",
+          "lines": "98-98",
+          "function": "BIConnector.Publish",
+          "note": "ButtonText uses Extension.LoadString(\"ButtonHelp\")."
+        },
+        {
+          "file": "BIConnector.pq",
+          "lines": "107-120",
+          "function": "BIConnector.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:40:40Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004752,
+    "duration_ms": 20168
+  },
+  "source_sha256": "a9c756a43453ee0bbdaa319c8cde3b7c4167f49c06f104bcb14ae906039bb8d3",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

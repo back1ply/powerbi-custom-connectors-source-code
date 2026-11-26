@@ -1,0 +1,312 @@
+{
+  "connector": "BQECore",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2533-2540",
+          "function": "BQECore",
+          "note": "Authentication record declares an OAuth kind with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2546-2561",
+          "function": "StartLogin",
+          "note": "Builds the authorize URL with client_id, state, response_type=code, scope and redirect_uri."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2563-2596",
+          "function": "FinishLogin, TokenMethod",
+          "note": "Exchanges the authorization code for tokens at the identity token endpoint."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "BQECore.pq",
+              "lines": "2546-2553",
+              "function": "StartLogin",
+              "note": "The authorize URL has no code_challenge or code_challenge_method parameters, and the token request has no code_verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "BQECore.pq",
+              "lines": "2598-2598",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with the refresh_token grant."
+            },
+            {
+              "file": "BQECore.pq",
+              "lines": "2579-2582",
+              "function": "TokenMethod",
+              "note": "Selects grant_type refresh_token and sends refresh_token in the token request."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2241-2247",
+          "function": "GetData",
+          "note": "Reaches the BQE CORE REST API with Web.Contents."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2207-2211",
+          "function": "GetDatafromSingleObject",
+          "note": "Single-object requests also use Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "14-15",
+          "function": "BQECore.Contents",
+          "note": "The shared entry function takes no parameters; it calls BQENavTable(BaseUrl) with BaseUrl loaded from the extension."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2242-2247",
+          "function": "GetData",
+          "note": "Other: page-number paging via ?page=N,pageSize. It is not offset or limit, cursor, next-link or skip-token."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "BQECore.pq",
+              "lines": "686-695",
+              "function": "GetVendor",
+              "note": "Each Get* function calls List.Generate directly, with each page fetched by GetData."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when GetData returns null. GetData yields null when the request errors (try ... otherwise null) or when the parsed JSON is null or its first element is null (empty page). The List.Generate condition each [Result] <> null then ends the loop.",
+          "evidence": [
+            {
+              "file": "BQECore.pq",
+              "lines": "2248-2250",
+              "function": "GetData",
+              "note": "json is parsed, and test is null when json is null or json{0} is null."
+            },
+            {
+              "file": "BQECore.pq",
+              "lines": "686-695",
+              "function": "GetVendor",
+              "note": "The List.Generate stop condition each [Result] <> null ends paging."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2248-2248",
+          "function": "GetData",
+          "note": "Returned page data is parsed with Json.Document."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2215-2215",
+          "function": "GetDatafromSingleObject",
+          "note": "Single-object data is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "702-702",
+          "function": "GetVendor",
+          "note": "Columns are named by Table.ExpandRecordColumn from the record field names with a Vendor. prefix. No M types are assigned."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2242-2247",
+          "function": "GetData",
+          "note": "Data Web.Contents calls set no ManualStatusHandling, so Power Query handles their status codes."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2584-2586",
+          "function": "TokenMethod",
+          "note": "The token Web.Contents call sets ManualStatusHandling = {400}."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2591-2592",
+          "function": "TokenMethod",
+          "note": "An error body from the token response is raised as an Error.Record."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "45-137",
+          "function": "BQENavTable",
+          "note": "The navigation rows are a hardcoded #table list of functions, all leaves with IsLeaf true."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "137-137",
+          "function": "BQENavTable",
+          "note": "Table.ToNavigationTable is applied to the fixed list."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "2532-2532",
+          "function": "BQECore",
+          "note": "TestConnection returns { \"BQECore.Contents\" }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "BQECore.pq",
+          "lines": "1-2614",
+          "function": "",
+          "note": "All code is in one BQECore.pq file with no .pqm modules or LoadFunction/LoadExpression helper."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2541-2541",
+          "function": "BQECore",
+          "note": "Label is loaded with Extension.LoadString."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2604-2604",
+          "function": "BQECore.Publish",
+          "note": "ButtonText is loaded with Extension.LoadString."
+        },
+        {
+          "file": "BQECore.pq",
+          "lines": "2610-2613",
+          "function": "BQECore.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:41:20Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.147905,
+    "duration_ms": 38553
+  },
+  "source_sha256": "a78e11ae11fa484099f280f34d438fbd8640f38815fb0a441e52e147a4534d06",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,379 @@
+{
+  "connector": "IndustrialAppStore",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "286-298",
+          "function": "IndustrialAppStore",
+          "note": "Authentication is OAuth when ias_enabled is true, with StartLogin, FinishLogin and Refresh handlers. The else branch is Windows = []."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1164-1198",
+          "function": "IndustrialAppStore.StartLogin / IndustrialAppStore.FinishLogin",
+          "note": "OAuth authorization-code flow with code_challenge and code_verifier, then TokenMethod exchanges the code."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1500-1525",
+          "function": "TokenMethod",
+          "note": "Posts to the token endpoint with the authorization code or refresh token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "1166-1171",
+              "function": "IndustrialAppStore.StartLogin",
+              "note": "Sends code_challenge and code_challenge_method in the authorize request. The method is plain, which is still PKCE."
+            },
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "1500-1503",
+              "function": "TokenMethod",
+              "note": "Sends the code_verifier with the token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "1201",
+              "function": "IndustrialAppStore.Refresh",
+              "note": "Refresh handler that calls TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "292",
+              "function": "IndustrialAppStore",
+              "note": "Refresh is wired into the OAuth block."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1258-1287",
+          "function": "IndustrialAppStore.ProcessDataRequest",
+          "note": "All data requests go through Web.Contents, using POST with a JSON body or GET."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "374-390",
+          "function": "IndustrialAppStore.GetDataSources",
+          "note": "Lists data sources with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "304",
+          "function": "IndustrialAppStore.NavigationTable",
+          "note": "The only shared entry function takes no parameters. The URL comes from config, and data sources are picked from the navigator."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1249-1254",
+          "function": "ReadJsonResponse",
+          "note": "Parses the returned data payloads with Json.Document."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1281-1285",
+          "function": "IndustrialAppStore.ProcessDataRequest",
+          "note": "Response content is parsed as JSON for every data request."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "919-924",
+          "function": "ProcessNormal_inner",
+          "note": "Maps the source IsNumeric flag to number or text M types for each tag column."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1046-1049",
+          "function": "IndustrialAppStore.ProcessSnapshotResponse",
+          "note": "Sets the Sample Time column to datetime with Table.TransformColumnTypes."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "434",
+          "function": "IndustrialAppStore.TagSearch",
+          "note": "Table.FromRecords gives column names from the data with no declared types."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1062-1074",
+          "function": "IndustrialAppStore.ProcessSOE",
+          "note": "Table.FromRecords on parsed JSON records, so column names come from the data with no declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "898-900",
+              "function": "ProcessNormal_inner",
+              "note": "The empty-input path builds an untyped #table from tag names, so the names are kept but the declared types are not."
+            },
+            {
+              "file": "IndustrialAppStore.pq",
+              "lines": "1320-1331",
+              "function": "EmptyDataResponseToTable",
+              "note": "The empty-response path builds a single-column message table."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "377",
+          "function": "IndustrialAppStore.GetDataSources",
+          "note": "Web.Contents with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "431",
+          "function": "IndustrialAppStore.TagSearch",
+          "note": "Web.Contents with no ManualStatusHandling."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1270",
+          "function": "IndustrialAppStore.ProcessDataRequest",
+          "note": "POST sets ManualStatusHandling for 400, 401, 402 and 403, and checks the status code."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1280",
+          "function": "IndustrialAppStore.ProcessDataRequest",
+          "note": "GET sets ManualStatusHandling for 400, 401, 402 and 403."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1517",
+          "function": "TokenMethod",
+          "note": "The token call sets ManualStatusHandling for 400."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1254",
+          "function": "ReadJsonResponse",
+          "note": "Raises Error.Record with the response content when the body is not JSON."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1521",
+          "function": "TokenMethod",
+          "note": "Raises Error.Record from the error and error_description fields of the token response body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "473-476",
+          "function": "IndustrialAppStore.TagSearch",
+          "note": "Function-level Documentation.Name and LongDescription."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "79-85",
+          "function": "tag_name_input",
+          "note": "Documentation.FieldCaption and FieldDescription on parameter types."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "82",
+          "function": "tag_name_input",
+          "note": "Documentation.SampleValues."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "129",
+          "function": "processed_sample_interval_input",
+          "note": "Documentation.AllowedValues."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "146-147",
+          "function": "tag_value_display_field_input",
+          "note": "Documentation.AllowedValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "306-319",
+          "function": "IndustrialAppStore.NavigationTable",
+          "note": "Navigator rows come from the data source list fetched at runtime."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "374-390",
+          "function": "IndustrialAppStore.GetDataSources",
+          "note": "Data sources are listed from the API."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "340",
+          "function": "IndustrialAppStore.DataSourceQueries",
+          "note": "Reports folder with IsLeaf false opens a further navigation table."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "360-370",
+          "function": "AEReports",
+          "note": "Child navigation table of the Reports folder."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "285",
+          "function": "IndustrialAppStore",
+          "note": "TestConnection evaluates IndustrialAppStore.NavigationTable, the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1151-1154",
+          "function": "IndustrialAppStore.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents."
+        },
+        {
+          "file": "IndustrialAppStore.pq",
+          "lines": "1146-1147",
+          "function": "IndustrialAppStore.Publish",
+          "note": "SourceImage and SourceTypeImage use the icon list."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:51Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.016117,
+    "duration_ms": 46269
+  },
+  "source_sha256": "be12a31f60097b20f67cf1097e144b324c393e21074769e519ae273bcac5f624",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

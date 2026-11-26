@@ -1,0 +1,350 @@
+{
+  "connector": "IRIS",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "26-28",
+          "function": "IRIS",
+          "note": "Authentication record declares UsernamePassword = []; Windows and Implicit are commented out, so only username-password is offered."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "81-86",
+          "function": "IRISImpl",
+          "note": "Credential[AuthenticationKind] = UsernamePassword maps Username and Password into UID and PWD of the ODBC connection string."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "125-149",
+          "function": "IRISImpl",
+          "note": "Odbc.DataSource(ConnectionString, ...) is the only data access path."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Iris_PowerBI_Connector.m",
+              "lines": "96-99",
+              "function": "IRISImpl",
+              "note": "SqlCapabilities is defined as defaultConfig[SqlCapabilities] plus FractionalSecondsScale override."
+            },
+            {
+              "file": "Iris_PowerBI_Connector.m",
+              "lines": "139-147",
+              "function": "IRISImpl",
+              "note": "Odbc.DataSource is passed an explicit SqlCapabilities record (SupportsTop, Sql92Conformance, literal support)."
+            },
+            {
+              "file": "Iris_PowerBI_Connector.m",
+              "lines": "181-260",
+              "function": "BuildOdbcConfig",
+              "note": "Builds SqlCapabilities, SQLGetFunctions and SQLGetInfo overrides (SQL_SQL_CONFORMANCE, SQL_API_SQLBINDPARAMETER)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "35-40",
+          "function": "IRISType",
+          "note": "host (text) and port (number) name the connection target; port is part of the host/server address."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "45-49",
+          "function": "IRISType",
+          "note": "namespace is the database/resource inside the server."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "50-61",
+          "function": "IRISType",
+          "note": "Optional ssl and logs are individual connection flags (Yes/No) that fit no other id, so they are other."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "125-176",
+          "function": "IRISImpl",
+          "note": "Returned data comes as ODBC tables from Odbc.DataSource and Odbc.Query. Json.Document at line 20 parses the gateway test input, not returned data, so it does not count."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "125-149",
+          "function": "IRISImpl",
+          "note": "Column names and types come from the ODBC driver; the connector does not assign M types to data columns."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "351-363",
+          "function": "UpdateDimensionColumns",
+          "note": "Columns are only renamed to catalog DisplayName values, with no type assignment."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "125-125",
+          "function": "IRISImpl",
+          "note": "Transport is odbc, which is excluded by applies_when (web-contents or odata-feed)."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "63-65",
+          "function": "IRISType",
+          "note": "Documentation.Name and LongDescription on the function type."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "35-49",
+          "function": "IRISType",
+          "note": "Documentation.FieldCaption and FieldDescription on each parameter."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "38-48",
+          "function": "IRISType",
+          "note": "Documentation.SampleValues on host, port and namespace."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "53-53",
+          "function": "IRISType",
+          "note": "Documentation.AllowedValues on ssl (Yes, No), repeated at line 59 for logs."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "152-163",
+          "function": "IRISImpl",
+          "note": "Schemas and cubes are listed at runtime from the ODBC catalog and the DeepSee catalog queries."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "129-129",
+          "function": "IRISImpl",
+          "note": "HierarchicalNavigation = true on Odbc.DataSource, so schemas are folders with IsLeaf false."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "166-176",
+          "function": "IRISImpl",
+          "note": "Tables and Cubes are folder rows (IsLeaf false) that open further navigation tables. The hardcoded Tables and Cubes folders sit inside a discovered tree, so fixed-list does not count."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "18-25",
+          "function": "IRIS",
+          "note": "TestConnection returns { \"IRIS.Database\", host, port, namespace }, which names and re-invokes the shared entry function as a normal query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "96-99",
+          "function": "IRISImpl",
+          "note": "SqlCapabilities override passed to the Odbc.DataSource folding configuration."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "139-147",
+          "function": "IRISImpl",
+          "note": "Odbc.DataSource SqlCapabilities (SupportsTop, Sql92Conformance 8, literal support) shape pushed-down SQL."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "125-131",
+          "function": "IRISImpl",
+          "note": "HideNativeQuery = true, so no native query support. There are no Table.View handlers."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "263-268",
+          "function": "Extension.LoadFunction",
+          "note": "Loads code from .pqm files with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "271-271",
+          "function": "Diagnostics",
+          "note": "Loads Diagnostics.pqm via Extension.LoadFunction."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "276-276",
+          "function": "ODBC",
+          "note": "Loads OdbcConstants.pqm via Extension.LoadFunction."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "17-17",
+          "function": "IRIS",
+          "note": "Extension.LoadString(\"DataSourceLabel\") provides localized strings."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "326-327",
+          "function": "IRISType",
+          "note": "Extension.LoadString(\"WarningNoCatalogQueries\") provides a localized warning."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "9-9",
+          "function": "EnableTraceOutput",
+          "note": "Switch is false by default."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "272-272",
+          "function": "Diagnostics.LogValue",
+          "note": "LogValue is the identity unless EnableTraceOutput is true."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "101-106",
+          "function": "SQLGetTypeInfo",
+          "note": "Diagnostics.LogValue runs only when EnableTraceOutput is true."
+        },
+        {
+          "file": "Iris_PowerBI_Connector.m",
+          "lines": "111-118",
+          "function": "SQLColumns",
+          "note": "Diagnostics.LogValue runs only past the EnableTraceOutput <> true guard."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:17Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.014986099999999999,
+    "duration_ms": 35871
+  },
+  "source_sha256": "87b43d3857b0ca16d909149126181cacb5e03cef217477709deedcb304324600",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

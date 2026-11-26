@@ -1,0 +1,472 @@
+{
+  "connector": "AssembleViews",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "789-799",
+          "function": "AssembleViews",
+          "note": "Data source kind Authentication record defines only OAuth with StartLogin, FinishLogin and Refresh"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "804-824",
+          "function": "StartLogin",
+          "note": "Authorize URL has response_type, client_id, redirect_uri, state, scope and acr_values. No code_challenge or code_verifier is sent."
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "850-850",
+          "function": "Refresh",
+          "note": "Token refresh is implemented through TokenMethod with grant_type refresh_token"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "853-882",
+          "function": "TokenMethod",
+          "note": "Exchanges the authorization code or refresh token at the token endpoint"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "804-824",
+              "function": "StartLogin",
+              "note": "No PKCE challenge or verifier parameters are present"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "850-850",
+              "function": "Refresh",
+              "note": "Refresh is implemented with the refresh_token grant"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "140-146",
+          "function": "AssembleViews_Impl",
+          "note": "Web.Contents is the transport behind Web.Request used by the reachable API calls"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "263-263",
+          "function": "GetViewThumbnail",
+          "note": "Web.Contents fetches attachment images"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "864-864",
+          "function": "TokenMethod",
+          "note": "Web.Contents posts the token request"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "5-12",
+          "function": "AssembleViews.Feed",
+          "note": "Shared entry resourceUrl is the Assemble server URL"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "69-82",
+          "function": "AssembleViews.Contents",
+          "note": "Shared entry resourceUrl is the server URL"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "77-82",
+          "function": "AssembleViewsType",
+          "note": "Optional viewAtDate is a single point-in-time date, not a region, resource name or range, so it is other"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "634-643",
+          "function": "GetAllPagesByNextLink",
+          "note": "The next page URL is read from the NextLink metadata of the previous page"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "627-632",
+          "function": "GetData",
+          "note": "The nextLink field of the response is attached as page metadata"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "666-666",
+          "function": "GetNextLink",
+          "note": "Reads nextLink from the response record"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "554-554",
+          "function": "GetRows_func",
+          "note": "Model rows are paged through GetAllPagesByNextLink on the reachable Feed path"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "645-664",
+              "function": "Table.GenerateByPage",
+              "note": "Connector-defined helper that builds the pages"
+            },
+            {
+              "file": "AssembleViews.m",
+              "lines": "634-643",
+              "function": "GetAllPagesByNextLink",
+              "note": "Calls Table.GenerateByPage to produce the pages"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no nextLink. GetAllPagesByNextLink passes null when Value.Metadata(previous)[NextLink] is null, so no further page is fetched. The List.Generate condition in Table.GenerateByPage stops when a page is null.",
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "638-640",
+              "function": "GetAllPagesByNextLink",
+              "note": "nextLink comes from the previous page metadata and no page is fetched when it is null"
+            },
+            {
+              "file": "AssembleViews.m",
+              "lines": "649-649",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate stops when the returned page is null"
+            },
+            {
+              "file": "AssembleViews.m",
+              "lines": "627-632",
+              "function": "GetData",
+              "note": "nextLink from the response is attached as page metadata"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "140-146",
+          "function": "AssembleViews_Impl",
+          "note": "Json.Document parses the API responses that the connector returns as tables"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "161-165",
+          "function": "GetProjects",
+          "note": "The JSON project list is converted to a table"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "516-523",
+          "function": "GetTypes_func",
+          "note": "Connector maps source dataType names (bigint, int, float, quantity, bit, others) to M types number, logical and text and builds the table type"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "629-629",
+          "function": "GetData",
+          "note": "Column names come from the response record fields via Table.FromRecords"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "662-662",
+          "function": "Table.GenerateByPage",
+          "note": "Column names are taken from the first page's record fields"
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "658-660",
+              "function": "Table.GenerateByPage",
+              "note": "An empty result returns Table.FromRows with no columns, so the declared columns are not kept"
+            },
+            {
+              "file": "AssembleViews.m",
+              "lines": "489-489",
+              "function": "ModelData.Feed",
+              "note": "Exception: when more than 205 columns are selected an empty table with the selected column names is returned"
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "158-172",
+          "function": "GetProjects",
+          "note": "Live Web.Request data call with no ManualStatusHandling, so status handling is left to Power Query"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "864-871",
+          "function": "TokenMethod",
+          "note": "Token Web.Contents call sets ManualStatusHandling = {400} and inspects the body itself"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "873-877",
+          "function": "TokenMethod",
+          "note": "Error.Record is raised from the error body of the token response"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "14-17",
+          "function": "AssembleViewsFeedType",
+          "note": "Documentation.Name and LongDescription on the shared Feed type"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "9-11",
+          "function": "AssembleViewsFeedType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on resourceUrl"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "73-81",
+          "function": "AssembleViewsType",
+          "note": "FieldCaption and FieldDescription on the Contents parameters, with SampleValues"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "766-766",
+          "function": "ModelVersionLoadTypeMeta",
+          "note": "Documentation.AllowedValues on the model load-type parameter"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "318-318",
+          "function": "ModelsQuery",
+          "note": "Documentation.AllowedValues set on the version parameter"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "21-26",
+          "function": "NavigationTable.Nested",
+          "note": "Navigation table is built from the projects listed by the API at runtime"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "29-39",
+          "function": "GetProjectsNavTable",
+          "note": "Projects come from GetProjects and each row is a folder with IsLeaf false"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "45-61",
+          "function": "GetProjectFolders",
+          "note": "Models and Views folders have IsLeaf false, so the tree is hierarchical"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "790-790",
+          "function": "AssembleViews",
+          "note": "TestConnection names AssembleViews.Contents, the shared entry function, and runs a normal query"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "478-508",
+          "function": "GetView",
+          "note": "Connector builds a Table.View with an OnSelectColumns handler that re-requests with the selected columns"
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-columns"
+          ],
+          "evidence": [
+            {
+              "file": "AssembleViews.m",
+              "lines": "501-505",
+              "function": "GetView",
+              "note": "OnSelectColumns handler is implemented"
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "1-1027",
+          "function": "AssembleViews",
+          "note": "The connector is a single .m file with no pqm modules"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "801-801",
+          "function": "redirect_uri",
+          "note": "Extension.LoadString reads localized strings"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "889-890",
+          "function": "AssembleViews.Publish",
+          "note": "ButtonText and LearnMoreUrl are loaded with Extension.LoadString"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "895-898",
+          "function": "AssembleViews.Icons",
+          "note": "Icons are loaded with Extension.Contents"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "AssembleViews.m",
+          "lines": "346-349",
+          "function": "ModelsQuery",
+          "note": "Diagnostics.Trace runs on the reachable model path with no EnableTraceOutput switch"
+        },
+        {
+          "file": "AssembleViews.m",
+          "lines": "391-393",
+          "function": "BuildModelVersionDataFunction",
+          "note": "Diagnostics.Trace runs unconditionally when the model function is built"
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:39:42Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.030759500000000002,
+    "duration_ms": 119104,
+    "repair_attempts": 1
+  },
+  "source_sha256": "7776fd9c564c401729fac96c4e809f91f5a87a1dd5d2b82018d62267cb4743e0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,452 @@
+{
+  "connector": "Bitbucket",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "88-88",
+          "function": "Bitbucket.RequestHeaders",
+          "note": "Bearer token from Extension.CurrentCredential()[Key] is sent in the Authorization header."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "254-256",
+          "function": "Bitbucket",
+          "note": "Authentication record declares a single Key credential type."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "88-88",
+              "function": "Bitbucket.RequestHeaders",
+              "note": "Key is sent as an Authorization header value, not in the query string or body."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "102-102",
+          "function": "Bitbucket.Request",
+          "note": "All data requests go through Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "232-236",
+          "function": "Bitbucket.ContentsType",
+          "note": "The url parameter is the API base URL, e.g. https://api.bitbucket.org/2.0."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "237-240",
+          "function": "Bitbucket.ContentsType",
+          "note": "The optional options record parameter."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is read for one field, TestConnection (logical, default false), through Record.FieldOrDefault. No other fields are read.",
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "207-208",
+              "function": "Bitbucket.ContentsImpl",
+              "note": "__testConnection = Record.FieldOrDefault(__options, \"TestConnection\", false)."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none",
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "46-46",
+          "function": "Bitbucket.Collections",
+          "note": "hook_events collection uses Paging Style none (single fetch)."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "63-63",
+          "function": "Bitbucket.Collections",
+          "note": "user collection uses Paging Style none (single fetch)."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "80-80",
+          "function": "Bitbucket.Collections",
+          "note": "user/workspaces collection uses Paging = [Style = \"nextLinkBody\", NextField = \"next\"], so the next URL is read from the response body."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "189-194",
+          "function": "Bitbucket.FetchCollection",
+          "note": "nextLinkBody style follows the next URL from each response body."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "190-194",
+              "function": "Bitbucket.FetchCollection",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "307-309",
+              "function": "Table.GenerateByPage",
+              "note": "The helper is built on List.Generate, so only table-generatebypage is named."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the next field (NextField, default \"next\") is null or missing, or is an empty string. getPageNextLinkBody returns null for a null or empty next URL, and List.Generate stops when a page is null.",
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "175-177",
+              "function": "Bitbucket.FetchCollection",
+              "note": "getPageNextLinkBody returns null when nextUrl is null or empty."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "184-187",
+              "function": "Bitbucket.FetchCollection",
+              "note": "The next link is read from the response body and stored in page metadata."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "307-309",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate continues while lastPage is not null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "116-117",
+          "function": "Bitbucket.RequestJson",
+          "note": "Response data is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "7-17",
+          "function": "Bitbucket.Schemas",
+          "note": "Hardcoded column names with M types (Text.Type, Logical.Type) for getUserWorkspaces."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "318-352",
+          "function": "ApplySchema",
+          "note": "Applies the declared column types to the returned rows."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "169-172",
+          "function": "Bitbucket.FetchCollection",
+          "note": "Column names come from the record fields of the data (Table.FromRecords), and undeclared fields are kept."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "348-348",
+          "function": "ApplySchema",
+          "note": "Table.TransformColumnTypes converts values of returned data to the declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "170-171",
+              "function": "Bitbucket.FetchCollection",
+              "note": "An empty result builds #table from the declared column names, so the declared columns are kept. For hook_events and user the declared list is empty."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "174-174",
+              "function": "Bitbucket.FetchCollection",
+              "note": "ApplySchema runs on the empty table as well."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "96-96",
+          "function": "Bitbucket.Request",
+          "note": "ManualStatusHandling = {500, 502} is set on every data request, including the probe and paging calls."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "103-105",
+          "function": "Bitbucket.Request",
+          "note": "The response status is read from metadata and checked against the retry list."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "107-111",
+          "function": "Bitbucket.Request",
+          "note": "Raises Error.Record \"HttpRequestFailed\" with the status after retries are exhausted."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "107-107",
+          "function": "Bitbucket.Request",
+          "note": "Function.InvokeAfter re-sends the request after a delay."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Only HTTP 500 and 502 are retried. There are 2 retries after the first attempt, so 3 attempts total (attempt < 2). The delay before each retry is (attempt + 1) seconds, so 1 s and then 2 s. After the last failure an HttpRequestFailed Error.Record is raised. No other status is retried, and there is no rate-limit handling.",
+          "evidence": [
+            {
+              "file": "Bitbucket.pq",
+              "lines": "92-92",
+              "function": "Bitbucket.Request",
+              "note": "manualRetryStatusCodes = {500, 502}."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "105-111",
+              "function": "Bitbucket.Request",
+              "note": "Retry condition, attempt limit, and final error."
+            },
+            {
+              "file": "Bitbucket.pq",
+              "lines": "107-107",
+              "function": "Bitbucket.Request",
+              "note": "Delay of (attempt + 1) * 1 seconds."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "243-247",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.Name, Caption and Description on the function type."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "233-233",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.FieldCaption on the url parameter."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "238-238",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.FieldCaption on the options parameter."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "234-234",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.FieldDescription on the url parameter."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "239-239",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.FieldDescription on the options parameter."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "235-235",
+          "function": "Bitbucket.ContentsType",
+          "note": "Documentation.SampleValues on the url parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "32-84",
+          "function": "Bitbucket.Collections",
+          "note": "Hardcoded list of three collections (HookEvents, User, UserWorkspaces)."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "215-226",
+          "function": "Bitbucket.ContentsImpl",
+          "note": "The navigation table is built from that fixed list with Table.ToNavigationTable; every row has IsLeaf true."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "253-253",
+          "function": "Bitbucket",
+          "note": "TestConnection calls Bitbucket.Contents with the flag TestConnection = true."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "210-211",
+          "function": "Bitbucket.ContentsImpl",
+          "note": "When the flag is set, the function runs Bitbucket.TestConnectionProbe instead of the full navigation."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "119-124",
+          "function": "Bitbucket.TestConnectionProbe",
+          "note": "Probe requests user/workspaces and returns a single Connected row."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Bitbucket.pq",
+          "lines": "1-373",
+          "function": "Bitbucket",
+          "note": "All code is in one Bitbucket.pq file with no .pqm modules."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "233-257",
+          "function": "Bitbucket.ContentsType",
+          "note": "Strings come from Extension.LoadString (localized strings)."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "269-270",
+          "function": "Bitbucket.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        },
+        {
+          "file": "Bitbucket.pq",
+          "lines": "260-261",
+          "function": "Bitbucket.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:41:56Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.015509499999999999,
+    "duration_ms": 64447,
+    "repair_attempts": 1
+  },
+  "source_sha256": "01f124655c878dfb36979264d22e56e728000fcd03f3034d0688729e5b8d0d59",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

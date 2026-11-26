@@ -1,0 +1,348 @@
+{
+  "connector": "Asana",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "83-89",
+          "function": "Asana",
+          "note": "Authentication record uses OAuth with StartLogin, FinishLogin and a label."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "111-119",
+              "function": "StartLogin",
+              "note": "Authorize URL sends code_challenge with code_challenge_method S256."
+            },
+            {
+              "file": "Asana.m",
+              "lines": "149-151",
+              "function": "TokenMethod",
+              "note": "Token exchange adds the code_verifier from the login context."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "192-198",
+              "function": "RefreshToken",
+              "note": "Obtains a new access token from the stored refresh_token via TokenMethod with grant_type refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "173-190",
+          "function": "GetTasks",
+          "note": "Data is fetched with Web.Contents against the reporting API."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "157-164",
+          "function": "TokenMethod",
+          "note": "Token exchange uses Web.Contents."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "208-215",
+          "function": "AsanaSchema",
+          "note": "Schema is fetched with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "12",
+          "function": "Asana.Tables",
+          "note": "Shared entry function; its single parameter is the link the user supplies."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "14-19",
+          "function": "Asana_Type",
+          "note": "The link parameter is typed as a Uri URL with captions and sample values."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "37-38",
+          "function": "Asana.View",
+          "note": "The link is used as the base URL state for the data request."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "184-188",
+          "function": "GetTasks",
+          "note": "Response body is parsed with Json.Document and passed to ProcessResponse."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "200-206",
+          "function": "ProcessResponse",
+          "note": "Returns the parsed JSON payload as a table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "208-215",
+          "function": "AsanaSchema",
+          "note": "Column types are built as an M table type from the service's /v1/schema field definitions."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "200-206",
+          "function": "ProcessResponse",
+          "note": "Column names are taken from the data's record field names with no declared M types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "203-205",
+              "function": "ProcessResponse",
+              "note": "An empty result returns #table of the declared schema type, keeping the columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "208-212",
+          "function": "AsanaSchema",
+          "note": "Live schema request (called from GetType) sets no ManualStatusHandling, so Power Query handles its status."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "157-164",
+          "function": "TokenMethod",
+          "note": "Token call sets ManualStatusHandling = {400} and inspects the body."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "176-180",
+          "function": "GetTasks",
+          "note": "Data call sets ManualStatusHandling = {403}."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "136",
+          "function": "FinishLogin",
+          "note": "Error.Record built from the OAuth callback error parameters."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "166-167",
+          "function": "TokenMethod",
+          "note": "Error.Record built from the token response error body."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "185-186",
+          "function": "GetTasks",
+          "note": "Error.Record built from the data response error body."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "14-23",
+          "function": "Asana_Type",
+          "note": "Return-type meta carries Documentation.Name and LongDescription; the link parameter carries FieldCaption, FieldDescription and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "26-34",
+          "function": "AsanaNavTable",
+          "note": "Navigation table is a hardcoded single row named Tasks with IsLeaf true."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "82",
+          "function": "Asana",
+          "note": "TestConnection returns the Asana.Tables entry function with the data source path, a normal query path with no probe."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "37-57",
+          "function": "Asana.View",
+          "note": "Table.View defines an OnTake handler that folds the row limit into the request URL."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "53-57",
+              "function": "Asana.View",
+              "note": "OnTake stores Limit in state and returns a new view."
+            },
+            {
+              "file": "Asana.m",
+              "lines": "69-73",
+              "function": "CalculateUrl",
+              "note": "The Limit is added as a limit query parameter."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "243-250",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ToNavigationTable is loaded from Table.ToNavigationTable.pqm through Extension.Contents."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "16-22",
+          "function": "Asana_Type",
+          "note": "Extension.LoadString supplies localized captions, descriptions and names."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "102-105",
+          "function": "Asana.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:38:05Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.006838800000000001,
+    "duration_ms": 33134
+  },
+  "source_sha256": "f13ae0ecf3e1e8241ed62b81aced87758dfb19163b4c998dfc916b6038aee8fc",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

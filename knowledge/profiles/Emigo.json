@@ -1,0 +1,305 @@
+{
+  "connector": "Emigo",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "15-20",
+          "function": "EmigoDataSourceConnector",
+          "note": "Authentication record declares only UsernamePassword; Key, Windows and Implicit are commented out"
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "135-135",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "Web.Contents(BaseUrl) fetches the catalog that drives the navigator"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "234-234",
+          "function": "EmigoDataSourceConnector.InternalGetExtractFunction",
+          "note": "OData.Feed called on the extract URL to return data"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "263-263",
+          "function": "EmigoDataSourceConnector.EmigoFeed.GetFeedList",
+          "note": "OData.Feed called with the restriction query to return entity data"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id",
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "195-201",
+          "function": "Emigo.GetExtractFunction",
+          "note": "ExtractName is the user-supplied extract (resource) to open"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "110-116",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "DataRestrictionType and DataRestrictionValue together give a period restriction (unit and count), which is a date range"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "110-116",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "DataRestrictionMode and AuthorizationMode are query settings that fit no other id"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "135-135",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "Json.Document parses the catalog payload"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "234-234",
+          "function": "EmigoDataSourceConnector.InternalGetExtractFunction",
+          "note": "OData.Feed returns OData (JSON) data tables"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "234-235",
+          "function": "EmigoDataSourceConnector.InternalGetExtractFunction",
+          "note": "Returned data tables come from OData.Feed, which takes names and types from $metadata; no M types are assigned"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "263-263",
+          "function": "EmigoDataSourceConnector.EmigoFeed.GetFeedList",
+          "note": "OData.Feed returns entity tables with service-provided schema"
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "135-135",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "Web.Contents without ManualStatusHandling"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "234-234",
+          "function": "EmigoDataSourceConnector.InternalGetExtractFunction",
+          "note": "OData.Feed data request without ManualStatusHandling"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "263-263",
+          "function": "EmigoDataSourceConnector.EmigoFeed.GetFeedList",
+          "note": "OData.Feed data request without ManualStatusHandling"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "79-85",
+          "function": "EmigoDataSourceConnector.NavigationFunctionType",
+          "note": "Documentation.Name, LongDescription and Examples on the shared function type of Emigo.Contents"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "179-186",
+          "function": "EmigoDataSourceConnector.GetExtractFunctionType",
+          "note": "Documentation.Name, LongDescription and Examples on the extract function type"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "52-57",
+          "function": "EmigoDataSourceConnector.NavigationFunctionType",
+          "note": "Documentation.FieldCaption on the parameters"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "54-54",
+          "function": "EmigoDataSourceConnector.NavigationFunctionType",
+          "note": "Documentation.FieldDescription on parameters"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "61-61",
+          "function": "EmigoDataSourceConnector.NavigationFunctionType",
+          "note": "Documentation.SampleValues on DataRestrictionValue"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "55-55",
+          "function": "EmigoDataSourceConnector.NavigationFunctionType",
+          "note": "Documentation.AllowedValues on DataRestrictionType"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "110-147",
+          "function": "EmigoDataSourceConnector.NavigationWithCustomError",
+          "note": "Navigator rows are built at runtime from the JSON catalog fetched from BaseUrl"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "409-430",
+          "function": "EmigoDataSourceConnector.Table.ToNavigationTable",
+          "note": "Builds the navigation table from the discovered rows with IsLeaf and item columns"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "14-14",
+          "function": "EmigoDataSourceConnector",
+          "note": "TestConnection returns the name \"Emigo.Contents\", the shared entry function"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "263-263",
+          "function": "EmigoDataSourceConnector.EmigoFeed.GetFeedList",
+          "note": "Navigator data tables are OData.Feed results, so OData filters and paging fold into the request"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "234-234",
+          "function": "EmigoDataSourceConnector.InternalGetExtractFunction",
+          "note": "Extract tables are OData.Feed results"
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Emigo.m",
+          "lines": "1-435",
+          "function": "EmigoDataSourceConnector",
+          "note": "Whole connector is one .m file with no pqm module loading"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "18-19",
+          "function": "EmigoDataSourceConnector",
+          "note": "Labels loaded with Extension.LoadString"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "432-435",
+          "function": "EmigoDataSourceConnector.Icons",
+          "note": "Icon16/Icon32 sets built from Extension.Contents PNG files"
+        },
+        {
+          "file": "Emigo.m",
+          "lines": "32-33",
+          "function": "EmigoDataSourceConnector.Publish",
+          "note": "SourceImage and SourceTypeImage point to the icons"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:47:13Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0093627,
+    "duration_ms": 36063
+  },
+  "source_sha256": "c863c91476ae16c2a3c22ffbba89ae1f74fa405ea26755154f0cfb62a95e861d",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

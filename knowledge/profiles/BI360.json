@@ -1,0 +1,372 @@
+{
+  "connector": "BI360",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "10-14",
+          "function": "DefaultRequestHeaders",
+          "note": "Token header is read from Extension.CurrentCredential()[Key]."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "25-30",
+          "function": "BI360",
+          "note": "Authentication record defines a single Key credential (Solver Access Token)."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Solver.m",
+              "lines": "11",
+              "function": "DefaultRequestHeaders",
+              "note": "The key is sent in the Token request header."
+            },
+            {
+              "file": "Solver.m",
+              "lines": "39, 82, 251",
+              "function": "BI360Impl, GetPage, BI360.GetSchema",
+              "note": "Every Web.Contents call passes Headers = DefaultRequestHeaders."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "39",
+          "function": "BI360Impl",
+          "note": "Web.Contents for the root table list."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "82",
+          "function": "GetPage",
+          "note": "Web.Contents for each data page."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "251",
+          "function": "BI360.GetSchema",
+          "note": "Web.Contents for the schema call."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "262-267",
+          "function": "BI360Type",
+          "note": "The only parameter is Url, the Solver API URL that the connector calls."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "74",
+          "function": "GetAllPagesByNextLink",
+          "note": "The next page URL is read from the NextLink metadata of the previous page."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "93",
+          "function": "GetNextLink",
+          "note": "The next URL comes from the nextUrl field of the response body."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Solver.m",
+              "lines": "70-79",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "Solver.m",
+              "lines": "310",
+              "function": "Table.GenerateByPage",
+              "note": "The helper is loaded from Table.GenerateByPage.pqm."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no nextUrl. GetNextLink returns null through Record.FieldOrDefault, so the next nextLink is null and GetPage returns null. Table.GenerateByPage then ends the list.",
+          "evidence": [
+            {
+              "file": "Solver.m",
+              "lines": "74-76",
+              "function": "GetAllPagesByNextLink",
+              "note": "page is null when nextLink is null."
+            },
+            {
+              "file": "Solver.m",
+              "lines": "93",
+              "function": "GetNextLink",
+              "note": "Returns null when nextUrl is absent."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "83",
+          "function": "GetPage",
+          "note": "Json.Document parses each data page."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "251",
+          "function": "BI360.GetSchema",
+          "note": "Json.Document parses the schema response."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "210-235",
+          "function": "BI360.SqlType2MType",
+          "note": "The connector maps SQL type names to M types itself."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "184-193",
+          "function": "GetSchemaForEntity",
+          "note": "Builds a table type with the declared column names and types."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "113",
+          "function": "BI360.View",
+          "note": "Table.ChangeType applies the declared schema to the returned rows."
+        },
+        {
+          "file": "Table.ChangeType.pqm",
+          "lines": "35, 66",
+          "function": "Table.ChangeType",
+          "note": "Selects the declared columns and sets the table type."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Table.ChangeType.pqm",
+              "lines": "35",
+              "function": "Table.ChangeType",
+              "note": "SelectColumns with MissingField.UseNull keeps the declared columns even when the page has no rows."
+            },
+            {
+              "file": "Solver.m",
+              "lines": "113",
+              "function": "BI360.View",
+              "note": "Table.ChangeType runs on the result, including empty results."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "39, 82, 251",
+          "function": "BI360Impl, GetPage, BI360.GetSchema",
+          "note": "Web.Contents is called without ManualStatusHandling, so Power Query handles status codes."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "262-272",
+          "function": "BI360Type",
+          "note": "Documentation.Name, LongDescription, FieldCaption, FieldDescription and SampleValues are set."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "39-55",
+          "function": "BI360Impl",
+          "note": "Navigation rows are read at runtime from the source root list and built with Table.ToNavigationTable."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "18-24",
+          "function": "BI360 (TestConnection)",
+          "note": "TestConnection returns { \"BI360.Contents\", url }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "102-117",
+          "function": "BI360.View",
+          "note": "Table.View defines only GetType and GetRows, which is not folding."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Solver.m",
+          "lines": "302-310",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ChangeType.pqm and Table.GenerateByPage.pqm are loaded through Extension.Contents."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "313",
+          "function": "Diagnostics",
+          "note": "Diagnostics.pqm is loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "199",
+          "function": "BI360.Publish",
+          "note": "ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "205-208",
+          "function": "Solver.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "3",
+          "function": "Diagnostics.LogValue2",
+          "note": "Calls Diagnostics.Trace with no switch."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "4-8",
+          "function": "Diagnostics.LogFailure",
+          "note": "Calls LogValue2 (Diagnostics.Trace) on error, without a switch."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "316",
+          "function": "Diagnostics.WrapHandlers",
+          "note": "WrapHandlers is live in BI360.View and is not gated by EnableTraceOutput."
+        },
+        {
+          "file": "Solver.m",
+          "lines": "5, 314",
+          "function": "Diagnostics.LogValue",
+          "note": "LogValue is gated by EnableTraceOutput, but the LogFailure path is not."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:40:47Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0091278,
+    "duration_ms": 29058
+  },
+  "source_sha256": "5b52ad7d8bd95154d9a999c8244e5f44b6194f9da0c34ec406ab599b6b58d923",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,426 @@
+{
+  "connector": "FifteenFive",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "838-838",
+          "function": "FifteenFive.RequestHeaders",
+          "note": "Sends the user-supplied key as a Bearer token in the Authorization header from Extension.CurrentCredential()[Key]."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1004-1006",
+          "function": "FifteenFive",
+          "note": "Data source kind declares a single Key authentication kind (BearerTokenAuthLabel/TokenLabel)."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "838-838",
+              "function": "FifteenFive.RequestHeaders",
+              "note": "Key is placed in the Authorization request header."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "850-852",
+              "function": "FifteenFive.Request",
+              "note": "Headers record is added to Web.Contents options."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "852-852",
+          "function": "FifteenFive.Request",
+          "note": "All data and probe requests go through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "4-5",
+          "function": "FifteenFive.Contents",
+          "note": "Shared entry function takes url (text) as the 15Five base URL."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "955-957",
+          "function": "FifteenFive.ContentsImpl",
+          "note": "Second parameter is an optional options record."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "981-991",
+          "function": "FifteenFive.ContentsType",
+          "note": "url is typed as a URL/server; options is a record parameter."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts only TestConnection (logical, default false). ContentsImpl reads it with Record.FieldOrDefault and routes to the probe when true. No other fields are read.",
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "957-961",
+              "function": "FifteenFive.ContentsImpl",
+              "note": "TestConnection field is read and branches to the probe."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "473-473",
+          "function": "FifteenFive.Collections",
+          "note": "Every collection sets Paging style nextLinkBody with NextField next."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "933-935",
+          "function": "FifteenFive.FetchCollection",
+          "note": "The next page URL is read from the response body field named by NextField."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "940-944",
+              "function": "FifteenFive.FetchCollection",
+              "note": "Pages are produced by calling Table.GenerateByPage."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "1057-1066",
+              "function": "Table.GenerateByPage",
+              "note": "Helper; the connector itself does not call List.Generate directly, so list-generate is not answered."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging ends when the response's next field is null or empty. getPageNextLinkBody then returns null, and Table.GenerateByPage stops when a page is null.",
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "926-926",
+              "function": "FifteenFive.FetchCollection",
+              "note": "A null or empty next URL returns null, ending the page sequence."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "934-937",
+              "function": "FifteenFive.FetchCollection",
+              "note": "nextLink is read from the body and stored as page metadata."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "1059-1059",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate continues while lastPage <> null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "866-867",
+          "function": "FifteenFive.RequestJson",
+          "note": "Response bodies are parsed with Json.Document and returned as data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "7-260",
+          "function": "FifteenFive.Schemas",
+          "note": "Hardcoded column names with M types for each collection."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1068-1102",
+          "function": "ApplySchema",
+          "note": "Declared M types are applied to the returned table columns."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "919-923",
+          "function": "FifteenFive.FetchCollection",
+          "note": "Table.FromRecords builds columns from the data's field names."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1090-1098",
+          "function": "ApplySchema",
+          "note": "Columns from the response beyond the declared ones stay in the projected table, and Table.TransformColumnTypes converts data cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "920-921",
+              "function": "FifteenFive.FetchCollection",
+              "note": "An empty record list builds a table with the declared column names."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "1063-1063",
+              "function": "Table.GenerateByPage",
+              "note": "An empty first page keeps its column names from the page table."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "846-846",
+          "function": "FifteenFive.Request",
+          "note": "ManualStatusHandling is set on every Web.Contents call for statuses 500 and 502, and the status is inspected."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "858-861",
+          "function": "FifteenFive.Request",
+          "note": "After retries are exhausted, an Error.Record HttpRequestFailed is raised with the status."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "857-857",
+          "function": "FifteenFive.Request",
+          "note": "Failed requests are resent through Function.InvokeAfter with a delay."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Statuses 500 and 502 are retried. Up to 2 retries follow the first attempt (3 attempts total). The delay is (attempt+1) seconds, so 1 second before the first retry and 2 seconds before the second.",
+          "evidence": [
+            {
+              "file": "FifteenFive.pq",
+              "lines": "842-842",
+              "function": "FifteenFive.Request",
+              "note": "manualRetryStatusCodes = {500, 502}."
+            },
+            {
+              "file": "FifteenFive.pq",
+              "lines": "855-857",
+              "function": "FifteenFive.Request",
+              "note": "attempt < 2 triggers Function.InvokeAfter with duration (attempt+1) seconds."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "993-997",
+          "function": "FifteenFive.ContentsType",
+          "note": "Documentation.Name, Caption and Description on the function type."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "982-986",
+          "function": "FifteenFive.ContentsType",
+          "note": "url has FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "987-990",
+          "function": "FifteenFive.ContentsType",
+          "note": "options has FieldCaption and FieldDescription."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "459-834",
+          "function": "FifteenFive.Collections",
+          "note": "Navigation rows come from a hardcoded list of collections."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "971-976",
+          "function": "FifteenFive.ContentsImpl",
+          "note": "Every row is a leaf table (IsLeaf true), and Table.ToNavigationTable builds the navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1003-1003",
+          "function": "FifteenFive",
+          "note": "TestConnection calls FifteenFive.Contents with TestConnection = true."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "960-961",
+          "function": "FifteenFive.ContentsImpl",
+          "note": "The flag branches to FifteenFive.TestConnectionProbe instead of the full navigation."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "869-874",
+          "function": "FifteenFive.TestConnectionProbe",
+          "note": "Probe requests only api/public/user/ and returns a single row."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "955-978",
+          "function": "FifteenFive.ContentsImpl",
+          "note": "No Table.View, OnTake/OnSelectRows handlers, OnNativeQuery, or OData/ODBC/SQL folding are used."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1-1005",
+          "function": "FifteenFive",
+          "note": "All code is in one FifteenFive.pq file; no .pqm modules are loaded."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "983-996",
+          "function": "FifteenFive.ContentsType",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1019-1020",
+          "function": "FifteenFive.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "FifteenFive.pq",
+          "lines": "1011-1011",
+          "function": "FifteenFive.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:49:07Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.010902499999999999,
+    "duration_ms": 35639
+  },
+  "source_sha256": "47b99f80a0a38d81fabaf68a65df3d8653d5f2db9d25dd170a12e80e4528dbce",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

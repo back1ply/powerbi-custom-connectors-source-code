@@ -1,0 +1,302 @@
+{
+  "connector": "FactSetRMS",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "10-15",
+          "function": "FactSetRMS",
+          "note": "Authentication is UsernamePassword with the password field labelled API Key. Power Query supplies the credential, and no code sets an Authorization header or key parameter."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-72",
+          "function": "GetNotesTable",
+          "note": "Web.Contents is called with only the Headers option (X-IRN-Source), so the key is not sent by connector code."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-72",
+          "function": "GetNotesTable",
+          "note": "Data is fetched with Web.Contents against API_HOST."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "36-36",
+          "function": "FactSetRMS.Functions",
+          "note": "The only shared entry function takes one optional record parameter, options. Its only use is the TestConnection flag."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Only the TestConnection field, read as options[TestConnection]? = true. When it is true, the function returns Record.ToTable of the /group response instead of the navigation table.",
+          "evidence": [
+            {
+              "file": "FactSetRMS.m",
+              "lines": "65-68",
+              "function": "FactSetRMS.Functions",
+              "note": "options[TestConnection]? = true selects the Web.Contents probe of the group endpoint; otherwise NavTable is returned."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-73",
+          "function": "GetNotesTable",
+          "note": "Each endpoint makes one Web.Contents call and parses it with Json.Document. There is no Table.GenerateByPage, List.Generate, recursion, or next-link handling."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-73",
+          "function": "GetNotesTable",
+          "note": "Responses are read as text and parsed with Json.Document. Every endpoint works this way."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "327-332",
+          "function": "getNoteImpl",
+          "note": "Table.TransformColumnTypes assigns M types to named columns of the returned note table (declared schema and explicit conversion). This path is reachable through the GetNote navigation item."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "441-443",
+          "function": "GetCustomSymbolImpl",
+          "note": "A second hardcoded column-type table, reachable through the GetCustomSymbol navigation item."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "78-78",
+          "function": "GetNotesTable",
+          "note": "Table.TransformColumns converts relatedSymbols to type text, a per-column conversion of returned data."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "87-87",
+          "function": "GetNotesTable",
+          "note": "Table.Pivot creates columns named from data values (custom field codes) with no declared M types."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "324-324",
+          "function": "getNoteImpl",
+          "note": "Record.ToTable keeps the field names from the response, including fields beyond the typed ones."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "FactSetRMS.m",
+              "lines": "327-332",
+              "function": "getNoteImpl",
+              "note": "The declared types apply to a single-note record. The code does not show whether an empty response keeps those columns, so the answer is unclear."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-72",
+          "function": "GetNotesTable",
+          "note": "Live data requests use Web.Contents with no ManualStatusHandling option, so Power Query handles status codes."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "66-66",
+          "function": "FactSetRMS.Functions",
+          "note": "The TestConnection probe also uses plain Web.Contents with no status handling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "35-36",
+          "function": "FactSetRMS.Functions",
+          "note": "The shared function has no Documentation meta. The Documentation.Name, LongDescription and SampleValues metadata is on the non-shared GetNotes/GetNote/GetMeeting and related function types (lines 226-251 and later), which are not shared."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "38-63",
+          "function": "FactSetRMS.Functions",
+          "note": "The navigation rows are a hardcoded #table list of 20 items, each with IsLeaf true. They are built with Table.ToNavigationTable. Nothing is discovered from the API, and there are no folders or indirect rows."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "9-9",
+          "function": "FactSetRMS",
+          "note": "TestConnection names the entry function FactSetRMS.Functions with the flag [TestConnection = true]."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "65-66",
+          "function": "FactSetRMS.Functions",
+          "note": "When the flag is set, the entry function branches to a probe that fetches the group endpoint, not the normal navigation table."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "281-285",
+          "function": "GetNotesImpl",
+          "note": "Table.NestedJoin runs locally on the fetched data. There is no Table.View, OnNativeQuery, ODBC, or OData folding."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "1-620",
+          "function": "FactSetRMS",
+          "note": "All code is in one .m file, with no .pqm modules loaded."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "14-14",
+          "function": "FactSetRMS",
+          "note": "Extension.LoadString supplies localized strings for the authentication label, data source label, and publish text."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "31-32",
+          "function": "PowerBI.DataConnector.Icons",
+          "note": "Extension.Contents loads the icon PNG files."
+        },
+        {
+          "file": "FactSetRMS.m",
+          "lines": "22-22",
+          "function": "FactSetRMS.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "1-620",
+          "function": "FactSetRMS",
+          "note": "No live code calls Diagnostics.Trace. The traceparent header is not used."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "FactSetRMS.m",
+          "lines": "72-72",
+          "function": "GetNotesTable",
+          "note": "All calls are GET reads through Web.Contents with headers only. There are no Action functions or request bodies."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:48:56Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0120626,
+    "duration_ms": 43686
+  },
+  "source_sha256": "8f7edf2baec2e0f0159bcd6de94bae979423832912f9f4b044eb8369c23c6366",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

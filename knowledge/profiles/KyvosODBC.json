@@ -1,0 +1,374 @@
+{
+  "connector": "KyvosODBC",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "298-307",
+          "function": "KyvosODBC",
+          "note": "Authentication record declares UsernamePassword and OAuth 2.0 kinds. No anonymous kind is declared."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "400-403",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "UsernamePassword credentials are mapped to UserName and PWD connection-string parameters."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "404-428",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "OAuth credential's access_token and id_token are passed to the ODBC connection string."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "123",
+              "function": "code_challenge_method",
+              "note": "code_challenge_method is set to S256."
+            },
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "156-175",
+              "function": "StartLogin",
+              "note": "Generates a code verifier, derives the S256 code_challenge, and sends it in the authorize URL."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "234",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "302-307",
+              "function": "KyvosODBC",
+              "note": "OAuth record registers Refresh = Refresh."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "517-536",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Data is reached through Odbc.DataSource with the Kyvos ODBC driver. Web.Contents is used only for the OAuth exchange, not for data."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "434-446",
+              "function": "KyvosODBCDatabaseCommon",
+              "note": "SqlCapabilities is overridden (SupportsTop, SupportsDerivedTable, Sql92Conformance, FractionalSecondsScale)."
+            },
+            {
+              "file": "KyvosODBC.pq",
+              "lines": "449-459",
+              "function": "KyvosODBCDatabaseCommon",
+              "note": "SQLGetInfo is overridden with SQL_SQL92_PREDICATES and SQL_AGGREGATE_FUNCTIONS."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "342-343",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Shared function takes server, httpPath and encryption parameters."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "347-350",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "server is the host (and port) of the target, so it is url-or-server."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "351-355",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "httpPath names a resource path on the server and is passed as HTTPPath, so it is database-or-resource-id."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "356-359",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "encryption is an Enabled/Disabled SSL switch that no other id fits, so it is other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "517-536",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Rows are returned as tables from Odbc.DataSource. Json.Document is used only for OAuth configuration, not for returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "517-536",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Column names and types come from the ODBC driver. No declared M types are assigned."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "493-510",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "The SQLColumns override only re-wraps the driver's table with its own type, leaving the driver metadata unchanged."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "517-536",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Transport is odbc only, so the web-contents and odata-feed applies_when condition excludes this question."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "365-375",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Documentation.Name, LongDescription and Examples are attached to the function."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "347-357",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Documentation.FieldCaption is set on the parameters."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "354",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Documentation.FieldDescription is set on httpPath."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "348-353",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Documentation.SampleValues is set on server and httpPath."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "358",
+          "function": "KyvosODBCDatabaseExport",
+          "note": "Documentation.AllowedValues is set to Enabled and Disabled on encryption."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "517-521",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Odbc.DataSource builds the navigator from the driver's runtime catalog, so items are discovered from the source."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "520-521",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "HierarchicalNavigation = true groups tables under schema folders, which are non-leaf navigation rows."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "289-296",
+          "function": "KyvosODBC",
+          "note": "TestConnection returns {\"KyvosODBC.Databases\", server, httpPath, encryption}, which names the shared entry function with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "434-446",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "SqlCapabilities overrides shape folding through Odbc.DataSource."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "80",
+          "function": "Config_LimitClauseKind",
+          "note": "LimitClauseKind.Limit is configured for row limits."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "527-536",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "Odbc.DataSource is called with the SqlCapabilities and SQLGetInfo overrides."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "646",
+          "function": "Diagnostics",
+          "note": "Diagnostics.pqm is loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "652",
+          "function": "ODBC",
+          "note": "OdbcConstants.pqm is loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "309",
+          "function": "KyvosODBC",
+          "note": "Label is read with Extension.LoadString."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "324-337",
+          "function": "KyvosODBC.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "648",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue reaches Diagnostics[LogValue] only when EnableTraceOutput is true; otherwise it is a no-op."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "12",
+          "function": "EnableTraceOutput",
+          "note": "EnableTraceOutput is the switch and is set to false."
+        },
+        {
+          "file": "KyvosODBC.pq",
+          "lines": "432",
+          "function": "KyvosODBCDatabaseCommon",
+          "note": "A live Diagnostics.LogValue call is gated by the switch at line 648."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:52Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0147007,
+    "duration_ms": 34348
+  },
+  "source_sha256": "aae30ee7f4d60191b6d62c188d70d9dc66ca041ac5317d386a433ef66829539b",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

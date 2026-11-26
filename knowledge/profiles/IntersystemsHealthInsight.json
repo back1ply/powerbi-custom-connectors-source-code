@@ -1,0 +1,333 @@
+{
+  "connector": "IntersystemsHealthInsight",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "32-36",
+          "function": "IntersystemsHealthInsight",
+          "note": "Data source kind declares only UsernamePassword; Windows and Implicit are commented out, so the Windows branch is not reachable."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "93-98",
+          "function": "HealthInsightImpl",
+          "note": "Extension.CurrentCredential supplies Username and Password as UID and PWD in the ODBC connection string for the UsernamePassword kind."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "137-161",
+          "function": "HealthInsightImpl",
+          "note": "Odbc.DataSource(ConnectionString, ...) is the data path; catalog queries also use Odbc.Query (lines 440-475)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "IntersystemsHealthInsight.pq",
+              "lines": "151-159",
+              "function": "HealthInsightImpl",
+              "note": "SqlCapabilities record passed to Odbc.DataSource."
+            },
+            {
+              "file": "IntersystemsHealthInsight.pq",
+              "lines": "277-281",
+              "function": "BuildOdbcConfig",
+              "note": "SQLGetInfo record sets SQL_SQL_CONFORMANCE; the result is merged into SqlCapabilities at line 108."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "41-45",
+          "function": "HealthInsightType",
+          "note": "host parameter, the server name (url-or-server)."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "46-50",
+          "function": "HealthInsightType",
+          "note": "port parameter, part of the connection target address (url-or-server)."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "51-55",
+          "function": "HealthInsightType",
+          "note": "namespace parameter, the database inside the target (database-or-resource-id)."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "61-72",
+          "function": "HealthInsightType",
+          "note": "ssl and hideSystemTables are Yes/No connector settings that fit no other id (other)."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "137-161",
+          "function": "HealthInsightImpl",
+          "note": "Returned tables come from the ODBC driver through Odbc.DataSource. TestConnection's Json.Document (line 24) parses the gateway input, not returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "123-135",
+          "function": "HealthInsightImpl",
+          "note": "SQLColumns override only rewrites driver metadata when tracing is on; names and types still come from the driver."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "377-389",
+          "function": "UpdateDimensionColumns",
+          "note": "Columns are renamed to catalog DisplayNames and no M types are assigned."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "137-161",
+          "function": "HealthInsightImpl",
+          "note": "Transport is odbc, which is outside the applies_when set (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "74-77",
+          "function": "HealthInsightType",
+          "note": "Documentation.Name, LongDescription and Icon on the function type."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "42-55",
+          "function": "HealthInsightType",
+          "note": "Documentation.FieldCaption on the parameters."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "43-54",
+          "function": "HealthInsightType",
+          "note": "Documentation.FieldDescription on the parameters."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "44-54",
+          "function": "HealthInsightType",
+          "note": "Documentation.SampleValues on the parameters."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "64-70",
+          "function": "HealthInsightType",
+          "note": "Documentation.AllowedValues Yes/No on ssl and hideSystemTables."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "164-175",
+          "function": "HealthInsightImpl",
+          "note": "Navigator items are filtered from the live ODBC catalog at runtime."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "167-170",
+          "function": "HealthInsightImpl",
+          "note": "Cube list is read from the source at runtime."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "178-188",
+          "function": "HealthInsightImpl",
+          "note": "Tables and Cubes folders are built with IsLeaf false and nested navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "22-31",
+          "function": "IntersystemsHealthInsight",
+          "note": "TestConnection returns the shared IntersystemsHealthInsight.Database function with the connection parameters, so the test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "106-111",
+          "function": "HealthInsightImpl",
+          "note": "BuildOdbcConfig output is merged into SqlCapabilities."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "151-159",
+          "function": "HealthInsightImpl",
+          "note": "SqlCapabilities passed to Odbc.DataSource, including SupportsTop."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "208-287",
+          "function": "BuildOdbcConfig",
+          "note": "Builds SqlCapabilities, SQLGetFunctions and SQLGetInfo that shape ODBC folding."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "290-303",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "21-21",
+          "function": "IntersystemsHealthInsight",
+          "note": "Extension.LoadString is used for localized strings (also lines 42-78, 196, 352-353)."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "202-205",
+          "function": "IntersystemsHealthInsight.Icons",
+          "note": "Extension.Contents loads the icon PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "10-10",
+          "function": "EnableTraceOutput",
+          "note": "Switch is false by default."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "299-299",
+          "function": "Diagnostics.LogValue",
+          "note": "Without EnableTraceOutput, LogValue is an identity function and never calls Diagnostics.Trace."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "114-121",
+          "function": "SQLGetTypeInfo",
+          "note": "Diagnostics.LogValue calls run only when EnableTraceOutput <> true."
+        },
+        {
+          "file": "IntersystemsHealthInsight.pq",
+          "lines": "124-135",
+          "function": "SQLColumns",
+          "note": "Diagnostics.LogValue calls run only inside the EnableTraceOutput guard."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:56Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0155467,
+    "duration_ms": 37128
+  },
+  "source_sha256": "210c9296b47d7eaab24af70de4e9f8b26eb73d845a2cd83f517be4efb0a91755",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

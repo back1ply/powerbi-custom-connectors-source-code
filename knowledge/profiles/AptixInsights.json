@@ -1,0 +1,252 @@
+{
+  "connector": "AptixInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "39-41",
+          "function": "AptixInsightsImpl",
+          "note": "Reads the token from Extension.CurrentCredential()[Key] and sends it as a Bearer Authorization header."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "58-60",
+          "function": "AptixInsights",
+          "note": "Data source kind declares Authentication = [Key = []]."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "AptixInsights.pq",
+              "lines": "41",
+              "function": "AptixInsightsImpl",
+              "note": "The key is sent in the Authorization header as \"Bearer \" & token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "Data is read with OData.Feed(url, headers, serviceOptions)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "17-24",
+          "function": "AptixInsightsType",
+          "note": "The required url parameter is a text URL, which is the connection target."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "25-31",
+          "function": "AptixInsightsType",
+          "note": "The optional query parameter is typed as any."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "46",
+          "function": "AptixInsightsImpl",
+          "note": "The query parameter is passed straight through as the OData Query option, so it is classed as other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed parses the OData service's JSON payload that the connector returns."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "17-35",
+          "function": "AptixInsightsType",
+          "note": "The return type is a bare \"as table\" with no declared column types, so names and types come from the OData service."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "44",
+          "function": "AptixInsightsImpl",
+          "note": "MoreColumns = true keeps response columns beyond the metadata with no declared M types."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The live OData.Feed request has no ManualStatusHandling, so status handling is left to Power Query."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "32-35",
+          "function": "AptixInsightsType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "19-30",
+          "function": "AptixInsightsType",
+          "note": "Documentation.FieldCaption and FieldDescription on the parameters, and Documentation.SampleValues on the url and query parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The connector returns OData.Feed on the user-supplied URL, so the navigator is built from the service document."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "57",
+          "function": "AptixInsights",
+          "note": "TestConnection names the shared AptixInsights.Feed entry function with the url from the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "42-50",
+          "function": "AptixInsightsImpl",
+          "note": "Returns an OData.Feed table, so the OData connector folds filters, selects and paging into the request. No Table.View handlers are written."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "AptixInsights",
+          "note": "All code is in one .pq file with no pqm modules or LoadFunction helpers."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "20-22",
+          "function": "AptixInsightsType",
+          "note": "Labels and descriptions are loaded with Extension.LoadString."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "74-87",
+          "function": "AptixInsights.Icons",
+          "note": "Icon16 and Icon32 sets are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:37:41Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004691,
+    "duration_ms": 21294
+  },
+  "source_sha256": "edd4059f61dfac8b5ddc96920f675a48d926a9597a75efefe069e51e98b83530",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

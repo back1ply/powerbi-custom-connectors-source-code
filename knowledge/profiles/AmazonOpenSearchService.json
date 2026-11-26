@@ -1,0 +1,320 @@
+{
+  "connector": "AmazonOpenSearchService",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "username-password",
+        "key",
+        "signed-request"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "193-196",
+          "function": "AmazonOpenSearchService",
+          "note": "Authentication record offers Implicit (Label NONE), which is the credential-free kind."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "54-57",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Credential-free fallback branch sets Auth = NONE when no credential mode matches."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "197-199",
+          "function": "AmazonOpenSearchService",
+          "note": "UsernamePassword authentication kind is declared (Label BASIC)."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "43-48",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "UsernamePassword credentials become Auth = BASIC with UID and PWD connection string properties."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "200-203",
+          "function": "AmazonOpenSearchService",
+          "note": "Key authentication kind is declared (Label AWS_SIGV4, KeyLabel Region)."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "49-53",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Key mode sets Auth = AWS_SIGV4 and passes the key as the Region property."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "AmazonOpenSearchService.m",
+              "lines": "52-52",
+              "function": "AmazonOpenSearchServiceImpl",
+              "note": "The key is sent as the Region property of the ODBC connection string, not as a header, query string, or body. Signing is done by the driver (AWS_SIGV4)."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "154-154",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Data is reached through Odbc.DataSource(FullConnectionString, OdbcOptions)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AmazonOpenSearchService.m",
+              "lines": "116-125",
+              "function": "AmazonOpenSearchServiceImpl",
+              "note": "SqlCapabilities record overrides are passed in OdbcOptions."
+            },
+            {
+              "file": "AmazonOpenSearchService.m",
+              "lines": "82-85",
+              "function": "AmazonOpenSearchServiceImpl",
+              "note": "SQLGetInfo override is declared and passed in OdbcOptions."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "16-20",
+          "function": "AmazonOpenSearchServiceType",
+          "note": "Server parameter (text) is the host of the OpenSearch server, a connection target (url-or-server)."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "21-25",
+          "function": "AmazonOpenSearchServiceType",
+          "note": "Port parameter is a number that fits no other id, so it is other."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "26-30",
+          "function": "AmazonOpenSearchServiceType",
+          "note": "UseSSL logical parameter fits no other id, so it is other."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "154-156",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Returned rows come from the ODBC driver through Odbc.DataSource. The Json.Document call in TestConnection parses the data source path, not returned data, so it does not count."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "154-156",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Column names and types come from the ODBC driver. The SQLColumns and SQLGetTypeInfo handlers only pass data through or rewrite it for trace output."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "154-154",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Transport is odbc, which is outside the web-contents and odata-feed applies_when set."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "15-34",
+          "function": "AmazonOpenSearchServiceType",
+          "note": "Type function carries Documentation.Name, FieldCaption, FieldDescription, SampleValues, and AllowedValues metadata for Server, Port, and UseSSL."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "154-156",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "Odbc.DataSource builds the navigator by listing tables from the driver at runtime. HierarchicalNavigation is false (line 129)."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "183-190",
+          "function": "AmazonOpenSearchService",
+          "note": "TestConnection returns AmazonOpenSearchService.Contents with the server, port, and SSL values, so it names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "116-125",
+          "function": "AmazonOpenSearchServiceImpl",
+          "note": "SqlCapabilities overrides (LIMIT/OFFSET kind, literal support, and so on) shape folding through Odbc.DataSource."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "252-256",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded through Extension.LoadFunction, which is wired into the connector."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "222-229",
+          "function": "AmazonOpenSearchService",
+          "note": "Extension.LoadString is used for the data source label and publish button text."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "238-241",
+          "function": "OpenSearch.Icons",
+          "note": "Icon sizes are loaded through Extension.Contents."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "227-227",
+          "function": "AmazonOpenSearchService.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "9-9",
+          "function": "EnableTraceOutput",
+          "note": "The switch is set to false."
+        },
+        {
+          "file": "AmazonOpenSearchService.m",
+          "lines": "253-253",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue reaches Diagnostics[LogValue] (which calls Diagnostics.Trace) only when EnableTraceOutput is true. Otherwise it is a no-op."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-2",
+          "function": "Diagnostics.pqm",
+          "note": "LogValue calls Diagnostics.Trace, but only through the gated wrapper above."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:37:39Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0126479,
+    "duration_ms": 29155
+  },
+  "source_sha256": "f197e7ca602d9e401ff614cd1b34174cf78afa64d75e086ee60683bc7af981da",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

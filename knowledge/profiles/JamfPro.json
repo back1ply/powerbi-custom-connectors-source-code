@@ -1,0 +1,386 @@
+{
+  "connector": "JamfPro",
+  "answers": {
+    "auth": {
+      "values": [
+        "key",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "261-282",
+          "function": "TokenAuthorizationHeader",
+          "note": "Key credential (client id and secret) is exchanged for a bearer token at /api/v1/oauth/token using client_credentials. This is a custom token exchange, not the Power Query OAuth kind, so it is not counted as oauth."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "283-294",
+          "function": "TokenAuthorizationHeader",
+          "note": "Otherwise the connector posts to /api/v1/auth/token with no header, relying on the engine to supply the UsernamePassword credentials, then uses the returned token."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "671-680",
+          "function": "JamfPro",
+          "note": "Data source kind declares UsernamePassword and Key authentication."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "body"
+          ],
+          "evidence": [
+            {
+              "file": "JamfPro.pq",
+              "lines": "270-276",
+              "function": "TokenAuthorizationHeader",
+              "note": "The client_id and client_secret derived from the Key credential are sent in the form-urlencoded request body of the token call."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "156-184",
+          "function": "UAPIResource",
+          "note": "Data is read with Web.Contents."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "212-254",
+          "function": "JSSResource",
+          "note": "Data is read with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "9-13",
+          "function": "JamfPro.Contents",
+          "note": "The only user parameter is jamfUrl, the Jamf Pro server URL."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "75-88",
+          "function": "getPage",
+          "note": "Requests send page-size and page index parameters, so the paging is offset-style with a limit."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "60-67",
+          "function": "getTotalNumberOfPages",
+          "note": "The page count is derived from totalCount divided by PAGE_SIZE."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "JamfPro.pq",
+              "lines": "314-318",
+              "function": "computerApplications",
+              "note": "Pages are produced by List.Transform over the list {0..totalPagesCount - 1}, not by Table.GenerateByPage, List.Generate or recursion. The same pattern appears in computers (349-353), mobileDevices (417-423), mobileDeviceApplications (473-477), computerExtensionAttributes (506-511) and mobileDeviceExtensionAtttributes (566-570)."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops after the page count computed from the first request's totalCount (ceil(totalCount / PAGE_SIZE), or 0 when totalCount is 0). The connector requests pages 0 through count minus 1 and does not read any next link or token.",
+          "evidence": [
+            {
+              "file": "JamfPro.pq",
+              "lines": "60-67",
+              "function": "getTotalNumberOfPages",
+              "note": "Page count is computed from totalCount, with 0 when the count is 0."
+            },
+            {
+              "file": "JamfPro.pq",
+              "lines": "314-318",
+              "function": "computerApplications",
+              "note": "Requests cover page indexes 0 to totalPagesCount - 1."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "202-202",
+          "function": "UAPIResource",
+          "note": "Response payloads are parsed with Json.Document."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "252-252",
+          "function": "JSSResource",
+          "note": "Response payloads are parsed with Json.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "627-637",
+          "function": "copyUtcColumnsToEpoch",
+          "note": "Named epoch columns are added with an explicit type number (declared-schema)."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "614-619",
+          "function": "dateStringIso8601ToEpochMillis",
+          "note": "Per-value conversion of date strings on data cells to epoch numbers (explicit-type-conversion)."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "662-662",
+          "function": "duplicateColumns",
+          "note": "Column names come from the data's record fields and are assigned type any (inferred-from-data)."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "648-648",
+          "function": "addUnmappedColumns",
+          "note": "Unmapped columns are added with type any (inferred-from-data)."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "JamfPro.pq",
+              "lines": "335-346",
+              "function": "computers",
+              "note": "The empty-result branch returns an emptyTable with only the mapped columns, without the typed epoch columns or duplicate columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "212-223",
+          "function": "JSSResource",
+          "note": "The token-null branch calls Web.Contents for live data with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "165-165",
+          "function": "UAPIResource",
+          "note": "ManualStatusHandling = {429, 401} is set and the status is inspected manually."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "234-234",
+          "function": "JSSResource",
+          "note": "ManualStatusHandling = {429, 401} is set on the token branch."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "189-200",
+          "function": "UAPIResource",
+          "note": "A failed request is re-sent after Function.InvokeAfter with a 3-second delay."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "242-250",
+          "function": "JSSResource",
+          "note": "A failed request is re-sent after Function.InvokeAfter with a 3-second delay."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Any non-200 response is retried, including 429 and 401 (both in ManualStatusHandling). Each retry refreshes the token with TokenAuthorizationHeader(baseUrl, true). Retries stop when attempts reach 3 total (number_of_attempts < 3). Each retry waits #duration(0,0,0,3), which is 3 seconds. Response headers are read but unused, so there is no Retry-After handling.",
+          "evidence": [
+            {
+              "file": "JamfPro.pq",
+              "lines": "189-200",
+              "function": "UAPIResource",
+              "note": "Retry condition responseCode <> 200 and attempts below 3, with a 3-second InvokeAfter delay and a token refresh."
+            },
+            {
+              "file": "JamfPro.pq",
+              "lines": "242-250",
+              "function": "JSSResource",
+              "note": "Same retry rule for the classic API path."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "9-22",
+          "function": "JamfPro.Contents",
+          "note": "Documentation.Name on the function, FieldCaption and FieldDescription on the parameter, and FieldSampleValues with an example URL."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "31-44",
+          "function": "JamfPro.JamfNavTable",
+          "note": "The navigation table rows are a hardcoded #table list of eight data tables, all IsLeaf true, built with Table.ToNavigationTable."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "709-729",
+          "function": "Table.ToNavigationTable",
+          "note": "Builds the navigator metadata for the fixed rows."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "671-671",
+          "function": "JamfPro",
+          "note": "TestConnection = (dataSourcePath) => {\"JamfPro.Contents\", dataSourcePath}, which names the shared entry function."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "JamfPro.pq",
+          "lines": "746-747",
+          "function": "MobileDeviceMappings",
+          "note": "Code is loaded from ComputerMappings.pqm and MobileDeviceMappings.pqm with Extension.LoadFunction."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "731-744",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm files through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "674-677",
+          "function": "JamfPro",
+          "note": "Labels are loaded with Extension.LoadString."
+        },
+        {
+          "file": "JamfPro.pq",
+          "lines": "694-707",
+          "function": "JamfPro__Get_Devices.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:19Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.012231,
+    "duration_ms": 38166
+  },
+  "source_sha256": "efd81dbaa9d5ccfd6033006e2b352a9871d85874658af2ff95d0d1182a36d507",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,532 @@
+{
+  "connector": "Bloomberg",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "131-138",
+          "function": "Authentication",
+          "note": "Authentication record declares only an OAuth method (StartLogin, FinishLogin, Refresh)."
+        },
+        {
+          "file": "Auth.pqm",
+          "lines": "83-95",
+          "function": "StartLogin",
+          "note": "Builds the authorization URL with code_challenge and code_challenge_method."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Auth.pqm",
+              "lines": "86-91",
+              "function": "StartLogin",
+              "note": "Sends a code_challenge (the code verifier) in the authorization request."
+            },
+            {
+              "file": "Auth.pqm",
+              "lines": "34",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier with the authorization_code token request."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Auth.pqm",
+              "lines": "118-130",
+              "function": "Refresh",
+              "note": "Exchanges refresh_token for a new credential via TokenMethod with grant_type refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "363-383",
+          "function": "SendPostQuery",
+          "note": "Web.Contents POST to the Bloomberg GraphQL endpoint; all data requests go through it."
+        },
+        {
+          "file": "Auth.pqm",
+          "lines": "19-30",
+          "function": "SendTokenRequest",
+          "note": "Web.Contents call to the OAuth token endpoint."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "78-86",
+          "function": "BloombergQuery",
+          "note": "Only user parameter is the query text (BQL or SQL), which fits other, not a named resource or options record."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "88-94",
+          "function": "BQLQuery",
+          "note": "Same single query-text parameter for the deprecated BQL.Query entry point."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "graphql-cursor"
+      ],
+      "evidence": [
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "245-250",
+          "function": "GetFirstPageBql",
+          "note": "Reads pageInfo.hasNextPage and a requestId from the GraphQL response to drive the next page."
+        },
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "56-65",
+          "function": "RequestBiAppsNextPage",
+          "note": "Requests the next page of a GraphQL result by requestId."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "27-28",
+              "function": "Table.GenerateByPageMultiTable / Table.GenerateByPageWithType wiring",
+              "note": "Connector wires the Utils page helpers."
+            },
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "170-183",
+              "function": "GetSqlData",
+              "note": "Pages are produced by Table.GenerateByPageWithType."
+            },
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "190",
+              "function": "GetSqlDiscoveryData",
+              "note": "Pages are produced by Table.GenerateByPageMultiTable."
+            },
+            {
+              "file": "Utils.pqm",
+              "lines": "22-32",
+              "function": "Table.GenerateByPageMultiTable",
+              "note": "The List.Generate used here is inside the helper, so it is not counted as list-generate."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response's pageInfo.hasNextPage is false: GetSubsequentPage returns null (Data-Handler.pqm lines 271-272), which ends List.Generate in the helper (Utils.pqm lines 24-27). The first and empty-result pages also stop when hasNextPage is absent or false.",
+          "evidence": [
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "271-272",
+              "function": "GetSubsequentPage",
+              "note": "Returns null when hasNextPage is false, ending pagination."
+            },
+            {
+              "file": "Utils.pqm",
+              "lines": "24-27",
+              "function": "Table.GenerateByPageMultiTable",
+              "note": "List.Generate stops when the page function returns null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "293-297",
+          "function": "RequestDataGql",
+          "note": "GraphQL response body parsed with Json.Document; this is the returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "302-319",
+          "function": "CreateTypedTable",
+          "note": "Connector maps source type names (STRING, INT, FLOAT, BOOLEAN, DATE, DATETIME, TIME, BINARY) to M types."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "325-329",
+          "function": "CreateTypedTable",
+          "note": "Table.TransformColumnTypes applied to returned data cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Utils.pqm",
+              "lines": "37-53",
+              "function": "Table.GenerateByPageWithType",
+              "note": "Expanded table is given the declared tableType via Value.ReplaceType, so columns survive when all pages are empty."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "375-381",
+          "function": "SendPostQuery",
+          "note": "Data request sets no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "Auth.pqm",
+          "lines": "28",
+          "function": "SendTokenRequest",
+          "note": "Token call sets ManualStatusHandling = {400} and inspects the body."
+        },
+        {
+          "file": "Auth.pqm",
+          "lines": "45-64",
+          "function": "TokenMethod",
+          "note": "Error.Record built from error responses in the token exchange."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "116-130",
+          "function": "CheckGraphQLErrors",
+          "note": "Error.Record built from GraphQL error bodies."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "385-405",
+          "function": "CheckForErrorResponse",
+          "note": "Error.Record built from errorCategory/errorMessage in the response."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "72-75",
+          "function": "EntryPointType",
+          "note": "Documentation.Name and Documentation.Description on the function type."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "64-67",
+          "function": "EntryPointType",
+          "note": "Documentation.FieldCaption and Documentation.SampleValues on the parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Utils.pqm",
+          "lines": "57-79",
+          "function": "CombineTablesById",
+          "note": "Returns a navigation table when the response contains multiple tables, with items determined at runtime."
+        },
+        {
+          "file": "Utils.pqm",
+          "lines": "82-103",
+          "function": "Table.ToNavigationTable",
+          "note": "Builds the navigation table from the discovered table ids."
+        },
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "195-207",
+          "function": "GetBqlData",
+          "note": "BQL results flow into the navigation-table path."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "141",
+          "function": "Bloomberg",
+          "note": "TestConnection names Bloomberg.Query with the query text test_connection, so the test runs a normal query."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "178",
+          "function": "BQL",
+          "note": "Same pattern for the BQL.Query alias."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Folding.pqm",
+          "lines": "37-172",
+          "function": "CallWithFolding",
+          "note": "Table.View with folding handlers, reachable from GetData for SQL queries."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "117-119",
+          "function": "GetData",
+          "note": "SQL queries are routed to Folding.GetDataWithFolding."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip",
+            "on-select-rows",
+            "on-select-columns",
+            "on-sort",
+            "on-group",
+            "on-add-columns",
+            "get-row-count",
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "Folding.pqm",
+              "lines": "66-71",
+              "function": "OnTake",
+              "note": "on-take handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "73-78",
+              "function": "OnSkip",
+              "note": "on-skip handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "108-117",
+              "function": "OnSelectRows",
+              "note": "on-select-rows handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "119-128",
+              "function": "OnSelectColumns",
+              "note": "on-select-columns handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "95-106",
+              "function": "OnSort",
+              "note": "on-sort handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "80-93",
+              "function": "OnGroup",
+              "note": "on-group handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "146-161",
+              "function": "OnAddColumns",
+              "note": "on-add-columns handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "55-64",
+              "function": "GetRowCount",
+              "note": "get-row-count handler."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "130-144",
+              "function": "OnRenameColumns",
+              "note": "Other: OnRenameColumns has no id of its own."
+            },
+            {
+              "file": "Folding.pqm",
+              "lines": "163-172",
+              "function": "OnDistinct",
+              "note": "Other: OnDistinct has no id of its own."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "19-24",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm modules via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "66-67",
+          "function": "EntryPointType",
+          "note": "Extension.LoadString for localized strings."
+        },
+        {
+          "file": "Bloomberg.m",
+          "lines": "147-160",
+          "function": "Bloomberg.Icons",
+          "note": "Icon PNG files loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "13-15",
+          "function": "LogValue / LogTrace / LogValue switch",
+          "note": "Diagnostics.Trace runs only when Configuration.EnableTraceOutput is true; otherwise a pass-through is used."
+        },
+        {
+          "file": "Configuration.pqm",
+          "lines": "9",
+          "function": "Configuration",
+          "note": "EnableTraceOutput = false."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "67-87",
+          "function": "PollForNextPage",
+          "note": "Polls a query request by requestId until status is no longer RUNNING."
+        },
+        {
+          "file": "Data-Handler.pqm",
+          "lines": "89-108",
+          "function": "PollForSqlMetadata",
+          "note": "Polls SQL metadata until status is no longer RUNNING."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Polling uses Value.WaitFor with a fixed interval of Configuration.PollDelay = 10 seconds and at most Configuration.PollRetryAttempts = 180 attempts (about 30 minutes). Terminal state is any status other than RUNNING. If the limit is reached, it raises an error (\"Failed to return data after reaching poll retry attempt limit\" or \"Failed to return metadata after reaching poll retry attempt limit\").",
+          "evidence": [
+            {
+              "file": "Configuration.pqm",
+              "lines": "6-7",
+              "function": "Configuration",
+              "note": "PollRetryAttempts = 180 and PollDelay = 10 seconds."
+            },
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "70-87",
+              "function": "PollForNextPage",
+              "note": "Value.WaitFor with the poll interval, terminal check on status, and error at the limit."
+            },
+            {
+              "file": "Data-Handler.pqm",
+              "lines": "95-104",
+              "function": "PollForSqlMetadata",
+              "note": "Terminal check on status and error at the limit."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Bloomberg.m",
+          "lines": "110-127",
+          "function": "GetData",
+          "note": "All paths are read queries; no Action functions or table mutations exist."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:42:13Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.015222699999999999,
+    "duration_ms": 50280
+  },
+  "source_sha256": "8445a46e636b29d542ad588338fe0cb8a3f41a37911b9ed1a550390d02162059",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

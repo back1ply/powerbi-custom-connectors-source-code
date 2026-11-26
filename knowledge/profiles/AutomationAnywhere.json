@@ -1,0 +1,243 @@
+{
+  "connector": "AutomationAnywhere",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "34-36",
+          "function": "AutomationAnywhereImpl",
+          "note": "Reads Extension.CurrentCredential() Username and Password and posts them to the authentication endpoint."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "131-135",
+          "function": "AutomationAnywhere",
+          "note": "Data source kind declares Authentication = [UsernamePassword = []] as its only auth type."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "44-49",
+          "function": "AutomationAnywhereImpl",
+          "note": "Login is made with Web.Contents and the response is parsed with Json.Document; the API functions are then built from the swagger via OpenApi.Document."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "17-21",
+          "function": "AutomationAnywhereType",
+          "note": "CRHostName is the Control Room host URL, which is the url-or-server parameter."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "11-16",
+          "function": "AutomationAnywhereType",
+          "note": "CRVersion selects the product version (endpoint path and swagger file). It is not a region, cloud, or environment name, so it falls under other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "106-108",
+          "function": "AutomationAnywhereImpl",
+          "note": "OpenApi.Document builds the API functions, which return JSON data payloads. The Json.Document calls on line 49 parse the auth token and are not counted."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "106-108",
+          "function": "AutomationAnywhereImpl",
+          "note": "Column names and types come from the bundled swagger definition via OpenApi.Document. The connector does not assign M types itself."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "56-80",
+          "function": "AutomationAnywhereImpl",
+          "note": "DefaultOptions used for the generated data functions sets no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "106-108",
+          "function": "AutomationAnywhereImpl",
+          "note": "The generated API functions are live data requests with default status handling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "23-25",
+          "function": "AutomationAnywhereType",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the function type."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "12",
+          "function": "AutomationAnywhereType",
+          "note": "Documentation.FieldCaption is set for CRVersion, and line 18 for CRHostName."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "13-14",
+          "function": "AutomationAnywhereType",
+          "note": "Documentation.FieldDescription is set for CRVersion, and line 19 for CRHostName."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "20",
+          "function": "AutomationAnywhereType",
+          "note": "Documentation.SampleValues is set for CRHostName."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "15",
+          "function": "AutomationAnywhereType",
+          "note": "Documentation.AllowedValues is set for CRVersion."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "105-116",
+          "function": "AutomationAnywhereImpl",
+          "note": "The navigation table comes from OpenApi.Document over the swagger definition. Its rows are API names and functions, and the role-based selection trims them at runtime."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "126-130",
+          "function": "AutomationAnywhere",
+          "note": "TestConnection names \"AutomationAnywhere.Feed\", the shared entry function, and passes it the same CRVersion and CRHostName values."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "1-152",
+          "function": "AutomationAnywhere.Feed",
+          "note": "The connector logic is in one .m file, with no .pqm modules."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "15",
+          "function": "AutomationAnywhereType",
+          "note": "Extension.LoadString resource strings are used throughout the connector."
+        },
+        {
+          "file": "AutomationAnywhere.m",
+          "lines": "149-152",
+          "function": "AutomationAnywhere.Icons",
+          "note": "Icon16 and Icon32 are loaded from PNG files with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:38:38Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.006337000000000001,
+    "duration_ms": 31086
+  },
+  "source_sha256": "5cb077c8b692dee8da9b24f5abba164520bb77487e67d41952391f3faa8ff364",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

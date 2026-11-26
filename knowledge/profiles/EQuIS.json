@@ -1,0 +1,345 @@
+{
+  "connector": "EQuIS",
+  "answers": {
+    "auth": {
+      "values": [
+        "key",
+        "username-password",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "36-47",
+          "function": "EQuIS",
+          "note": "Authentication record declares Key, UsernamePassword, and Aad kinds"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "64-74",
+          "function": "Http.GetApi",
+          "note": "Token selection: UsernamePassword calls /api/tokens, Key uses cred[Key], otherwise the Aad access_token is used"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "82-83",
+          "function": "Http.GetApi",
+          "note": "The token is sent as an Authorization Bearer header"
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "EQuIS.m",
+              "lines": "70-71",
+              "function": "Http.GetApi",
+              "note": "Key credential is used as the token"
+            },
+            {
+              "file": "EQuIS.m",
+              "lines": "81-83",
+              "function": "Http.GetApi",
+              "note": "Token is placed in the Authorization header"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "67-67",
+          "function": "Http.GetApi",
+          "note": "Web.Contents for token request"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "151-151",
+          "function": "Navigator.GetFacilityGroups",
+          "note": "Web.Contents for REST API data calls"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "110-118",
+          "function": "NavigatorInfo",
+          "note": "The only user parameter is baseUri, a URL (Uri.Type) for the Enterprise site"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "121-122",
+          "function": "Navigator.GetMain",
+          "note": "Entry function takes baseUri as text"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "294-294",
+          "function": "Navigator.GetReports",
+          "note": "Single request to /api/reports with no next-link or offset loop"
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv",
+        "excel"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "172-172",
+          "function": "Navigator.GetFacilityGroup",
+          "note": "Json.Document on facility API data"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "397-397",
+          "function": "Report.GetTable",
+          "note": "Csv.Document of report data"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "223-223",
+          "function": "Navigator.GetFacilities",
+          "note": "Excel.Workbook on facilities XLSX returned by the API, reached from Navigator.GetMain"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "364-364",
+          "function": "Locations.GetTable",
+          "note": "Excel.Workbook on locations XLSX"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "399-401",
+          "function": "Report.GetTable",
+          "note": "Column names come from CSV headers via PromoteHeaders and camel-case renaming; no M types are assigned"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "226-229",
+          "function": "Navigator.GetFacilities",
+          "note": "Excel column names come from the data and are only renamed"
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "85-85",
+          "function": "Http.GetApi",
+          "note": "ManualStatusHandling = {204} set on the shared API options"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "223-223",
+          "function": "Navigator.GetFacilities",
+          "note": "Live data request using the manual status handling options"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "389-391",
+          "function": "Report.GetTable",
+          "note": "Facility-scoped apiOptions are built without ManualStatusHandling, so Power Query handles status for these live requests"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "97-97",
+          "function": "GetAuthorizationUrl",
+          "note": "Web.Contents for /api/config/anon with no ManualStatusHandling"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "110-118",
+          "function": "NavigatorInfo",
+          "note": "Documentation.Name, FieldCaption, FieldDescription, and SampleValues on the shared function type"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "132-137",
+          "function": "Navigator.GetMain",
+          "note": "Root navigation rows are a hardcoded list of four folders"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "217-223",
+          "function": "Navigator.GetFacilities",
+          "note": "Facility items are listed at runtime from the API"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "133-136",
+          "function": "Navigator.GetMain",
+          "note": "Rows with IsLeaf false open further navigation tables"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "176-176",
+          "function": "Navigator.GetFacilityGroup",
+          "note": "Folder rows with IsLeaf false"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "34-34",
+          "function": "EQuIS",
+          "note": "TestConnection returns { \"EQuIS.Contents\", baseUri }, which names the shared entry function"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "1-488",
+          "function": "EQuIS",
+          "note": "No Table.View handlers, native query, or OData.Feed usage"
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "1-488",
+          "function": "EQuIS",
+          "note": "The connector is a single .m file with no .pqm module loading"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "20-20",
+          "function": "EQuIS.Publish",
+          "note": "Extension.LoadString for ButtonText tooltip"
+        },
+        {
+          "file": "EQuIS.m",
+          "lines": "26-29",
+          "function": "_Icons",
+          "note": "Extension.Contents loads PNG icon sets"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "1-488",
+          "function": "EQuIS",
+          "note": "No Diagnostics.Trace calls"
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "1-488",
+          "function": "EQuIS",
+          "note": "No job polling or asynchronous export"
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "EQuIS.m",
+          "lines": "1-488",
+          "function": "EQuIS",
+          "note": "Only GET-style reads; no Action functions"
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:46:34Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.008314,
+    "duration_ms": 32725
+  },
+  "source_sha256": "c97c29bd65fc16b87b0fc920b81220a08dd9958217466453ae8d9e1cc4571f79",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

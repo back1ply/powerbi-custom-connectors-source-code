@@ -1,0 +1,315 @@
+{
+  "connector": "ExactOnlinePremium",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "118-129",
+          "function": "ExactOnlinePremium",
+          "note": "Authentication record exposes only an OAuth method (StartLogin, FinishLogin, Refresh). No anonymous kind is offered. The SQL UID/PWD in CredentialConnectionString (lines 66-70) come from the service response, not from user-entered credentials, so username-password is not listed."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "29-48",
+          "function": "OAuth.StartLogin",
+          "note": "Builds the authorization URL with the OAuth 2.0 authorization-code flow."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "31-38",
+              "function": "OAuth.StartLogin",
+              "note": "Generates a code_verifier and sends code_challenge with code_challenge_method = S256."
+            },
+            {
+              "file": "OAuth.pqm",
+              "lines": "62-64",
+              "function": "OAuth.TokenMethod",
+              "note": "Sends code_verifier with the authorization_code token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "60",
+              "function": "OAuth.Refresh",
+              "note": "Refresh is implemented by calling OAuth.TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "OAuth.pqm",
+              "lines": "65-66",
+              "function": "OAuth.TokenMethod",
+              "note": "Builds the refresh_token parameter for the refresh grant."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "108",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "Odbc.DataSource(ConnectionString, ConnectionOptions) is the live path that reaches the data. Web.Contents is used only for control-plane lookups (user info and DB connection info), not for returned data."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "ExactOnlinePremium.m",
+              "lines": "89-94",
+              "function": "ExactOnlinePremiumImpl",
+              "note": "Declares the SqlCapabilities record (SupportsTop, Sql92Conformance, GroupByCapabilities, FractionalSecondsScale)."
+            },
+            {
+              "file": "ExactOnlinePremium.m",
+              "lines": "101-104",
+              "function": "ExactOnlinePremiumImpl",
+              "note": "Declares SQLGetInfo overrides (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "15-16",
+          "function": "ExactOnlinePremiumType",
+          "note": "The entry function type takes no parameters. Config values come from the bundled JSON file, not from the user."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "25-35",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "Only one user-info request is made, with $select. List.First reads a single result, and there is no page loop."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "108-115",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "The returned data is the ODBC navigation table, so rows come from the driver. The JSON parsed at lines 34 and 50 is internal config lookup, not returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "108-113",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "Column names and types come from the ODBC driver. The connector declares no M types for the returned tables."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "108",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "Transport is odbc only, which is outside applies_when (web-contents, odata-feed). The Web.Contents calls at lines 25 and 43 are control-plane lookups."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "17-20",
+          "function": "ExactOnlinePremiumType",
+          "note": "Sets Documentation.Name and Documentation.LongDescription on the shared entry function type."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "108-115",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "The navigator is the ODBC driver's catalog, listed at runtime from the server (discovered-from-api)."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "84",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "HierarchicalNavigation = true produces Database -> Schema -> Table folders that open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "119",
+          "function": "ExactOnlinePremium",
+          "note": "TestConnection returns the name of the shared entry function \"ExactOnlinePremium.Contents\", so the gateway test runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "89-104",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "Folding is shaped through SqlCapabilities and SQLGetInfo overrides passed to Odbc.DataSource."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "98",
+          "function": "ExactOnlinePremiumImpl",
+          "note": "HideNativeQuery = true. No OnNativeQuery or Table.View handler is written, so native-query is not claimed."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "171-178",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and OAuth.pqm are loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "18-19",
+          "function": "ExactOnlinePremiumType",
+          "note": "Documentation strings are loaded with Extension.LoadString, which makes the connector localized."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "142-145",
+          "function": "ExactOnlinePremium.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "132-133",
+          "function": "ExactOnlinePremium.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "147-150",
+          "function": "LogValue",
+          "note": "Diagnostics.LogValue runs only when enableDebugLogging is true."
+        },
+        {
+          "file": "ExactOnlinePremium.m",
+          "lines": "10",
+          "function": "enableDebugLogging",
+          "note": "The switch is hardcoded to false. Every live Diagnostics call goes through LogValue, so it is gated."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace, but only reached through the gated LogValue path."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:47:43Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.007369799999999999,
+    "duration_ms": 27682
+  },
+  "source_sha256": "d6f395f1370e98e3f2debfb17f18feb7ba1a1fc5cc5f64eaf74f900b1ca568d5",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

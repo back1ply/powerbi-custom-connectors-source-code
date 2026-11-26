@@ -1,0 +1,431 @@
+{
+  "connector": "Celonis",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "5-5",
+          "function": "APP_KEY",
+          "note": "The app key is read from the credential record's Key field."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "26-28",
+          "function": "Celonis",
+          "note": "Data source kind declares a Key authentication kind with an application or personal API key label."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "257-268",
+          "function": "GetKeyType",
+          "note": "Sends the key as an Authorization header, either \"AppKey \" or \"Bearer \" plus APP_KEY. No OAuth or AAD flow exists."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Celonis.m",
+              "lines": "60-63",
+              "function": "GetChunk",
+              "note": "The key is sent in the Authorization header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "58-66",
+          "function": "GetChunk",
+          "note": "Data is fetched with Web.Contents and parsed with Parquet.Document."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "194-214",
+          "function": "Spaces",
+          "note": "Navigation requests are also made with Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "300-306",
+          "function": "CelonisType",
+          "note": "The only user-supplied parameter is URL, the Celonis EMS URL."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "309-312",
+          "function": "Celonis.Navigation / Celonis.KnowledgeModels",
+          "note": "Both shared entry functions take only URL, typed with CelonisType."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "68-73",
+          "function": "DownloadChunkedParquet",
+          "note": "An export is split into exportChunks parts. The connector fetches each part by index with List.Transform over List.Numbers and combines them. This is chunk-index paging, not offset, cursor or next-link paging."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "75-78",
+          "function": "DownloadParquet",
+          "note": "A single-chunk export is fetched once, without the chunk loop."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "Celonis.m",
+              "lines": "70-70",
+              "function": "DownloadChunkedParquet",
+              "note": "Parts are generated with List.Transform over List.Numbers, not Table.GenerateByPage or List.Generate."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops after the numChunks parts (List.Numbers(0, numChunks)) have been fetched and combined with Table.Combine. A numChunks value of 1 or less fetches a single part.",
+          "evidence": [
+            {
+              "file": "Celonis.m",
+              "lines": "68-78",
+              "function": "DownloadChunkedParquet / DownloadParquet",
+              "note": "Chunk count comes from response[exportChunks]; the loop ends at numChunks."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "parquet"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "64-64",
+          "function": "GetChunk",
+          "note": "Parquet.Document parses the exported data returned to the user."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "205-207",
+          "function": "Spaces",
+          "note": "Json.Document parses the spaces payload into the returned navigation table."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "143-148",
+          "function": "Records",
+          "note": "Json.Document parses the knowledge model payload into the returned navigation table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "207-207",
+          "function": "Spaces",
+          "note": "Column names come from the JSON fields (name, id), and no M types are assigned."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "273-274",
+          "function": "Celonis.Record",
+          "note": "GetType derives the type from a sample of the returned data, so it is not a declared schema."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "64-64",
+          "function": "GetChunk",
+          "note": "Parquet column names and types come from the file itself."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "201-204",
+          "function": "Spaces",
+          "note": "A live data request uses Web.Contents with no ManualStatusHandling, so Power Query handles the status."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "87-87",
+          "function": "WaitForExportDone",
+          "note": "Sets ManualStatusHandling={404} and inspects the response code."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "114-114",
+          "function": "Record",
+          "note": "Sets ManualStatusHandling={404} on the export start call and inspects the response code."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "139-139",
+          "function": "Records",
+          "note": "Sets ManualStatusHandling={404} and inspects the response code."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "262-262",
+          "function": "GetKeyType",
+          "note": "The token-type probe sets ManualStatusHandling={401}."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "94-94",
+          "function": "WaitForExportDone",
+          "note": "Error.Record is built from the response body reason, message and detail on 404."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "121-121",
+          "function": "Record",
+          "note": "Error.Record is built from the response body on 404."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "147-147",
+          "function": "Records",
+          "note": "Error.Record is built from the response body on 404."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "301-306",
+          "function": "CelonisType",
+          "note": "Documentation.Name gives the function name. The URL parameter has FieldCaption, FieldDescription and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "194-214",
+          "function": "Spaces",
+          "note": "Space items are listed at runtime from the spaces endpoint, with IsLeaf false."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "163-177",
+          "function": "Tree",
+          "note": "Folder nodes (IsLeaf false) open further Tree navigation tables."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "235-255",
+          "function": "KnowledgeModels",
+          "note": "Knowledge model items are discovered at runtime, with IsLeaf false, and open Records."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "216-233",
+          "function": "Space",
+          "note": "Package items open Nodes, which holds folders that open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "25-25",
+          "function": "Celonis",
+          "note": "TestConnection names the shared entry function Celonis.Navigation, so the test runs a normal navigation query. No probe flag exists."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "271-297",
+          "function": "Celonis.Record",
+          "note": "Table.View implements OnTake and OnSkip, which set Top and Skip and pass them to the export request as queryLimit and queryOffset."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip"
+          ],
+          "evidence": [
+            {
+              "file": "Celonis.m",
+              "lines": "284-288",
+              "function": "Celonis.Record",
+              "note": "OnTake sets Top in the state."
+            },
+            {
+              "file": "Celonis.m",
+              "lines": "290-294",
+              "function": "Celonis.Record",
+              "note": "OnSkip sets Skip in the state."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "318-325",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ToNavigationTable.pqm is loaded through the LoadFunction helper."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "29-29",
+          "function": "Celonis",
+          "note": "Labels come from Extension.LoadString, so the connector uses localized strings."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "43-44",
+          "function": "Celonis.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "34-34",
+          "function": "Celonis.Publish",
+          "note": "Beta = false, so no beta flag is set."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "Celonis.m",
+          "lines": "81-100",
+          "function": "WaitForExportDone",
+          "note": "The export status is polled by recursion while exportStatus is RUNNING."
+        },
+        {
+          "file": "Celonis.m",
+          "lines": "122-124",
+          "function": "Record",
+          "note": "Export starts, and a RUNNING status triggers polling."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "There is no sleep or interval: each poll immediately re-requests the status endpoint. The per-request timeout is #duration(0,0,3,0), which is 3 minutes. There is no overall timeout, and the recursion is unbounded. Terminal states are any exportStatus other than RUNNING, which is returned to the caller. A 404 raises Error.Record. EXPORT_STATUS_DONE is defined but never compared.",
+          "evidence": [
+            {
+              "file": "Celonis.m",
+              "lines": "81-100",
+              "function": "WaitForExportDone",
+              "note": "Recursive polling with no delay, a per-request Timeout of 3 minutes, and terminal states of not RUNNING or 404."
+            },
+            {
+              "file": "Celonis.m",
+              "lines": "20-21",
+              "function": "EXPORT_STATUS_RUNNING / EXPORT_STATUS_DONE",
+              "note": "Status constants. Only RUNNING is compared."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:42:58Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.009006,
+    "duration_ms": 41952
+  },
+  "source_sha256": "7bd6c92219fd8c1be01e9c8d0447490797b3e769b36d7cdcd2cdc5e8fbd1f347",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

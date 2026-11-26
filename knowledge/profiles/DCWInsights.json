@@ -1,0 +1,270 @@
+{
+  "connector": "DCWInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "39-41",
+          "function": "DCWInsights",
+          "note": "Data source kind declares Authentication = [Key = []]"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "26-28",
+          "function": "DCWInsightsImpl",
+          "note": "Gets the key via Extension.CurrentCredential() and sends it as a Bearer token in the Authorization header"
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "DCWInsights.m",
+              "lines": "28",
+              "function": "DCWInsightsImpl",
+              "note": "headers = [ Authorization = \"Bearer \" & token ] passed to OData.Feed"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "31",
+          "function": "DCWInsightsImpl",
+          "note": "source = OData.Feed(url, headers, serviceOptions)"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "13-16",
+          "function": "DCWInsightsType",
+          "note": "url parameter (text) names the OData service endpoint"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "17-20",
+          "function": "DCWInsightsType",
+          "note": "optional query parameter (any) is passed straight through as the OData Query option, so it is other"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "29",
+          "function": "DCWInsightsImpl",
+          "note": "serviceOptions Query = if query = null then [] else query"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "29-31",
+          "function": "DCWInsightsImpl",
+          "note": "OData.Feed with ODataVersion 4 returns JSON service payloads as the data the connector returns"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "31",
+          "function": "DCWInsightsImpl",
+          "note": "OData.Feed supplies column names and types from $metadata; the connector does not redefine them"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "29",
+          "function": "DCWInsightsImpl",
+          "note": "MoreColumns = true keeps response columns beyond the declared metadata, with names taken from the data and no M types assigned"
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "31",
+          "function": "DCWInsightsImpl",
+          "note": "OData.Feed live data request with no ManualStatusHandling; status handling is left to Power Query"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "11",
+          "function": "ValidateUrlScheme",
+          "note": "The only error raised is for invalid user input (non-HTTPS URL), which does not count as a structured error record and no HTTP status is inspected"
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "21-22",
+          "function": "DCWInsightsType",
+          "note": "Documentation.Name and Documentation.LongDescription on the shared function's return type"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "14",
+          "function": "DCWInsightsType",
+          "note": "Documentation.FieldCaption on url and query"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "15",
+          "function": "DCWInsightsType",
+          "note": "Documentation.FieldDescription on url and query"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "16",
+          "function": "DCWInsightsType",
+          "note": "Documentation.SampleValues on url and query"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "31",
+          "function": "DCWInsightsImpl",
+          "note": "Returns OData.Feed on the user-supplied URL, so the navigator is built from the service document at runtime"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "38",
+          "function": "DCWInsights",
+          "note": "TestConnection calls the shared DCWInsights.Feed entry function with only the url; no flag or probe branch"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "29-31",
+          "function": "DCWInsightsImpl",
+          "note": "The query record is passed as the OData.Feed Query option, so the OData connector folds it into the request; no Table.View handlers are written"
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "DCWInsights.m",
+          "lines": "1-59",
+          "function": "section",
+          "note": "Entire connector is in one .m file with no .pqm modules"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "14-22",
+          "function": "DCWInsightsType",
+          "note": "Extension.LoadString used for captions, descriptions and names"
+        },
+        {
+          "file": "DCWInsights.m",
+          "lines": "56-59",
+          "function": "DCWInsights.Icons",
+          "note": "Icon16 and Icon32 loaded with Extension.Contents"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:44:59Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004731900000000001,
+    "duration_ms": 21550
+  },
+  "source_sha256": "d3231079e9ea42e7d23bd357129e648b339123f2e0ef77fb0d5e112326681a2c",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

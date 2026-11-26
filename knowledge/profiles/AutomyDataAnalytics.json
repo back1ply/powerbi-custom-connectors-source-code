@@ -1,0 +1,247 @@
+{
+  "connector": "AutomyDataAnalytics",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "417-419",
+          "function": "AutomyDataAnalytics",
+          "note": "Data source kind declares Authentication = [Key = []]."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "10-11",
+          "function": "AutomyDataAnalytics.Contents",
+          "note": "Reads the stored key from Extension.CurrentCredential()[Key] as the token."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "81",
+          "function": "GenericTableNavigator",
+          "note": "Token is sent as a Bearer value in the Authorization header."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "AutomyDataAnalytics.pq",
+              "lines": "81",
+              "function": "GenericTableNavigator",
+              "note": "Authorization: Bearer <token> in the request headers."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "85",
+          "function": "GenericTableNavigator",
+          "note": "Data is fetched with Web.Contents(BaseUrl & query, header)."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "111",
+          "function": "FormDataFunction.Contents",
+          "note": "Web.Contents is used for the form-data request."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "8",
+          "function": "AutomyDataAnalytics.Contents",
+          "note": "The only shared entry function takes no parameters. Resource ids and date ranges are passed by the navigator's own data functions, not by the user connecting."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "87",
+          "function": "GenericTableNavigator",
+          "note": "Returned data is parsed with Json.Document(content)."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "89",
+          "function": "GenericTableNavigator",
+          "note": "Column names come from Record.FieldNames of the first JSON record. No M types are assigned."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "115",
+          "function": "FormDataFunction.Contents",
+          "note": "Same name-from-data expansion with no declared types."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "83",
+          "function": "GenericTableNavigator",
+          "note": "ManualStatusHandling = {400,404} is set on the live data request."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "104",
+          "function": "FormDataFunction.Contents",
+          "note": "ManualStatusHandling = {400,404} is set on the data request."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "87",
+          "function": "GenericTableNavigator",
+          "note": "Non-200 responses raise an error built from the response body message."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "13-19",
+          "function": "AutomyDataAnalytics.Contents",
+          "note": "The top-level navigation rows are a hardcoded #table list passed to Table.ToNavigationTable."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "15-16",
+          "function": "AutomyDataAnalytics.Contents",
+          "note": "The generic and process rows have IsLeaf = false and open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "416",
+          "function": "AutomyDataAnalytics",
+          "note": "TestConnection returns the shared entry function name \"AutomyDataAnalytics.Contents\"."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "1-460",
+          "function": "section AutomyDataAnalytics",
+          "note": "All code is in one .pq file with no .pqm loading."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "15-16",
+          "function": "AutomyDataAnalytics.Contents",
+          "note": "Names and labels come from Extension.LoadString."
+        },
+        {
+          "file": "AutomyDataAnalytics.pq",
+          "lines": "433-436",
+          "function": "AutomyDataAnalytics.Icons",
+          "note": "Icon16 and Icon32 are supplied from PNG files via Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:39:00Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0076422,
+    "duration_ms": 26316
+  },
+  "source_sha256": "bf6a065c9f398ab6113c9f595bfc8c7f0401a1974336cbf0ff08b5d268929d05",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,324 @@
+{
+  "connector": "Cherwell",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "13-19",
+          "function": "Cherwell",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh hooks."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "353-370",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL from client_id, scope, state, redirect_uri and response_type=code."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "Cherwell.m",
+              "lines": "356-362",
+              "function": "StartLogin",
+              "note": "Authorize URL carries no code_challenge or code_challenge_method parameter, and the token request in Auth.RequestToken.pqm sends no code_verifier."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Cherwell.m",
+              "lines": "389-394",
+              "function": "Refresh",
+              "note": "Refresh hook posts grant_type=refresh_token to the token endpoint through Auth.RequestToken."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "117-121",
+          "function": "BuildContext",
+          "note": "RequestJsonContent calls Web.Contents for every API request."
+        },
+        {
+          "file": "Auth.RequestToken.pqm",
+          "lines": "30-40",
+          "function": "Auth.RequestToken.pqm",
+          "note": "Token requests use Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "56-59",
+          "function": "SavedSearchesType",
+          "note": "API URL parameter names the server, so url-or-server."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "68-71",
+          "function": "SavedSearchesType",
+          "note": "Optional Saved Search URL is a URL, so url-or-server."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "60-63",
+          "function": "SavedSearchesType",
+          "note": "Client ID is an OAuth client identifier, which fits no id, so other."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "64-67",
+          "function": "SavedSearchesType",
+          "note": "Optional Locale is a language code, so other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "117-121",
+          "function": "BuildContext",
+          "note": "RequestJsonContent parses API response payloads with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "285-293",
+          "function": "GetSourceTypeFromFieldInfo",
+          "note": "Maps CSM field type names to M types (logical, number, Currency, Int64, datetime, text)."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "271-273",
+          "function": "GetSearchResultsTable",
+          "note": "Table.TransformColumnTypes applies the mapped types to returned rows, and Table.TransformColumns applies Date.From/Time.From to returned date and time cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Cherwell.m",
+              "lines": "261-273",
+              "function": "GetSearchResultsTable",
+              "note": "Columns come from the schema, and Table.FromRows(rows, fieldNames) keeps them even when rows is empty before types are applied."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "117-121",
+          "function": "BuildContext",
+          "note": "Data Web.Contents calls set no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "Auth.RequestToken.pqm",
+          "lines": "30-40",
+          "function": "Auth.RequestToken.pqm",
+          "note": "Token call sets ManualStatusHandling = {400} and inspects the response itself."
+        },
+        {
+          "file": "Auth.RequestToken.pqm",
+          "lines": "43-50",
+          "function": "Auth.RequestToken.pqm",
+          "note": "Error bodies from the token endpoint are raised as Error.Record values."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "72-74",
+          "function": "SavedSearchesType",
+          "note": "Documentation.Name and Documentation.LongDescription on the data source function."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "57-70",
+          "function": "SavedSearchesType",
+          "note": "Documentation.FieldDescription on each parameter."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "58-66",
+          "function": "SavedSearchesType",
+          "note": "Documentation.SampleValues on API URL and Locale."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "146-165",
+          "function": "GetSupportedAssocationsNavTable",
+          "note": "Navigator items (business objects) are listed at runtime from the getsearchitems API response."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "183-190",
+          "function": "FormatItemsByAssociationNavTable",
+          "note": "Scope folder rows are given isLeaf = false and their data opens further navigation tables."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "197-198",
+          "function": "FormatItemsByFolderNavTable",
+          "note": "Nested folders open further navigation tables recursively."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "7-12",
+          "function": "Cherwell",
+          "note": "TestConnection parses the data source path and returns the shared Cherwell.SavedSearches entry function with its arguments, so the gateway runs a normal query and no probe."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Cherwell.m",
+          "lines": "448-457",
+          "function": "Extension.LoadFunction",
+          "note": "Code is loaded from .pqm files through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "25-28",
+          "function": "Cherwell.Publish",
+          "note": "ButtonText uses Extension.LoadString, and the field descriptions also use Extension.LoadString at lines 57-69."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "34-47",
+          "function": "Cherwell.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        },
+        {
+          "file": "Cherwell.m",
+          "lines": "22-23",
+          "function": "Cherwell.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:43:13Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.007618,
+    "duration_ms": 27941
+  },
+  "source_sha256": "b08d078a2a37c246cb7e87666eb9459c0d74fff222821d7488381140303484be",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

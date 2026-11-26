@@ -1,0 +1,320 @@
+{
+  "connector": "IntuneV2",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "62-70",
+          "function": "IntuneV2",
+          "note": "Data source kind record sets Authentication = [Aad = [AuthorizationUri = IntuneV2.AuthUri, Resource = IntuneV2.ResourceUri]]. Entra ID (AAD) sign-in, not a credential-free kind."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "5-6",
+          "function": "IntuneV2.AuthUri / IntuneV2.ResourceUri",
+          "note": "AAD authorization URI and resource URI used by the Aad record."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-56",
+          "function": "IntuneV2DwImpl",
+          "note": "Data is fetched with OData.Feed(dataWarehouseAsuUri, null, [Query = queryString, Implementation=\"2.0\", ODataVersion = 4])."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record",
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "12-18",
+          "function": "IntuneV2DwType",
+          "note": "First parameter dataWarehouseAsuUri is a URL (text, with sample URL value on line 16)."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "19-27",
+          "function": "IntuneV2DwType",
+          "note": "Optional options record parameter."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "21-25",
+          "function": "IntuneV2DwType",
+          "note": "maxHistoryDays is a number of days of history the user picks, with allowed values 1-7, 14, 30, so it sets a date range."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "47-49",
+          "function": "IntuneV2DwImpl",
+          "note": "maxHistoryDays read from options with default 7."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts one field: maxHistoryDays (number). It limits the history window in days; allowed values are 1, 2, 3, 4, 5, 6, 7, 14, 30. Default is 7 when omitted.",
+          "evidence": [
+            {
+              "file": "IntuneV2.pq",
+              "lines": "19-27",
+              "function": "IntuneV2DwType",
+              "note": "Declares the options record and its maxHistoryDays field."
+            },
+            {
+              "file": "IntuneV2.pq",
+              "lines": "48-53",
+              "function": "IntuneV2DwImpl",
+              "note": "Reads _options[maxHistoryDays] with default 7 and passes it as the MaxHistoryDays query string."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-56",
+          "function": "IntuneV2DwImpl",
+          "note": "OData.Feed returns JSON-based OData v4 payloads from the Intune Data Warehouse."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-56",
+          "function": "IntuneV2DwImpl",
+          "note": "OData.Feed supplies column names and types from the service $metadata; the connector declares no column types."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "28-30",
+          "function": "IntuneV2DwType",
+          "note": "The function type return is a bare 'table' with no column schema."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-56",
+          "function": "IntuneV2DwImpl",
+          "note": "OData.Feed options set no ManualStatusHandling, so Power Query handles status codes for the live data request."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "28-30",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "14-14",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.FieldCaption on dataWarehouseAsuUri."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "22-22",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.FieldCaption on maxHistoryDays."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "15-15",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.FieldDescription on dataWarehouseAsuUri."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "23-23",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.FieldDescription on maxHistoryDays."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "16-16",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.SampleValues on dataWarehouseAsuUri."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "24-24",
+          "function": "IntuneV2DwType",
+          "note": "Documentation.AllowedValues on maxHistoryDays."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-58",
+          "function": "IntuneV2DwImpl",
+          "note": "The shared function returns OData.Feed on the user-supplied URL, so the navigator is built from the service document at runtime."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "63-63",
+          "function": "IntuneV2",
+          "note": "TestConnection returns {\"IntuneV2.Contents\", ...}, which names the shared entry function, so the test runs a normal query."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "56-56",
+          "function": "IntuneV2DwImpl",
+          "note": "Tables come from OData.Feed, so the OData connector folds filters, selects and paging into requests. No Table.View handlers are written."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "IntuneV2.pq",
+          "lines": "1-84",
+          "function": "section IntuneV2",
+          "note": "All connector code is in one .pq file with no .pqm module loading."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "14-23",
+          "function": "IntuneV2DwType",
+          "note": "Captions and descriptions loaded with Extension.LoadString."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "76-76",
+          "function": "IntuneV2.Publish",
+          "note": "ButtonText loaded with Extension.LoadString."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "81-84",
+          "function": "IntuneV2.Icons",
+          "note": "Icon16/Icon32 sets loaded with Extension.Contents from PNG files."
+        },
+        {
+          "file": "IntuneV2.pq",
+          "lines": "74-74",
+          "function": "IntuneV2.Publish",
+          "note": "Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:04Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0052909,
+    "duration_ms": 24505
+  },
+  "source_sha256": "819d3d036f68ca57d4ee42a6a2891bdd04d438439dd45a295b70d324e8f24199",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

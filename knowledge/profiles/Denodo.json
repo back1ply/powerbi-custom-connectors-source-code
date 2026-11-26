@@ -1,0 +1,426 @@
+{
+  "connector": "Denodo",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "windows",
+        "oauth",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "564-571",
+          "function": "DenodoForPowerBI",
+          "note": "Authentication record declares UsernamePassword, Windows and Aad kinds. No anonymous kind is declared."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "101-107",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Reads Extension.CurrentCredential() and, when AuthenticationKind is OAuth, passes access_token as AccessToken with UseOAuth2 set. The connector does not run the flow itself."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "233-241",
+          "function": "DenodoForPowerBIImpl",
+          "note": "CredentialConnectionString maps UsernamePassword to UID/PWD, Windows to Trusted_Connection, and OAuth to UseOauth2 with AccessToken."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        },
+        "oauth-refresh": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "209-242",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Data is reached through Odbc.DataSource(ConnectionString, ...)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "113-122",
+              "function": "DenodoForPowerBIImpl",
+              "note": "SqlCapabilities record is passed to Odbc.DataSource (line 224)."
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "129-132",
+              "function": "DenodoForPowerBIImpl",
+              "note": "SQLGetInfo override record is passed to Odbc.DataSource (line 226)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "28-31",
+          "function": "DenodoForPowerBIType",
+          "note": "DSN parameter holds an ODBC DSN name or a connection string (url-or-server)."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "264-265",
+          "function": "DenodoForPowerBIImpl",
+          "note": "The options record supplies DenodoDatabase and DenodoView, which name resources inside the target."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "44-48",
+          "function": "DenodoForPowerBIType",
+          "note": "Optional options record of connector settings."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "37-41",
+          "function": "DenodoForPowerBIType",
+          "note": "The debug logical parameter is a switch that fits no other id, so it is other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts ConnectionTimeout, QueryTimeout, Compression, UserAgent, CreateNavigationProperties, DenodoDatabase and DenodoView.",
+          "evidence": [
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "65-67",
+              "function": "DenodoForPowerBIImpl",
+              "note": "ConnectionTimeout"
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "69-71",
+              "function": "DenodoForPowerBIImpl",
+              "note": "QueryTimeout"
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "79-81",
+              "function": "DenodoForPowerBIImpl",
+              "note": "Compression"
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "89-91",
+              "function": "DenodoForPowerBIImpl",
+              "note": "UserAgent"
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "204-206",
+              "function": "DenodoForPowerBIImpl",
+              "note": "CreateNavigationProperties"
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "264-265",
+              "function": "DenodoForPowerBIImpl",
+              "note": "DenodoDatabase and DenodoView"
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "209-242",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Rows are returned as tables from the Odbc.DataSource driver. No Json, CSV, XML or other payload is parsed for data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "298-403",
+          "function": "SQLGetTypeInfo",
+          "note": "Driver type-info override. It adds driver metadata rows and does not assign M types to returned columns."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "416-433",
+          "function": "SQLColumns",
+          "note": "Passes the driver's column metadata through unchanged unless debug is on."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "209-242",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Column names and types come from the ODBC driver through Odbc.DataSource."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "209-242",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Transport is odbc only, so the web-contents and odata-feed applies_when does not match."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "50-53",
+          "function": "DenodoForPowerBIType",
+          "note": "Documentation.Name and LongDescription on the return type."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "32-34",
+          "function": "DenodoForPowerBIType",
+          "note": "FieldCaption and FieldDescription on DSN."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "38-40",
+          "function": "DenodoForPowerBIType",
+          "note": "FieldCaption, FieldDescription and AllowedValues on debug."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "45-47",
+          "function": "DenodoForPowerBIType",
+          "note": "FieldCaption, FieldDescription and SampleValues on options."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "33-33",
+          "function": "DenodoForPowerBIType",
+          "note": "SampleValues on DSN."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "215-215",
+          "function": "DenodoForPowerBIImpl",
+          "note": "HierarchicalNavigation = true, so the navigator lists Database, Schema and Table levels that the driver reports at runtime."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "273-275",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Navigation into Database and Schema folders to reach a view directly."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "556-562",
+          "function": "DenodoForPowerBI",
+          "note": "TestConnection returns { \"Denodo.Contents\", DSN }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities",
+        "native-query"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "113-122",
+          "function": "DenodoForPowerBIImpl",
+          "note": "SqlCapabilities sets SupportsTop false and Sql92Translation PassThrough."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "193-201",
+          "function": "DenodoForPowerBIImpl",
+          "note": "AstVisitor LimitClause rewrites LIMIT/OFFSET inside the ODBC folding path."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "612-627",
+          "function": "DenodoForPowerBI.Publish",
+          "note": "NativeQueryProperties with EnableFolding true."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Native query is enabled by Sql92Translation = PassThrough on the SqlCapabilities record and by NativeQueryProperties with EnableFolding = true in the Publish record.",
+          "evidence": [
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "121-121",
+              "function": "DenodoForPowerBIImpl",
+              "note": "Sql92Translation = PassThrough, commented Activate Native Query."
+            },
+            {
+              "file": "DenodoForPowerBI.m",
+              "lines": "612-627",
+              "function": "DenodoForPowerBI.Publish",
+              "note": "NativeQueryProperties and DefaultOptions EnableFolding."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "639-650",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm and Validation.pqm are loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "595-595",
+          "function": "DenodoForPowerBI",
+          "note": "Label is loaded with Extension.LoadString from resources."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "604-604",
+          "function": "DenodoForPowerBI.Publish",
+          "note": "ButtonText is loaded with Extension.LoadString."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "631-634",
+          "function": "DenodoForPowerBI.Icons",
+          "note": "Icons loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "111-111",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Diagnostics.LogValue runs only if debug is true."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "270-272",
+          "function": "DenodoForPowerBIImpl",
+          "note": "Each LogValue sits behind if (debug)."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "399-399",
+          "function": "SQLGetTypeInfo",
+          "note": "Trace only in the branch where debug equals true."
+        },
+        {
+          "file": "DenodoForPowerBI.m",
+          "lines": "419-425",
+          "function": "SQLColumns",
+          "note": "Trace only when debug is true; otherwise the source is returned as-is."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:45:58Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0148223,
+    "duration_ms": 42510
+  },
+  "source_sha256": "df9d2c166e1bf1b7425936414a26f5a02910590193e8d6128bf0ee7c3a21e183",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

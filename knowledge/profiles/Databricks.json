@@ -1,0 +1,513 @@
+{
+  "connector": "Databricks",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "aad",
+        "key",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "875-921",
+          "function": "Databricks",
+          "note": "Databricks data source kind offers Aad (AuthorizationUri), Key (PAT) and UsernamePassword (client credentials)."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "950-966",
+          "function": "DatabricksMultiCloud",
+          "note": "DatabricksMultiCloud offers OAuth (OidcStartLogin/OidcFinishLogin/OidcRefresh), Key and UsernamePassword."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "283-321",
+          "function": "DatabricksODBC",
+          "note": "Credential kinds UsernamePassword, Key and OAuth are mapped to driver connection properties."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "1147-1163",
+              "function": "OidcStartLogin",
+              "note": "Generates a PKCE code verifier, a S256 code challenge and sends code_challenge_method = S256."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "1192-1202",
+              "function": "OidcRefresh",
+              "note": "Refresh handler exchanges refresh_token for a new token through OidcTokenRequest."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "303-312",
+              "function": "DatabricksODBC",
+              "note": "The PAT is passed as UID=token and PWD=<key> in the ODBC connection string (AuthMech 3), not as an HTTP header, query string or body."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "1565-1567",
+              "function": "GetAdbcCredentialConnectionString",
+              "note": "ADBC path passes the key as adbc.spark.token in the connection string."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc",
+        "adbc-flight"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "591",
+          "function": "DatabricksODBC",
+          "note": "Odbc.DataSource is the ODBC transport."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "613-614",
+          "function": "DatabricksQuery",
+          "note": "Odbc.Query runs wrapped native queries over ODBC."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1262-1313",
+          "function": "DatabricksAdbc",
+          "note": "ADBC transport through Adbc.Connection with the Databricks ADBC driver (AdbcDriver, lines 2044-2080)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "367-378",
+              "function": "DatabricksODBC",
+              "note": "SqlCapabilitiesNativeQuery is built from DefaultConfig[SqlCapabilities] with overrides for LimitClauseKind, literals and Sql92Translation."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "459-468",
+              "function": "DatabricksODBC",
+              "note": "SQLGetInfo overrides (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_NUMERIC_FUNCTIONS, SQL_STRING_FUNCTIONS, SQL_SQL92_VALUE_EXPRESSIONS) are declared."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "520-523",
+              "function": "DatabricksODBC",
+              "note": "Options record passes SqlCapabilities, SQLColumns and SQLGetInfo handlers to Odbc.DataSource."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "46-68",
+          "function": "DatabricksType",
+          "note": "host (server host name) is url-or-server; httpPath names the SQL warehouse, a resource inside the host, so database-or-resource-id."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "68-108",
+          "function": "DatabricksType",
+          "note": "optional options record of connector settings."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "133-144",
+          "function": "DatabricksQueryInstanceType",
+          "note": "The SQL query text is passed as its own parameter (sqlQuery), covered by other."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is validated by AdvancedOptions.pqm and accepts: Catalog, Database (default schema), QueryTags, EnableAutomaticProxyDiscovery, Implementation (2.0 = ADBC, or System Default), Protocol (rest or default), plus advanced settings such as BatchSize, EnableArrow, EnableQueryResultDownload, EnableQueryResultLZ4Compression, EnableMultipleCatalogsSupport, ScopeCurrentCatalog, MaxNumResultFileDownloadThreads, MaxConsecutiveResultFileDownloadRetries, RowsFetchedPerBlock, DefaultStringColumnLength, DecimalColumnScale, UseNativeQuery, EnablePKFK, MetricViewBiCompatibilityMode, EnableStoredProcedures, ShowSystemSchemas, CancelQueryExplicitly, SSP_use_cached_result, TokenRenewLimit, and others listed in the table.",
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "68-108",
+              "function": "DatabricksType",
+              "note": "Documented optional record fields: Catalog, Database, QueryTags, EnableAutomaticProxyDiscovery, Implementation, Protocol."
+            },
+            {
+              "file": "AdvancedOptions.pqm",
+              "lines": "41-95",
+              "function": "AdvancedOptionsValidators",
+              "note": "Full table of accepted option keys and their ODBC/ADBC mappings."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "arrow",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "1808-1821",
+          "function": "GetTable",
+          "note": "Complex STRUCT/ARRAY/MAP column values returned as JSON text are parsed with Json.Document (ToNullableJson)."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1312-1353",
+          "function": "DatabricksAdbc",
+          "note": "ADBC results come from the Databricks ADBC driver (Arrow-based result path) through Adbc.Connection."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "591",
+          "function": "DatabricksODBC",
+          "note": "ODBC driver returns rows as tables through Odbc.DataSource."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "1874-1980",
+          "function": "GetPowerQueryType",
+          "note": "Connector maps Databricks SQL type names to M types (DatabricksTypeMap and GetPowerQueryType)."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1827-1873",
+          "function": "GetTableType",
+          "note": "Builds the M table type with Type.ForRecord from the connector's own type mapping."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1808-1821",
+          "function": "GetTable",
+          "note": "Table.TransformColumns converts complex column cells to typed JSON values."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1388-1397",
+          "function": "ApplyDurationFrom",
+          "note": "Table.TransformColumns converts duration tick values in returned data cells to Duration."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "471-488",
+          "function": "DatabricksODBC",
+          "note": "SQLColumns rewrites driver TYPE_NAME metadata, which stays driver-provided."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "1366-1380",
+              "function": "CreateDataTable",
+              "note": "Result columns are renamed to the declared result type (#table(resultType, {})), so an empty result keeps the declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "763-766",
+          "function": "GetAuthorizationUrlFromWellKnown",
+          "note": "Web.Contents with ManualStatusHandling is only used for the auth endpoint; transport has no web-contents data path, so the question's applies_when excludes this connector."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "46-111",
+          "function": "DatabricksType",
+          "note": "Function type carries Documentation.Name, Documentation.FieldCaption, Documentation.FieldDescription and Documentation.SampleValues."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "86-105",
+          "function": "DatabricksType",
+          "note": "Documentation.AllowedValues for EnableAutomaticProxyDiscovery, Implementation and Protocol."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "113-131",
+          "function": "DatabricksQueryType",
+          "note": "Documentation.Name and LongDescription on the query function."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "1635-1655",
+          "function": "GetDatabases",
+          "note": "Catalog list is discovered at runtime via GetCatalogs; rows are navigable folders (isLeaf false)."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1657-1695",
+          "function": "GetSchemas",
+          "note": "Schemas are discovered per catalog at runtime, another folder level."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "496",
+          "function": "DatabricksODBC",
+          "note": "HierarchicalNavigation = not HasSchema; catalog/schema tree when no default schema is set."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "925-926",
+          "function": "Databricks",
+          "note": "TestConnection calls BuildTestConnectionResult with Databricks.Contents, the shared entry function, with no probe flag."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "852-870",
+          "function": "BuildTestConnectionResult",
+          "note": "Returns the entry function name with host and httpPath, so the gateway test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "odbc-sql-capabilities",
+        "native-query",
+        "custom-sql-generator"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "1651",
+          "function": "GetDatabases",
+          "note": "Table.View OnSelectRows folds navigation selections (FoldNavigationStep)."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1682-1691",
+          "function": "GetSchemas",
+          "note": "Table.View OnNativeQuery and OnNativeStatement handlers."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1412",
+          "function": "CreateDataTable",
+          "note": "SqlView.Generator with DatabricksSqlGenerator builds SQL behind Table.View for the ADBC path."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "2092-3381",
+          "function": "DatabricksSqlGenerator",
+          "note": "Connector-written SQL text generator with AstVisitor overrides."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "367-468",
+          "function": "DatabricksODBC",
+          "note": "ODBC SqlCapabilities and SQLGetInfo overrides shape ODBC folding."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-rows"
+          ],
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "1651",
+              "function": "GetDatabases",
+              "note": "OnSelectRows on the database navigation table."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "1681",
+              "function": "GetSchemas",
+              "note": "OnSelectRows on the schema navigation table."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "1769",
+              "function": "GetTables",
+              "note": "OnSelectRows on the table navigation table."
+            }
+          ]
+        },
+        "native-query-enabled": {
+          "text": "Native query is enabled by an OnNativeQuery handler on the schema navigation table (GetSchemas), which runs NativeQuery, and by the Publish record's NativeQueryProperties with DefaultOptions EnableFolding = true.",
+          "evidence": [
+            {
+              "file": "Databricks.pq",
+              "lines": "1682-1689",
+              "function": "GetSchemas",
+              "note": "OnNativeQuery handler calls NativeQuery."
+            },
+            {
+              "file": "Databricks.pq",
+              "lines": "999-1019",
+              "function": "Databricks.Publish",
+              "note": "NativeQueryProperties with NavigationSteps and DefaultOptions EnableFolding = true."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "2033-2040",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm modules (AdvancedOptions.pqm, QueryHelpers.pqm, QueryTagsHelper.pqm, OdbcConstants.pqm, Diagnostics.pqm) via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "43",
+          "function": "loadString",
+          "note": "Extension.LoadString reads strings from resources."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "1054-1057",
+          "function": "Databricks.Icons",
+          "note": "Extension.Contents loads PNG icons."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Databricks.pq",
+          "lines": "164-171",
+          "function": "DatabricksCatalogsImpl",
+          "note": "Diagnostics.Trace at Information level runs with no EnableTraceOutput-style switch."
+        },
+        {
+          "file": "Databricks.pq",
+          "lines": "272-279",
+          "function": "DatabricksFunction",
+          "note": "Unconditional Diagnostics.Trace for implementation choice."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:46:38Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.367992,
+    "duration_ms": 94358,
+    "repair_attempts": 1
+  },
+  "source_sha256": "fd541579f037d0c4d9fd472c09a29974b88f791e1a112954865bb1802649f24e",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

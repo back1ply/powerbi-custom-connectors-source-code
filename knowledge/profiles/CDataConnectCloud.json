@@ -1,0 +1,393 @@
+{
+  "connector": "CDataConnectCloud",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "7-13",
+          "function": "CDataConnectCloud",
+          "note": "Data source kind declares an OAuth authentication record with StartLogin, FinishLogin, and Refresh."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "19-47",
+          "function": "OAuth.StartLogin",
+          "note": "Builds the authorize URL and the login window for the OAuth flow."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "21-37",
+              "function": "OAuth.StartLogin",
+              "note": "Generates a code verifier, derives a S256 code_challenge, and sends code_challenge_method=S256."
+            },
+            {
+              "file": "OAuth.pqm",
+              "lines": "54-58",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier in the token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "53",
+              "function": "OAuth.Refresh",
+              "note": "Implements the refresh_token grant."
+            },
+            {
+              "file": "CDataConnectCloud.pq",
+              "lines": "11",
+              "function": "CDataConnectCloud",
+              "note": "Refresh is wired into the data source kind's OAuth record."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "22-33",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "All data requests go through Web.Contents against https://cloud.cdata.com/api/."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "44-54",
+          "function": "CDataConnectCloud.ContentsV2",
+          "note": "Shared entry functions take an optional options record."
+        },
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "2-7",
+          "function": "CDataConnectCloudServiceV2.NavImpl",
+          "note": "Reads options[Query] and runs it when present."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts one field, Query (text). A non-empty Query is run as a SQL query instead of building the navigator.",
+          "evidence": [
+            {
+              "file": "CDataConnectCloud.pq",
+              "lines": "50-64",
+              "function": "CDataConnectCloud.NavImplType",
+              "note": "Declares the optional Query text field in the options record."
+            },
+            {
+              "file": "Utilities.pqm",
+              "lines": "30-35",
+              "function": "Utilities.HasQuery",
+              "note": "Checks that Query is present and non-empty."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "34",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "Parses the API response with Json.Document."
+        },
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "40-46",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "Builds result tables from the JSON results rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "119-152",
+          "function": "CDataConnectCloudRestV2.MapCDataTypesToPowerBiTypes",
+          "note": "Maps CData type codes to M types (Int8 through Text)."
+        },
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "238-255",
+          "function": "GetTableTypeFromSchemaTable",
+          "note": "Declares the M table type for each returned result set."
+        },
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "207-219",
+          "function": "EnforceColumnTypes",
+          "note": "Applies Table.TransformColumnTypes to the returned data cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CDataConnectCloudRestV2.pqm",
+              "lines": "231-233",
+              "function": "GetSchemaTable",
+              "note": "An empty result returns the table built with the declared type, so its columns are kept."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "27-31",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "Every data Web.Contents call sets ManualStatusHandling = {400}. Only the 400 response body is handled manually."
+        },
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "35-37",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "Raises error Error.Record(code, message) from the JSON error body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "50-68",
+          "function": "CDataConnectCloud.NavImplType",
+          "note": "Sets Documentation.Name and LongDescription on the shared function type, FieldCaption on the options and Query fields, and SampleValues on Query."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "75-95",
+          "function": "CDataConnectCloudServiceV2.CreateConnectionNav",
+          "note": "Lists catalogs at runtime from GetCatalogs."
+        },
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "108-136",
+          "function": "CDataConnectCloudServiceV2.CreateSchemaNav",
+          "note": "Schema rows are folders with IsLeaf false that open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "6",
+          "function": "CDataConnectCloud",
+          "note": "TestConnection names CDataConnectCloud.ContentsV2, the shared entry function, with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "custom-sql-generator",
+        "native-query"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "298-366",
+          "function": "CDataConnectCloudServiceV2.View",
+          "note": "Table.View handlers OnTake, OnSkip, OnSelectColumns, OnSort, GetRowCount, GetType, and GetRows."
+        },
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "368-412",
+          "function": "BuildSqlQuery",
+          "note": "The connector builds its own SQL text (SELECT, ORDER BY, LIMIT, OFFSET) behind the handlers."
+        },
+        {
+          "file": "CDataConnectCloudServiceV2.pqm",
+          "lines": "2-7",
+          "function": "CDataConnectCloudServiceV2.NavImpl",
+          "note": "The Query option is passed straight to ExecuteQuery, so the source function accepts native SQL."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip",
+            "on-select-columns",
+            "on-sort",
+            "get-row-count",
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "CDataConnectCloudServiceV2.pqm",
+              "lines": "304-348",
+              "function": "CDataConnectCloudServiceV2.View",
+              "note": "Implements OnTake, OnSkip, OnSelectColumns, OnSort, and OnRenameColumns. OnRenameColumns, GetType, and GetRows are not in the list, so other is used."
+            },
+            {
+              "file": "CDataConnectCloudServiceV2.pqm",
+              "lines": "349-358",
+              "function": "CDataConnectCloudServiceV2.View",
+              "note": "Implements GetRowCount."
+            }
+          ]
+        },
+        "native-query-enabled": {
+          "text": "Enabled by the options record Query field on the entry function. A non-empty Query is sent to CDataConnectCloudRestV2.ExecuteQuery and bypasses navigation. There is no OnNativeQuery handler.",
+          "evidence": [
+            {
+              "file": "CDataConnectCloud.pq",
+              "lines": "44-54",
+              "function": "CDataConnectCloud.ContentsV2",
+              "note": "Entry function with the options record that carries Query."
+            },
+            {
+              "file": "CDataConnectCloudServiceV2.pqm",
+              "lines": "5-7",
+              "function": "CDataConnectCloudServiceV2.NavImpl",
+              "note": "Calls ExecuteQuery(InputOptions[Query]) when a query is present."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "71-86",
+          "function": "Extension.LoadFunction",
+          "note": "Loads OAuth.pqm, CDataConnectCloudServiceV2.pqm, and CDataConnectCloudService.pqm through Extension.LoadFunction."
+        },
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "12-15",
+          "function": "CDataConnectCloud",
+          "note": "Labels come from Extension.LoadString."
+        },
+        {
+          "file": "CDataConnectCloud.pq",
+          "lines": "26-39",
+          "function": "CDataConnectCloud.Icons",
+          "note": "Icons come from Extension.Contents(CDataConnectCloud48.png)."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-8",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace with no enabling switch."
+        },
+        {
+          "file": "CDataConnectCloudRestV2.pqm",
+          "lines": "24-26",
+          "function": "CDataConnectCloudRestV2.ExecuteRequest",
+          "note": "Logs the Web.Contents options on every live data request."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:43:08Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0161909,
+    "duration_ms": 53542
+  },
+  "source_sha256": "9d70a6d49b7ead6de05dbb1a1a7ccbd75b92efb12c8f6e8b87d536f7361eebe0",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

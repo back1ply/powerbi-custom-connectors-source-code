@@ -1,0 +1,264 @@
+{
+  "connector": "Actian",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "260-263",
+          "function": "Actian",
+          "note": "Data source kind declares Authentication with Windows and UsernamePassword only; no anonymous kind."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "117-127",
+          "function": "Actian.Contents",
+          "note": "UsernamePassword sets UID/PWD from Extension.CurrentCredential(); Windows is handled by returning null CredentialConnectionString."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "218-239",
+          "function": "Actian.Contents",
+          "note": "Odbc.DataSource(ConnectionString, ...) is the only data access call."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Actian.m",
+              "lines": "132-144",
+              "function": "Actian.Contents",
+              "note": "Declares SqlCapabilities override (Sql92Conformance, FractionalSecondsScale) and SQLGetInfo overrides (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS) passed to Odbc.DataSource."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "87-87",
+          "function": "Actian.Contents",
+          "note": "Shared function takes server as text and database as text."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "102-109",
+          "function": "Actian.Contents",
+          "note": "server is a host/VNODE or a DSN= connection string; database names the database."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "218-239",
+          "function": "Actian.Contents",
+          "note": "Rows come from the ODBC driver through Odbc.DataSource; no Json, Csv, Excel, Parquet, or Arrow parsing."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "218-239",
+          "function": "Actian.Contents",
+          "note": "Column names and types come from the ODBC driver via Odbc.DataSource; no declared M types are assigned."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "218-220",
+          "function": "Actian.Contents",
+          "note": "Odbc.DataSource with HierarchicalNavigation = true builds the navigator from the driver catalog at runtime, with schema folders that open further tables."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "252-258",
+          "function": "Actian",
+          "note": "TestConnection returns the Actian.Contents call with server and database, i.e. the shared entry function itself."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "132-144",
+          "function": "Actian.Contents",
+          "note": "SqlCapabilities and SQLGetInfo overrides shape folding through Odbc.DataSource. AstVisitor (lines 197-207) is commented out and not live. HideNativeQuery = true (line 222) means no native query support."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "371-378",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm is loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "382-382",
+          "function": "ODBC",
+          "note": "OdbcConstants.pqm is loaded as a separate module file."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "278-278",
+          "function": "Actian.Publish",
+          "note": "ButtonText uses Extension.LoadString."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "285-288",
+          "function": "Actian.Icons",
+          "note": "Icon16 and Icon32 use Extension.Contents PNG files."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "276-276",
+          "function": "Actian.Publish",
+          "note": "Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "Actian.m",
+          "lines": "159-163",
+          "function": "Actian.Contents",
+          "note": "SQLGetTypeInfo calls Diagnostics.LogValue only after the EnableTraceOutput guard."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "179-185",
+          "function": "Actian.Contents",
+          "note": "SQLColumns calls Diagnostics.LogValue only after the EnableTraceOutput guard."
+        },
+        {
+          "file": "Actian.m",
+          "lines": "379-379",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue is a no-op unless EnableTraceOutput is true."
+        }
+      ],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:37:10Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0126417,
+    "duration_ms": 27309
+  },
+  "source_sha256": "3cffd34bd1f79414c6b31e36eb00069ac0672889c6077cb8ff3f9e334a080e07",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

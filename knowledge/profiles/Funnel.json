@@ -1,0 +1,365 @@
+{
+  "connector": "Funnel",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Funnel.pq",
+          "lines": "9-20",
+          "function": "Funnel",
+          "note": "The Authentication record declares only an OAuth block (StartLogin, FinishLogin, Refresh)."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "16-34",
+          "function": "StartLogin",
+          "note": "Authorization URL is built with response_type=code and the user signs in through the OAuth flow."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "18-18",
+          "function": "GetHeaders",
+          "note": "The X-Auth-Token header is the OAuth access_token from Extension.CurrentCredential()."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "18-25",
+              "function": "StartLogin",
+              "note": "The authorization request has no code_challenge or code_challenge_method parameter."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "60-77",
+              "function": "Refresh",
+              "note": "Refresh posts a refresh_token grant to the token endpoint and returns the new token parts."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "DataLoading.pqm",
+          "lines": "27-27",
+          "function": "GetAccounts",
+          "note": "Accounts are read with Web.Contents."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "138-138",
+          "function": "GetValidatedContent",
+          "note": "Schema and data requests are made with Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Funnel.pq",
+          "lines": "4-5",
+          "function": "Funnel.Contents",
+          "note": "The shared entry function takes no parameters; the account and view are chosen in the navigator."
+        },
+        {
+          "file": "NavigationTable.pqm",
+          "lines": "19-26",
+          "function": "PeriodType",
+          "note": "The optional numberOfMonths parameter belongs to the navigator's view data function, not to connecting."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "DataLoading.pqm",
+          "lines": "127-128",
+          "function": "GetPage",
+          "note": "The next page URL is read from the X-Paging-Next-Url response header."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "DataLoading.pqm",
+              "lines": "103-109",
+              "function": "GenerateByPage",
+              "note": "The connector's own GenerateByPage helper calls List.Generate directly; it does not call Table.GenerateByPage."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no X-Paging-Next-Url header. nextUrl becomes null, so the next page is null and List.Generate ends. Empty pages are dropped.",
+          "evidence": [
+            {
+              "file": "DataLoading.pqm",
+              "lines": "95-97",
+              "function": "GetData",
+              "note": "nextUrl is null when there is no NextUrl metadata, so the page is null."
+            },
+            {
+              "file": "DataLoading.pqm",
+              "lines": "107-107",
+              "function": "GenerateByPage",
+              "note": "The List.Generate stop condition is lastPage <> null."
+            },
+            {
+              "file": "DataLoading.pqm",
+              "lines": "128-128",
+              "function": "GetPage",
+              "note": "nextUrl is read from X-Paging-Next-Url, or null when absent."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "DataLoading.pqm",
+          "lines": "139-139",
+          "function": "GetValidatedContent",
+          "note": "Json.Document parses the data and schema responses."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "131-131",
+          "function": "GetPage",
+          "note": "The parsed JSON array-of-arrays is converted to a table of rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "DataLoading.pqm",
+          "lines": "46-49",
+          "function": "FunnelToPowerQueryDataTypes",
+          "note": "The connector maps Funnel type names (date, int, dec, other) to Date.Type, Int64.Type, Number.Type and Text.Type."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "81-81",
+          "function": "LoadData",
+          "note": "Table.TransformColumnTypes applies the mapped M types to the returned data columns."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DataLoading.pqm",
+              "lines": "114-115",
+              "function": "GenerateByPage",
+              "note": "An empty result returns Table.FromRows with no rows, which still flows through the expansion to fieldIds."
+            },
+            {
+              "file": "DataLoading.pqm",
+              "lines": "75-75",
+              "function": "LoadData",
+              "note": "Table.ExpandRecordColumn creates one column per schema field name, so the declared columns exist even with no rows."
+            },
+            {
+              "file": "DataLoading.pqm",
+              "lines": "81-81",
+              "function": "LoadData",
+              "note": "The declared types are applied to the columns of the empty result."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "DataLoading.pqm",
+          "lines": "27-27",
+          "function": "GetAccounts",
+          "note": "Data request sets ManualStatusHandling and inspects the status code itself."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "138-141",
+          "function": "GetValidatedContent",
+          "note": "Data and schema requests set ManualStatusHandling and raise an error when the status is in the handled list."
+        },
+        {
+          "file": "DataLoading.pqm",
+          "lines": "147-156",
+          "function": "GetErrorMessage",
+          "note": "Error.Record is built from the error body's code and message for HTTP error responses."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "NavigationTable.pqm",
+          "lines": "13-17",
+          "function": "NavigationTableType",
+          "note": "The type function carries Documentation.Name and Documentation.LongDescription, which Funnel.Contents uses."
+        },
+        {
+          "file": "Funnel.pq",
+          "lines": "5-5",
+          "function": "Funnel.Contents",
+          "note": "The shared function is typed with NavigationTableType. Funnel.Contents has no parameters, so no parameter captions or descriptions apply to it."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "NavigationTable.pqm",
+          "lines": "64-74",
+          "function": "BuildNavigationWorkspaceTable",
+          "note": "Account folders are listed at runtime from GetAccounts for the EU and US instances."
+        },
+        {
+          "file": "NavigationTable.pqm",
+          "lines": "84-86",
+          "function": "BuildNavigationWorkspaceTable",
+          "note": "Account rows are folders with IsLeaf false, and each opens a nested view navigation table."
+        },
+        {
+          "file": "NavigationTable.pqm",
+          "lines": "58-60",
+          "function": "BuildViewsNavTable",
+          "note": "View rows are leaves (IsLeaf true) inside the folder tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Funnel.pq",
+          "lines": "10-10",
+          "function": "Funnel",
+          "note": "TestConnection names the Funnel.Contents entry function, so the gateway test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Funnel.pq",
+          "lines": "38-51",
+          "function": "Extension.LoadFunction",
+          "note": "Code is split into OAuth.pqm, NavigationTable.pqm and DataLoading.pqm loaded with Extension.LoadFunction."
+        },
+        {
+          "file": "Funnel.pq",
+          "lines": "16-19",
+          "function": "Funnel",
+          "note": "Labels are loaded with Extension.LoadString."
+        },
+        {
+          "file": "Funnel.pq",
+          "lines": "32-35",
+          "function": "Funnel.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:11Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0165502,
+    "duration_ms": 70458,
+    "repair_attempts": 1
+  },
+  "source_sha256": "ba8b68892a36edeff80615afa98965472ced5fd20adf883e88072384a2b5db82",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

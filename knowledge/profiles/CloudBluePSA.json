@@ -1,0 +1,314 @@
+{
+  "connector": "CloudBluePSA",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "33-34",
+          "function": "CloudBluePSAImpl",
+          "note": "API key read from Extension.CurrentCredential()[Key] and appended to the request URL as the api_key query parameter."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "75-79",
+          "function": "CloudBluePSA",
+          "note": "Authentication record declares a single Key credential with a KeyLabel."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "query-string"
+          ],
+          "evidence": [
+            {
+              "file": "CloudBluePSAConnector.m",
+              "lines": "34",
+              "function": "CloudBluePSAImpl",
+              "note": "Key is sent as ?api_key=<key> in the query string."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "35",
+          "function": "CloudBluePSAImpl",
+          "note": "Data is fetched with Web.Contents(modifiedURL, [ManualCredentials = true])."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "61",
+          "function": "getPage",
+          "note": "Each page is fetched with Web.Contents(modifiedURL, [ManualCredentials = true])."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "8-12",
+          "function": "CloudBluePSAType",
+          "note": "url parameter is the endpoint URL (url-or-server)."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "13-17",
+          "function": "CloudBluePSAType",
+          "note": "filter is a text parameter carrying a JSON query string passed as its own parameter, so it fits other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "31",
+          "function": "CloudBluePSAImpl",
+          "note": "pagesize is fixed at 1000 in the filter JSON."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "54-55",
+          "function": "getPage",
+          "note": "Each request sets a pageno value inside the filter JSON, so paging is by page number, which matches no listed id."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "CloudBluePSAConnector.m",
+              "lines": "42-45",
+              "function": "CloudBluePSAImpl",
+              "note": "Page numbers come from the range {1..pageCount} turned into a table with Table.FromList and mapped with Table.AddColumn and Function.InvokeAfter. Table.GenerateByPage and List.Generate are not used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops after pageCount pages, where pageCount is ceil(TotalRows / 1000). TotalRows comes from a first request that adds TotalRows to gridcolumns. The page list is {1..pageCount}, so no further stop condition is checked.",
+          "evidence": [
+            {
+              "file": "CloudBluePSAConnector.m",
+              "lines": "27-30",
+              "function": "CloudBluePSAImpl",
+              "note": "TotalRows is appended to gridcolumns for the count request."
+            },
+            {
+              "file": "CloudBluePSAConnector.m",
+              "lines": "36-42",
+              "function": "CloudBluePSAImpl",
+              "note": "TotalRows is read from the response and pageCount is computed from it."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "35",
+          "function": "CloudBluePSAImpl",
+          "note": "Response parsed with Json.Document."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "61",
+          "function": "getPage",
+          "note": "Page response parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "36",
+          "function": "CloudBluePSAImpl",
+          "note": "Table.FromList with no declared columns; column names come from the default Column1."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "62",
+          "function": "getPage",
+          "note": "Page data converted with Table.FromList and no column types declared."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "35",
+          "function": "CloudBluePSAImpl",
+          "note": "Web.Contents without ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "61",
+          "function": "getPage",
+          "note": "Page requests are also Web.Contents without ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "18-20",
+          "function": "CloudBluePSAType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "9-11",
+          "function": "CloudBluePSAType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues for url."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "14-16",
+          "function": "CloudBluePSAType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues for filter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "4-5",
+          "function": "CloudBluePSA.Feed",
+          "note": "The shared function returns one table directly with no navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "68-74",
+          "function": "CloudBluePSA",
+          "note": "TestConnection returns the list { \"CloudBluePSA.Feed\", url, filter }, which names the shared entry function, so the test runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "1-94",
+          "function": "",
+          "note": "The connector is a single .m file."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "9-11",
+          "function": "CloudBluePSAType",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "91-94",
+          "function": "CloudBluePSA.Icons",
+          "note": "Icon records built from Extension.Contents PNG files."
+        },
+        {
+          "file": "CloudBluePSAConnector.m",
+          "lines": "84-86",
+          "function": "CloudBluePSA.Publish",
+          "note": "Beta = true in the publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:43:44Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0057169000000000005,
+    "duration_ms": 28976
+  },
+  "source_sha256": "1067b428d0c701aa3df4eb9a23e6eb005d19074d2c81f97f79d1a9ee7b8f0780",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

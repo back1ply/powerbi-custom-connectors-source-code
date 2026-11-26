@@ -1,0 +1,430 @@
+{
+  "connector": "HexagonSmartApi",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "142-154",
+          "function": "HexagonSmartApi",
+          "note": "Data source kind offers only an OAuth authentication method (StartLogin, FinishLogin, Refresh, Logout). No credential-free kind."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "18-40",
+          "function": "OAuth.StartLogin",
+          "note": "Builds the OAuth authorize URI with client_id, scope, redirect_uri and resource."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "52-71",
+          "function": "OAuth.Refresh",
+          "note": "Refresh-token grant posted to the token endpoint."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "22-28",
+              "function": "OAuth.StartLogin",
+              "note": "Authorize URI has no code_challenge or code_challenge_method parameters."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "OAuth.pqm",
+              "lines": "52-71",
+              "function": "OAuth.Refresh",
+              "note": "Implements refresh_token grant."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108",
+          "function": "SmartApiFeedImpl",
+          "note": "OData.Feed(validUrl, headerRecord, oDataOptions) is the main data path."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "189-194",
+          "function": "SmartApiGetODataMetadataImp",
+          "note": "Web.Contents used for $metadata (shared GetODataMetadata)."
+        },
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "31",
+          "function": "HexagonSmartApiWebRequest",
+          "note": "Web.Contents on live path for parametric filter requests."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "49-54",
+          "function": "HexagonSmartApi.Feed",
+          "note": "url parameter (uriType) names the service root URL."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "56-58",
+          "function": "headersType",
+          "note": "headers is a raw 'x=a,y=b' text fragment, not a URL or record."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "60-63",
+          "function": "odataFeedVersion",
+          "note": "odataFeedVersion is a text version selector (2.0/1.0), no id fits, so other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "785-794",
+          "function": "GetAllPagesByNextLink",
+          "note": "Reads the @odata.nextLink from the previous page's metadata to request the next page."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "469-486",
+          "function": "GetAllPagesByNextLink",
+          "note": "Same next-link paging for select list items."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "ParametricFilter.pqm",
+              "lines": "801-819",
+              "function": "Table.GenerateByPage",
+              "note": "Pages are produced by the Table.GenerateByPage helper."
+            },
+            {
+              "file": "SelectList.pqm",
+              "lines": "493-510",
+              "function": "Table.GenerateByPage",
+              "note": "Same helper used for select list paging."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the page response has no @odata.nextLink (GetNextLink returns null), so the next page is null and List.Generate ends when a page is null.",
+          "evidence": [
+            {
+              "file": "ParametricFilter.pqm",
+              "lines": "770",
+              "function": "GetPage",
+              "note": "nextLink taken from the response."
+            },
+            {
+              "file": "ParametricFilter.pqm",
+              "lines": "798",
+              "function": "GetNextLink",
+              "note": "Returns null when @odata.nextLink is absent."
+            },
+            {
+              "file": "ParametricFilter.pqm",
+              "lines": "801-806",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate stops when lastPage is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "xml"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108",
+          "function": "SmartApiFeedImpl",
+          "note": "OData.Feed returns JSON-based OData payloads to the user."
+        },
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "761",
+          "function": "GetPage",
+          "note": "Json.Document parses the filter result payload returned as data."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "445",
+          "function": "GetPage",
+          "note": "Json.Document parses select list item pages."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "189-195",
+          "function": "SmartApiGetODataMetadataImp",
+          "note": "Xml.Tables parses $metadata XML returned by the shared HexagonSmartApi.GetODataMetadata."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108",
+          "function": "SmartApiFeedImpl",
+          "note": "OData.Feed takes names and types from $metadata; the connector does not redefine them."
+        },
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "772-778",
+          "function": "GetPage",
+          "note": "Column names taken from record field names with Table.FromRecords and no declared M types."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "456-462",
+          "function": "GetPage",
+          "note": "Same inferred column names from record fields."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108",
+          "function": "SmartApiFeedImpl",
+          "note": "OData.Feed data request with no ManualStatusHandling, so status is left to Power Query."
+        },
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "754-759",
+          "function": "GetPage",
+          "note": "Web.Contents with ManualStatusHandling = {400, 500, 501}."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "439-443",
+          "function": "GetPage",
+          "note": "Web.Contents with ManualStatusHandling = {400, 404, 500, 501}."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "141-152",
+          "function": "TokenMethod",
+          "note": "Token call sets ManualStatusHandling = {400} and inspects the response."
+        },
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "762-767",
+          "function": "GetPage",
+          "note": "Non-200 response builds an error from the error body."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "446-451",
+          "function": "GetPage",
+          "note": "Non-200 response builds Error.Record from the error body."
+        },
+        {
+          "file": "OAuth.pqm",
+          "lines": "164-170",
+          "function": "TokenMethod",
+          "note": "Error.Record built from the OAuth token endpoint error."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "65-70",
+          "function": "SmartApiFeedType",
+          "note": "Documentation.Name, LongDescription and Examples on the function type."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "52-63",
+          "function": "uriType",
+          "note": "Documentation.FieldCaption on parameters."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "54-63",
+          "function": "uriType",
+          "note": "Documentation.SampleValues on parameters."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "62",
+          "function": "odataFeedVersion",
+          "note": "Documentation.AllowedValues = {\"2.0\", \"1.0\"}."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108-125",
+          "function": "SmartApiFeedImpl",
+          "note": "Navigator items come from OData.Feed on the user-supplied URL, with extra rows appended."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "143",
+          "function": "HexagonSmartApi",
+          "note": "TestConnection = (dataSourcePath) => {\"HexagonSmartApi.Feed\", dataSourcePath} names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "108-119",
+          "function": "SmartApiFeedImpl",
+          "note": "Returns OData.Feed tables, so the OData connector folds the requests."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "localized-strings",
+        "pqm-modules",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "213-242",
+          "function": "Extension.LoadFunction",
+          "note": "Code is loaded from OAuth.pqm, ParametricFilter.pqm, SelectList.pqm, Typecast.pqm and UoM.pqm."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "65-70",
+          "function": "SmartApiFeedType",
+          "note": "Strings come from Extension.LoadString."
+        },
+        {
+          "file": "HexagonSmartApi.m",
+          "lines": "164-167",
+          "function": "HexagonSmartApi.Icons",
+          "note": "Icon files loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "ParametricFilter.pqm",
+          "lines": "6-10",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.Trace only runs when EnableTraceOutput is true (set to false)."
+        },
+        {
+          "file": "SelectList.pqm",
+          "lines": "6-10",
+          "function": "Diagnostics.LogValue",
+          "note": "Same EnableTraceOutput switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:03Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.019549499999999997,
+    "duration_ms": 52872
+  },
+  "source_sha256": "d1339097f2eb5095bc55f2c2f4ca9e5ec789dfb111d7a4a54bd4e58494b80959",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

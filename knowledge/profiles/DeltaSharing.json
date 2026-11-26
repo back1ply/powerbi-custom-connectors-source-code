@@ -1,0 +1,438 @@
+{
+  "connector": "DeltaSharing",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "23-35",
+          "function": "DeltaSharing",
+          "note": "Authentication record declares an OAuth kind (StartLogin, FinishLogin, Refresh) and a Key kind labelled Bearer Token."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "462-467",
+          "function": "SendRequest",
+          "note": "Reads Extension.CurrentCredential and uses the Key or access_token value as the bearer token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "181-201",
+              "function": "OidcStartLogin",
+              "note": "Generates a PKCE code verifier and S256 code_challenge and sends them in the authorization request."
+            },
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "136-160",
+              "function": "OidcFinishLogin",
+              "note": "Sends code_verifier with the authorization_code token exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "115-126",
+              "function": "OidcRefresh",
+              "note": "Exchanges oldCredentials refresh_token for a new token with grant_type refresh_token."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "462-467",
+              "function": "SendRequest",
+              "note": "Bearer token is sent in the Authorization request header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "462-473",
+          "function": "SendRequest",
+          "note": "All data and metadata requests go through Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "228-232",
+          "function": "SharingServerType",
+          "note": "The host parameter is the Delta Sharing server URL."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "233-241",
+          "function": "SharingServerType",
+          "note": "Optional options record parameter for connector settings."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts one optional field, rowLimitHint (number). When it is missing or negative, the default 1000000 is used. It caps rows per table through Table.FirstN and is sent as limitHint in the /query body.",
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "233-238",
+              "function": "SharingServerType",
+              "note": "Declares the rowLimitHint optional number field."
+            },
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "279-285",
+              "function": "GetShares",
+              "note": "Reads rowLimitHint with the default 1000000 when missing or negative."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "497-510",
+          "function": "GetItems",
+          "note": "Each page passes the server-supplied nextPageToken back as pageToken."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "513-524",
+          "function": "GetItems",
+          "note": "FetchAllPages recurses with the next token."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "513-524",
+              "function": "GetItems",
+              "note": "FetchAllPages calls itself (@FetchAllPages) with nextToken and concatenates the results."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when nextPageToken is null or an empty string. A page with no items field contributes an empty list. Each request sets maxResults=500.",
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "516-522",
+              "function": "GetItems",
+              "note": "Empty items yield {}; recursion stops when nextToken is null or empty."
+            },
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "497-500",
+              "function": "GetItems",
+              "note": "maxResults is always set to 500."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "parquet",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "407-410",
+          "function": "GetData",
+          "note": "JSON metadata and file-info lines are parsed with Json.Document (also lines 506-508 for list endpoints)."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "432",
+          "function": "FetchFileContents",
+          "note": "Parquet.Document parses each data file. Reached from GetData's non-Delta branch (line 421)."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "784",
+          "function": "FetchFileContentsDelta",
+          "note": "Delta tables are read with DeltaLake.Table, which is the other format."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "539-571",
+          "function": "ConvertDeltaTypeToTypeRecord",
+          "note": "Maps Delta type names to M types. ConvertToTableType builds the declared table type."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "447",
+          "function": "FetchFileContents",
+          "note": "Value.ReplaceType applies the declared table type to returned data."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "533",
+          "function": "GetItems",
+          "note": "Table.FromRecords takes column names from the data, with no declared types (listing tables)."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "784",
+          "function": "FetchFileContentsDelta",
+          "note": "DeltaLake.Table takes names and types from the Delta log with no connector-declared types."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "438",
+          "function": "FetchFileContents",
+          "note": "Table.TransformColumnTypes converts partition column values to their declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "443-447",
+              "function": "FetchFileContents",
+              "note": "With no files, the table is built from column names and then given the declared table type, so declared columns are kept. This is the non-Delta path."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay",
+        "rate-limit-aware"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "432",
+          "function": "FetchFileContents",
+          "note": "Live data-file download through ProtectSensitiveQueryParameters without ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "469",
+          "function": "SendRequest",
+          "note": "Sets ManualStatusHandling={400, 403, 404, 429, 503} and inspects the status itself."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "475-484",
+          "function": "HandleError",
+          "note": "Builds Error.Record for 400 and 404 and Extension.CredentialError for 403."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "340-368",
+          "function": "RetryWithBackoff",
+          "note": "Retries failed requests after a delay using Value.WaitFor."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "357",
+          "function": "RetryWithBackoff",
+          "note": "Retries status 429 specifically, which is rate-limit handling."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Retries HTTP 429 and 503. Any error raised by the request is also retried, because try ... otherwise null yields null and Value.WaitFor polls again. Default maximum of 5 retries (maxRetries = 5). Delay is 1 second doubled each iteration (1 * 2^n seconds).",
+          "evidence": [
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "347-348",
+              "function": "RetryWithBackoff",
+              "note": "Default retries 5 and initial delay 1 second."
+            },
+            {
+              "file": "DeltaSharing.pq",
+              "lines": "354-360",
+              "function": "RetryWithBackoff",
+              "note": "Status check, 429/503 retry condition, and exponential delay #duration(0,0,0,delay * 2^iteration)."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "228-244",
+          "function": "SharingServerType",
+          "note": "Documentation.Name on the return type sets function documentation. FieldCaption and FieldDescription are set on parameters, and SampleValues on host and rowLimitHint."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "276-298",
+          "function": "GetShares",
+          "note": "Share rows are listed from the server at runtime and built into a navigation table."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "294",
+          "function": "GetShares",
+          "note": "Share rows have IsLeaf false, so they open further schema navigation."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "308",
+          "function": "GetSchemas",
+          "note": "Schema rows have IsLeaf false, so they open table navigation."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "16-21",
+          "function": "DeltaSharing",
+          "note": "TestConnection returns { \"DeltaSharing.Contents\", url }, which names the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "595-602",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ToNavigationTable.pqm is loaded with Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "36",
+          "function": "DeltaSharing",
+          "note": "Label uses Extension.LoadString."
+        },
+        {
+          "file": "DeltaSharing.pq",
+          "lines": "221-222",
+          "function": "DeltaSharing.Icons",
+          "note": "Icons loaded with Extension.Contents (PNG files)."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:45:59Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0117228,
+    "duration_ms": 48919
+  },
+  "source_sha256": "0d4d5946eed617a455382eec82553da12591995e1caec496ee13bf27bb8681d7",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

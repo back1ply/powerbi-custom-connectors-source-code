@@ -1,0 +1,281 @@
+{
+  "connector": "JethroData1.0.1",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "105-108",
+          "function": "JethroODBC",
+          "note": "Data source kind declares Authentication = [UsernamePassword = []] and no anonymous or other kind."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "27-32",
+          "function": "JethroODBC.Database",
+          "note": "Reads Extension.CurrentCredential() and sends UID/PWD when AuthenticationKind is UsernamePassword; otherwise falls back to AnonymousAuthMech for the driver."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "38-66",
+          "function": "JethroODBC.Database",
+          "note": "Reaches the source through Odbc.DataSource with the JethroODBCDriver connection string."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "JethroODBC.m",
+              "lines": "42-52",
+              "function": "JethroODBC.Database",
+              "note": "Declares SqlCapabilities (SupportsTop, Sql92Conformance, GroupByCapabilities, literal support flags)."
+            },
+            {
+              "file": "JethroODBC.m",
+              "lines": "55-65",
+              "function": "JethroODBC.Database",
+              "note": "Declares SQLGetInfo and SQLGetFunctions overrides (SQL_API_SQLBINDPARAMETER = false)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "12-14",
+          "function": "JethroODBC.Database",
+          "note": "server parameter names the connection host and is passed to GetAddress."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "90-103",
+          "function": "GetAddress",
+          "note": "Parses server into Host and Port, so server is a host/server name."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "12-23",
+          "function": "JethroODBC.Database",
+          "note": "database parameter is used as the Database connection property and as the OdbcDatasource navigation name."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "12",
+          "function": "JethroODBC.Database",
+          "note": "Optional options record parameter is declared, but the body never reads it."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The optional options record is declared but never read in the function body, so it accepts no fields.",
+          "evidence": [
+            {
+              "file": "JethroODBC.m",
+              "lines": "12",
+              "function": "JethroODBC.Database",
+              "note": "optional options as record is declared; no reference to options appears in lines 13-70."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "38-70",
+          "function": "JethroODBC.Database",
+          "note": "Odbc.DataSource returns driver-supplied tables; the function returns the selected database's Data table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "38-70",
+          "function": "JethroODBC.Database",
+          "note": "Column names and types come from the ODBC driver; no M types are assigned and no type conversion is applied to returned data."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "38-66",
+          "function": "JethroODBC.Database",
+          "note": "Transport is odbc, which is outside the web-contents and odata-feed applies_when set."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "10-12",
+          "function": "JethroODBC.Database",
+          "note": "Shared function has no documentation metadata record, and no parameter captions, descriptions, samples, or allowed values are defined."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "68-70",
+          "function": "JethroODBC.Database",
+          "note": "Shared function returns one data table (the selected database's Data) directly, with no navigation table exposed."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "38-40",
+          "function": "JethroODBC.Database",
+          "note": "HierarchicalNavigation is set on Odbc.DataSource, but the shared function does not return that navigator to the user."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "109-115",
+          "function": "JethroODBC",
+          "note": "TestConnection returns {\"JethroODBC.Database\", server, database}, which names the shared entry function itself."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "42-65",
+          "function": "JethroODBC.Database",
+          "note": "Folding is shaped by SqlCapabilities, SQLGetInfo, and SQLGetFunctions overrides on Odbc.DataSource."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "54",
+          "function": "JethroODBC.Database",
+          "note": "HideNativeQuery = true, so Value.NativeQuery is not exposed; native-query does not apply."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "JethroODBC.m",
+          "lines": "1-146",
+          "function": "JethroODBC",
+          "note": "The whole connector is a single .m file with no .pqm module loading."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "122",
+          "function": "JethroODBC.UI",
+          "note": "ButtonText is loaded through Extension.LoadString."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "143-145",
+          "function": "JethroODBC.Icons",
+          "note": "Icon16 and Icon32 are loaded through Extension.Contents PNG files."
+        },
+        {
+          "file": "JethroODBC.m",
+          "lines": "120",
+          "function": "JethroODBC.UI",
+          "note": "Beta = true is set on the Publish record."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:15Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0051761,
+    "duration_ms": 22015
+  },
+  "source_sha256": "8b01a6a9345ef4942085203d5f8652bf63761a7ed1530db1cdd80057db1f8e83",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

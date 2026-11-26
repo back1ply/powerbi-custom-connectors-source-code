@@ -1,0 +1,403 @@
+{
+  "connector": "Kognitwin",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "111-120",
+          "function": "Kognitwin",
+          "note": "Authentication record declares only an OAuth block (StartLogin, FinishLogin, Refresh, Logout). Implicit is commented out and no anonymous kind is offered."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Kognitwin.pq",
+              "lines": "125-154",
+              "function": "StartLogin",
+              "note": "Sends code_challenge in the authorize URL (code_challenge_method = plain, which is still PKCE) and returns the verifier as Context."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "156-167",
+              "function": "FinishLogin",
+              "note": "Reads code_challenge from the context and passes it to TokenMethod as the verifier."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "189-193",
+              "function": "TokenMethod",
+              "note": "Adds code_verifier to the token request body when a verifier is present."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Kognitwin.pq",
+              "lines": "169-175",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "116",
+              "function": "Kognitwin",
+              "note": "Refresh is wired into the OAuth record."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "750-757",
+          "function": "GetData",
+          "note": "Json.Document(Web.Contents(...)) is the request path for GetData."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "768-778",
+          "function": "GetDataWithIdp",
+          "note": "Web.Contents with idp header is the data path used by GetDataMiddleware, which every data table uses."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "99-103",
+          "function": "Kognitwin.Contents",
+          "note": "Shared entry function is GetApiUrl, typed with a single url parameter."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "278-294",
+          "function": "GetApiUrlType",
+          "note": "The only user parameter is the Kognitwin environment URL (Uri.Type)."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "271-277",
+          "function": "GetApiUrl",
+          "note": "Uses the entered base URL to fetch config and build the navigator."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "offset-limit",
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "881-951",
+          "function": "PagedTable",
+          "note": "Both modes are inside PagedTable: cursor mode uses _id cursor tokens, offset mode uses offset and limit query parameters (useCursor = false)."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "892",
+          "function": "PagedTable",
+          "note": "Cursor mode builds sort=_id&_id=$gt:<NextCursor>&limit."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "932",
+          "function": "PagedTable",
+          "note": "Offset mode builds offset=<next>&limit=."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Kognitwin.pq",
+              "lines": "881",
+              "function": "PagedTable",
+              "note": "PagedTable calls Table.GenerateByPage, which the connector defines at line 956."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "956-975",
+              "function": "Table.GenerateByPage",
+              "note": "Pages are produced by List.Generate inside this helper. The connector does not call List.Generate directly elsewhere, so only the outermost construct is named."
+            }
+          ],
+          "sub": {}
+        },
+        "paging-stop": {
+          "text": "Cursor mode: the page returns null when it has zero rows or fewer rows than the limit, and the next page is not requested when the previous cursor is null. Offset mode: GetDataTable returns null on an empty list, so the next link is not set and paging ends. Table.GenerateByPage stops when getNextPage returns null.",
+          "evidence": [
+            {
+              "file": "Kognitwin.pq",
+              "lines": "898-920",
+              "function": "PagedTable",
+              "note": "Cursor mode: stop when rowCount = 0 or rowCount < limit, returning a null NextCursor."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "723-725",
+              "function": "GetDataTable",
+              "note": "Empty response returns null, which ends offset paging."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "938-950",
+              "function": "PagedTable",
+              "note": "Offset mode: link is null when the current page is null, ending paging."
+            },
+            {
+              "file": "Kognitwin.pq",
+              "lines": "959-961",
+              "function": "Table.GenerateByPage",
+              "note": "List.Generate stops when the page is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "750-751",
+          "function": "GetData",
+          "note": "Json.Document parses the response."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "768-769",
+          "function": "GetDataWithIdp",
+          "note": "Json.Document parses the data payload returned by the API."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "79",
+          "function": "CreateNavTable",
+          "note": "Table.FromRecords builds the navigator from record field names, with no declared M types."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "964-975",
+          "function": "Table.GenerateByPage",
+          "note": "Column names come from the first page's record fields (Table.ColumnNames). The type is taken from the data, not declared."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "390",
+          "function": "SensorDataForm",
+          "note": "Table.FromRecords on the response, with no declared column types."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "751-756",
+          "function": "GetData",
+          "note": "Web.Contents without ManualStatusHandling; status handling is left to Power Query."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "769-777",
+          "function": "GetDataWithIdp",
+          "note": "Web.Contents without ManualStatusHandling for live data requests."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "227-232",
+          "function": "TokenMethod",
+          "note": "An error body in the token response is turned into Error.Record(Parts[error], Parts[message]?)."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "292-294",
+          "function": "GetApiUrlType",
+          "note": "Documentation.Name sets the function name and version."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "283-285",
+          "function": "GetApiUrlType",
+          "note": "Documentation.FieldCaption and FieldDescription on the url parameter."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "286-288",
+          "function": "GetApiUrlType",
+          "note": "Documentation.SampleValues on the url parameter."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "26-91",
+          "function": "CreateNavTable",
+          "note": "The navigator rows come from the server-side config at runtime (GetDataMiddleware(projectPath) in GetApiUrl)."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "36-40",
+          "function": "CreateNavTable",
+          "note": "Config-kind rows are Folder items with IsLeaf = false and nested Data = CreateNavTable(children)."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "105-110",
+          "function": "Kognitwin",
+          "note": "TestConnection returns {\"Kognitwin.Contents\", dataSourcePath}, naming the shared entry function."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Kognitwin.pq",
+          "lines": "1-1",
+          "function": "section",
+          "note": "The connector is a single .pq file with no pqm modules or Extension.Contents module loading."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "121",
+          "function": "Kognitwin",
+          "note": "Label uses Extension.LoadString(\"DataSourceLabel\")."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "246-249",
+          "function": "Kognitwin.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "Kognitwin.pq",
+          "lines": "254-267",
+          "function": "Kognitwin.Icons",
+          "note": "Icon16 and Icon32 use Extension.Contents for PNG files."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:53Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.017822699999999997,
+    "duration_ms": 51887,
+    "repair_attempts": 1
+  },
+  "source_sha256": "386e72014876d29d2c5b759505939a2372e8500280beb827652a1d29ba7887a2",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

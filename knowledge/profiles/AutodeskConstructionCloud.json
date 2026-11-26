@@ -1,0 +1,478 @@
+{
+  "connector": "AutodeskConstructionCloud",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "130-136",
+          "function": "AutodeskConstructionCloud",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "47-76",
+          "function": "StartLogin",
+          "note": "Builds the Autodesk authorize URL with client_id and redirect_uri"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "51-67",
+              "function": "StartLogin",
+              "note": "Generates a code verifier and sends code_challenge with code_challenge_method S256"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "88",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier when exchanging the authorization code"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "116",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with the refresh_token grant"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "89",
+              "function": "TokenMethod",
+              "note": "Uses refresh_token as the code parameter when grant_type is not authorization_code"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "266-272",
+          "function": "getAccounts",
+          "note": "Web.Contents call to the BIM 360 accounts endpoint"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "288-290",
+          "function": "getProjects",
+          "note": "Web.Contents call for paged project lists"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "556-560",
+          "function": "fetchCsvFile",
+          "note": "Web.Contents call to the signed CSV URL"
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "region-or-environment"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "246-254",
+          "function": "AutodeskConstructionCloudType",
+          "note": "The only user parameter is region, a text value limited by Documentation.AllowedValues to region names"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "141-142",
+          "function": "AutodeskConstructionCloud.Feed",
+          "note": "Shared entry function takes only the region parameter"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "286-294",
+          "function": "getProjects",
+          "note": "Reads the next page URL from response pagination nextUrl"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "296",
+          "function": "GetNextLink",
+          "note": "Returns the nextUrl field or null"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "298-307",
+          "function": "GetAllPagesByNextLink",
+          "note": "Pages are followed by the next link URL"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "298-307",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are generated through Table.GenerateByPage"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "693-699",
+              "function": "Table.GenerateByPage",
+              "note": "Helper built on List.Generate; the connector itself does not call List.Generate for paging"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the page function returns null. GetNextLink returns null when the response has no nextUrl field, GetAllPagesByNextLink then yields null for the next call, and the List.Generate condition (lastPage <> null) ends the sequence.",
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "296",
+              "function": "GetNextLink",
+              "note": "Missing nextUrl yields null"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "301-306",
+              "function": "GetAllPagesByNextLink",
+              "note": "Null nextLink makes the page null"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "696-698",
+              "function": "Table.GenerateByPage",
+              "note": "Stops when a page is null"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "266-276",
+          "function": "getAccounts",
+          "note": "Json.Document parses the accounts response"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "288-292",
+          "function": "getProjects",
+          "note": "Json.Document parses the projects response"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "563-565",
+          "function": "fetchCsvFile",
+          "note": "Csv.Document parses the returned CSV data"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "292",
+          "function": "getProjects",
+          "note": "Table.FromRecords takes column names from the data fields name and id with no M types"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "565",
+          "function": "fetchCsvFile",
+          "note": "Csv.Document supplies column names without declared types"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "578-581",
+          "function": "getCsv",
+          "note": "Table.PromoteHeaders takes names from the data"
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "266-272",
+          "function": "getAccounts",
+          "note": "Live data request with no ManualStatusHandling, so Power Query handles status"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "356-362",
+          "function": "fetchJobs",
+          "note": "Sets ManualStatusHandling {500,502} and inspects Response.Status"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "558-563",
+          "function": "fetchCsvFile",
+          "note": "Sets ManualStatusHandling {403} and inspects the status"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "111-112",
+          "function": "TokenMethod",
+          "note": "Raises Error.Record from an error body in the HTTP response"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "348-366",
+          "function": "fetchJobs",
+          "note": "Value.WaitFor re-sends requests after a delay"
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "fetchJobs, fetchJobsByProject, fetchJobsAccountOnly, fetchDataListing and fetchSignedUrl retry on HTTP 500 and 502. fetchCsvFile retries on HTTP 403. Each Value.WaitFor allows up to 5 attempts (count 5), with a delay of 2^iteration seconds (1, 2, 4, 8 and 16 seconds).",
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "348-366",
+              "function": "fetchJobs",
+              "note": "Retries 500/502 via Value.WaitFor with the power-of-two delay"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "545-546",
+              "function": "fetchSignedUrl",
+              "note": "Delay is 2^iteration seconds with count 5"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "558-569",
+              "function": "fetchCsvFile",
+              "note": "Retries 403 responses with IsRetry and the same delay and count"
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "246-254",
+          "function": "AutodeskConstructionCloudType",
+          "note": "Documentation.Name and LongDescription, Documentation.FieldCaption and Documentation.AllowedValues on region"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "153-163",
+          "function": "GetAccountsNavTable",
+          "note": "Account folders are listed at runtime from the accounts API"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "165-189",
+          "function": "CreateAccountsFolders",
+          "note": "Account folders with IsLeaf false open further navigation tables"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "211",
+          "function": "CreateProjectsFolder",
+          "note": "Project folders with IsLeaf false"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "124-129",
+          "function": "AutodeskConstructionCloud",
+          "note": "TestConnection returns the AutodeskConstructionCloud.Feed entry function with region"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "718",
+          "function": "Diagnostics",
+          "note": "Loads Diagnostics.pqm through Extension.LoadFunction"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "137",
+          "function": "AutodeskConstructionCloud",
+          "note": "Extension.LoadString for DataSourceLabel"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "253",
+          "function": "AutodeskConstructionCloudType",
+          "note": "Extension.LoadString for Version"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "737-738",
+          "function": "AutodeskConstructionCloud.Icons",
+          "note": "Icon images loaded with Extension.Contents"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "562",
+          "function": "fetchCsvFile",
+          "note": "Diagnostics.LogValue called on every CSV fetch with no switch"
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace with no EnableTraceOutput gate"
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "529-548",
+          "function": "fetchSignedUrl",
+          "note": "Polls until the export produces a signedUrl"
+        },
+        {
+          "file": "AutodeskConstructionCloud.pq",
+          "lines": "478-502",
+          "function": "fetchDataListing",
+          "note": "Waits for the export job data listing"
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Interval is exponential: 2^iteration seconds, so 1, 2, 4, 8 and 16 seconds. Each Value.WaitFor allows 5 attempts (count 5), about 31 seconds in total. Terminal success: getLastJob selects a job with completionStatus success, then the data listing and signedUrl are returned and the CSV is downloaded. Terminal failure: fetchCsvFile raises 'Value.WaitFor() Failed after multiple retry attempts' when the wait returns null. fetchDataListing's otherwise clause only catches raised errors, so exhausted waits there return null rather than raising the job-failed error.",
+          "evidence": [
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "545-546",
+              "function": "fetchSignedUrl",
+              "note": "Interval 2^iteration seconds and count 5"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "382",
+              "function": "getLastJob",
+              "note": "Selects jobs whose completionStatus is success"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "571-572",
+              "function": "fetchCsvFile",
+              "note": "Error raised when WaitFor returns null after retries"
+            },
+            {
+              "file": "AutodeskConstructionCloud.pq",
+              "lines": "478-502",
+              "function": "fetchDataListing",
+              "note": "WaitFor with otherwise clause that only catches raised errors"
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:39:34Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.024441400000000002,
+    "duration_ms": 87389,
+    "repair_attempts": 1
+  },
+  "source_sha256": "9e0deedcf1a952251c8077071141c6ba5ae7af1766466f26bb30b5a57ac851ba",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

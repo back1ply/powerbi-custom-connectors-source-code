@@ -1,0 +1,277 @@
+{
+  "connector": "InformationGrid",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "35-36",
+          "function": "InformationGridImpl",
+          "note": "Bearer token built from Extension.CurrentCredential()[Key] and sent in the Authorization header with ManualCredentials = true."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "200-205",
+          "function": "InformationGrid",
+          "note": "Authentication record declares a Key credential kind."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "InformationGrid.pq",
+              "lines": "36-37",
+              "function": "InformationGridImpl",
+              "note": "The key is placed in the Authorization request header via Web.Contents options."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "37",
+          "function": "InformationGridImpl",
+          "note": "Service list is fetched with Web.Contents."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "101",
+          "function": "GetServiceData",
+          "note": "Service data is fetched with Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "7, 29-33",
+          "function": "InformationGrid.Contents / InformationGridImpl",
+          "note": "The only user parameter is server (text), a host name or URL used to build the base URL."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "38",
+          "function": "InformationGridImpl",
+          "note": "Service list parsed with Json.Document."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "102",
+          "function": "GetServiceData",
+          "note": "Service data parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "118-134",
+          "function": "GetTypeFromSchema",
+          "note": "Builds a table type from the IG schema record."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "156-188",
+          "function": "GetPropertyTypeRecord",
+          "note": "Maps IG type names (Text, Int32, Int64, Logical, Date, DateTime, etc.) to M types."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "112",
+          "function": "GetServiceData",
+          "note": "Table.ChangeType applies the declared types to the returned data columns."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "InformationGrid.pq",
+              "lines": "109-112",
+              "function": "GetServiceData",
+              "note": "Table.FromRecords is given tableType, so an empty items list still yields the declared columns, and Table.ChangeType keeps them."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "37",
+          "function": "InformationGridImpl",
+          "note": "Service-list Web.Contents uses options without ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "101",
+          "function": "GetServiceData",
+          "note": "Data Web.Contents call has no ManualStatusHandling."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "9-27",
+          "function": "InformationGridType",
+          "note": "Documentation.Name, LongDescription and Examples are set on the function type."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "10-13",
+          "function": "InformationGridType",
+          "note": "Server parameter has FieldCaption, FieldDescription and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "37-44",
+          "function": "InformationGridImpl",
+          "note": "Services are listed at runtime from the service-list endpoint."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "58, 65",
+          "function": "InformationGridImpl",
+          "note": "Every row is a leaf (IsLeaf true); the navigation table is built with Table.ToNavigationTable. No folders, so not hierarchical."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "193-198",
+          "function": "InformationGrid",
+          "note": "TestConnection returns {\"InformationGrid.Contents\", server}, which names the shared entry function, so the test runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "InformationGrid.pq",
+          "lines": "232, 239-247",
+          "function": "Diagnostics / Table.ChangeType / Table.ToNavigationTable",
+          "note": "Code is loaded from .pqm files via Extension.LoadFunction."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "11-26, 202-206",
+          "function": "InformationGridType / InformationGrid",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "InformationGrid.pq",
+          "lines": "219-222",
+          "function": "InformationGrid.Icons",
+          "note": "Icons are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:37Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.009533100000000001,
+    "duration_ms": 24173
+  },
+  "source_sha256": "6b404c82f0ef39396192355a6c64ea842165202233ecaaa294c6faa6ee9037e3",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

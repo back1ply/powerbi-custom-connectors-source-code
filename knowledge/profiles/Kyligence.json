@@ -1,0 +1,302 @@
+{
+  "connector": "Kyligence",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "107-109",
+          "function": "Kyligence",
+          "note": "Authentication record declares only UsernamePassword = []. No key, OAuth, or other auth is coded."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "43-44",
+          "function": "KyligenceImpl",
+          "note": "Comment says Odbc.DataSource inherits the Windows credential from the extension, so credentials come from the username/password kind rather than custom auth code."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "44-44",
+          "function": "KyligenceImpl",
+          "note": "Data is reached through Odbc.DataSource with the KyligenceODBCDriver driver."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Kyligence.m",
+              "lines": "72-89",
+              "function": "KyligenceImpl",
+              "note": "Declares SqlCapabilities, SQLGetFunctions, and SQLGetInfo overrides on Odbc.DataSource."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "other",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "12-15",
+          "function": "KyligenceType",
+          "note": "Server is the host name, the connection target (url-or-server)."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "16-19",
+          "function": "KyligenceType",
+          "note": "Port is a connection-string fragment passed into ConnectionString (other); no other id fits it."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "20-23",
+          "function": "KyligenceType",
+          "note": "Project names the resource inside the server (database-or-resource-id)."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "24-26",
+          "function": "KyligenceType",
+          "note": "Optional options record of connector settings."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is accepted by KyligenceImpl but none of its fields are read. The body builds the connection only from Server, Port, and Project.",
+          "evidence": [
+            {
+              "file": "Kyligence.m",
+              "lines": "32-32",
+              "function": "KyligenceImpl",
+              "note": "optional options as record parameter; no field access appears in the function body (lines 32-93)."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "44-44",
+          "function": "KyligenceImpl",
+          "note": "Rows come as tables from the ODBC driver through Odbc.DataSource."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "44-44",
+          "function": "KyligenceImpl",
+          "note": "Column names and types come from the ODBC driver; the connector does not redefine them."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "44-44",
+          "function": "KyligenceImpl",
+          "note": "Transport is odbc, which is outside applies_when (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "27-30",
+          "function": "KyligenceType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "13-26",
+          "function": "KyligenceType",
+          "note": "Each parameter has Documentation.FieldCaption."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "14-26",
+          "function": "KyligenceType",
+          "note": "Each parameter has Documentation.FieldDescription."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "44-44",
+          "function": "KyligenceImpl",
+          "note": "Odbc.DataSource builds the navigator from the driver's catalog at runtime, and Database returns that navigation table."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "69-69",
+          "function": "KyligenceImpl",
+          "note": "HierarchicalNavigation = true, so the driver's catalog rows are folders with IsLeaf false."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "98-105",
+          "function": "Kyligence",
+          "note": "TestConnection returns { \"Kyligence.Database\", server, port, project }, so the gateway test calls the shared entry function itself."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "72-89",
+          "function": "KyligenceImpl",
+          "note": "SqlCapabilities and SQLGetInfo overrides shape folding through Odbc.DataSource."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "45-68",
+          "function": "KyligenceImpl",
+          "note": "AstVisitor LimitClause rewrites LIMIT/OFFSET, which counts under odbc-sql-capabilities."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "130-137",
+          "function": "Extension.LoadFunction",
+          "note": "Diagnostics.pqm is loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "125-128",
+          "function": "Kyligence.Icons",
+          "note": "Icons come from Extension.Contents PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "Kyligence.m",
+          "lines": "5-5",
+          "function": "EnableTraceOutput",
+          "note": "The switch is set to true."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "138-138",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue calls the trace helper only when EnableTraceOutput is true."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-2",
+          "function": "Diagnostics.LogValue",
+          "note": "The Diagnostics.Trace call is inside the gated helper."
+        },
+        {
+          "file": "Kyligence.m",
+          "lines": "37-40",
+          "function": "KyligenceImpl",
+          "note": "Live LogValue calls for Server, Port, and Project all go through the gate."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:51:29Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.006429000000000001,
+    "duration_ms": 22989
+  },
+  "source_sha256": "e63947c469b17fe1287d9b605107718704b0c3ec6d8c3f5ba87d93ffa66989d9",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

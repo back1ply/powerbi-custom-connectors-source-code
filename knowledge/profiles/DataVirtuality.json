@@ -1,0 +1,315 @@
+{
+  "connector": "DataVirtuality",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "214-217",
+          "function": "DataVirtuality",
+          "note": "Authentication record declares UsernamePassword; no anonymous, key, or OAuth kind."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "42-48",
+          "function": "DataVirtualityImpl",
+          "note": "Credential = Extension.CurrentCredential(); UID and PWD are taken from Credential[Username] and Credential[Password]."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "53-53",
+          "function": "DataVirtualityImpl",
+          "note": "Odbc.DataSource(ConnectionString, ...) reaches the data source through the DataVirtuality Unicode ODBC driver (line 34)."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DataVirtuality.m",
+              "lines": "55-74",
+              "function": "DataVirtualityImpl",
+              "note": "SqlCapabilities record is passed to Odbc.DataSource."
+            },
+            {
+              "file": "DataVirtuality.m",
+              "lines": "85-123",
+              "function": "DataVirtualityImpl",
+              "note": "SQLGetTypeInfo override (line 85) and SQLGetInfo override record (lines 86-123)."
+            }
+          ],
+          "sub": {}
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "12-16",
+          "function": "DataVirtualityType",
+          "note": "server parameter: the server address, which is a URL-like connection target (host and optional port)."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "17-21",
+          "function": "DataVirtualityType",
+          "note": "database parameter: the virtual database (vdb) inside the server."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "22-22",
+          "function": "DataVirtualityType",
+          "note": "optional options record parameter."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "No fields are read. The optional options parameter is declared on line 22 and passed into DataVirtualityImpl on line 30, but the body never references it. The body builds its own local Options record (lines 44-52) and merges driver options into Odbc.DataSource (lines 53-135).",
+          "evidence": [
+            {
+              "file": "DataVirtuality.m",
+              "lines": "22-30",
+              "function": "DataVirtualityType",
+              "note": "options parameter is declared and passed through, but no field is read from it."
+            },
+            {
+              "file": "DataVirtuality.m",
+              "lines": "44-53",
+              "function": "DataVirtualityImpl",
+              "note": "Local Options record is built and merged with driver settings; the user's options parameter is not used."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "53-53",
+          "function": "DataVirtualityImpl",
+          "note": "Results arrive as ODBC driver rows through Odbc.DataSource."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "137-137",
+          "function": "DataVirtualityImpl",
+          "note": "Database = OdbcDataSource{[Name = database]}[Data] returns the driver table."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "53-53",
+          "function": "DataVirtualityImpl",
+          "note": "Column names and types come from the ODBC driver; the connector does not redefine them."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "156-180",
+          "function": "SQLGetTypeInfo",
+          "note": "Driver type-info table, which is driver metadata rather than a declared M schema for returned columns."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "53-53",
+          "function": "DataVirtualityImpl",
+          "note": "Transport is odbc, which is outside the applies_when set (web-contents, odata-feed), so no HTTP status handling applies."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "24-27",
+          "function": "DataVirtualityType",
+          "note": "Documentation.Name, LongDescription and Icon on the function's return type."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "12-21",
+          "function": "DataVirtualityType",
+          "note": "FieldCaption, FieldDescription and SampleValues on the server and database parameters."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "137-137",
+          "function": "DataVirtualityImpl",
+          "note": "Returns one database's [Data] table directly; no navigation table is returned."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "8-8",
+          "function": "DataVirtuality.Database",
+          "note": "The shared function returns a single table."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "206-212",
+          "function": "DataVirtuality",
+          "note": "TestConnection returns { \"DataVirtuality.Database\", server, database }, which names the shared entry function with no probe flag."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "55-74",
+          "function": "DataVirtualityImpl",
+          "note": "SqlCapabilities shape what the ODBC driver can fold."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "124-134",
+          "function": "DataVirtualityImpl",
+          "note": "AstVisitor LimitClause rewrites LIMIT/OFFSET as FETCH FIRST / OFFSET, which is ODBC folding."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "DataVirtuality.m",
+          "lines": "253-253",
+          "function": "ODBC",
+          "note": "Code is loaded from OdbcConstants.pqm via Extension.LoadFunction (lines 244-249)."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "25-26",
+          "function": "DataVirtuality.Database",
+          "note": "Extension.LoadString for the label and description."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "230-230",
+          "function": "DataVirtuality.Publish",
+          "note": "Extension.LoadString for ButtonTitle and ButtonHelp."
+        },
+        {
+          "file": "DataVirtuality.m",
+          "lines": "239-242",
+          "function": "DataVirtuality.Icons",
+          "note": "Extension.Contents loads PNG icons."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:45:14Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0124078,
+    "duration_ms": 27043
+  },
+  "source_sha256": "44abc7a1a35156ca7837312b6c6d0c694fb1e6b5aab8cab1fe76d224db0139d6",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

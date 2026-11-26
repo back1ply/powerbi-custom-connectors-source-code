@@ -1,0 +1,362 @@
+{
+  "connector": "DynatraceGrail",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "346-356",
+          "function": "DynatraceGrail",
+          "note": "Data source kind declares Authentication = [OAuth = [StartLogin, FinishLogin, Refresh]]."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "9-9",
+              "function": "code_challenge_method",
+              "note": "code_challenge_method is S256."
+            },
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "375-389",
+              "function": "StartLogin",
+              "note": "Builds code_challenge from a SHA256 hash of the code verifier and sends it in the authorize URL."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "413-413",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with grant_type refresh_token."
+            },
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "417-441",
+              "function": "TokenMethod",
+              "note": "Posts grant_type and refresh_token to token_uri and returns the token body."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "156-162",
+          "function": "Grail_logs",
+          "note": "Data is fetched with Web.Contents POST of a DQL query, parsed with Json.Document."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "291-297",
+          "function": "ExecuteCustomQuery",
+          "note": "Custom DQL query is sent with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "41-46",
+          "function": "GetDataType",
+          "note": "The url parameter is the Dynatrace environment URL, so url-or-server."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "47-53",
+          "function": "GetDataType",
+          "note": "QueryInput is raw DQL query text passed as its own parameter, so other."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "54-81",
+          "function": "GetDataType",
+          "note": "The optional options record holds query limit settings, so options-record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "ScanGBParameter (read data limit in GB), MaxResultParameter (record limit, default 1000000), MaxBytesParameter (result size limit in MB), SamplingParameter (sampling ratio, allowed values 10, 100, 1000, 10000).",
+          "evidence": [
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "55-76",
+              "function": "GetDataType",
+              "note": "Declares the four optional fields of the options record."
+            },
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "267-270",
+              "function": "ExecuteCustomQuery",
+              "note": "Reads each option field and maps it into the DQL request."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "156-164",
+          "function": "Grail_logs",
+          "note": "Response is parsed with Json.Document and result[records] is turned into a table."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "291-310",
+          "function": "ExecuteCustomQuery",
+          "note": "Response is parsed with Json.Document and records are converted to a table."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "265-265",
+          "function": "ExecuteCustomQuery",
+          "note": "EmptyTable is a hardcoded table type with a metric.key Text column."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "311-316",
+          "function": "ExecuteCustomQuery",
+          "note": "Empty results return EmptyTable with its declared column."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "165-171",
+          "function": "Grail_logs",
+          "note": "Column names are taken from the record field names of the returned data (Table.ExpandRecordColumn)."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "310-316",
+          "function": "ExecuteCustomQuery",
+          "note": "Column names come from the first record's field names; no M types are assigned."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "131-132",
+              "function": "GrailNavTable",
+              "note": "An empty custom query result raises an error, so the declared metric.key column is never returned to the user."
+            },
+            {
+              "file": "DynatraceGrail.m",
+              "lines": "165-171",
+              "function": "Grail_logs",
+              "note": "Empty navigation tables keep no declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "156-162",
+          "function": "Grail_logs",
+          "note": "Data Web.Contents call has no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "433-433",
+          "function": "TokenMethod",
+          "note": "Token request sets ManualStatusHandling = {400} and inspects the body itself."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "436-437",
+          "function": "TokenMethod",
+          "note": "Error body from the token response is raised as Error.Record."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "82-85",
+          "function": "GetDataType",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the function type."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "43-45",
+          "function": "GetDataType",
+          "note": "Documentation.FieldCaption, FieldDescription and SampleValues on the url parameter."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "75-75",
+          "function": "GetDataType",
+          "note": "Documentation.AllowedValues on SamplingParameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "92-101",
+          "function": "GrailNavTable",
+          "note": "Navigation rows Logs, BizEvents, Events and Spans are hardcoded, all leaves."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "322-342",
+          "function": "Table.ToNavigationTable",
+          "note": "Builds the navigation table from the fixed rows."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "347-347",
+          "function": "DynatraceGrail",
+          "note": "TestConnection calls DynatraceGrail.Contents with the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "1-448",
+          "function": "DynatraceGrail",
+          "note": "The connector is one .m file with no .pqm modules."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "444-447",
+          "function": "DynatraceGrail.Icons",
+          "note": "Icons are loaded from PNG files with Extension.Contents."
+        },
+        {
+          "file": "DynatraceGrail.m",
+          "lines": "361-361",
+          "function": "DynatraceGrail.UI",
+          "note": "Beta = false, so no beta flag."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:46:34Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0080485,
+    "duration_ms": 33870
+  },
+  "source_sha256": "43ec341f336b280ce116fd5dce8f5940d597047f5b8dd71d43fc23dd106b7757",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

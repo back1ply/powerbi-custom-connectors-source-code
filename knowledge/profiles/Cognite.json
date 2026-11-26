@@ -1,0 +1,294 @@
+{
+  "connector": "Cognite",
+  "answers": {
+    "auth": {
+      "values": [
+        "key",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "129-139",
+          "function": "CogniteImpl",
+          "note": "Reads Extension.CurrentCredential()[AuthenticationKind] and, when it is \"Key\", takes the key from the credential and sends it as the api-key header."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "93-109",
+          "function": "Cognite",
+          "note": "Data source kind declares Authentication = [Aad = ...] with AuthorizationUri (discovered from the WWW-Authenticate challenge) and Resource."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Cognite.pq",
+              "lines": "137",
+              "function": "CogniteImpl",
+              "note": "Key is sent as the api-key request header, and the Authorization header is blanked."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents",
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "Data is read with OData.Feed from the project's OData service URL."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "240-244",
+          "function": "GetAuthorizationUrlFromWwwAuthenticate",
+          "note": "Web.Contents is called on the service URL during AAD authorization discovery, reached from the Aad AuthorizationUri handler."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "region-or-environment"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "15-16",
+          "function": "createUrls",
+          "note": "project is text; it may also be a full URL override (isUrl(project))."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "56-59",
+          "function": "CogniteType",
+          "note": "environment is an optional text parameter, documented as the CDF API URL, and may be a full URL or a short cluster name."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "22-29",
+          "function": "createUrls",
+          "note": "A short environment name is resolved to <name>.cognitedata.com when it is not a URL, so the user picks a deployment environment by name."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "51-55",
+          "function": "CogniteType",
+          "note": "project is the CDF project name (resource inside the cluster)."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "The connector makes one OData.Feed call and has no paging code of its own; any paging is done inside OData.Feed."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "The returned data is an OData service payload read with OData.Feed, which is JSON."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "Column names and types come from the OData service $metadata through OData.Feed and are not redefined by the connector."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "203-208",
+          "function": "TimeseriesAggregate",
+          "note": "The aggregate result takes its type from the first OData table via Value.ReplaceType, so the connector does not assign column types."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "The OData.Feed data request sets no ManualStatusHandling, so Power Query handles its status codes."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "240-242",
+          "function": "GetAuthorizationUrlFromWwwAuthenticate",
+          "note": "The live discovery Web.Contents call sets ManualStatusHandling = {302, 401} and inspects Response.Status itself."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "257-259",
+          "function": "GetAuthorizationUrlFromWwwAuthenticate",
+          "note": "Raises an Error.Record (DataSource.Error) when the WWW-Authenticate response header is malformed."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "61-64",
+          "function": "CogniteType",
+          "note": "The shared Cognite.Contents type has Documentation.Name and Documentation.LongDescription."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "51-59",
+          "function": "CogniteType",
+          "note": "Parameters carry Documentation.FieldCaption, FieldDescription, and SampleValues metadata."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "OData.Feed on the user-supplied URL builds the navigator from the service document at runtime."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "152-163",
+          "function": "CogniteImpl",
+          "note": "The discovered TimeseriesAggregate row is replaced by a function row. It is not a hardcoded list and not a nested folder."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "87-91",
+          "function": "Cognite",
+          "note": "TestConnection returns the Cognite.Contents entry function with the project and environment from the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "147",
+          "function": "CogniteImpl",
+          "note": "Tables come from OData.Feed, so the OData connector folds filters, selects and paging into the request. The connector writes no Table.View handlers."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Cognite.pq",
+          "lines": "267-274",
+          "function": "Extension.LoadFunction",
+          "note": "Value.ToText.pqm is loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "52-63",
+          "function": "CogniteType",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "Cognite.pq",
+          "lines": "122-125",
+          "function": "Cognite.Icons",
+          "note": "Icons are loaded from PNG files with Extension.Contents and used by Cognite.UI."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:44:33Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.015573900000000002,
+    "duration_ms": 57150,
+    "repair_attempts": 1
+  },
+  "source_sha256": "8b180c7f19c5cb7741e17eac0115dc710b23ff90bca881891d85c99612c73d3c",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,342 @@
+{
+  "connector": "CustomerInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "47-57",
+          "function": "CustomerInsights",
+          "note": "Authentication record uses the Aad kind with AuthorizationUri, Resource and DefaultClientApplication. No key, username-password, windows, or generic oauth record is defined."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "87-87",
+          "function": "CustomerInsights.EnvNavTable",
+          "note": "Json.Document(Web.Contents(...)) reads the instance list."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "294-299",
+          "function": "CustomerInsights.FetchCsv",
+          "note": "Web.Contents fetches the CSV data files."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "41-43",
+          "function": "CustomerInsights.Contents / ContentsInternal",
+          "note": "The only user parameter of the shared entry function is optional options as record. The service URL is the hardcoded BaseUri."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts ConcurrentRequests (number, default 16 from DefaultCIOptions), which sets the List.ParallelInvoke concurrency. Other fields are merged into the record by MergeOptions but are never read.",
+          "evidence": [
+            {
+              "file": "CustomerInsights.m",
+              "lines": "9-11",
+              "function": "DefaultCIOptions",
+              "note": "Default ConcurrentRequests = 16."
+            },
+            {
+              "file": "CustomerInsights.m",
+              "lines": "107-114",
+              "function": "MergeOptions",
+              "note": "Merges user options into the defaults."
+            },
+            {
+              "file": "CustomerInsights.m",
+              "lines": "276-276",
+              "function": "CustomerInsights.GetData",
+              "note": "cIOptions[ConcurrentRequests] is read here."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "254-282",
+          "function": "CustomerInsights.GetData",
+          "note": "The service returns the full list of CSV request URIs in one response, and all are fetched in one List.ParallelInvoke call. No offset, cursor, or next-link loop exists."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "87-87",
+          "function": "CustomerInsights.EnvNavTable",
+          "note": "Json.Document parses the instance list that drives the returned navigation table."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "192-192",
+          "function": "CustomerInsights.GetAllEntities",
+          "note": "Json.Document parses the entity metadata that drives the returned navigation tables and schema."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "265-265",
+          "function": "CustomerInsights.GetData",
+          "note": "Csv.Document parses the returned data tables."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "23-39",
+          "function": "CustomerInsights.ReplaceDataTypes",
+          "note": "The connector maps Edm source type names to M types."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "249-250",
+          "function": "CustomerInsights.GetData",
+          "note": "Schema types are applied to the returned data columns."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "279-282",
+          "function": "CustomerInsights.GetData",
+          "note": "Column names from the first data row are kept with no declared type, and the table is then typed by TypeList."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "282-282",
+          "function": "CustomerInsights.GetData",
+          "note": "Table.TransformColumnTypes converts the returned data columns to the declared types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CustomerInsights.m",
+              "lines": "284-285",
+              "function": "CustomerInsights.GetData",
+              "note": "On an empty request list, the header built from the declared schema is returned, so the declared column names are kept (types are not applied on this path)."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "87-87",
+          "function": "CustomerInsights.EnvNavTable",
+          "note": "Live Web.Contents metadata request with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "186-189",
+          "function": "CustomerInsights.GetAllEntities",
+          "note": "ManualStatusHandling={403} is set and the status is inspected via Value.Metadata; a 403 returns an empty list."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "354-362",
+          "function": "Value.WaitFor",
+          "note": "Value.WaitFor is defined but never called from any wired function, so it is not counted as retry-with-delay."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "76-79",
+          "function": "CustomerInsights.Type",
+          "note": "Type meta sets Documentation.Name. No parameter captions, descriptions, samples, or allowed values are set."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "96-103",
+          "function": "CustomerInsights.EnvNavTable",
+          "note": "Instances are listed at runtime from the API and built into a navigation table."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "102-102",
+          "function": "CustomerInsights.EnvNavTable",
+          "note": "IsLeaf false marks instance rows as expandable folders that open further navigation tables."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "117-158",
+          "function": "CustomerInsights.EntityNameNav",
+          "note": "Entity, measure, segment and enrichment folders are nested navigation tables under the instance folder."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "46-46",
+          "function": "CustomerInsights",
+          "note": "TestConnection names CustomerInsights.Contents, the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "237-242",
+          "function": "CustomerInsights.View",
+          "note": "Table.View defines only GetRows and GetType. No folding handlers are present."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "1-428",
+          "function": "section CustomerInsights",
+          "note": "The connector is a single .m file with no pqm module loading."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "58-58",
+          "function": "CustomerInsights",
+          "note": "Extension.LoadString is used for the label, so strings are localized."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "72-73",
+          "function": "CustomerInsights.Icons",
+          "note": "Extension.Contents supplies the icon images."
+        },
+        {
+          "file": "CustomerInsights.m",
+          "lines": "63-63",
+          "function": "CustomerInsights.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "1-428",
+          "function": "section CustomerInsights",
+          "note": "No Diagnostics.Trace call exists anywhere in the file."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "354-362",
+          "function": "Value.WaitFor",
+          "note": "Polling helper is defined but not wired to any entry function, so no live long-running operation exists."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CustomerInsights.m",
+          "lines": "1-428",
+          "function": "section CustomerInsights",
+          "note": "All requests are GET reads. No Action functions are defined."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:45:08Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0086354,
+    "duration_ms": 32549
+  },
+  "source_sha256": "1b2fdb931749d70976b7a895a04422a7cb5744d1fef48cee74684deebf93bfd5",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

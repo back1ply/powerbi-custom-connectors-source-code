@@ -1,0 +1,281 @@
+{
+  "connector": "Exasol",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "username-password",
+        "windows"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "223-229",
+          "function": "Exasol",
+          "note": "Authentication record declares UsernamePassword, Windows (Label \"Windows / Kerberos\") and Implicit. Implicit is the credential-free ODBC kind, so it maps to anonymous."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "85-93",
+          "function": "ExasolImpl",
+          "note": "Reads Extension.CurrentCredential AuthenticationKind and sets bWindowsKerberos when the kind is Windows."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "159-186",
+          "function": "AppendOdbcConnectionStringForKerberosAuthentication",
+          "note": "Adds KERBEROSSERVICENAME to the ODBC connection record when Windows/Kerberos is selected and the server is not a DSN."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "113-116",
+          "function": "ExasolImpl",
+          "note": "Data is reached through Odbc.DataSource over an EXASolution driver connection string or a DSN."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Exasol.pq",
+              "lines": "441-451",
+              "function": "Odbc.Datasource.Options.SqlCapabilities",
+              "note": "Declares SqlCapabilities overrides (Sql92Conformance, Sql92Translation, LimitClauseKind and others)."
+            },
+            {
+              "file": "Exasol.pq",
+              "lines": "458-468",
+              "function": "Odbc.Datasource.Options.SQLGetInfo",
+              "note": "Overrides SQLGetInfo values."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "46-49",
+          "function": "Exasol.Database (ExasolType)",
+          "note": "The server parameter takes a connection string: a host/port or a DSN=name. This is url-or-server."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "58-61",
+          "function": "Exasol.Database (ExasolType)",
+          "note": "The encrypted parameter is a Yes/No text toggle. No other id fits, so it is recorded as other."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "113-117",
+          "function": "ExasolImpl",
+          "note": "Odbc.DataSource result is indexed by [Name = \"EXA_DB\"][Data] and returned as driver tables."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "264-354",
+          "function": "Odbc.DataSource.Options.SQLColumns",
+          "note": "Rewrites only driver metadata (DATA_TYPE, TYPE_NAME) for VARCHAR, CHAR and DECIMAL. It assigns no M types to returned data."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "113-116",
+          "function": "ExasolImpl",
+          "note": "Column names and types come from the ODBC driver through Odbc.DataSource."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "113-116",
+          "function": "ExasolImpl",
+          "note": "Transport is odbc, which is outside the web-contents and odata-feed applies_when set, so this question does not apply."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "75-79",
+          "function": "Exasol.Database (ExasolType)",
+          "note": "Documentation.Name, LongDescription and Icon on the function type."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "51-56",
+          "function": "Exasol.Database (ExasolType)",
+          "note": "FieldCaption, FieldDescription and SampleValues for the server parameter."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "63-71",
+          "function": "Exasol.Database (ExasolType)",
+          "note": "FieldCaption, FieldDescription, AllowedValues and DefaultValue for the encrypted parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "113-117",
+          "function": "ExasolImpl",
+          "note": "The navigator comes from Odbc.DataSource, which lists catalog items at runtime from the driver."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "194-195",
+          "function": "GetOptions",
+          "note": "HierarchicalNavigation = true, so schema folders are non-leaf rows that open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "210-222",
+          "function": "Exasol (TestConnection)",
+          "note": "TestConnection returns the Exasol.Database entry function with server and encrypted, so the gateway test runs a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "441-451",
+          "function": "Odbc.Datasource.Options.SqlCapabilities",
+          "note": "SqlCapabilities overrides, including Sql92Translation PassThrough and LimitClauseKind, shape ODBC folding."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "458-468",
+          "function": "Odbc.Datasource.Options.SQLGetInfo",
+          "note": "SQLGetInfo overrides for predicates, aggregates, joins and convert functions."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Exasol.pq",
+          "lines": "1-6",
+          "function": "section Exasol",
+          "note": "A single .pq file. Diagnostics.pqm is loaded only inside comments (lines 13-21), so pqm-modules is not wired."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "230-238",
+          "function": "Exasol and Exasol.Publish",
+          "note": "Extension.LoadString is used for DataSourceLabel, ButtonTitle and ButtonHelp."
+        },
+        {
+          "file": "Exasol.pq",
+          "lines": "244-257",
+          "function": "Exasol.Icons",
+          "note": "Extension.Contents loads the Exasol PNG icons."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:48:10Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.014564299999999999,
+    "duration_ms": 37774,
+    "repair_attempts": 1
+  },
+  "source_sha256": "7c8e138b956c28be507a65283a5eed0233f1887a99ba76ef436f74b24828a34f",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

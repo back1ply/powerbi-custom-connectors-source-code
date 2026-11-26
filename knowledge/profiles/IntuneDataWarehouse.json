@@ -1,0 +1,218 @@
+{
+  "connector": "IntuneDataWarehouse",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "43-52",
+          "function": "Intune",
+          "note": "Authentication record uses Aad with AuthorizationUri, Resource and DefaultClientApplication. No anonymous, key, or username-password kind is declared."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "32",
+          "function": "IntuneDwImpl",
+          "note": "Data is fetched with OData.Feed(Intune.DateWarehouseUri, null, [Query = queryString])."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "date-range"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "17-22",
+          "function": "IntuneDwType",
+          "note": "The single user parameter maxHistoryDays is a number of days of history to retrieve, with allowed values 1 to 60. It is treated as a history window, so date-range is the closest id."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "32",
+          "function": "IntuneDwImpl",
+          "note": "OData.Feed returns OData payloads, which count as json."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "17-25",
+          "function": "IntuneDwType",
+          "note": "The function type declares only the parameter and an unnamed table return with no column names or types."
+        },
+        {
+          "file": "Intune.m",
+          "lines": "27-34",
+          "function": "IntuneDwImpl",
+          "note": "The OData.Feed result is returned without any column type assignment, so names and types come from the service metadata."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "32",
+          "function": "IntuneDwImpl",
+          "note": "The live OData.Feed data request has no ManualStatusHandling, so status handling is left to Power Query. No retry, structured error record, or manual status code is present."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "18-25",
+          "function": "IntuneDwType",
+          "note": "Documentation.FieldCaption, FieldDescription and AllowedValues are set on the maxHistoryDays parameter. Documentation.Name and LongDescription are set on the function return type."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "13-14",
+          "function": "Intune.Contents",
+          "note": "The shared entry function returns one data table directly. The OData URL is hardcoded, not supplied by the user, so discovered-from-api does not apply."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "42",
+          "function": "Intune",
+          "note": "TestConnection = {\"Intune.Contents\", 1} names the shared entry function. The 1 is a maxHistoryDays argument, not a flag that branches to a probe."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "32",
+          "function": "IntuneDwImpl",
+          "note": "The connector returns an OData.Feed table, so the OData connector folds requests. No Table.View handlers are written."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Intune.m",
+          "lines": "1-69",
+          "function": "Intune",
+          "note": "All connector code is in one Intune.m file."
+        },
+        {
+          "file": "Intune.m",
+          "lines": "60",
+          "function": "Intune.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "Intune.m",
+          "lines": "66-69",
+          "function": "Intune.Icons",
+          "note": "Icons are loaded with Extension.Contents(\"Intune*.png\")."
+        },
+        {
+          "file": "Intune.m",
+          "lines": "57-58",
+          "function": "Intune.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:50:38Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0043468,
+    "duration_ms": 17870
+  },
+  "source_sha256": "b11bda7bbd2a1a20b974bafb68ae7fe5b0a5e1868f8137046e6c75125b122880",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

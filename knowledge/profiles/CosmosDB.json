@@ -1,0 +1,330 @@
+{
+  "connector": "CosmosDB",
+  "answers": {
+    "auth": {
+      "values": [
+        "key",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "496-502",
+          "function": "CosmosDB",
+          "note": "Data source kind Authentication record declares Key and Aad (AuthorizationUri, Resource, Scope)."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "216-226",
+          "function": "CosmosDBImplementation",
+          "note": "Key credential is mapped to AuthenticationKey in CredentialConnectionString. The OAuth/OAuth2 access_token branch matches kinds the kind record does not declare, so it is not counted as oauth. Aad credentials fall through to the else branch."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "CosmosDB.m",
+              "lines": "223-226",
+              "function": "CosmosDBImplementation",
+              "note": "The key is passed in the ODBC CredentialConnectionString as AuthenticationKey, not as an HTTP header, query string, or body in connector code."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "388-412",
+          "function": "CosmosDBImplementation",
+          "note": "Data access goes through Odbc.DataSource."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CosmosDB.m",
+              "lines": "583-589",
+              "function": "BuildOdbcConfig",
+              "note": "withLimitClauseKind merges LimitClauseKind into SqlCapabilities."
+            },
+            {
+              "file": "CosmosDB.m",
+              "lines": "606-614",
+              "function": "BuildOdbcConfig",
+              "note": "withSqlConformance merges SQL_SQL_CONFORMANCE into SQLGetInfo."
+            },
+            {
+              "file": "CosmosDB.m",
+              "lines": "236-237",
+              "function": "CosmosDBImplementation",
+              "note": "BuildOdbcConfig output is consumed as SqlCapabilities and SQLGetInfo."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "135-138",
+          "function": "CosmosDBType",
+          "note": "The host parameter is the account endpoint, a URL or host name (url-or-server)."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "169-171",
+          "function": "CosmosDBImplementation",
+          "note": "Shared entry function takes host as text and optional options as record."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts NUMBER_OF_RETRIES, ENABLE_AVERAGE_FUNCTION_PASSDOWN, and ENABLE_SORT_PASSDOWN_FOR_MULTIPLE_COLUMNS.",
+          "evidence": [
+            {
+              "file": "CosmosDB.m",
+              "lines": "140-162",
+              "function": "CosmosDBType",
+              "note": "Declared optional fields of the options record."
+            },
+            {
+              "file": "CosmosDB.m",
+              "lines": "177-196",
+              "function": "CosmosDBImplementation",
+              "note": "Each field is read from options with a default."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "388-412",
+          "function": "CosmosDBImplementation",
+          "note": "Result tables come from the ODBC driver through Odbc.DataSource. No connector-side JSON or other payload parsing is on a data path."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "341-368",
+          "function": "SQLColumns",
+          "note": "SQLColumns override passes driver column metadata through without assigning M types."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "272-329",
+          "function": "SQLGetTypeInfo",
+          "note": "Only driver metadata (COLUMN_SIZE) is adjusted. Column names and types are not redefined."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "388-412",
+          "function": "CosmosDBImplementation",
+          "note": "Names and types come from the ODBC driver."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "388-412",
+          "function": "CosmosDBImplementation",
+          "note": "Transport is ODBC, which is outside applies_when (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "164-166",
+          "function": "CosmosDBType",
+          "note": "Documentation.Name on the return type meta is function documentation."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "135-138",
+          "function": "CosmosDBType",
+          "note": "Documentation.FieldCaption, FieldDescription, and SampleValues on host."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "142-160",
+          "function": "CosmosDBType",
+          "note": "Field captions, descriptions, and sample values on the options fields, plus the Advanced Options caption."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "388-390",
+          "function": "CosmosDBImplementation",
+          "note": "Odbc.DataSource builds a navigation table from runtime driver metadata. HierarchicalNavigation = true yields schema folders with IsLeaf false."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "447-454",
+          "function": "CosmosDB",
+          "note": "TestConnection calls CosmosDB.Contents with the host, the shared entry function, with no probe flag."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "583-589",
+          "function": "BuildOdbcConfig",
+          "note": "LimitClauseKind is set through SqlCapabilities, shaping folding."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "606-614",
+          "function": "BuildOdbcConfig",
+          "note": "SQL_SQL_CONFORMANCE is set through SQLGetInfo, shaping folding."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "630-639",
+          "function": "Diagnostics / ODBC",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded with Extension.LoadFunction."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "135-137",
+          "function": "CosmosDBType",
+          "note": "Captions and descriptions are loaded with Extension.LoadString."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "519-530",
+          "function": "CosmosDB.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "CosmosDB.m",
+          "lines": "12-12",
+          "function": "EnableTraceOutput",
+          "note": "The EnableTraceOutput switch is false."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "631-634",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue is a no-op unless EnableTraceOutput is set, so Diagnostics.Trace is gated."
+        },
+        {
+          "file": "CosmosDB.m",
+          "lines": "309-311",
+          "function": "SQLGetTypeInfo",
+          "note": "Additional trace output is also gated by EnableTraceOutput."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:44:44Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0158405,
+    "duration_ms": 42361
+  },
+  "source_sha256": "d6ed54bec09cf7b9f170ba7a12557a73523d1743111441e0e8b68a4b09d1ca57",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -1,0 +1,273 @@
+{
+  "connector": "Acterys",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "212-218",
+          "function": "Acterys",
+          "note": "The data source kind record declares Authentication.Aad with an AuthorizationUri and Resource. No other authentication kind is declared."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "8",
+          "function": "Acterys.Contents",
+          "note": "The apiKey line is commented out, so no key is sent by the connector."
+        }
+      ],
+      "sub": {}
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "12-47",
+          "function": "Acterys.Contents",
+          "note": "All data is fetched with Json.Document(Web.Contents(...)) calls to app.acterys.com."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "6",
+          "function": "Acterys.Contents",
+          "note": "The shared entry function takes no parameters, so the user supplies nothing."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "12-22",
+          "function": "Acterys.Contents",
+          "note": "Responses from the Subscription, Dimension, Cube and ServiceAccount endpoints are parsed with Json.Document."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "135-135",
+          "function": "GetCubeWiseDetails",
+          "note": "Cube data responses are parsed with Json.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "16-16",
+          "function": "Acterys.Contents",
+          "note": "Column names are taken from Record.FieldNames of the first JSON record."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "24-24",
+          "function": "Acterys.Contents",
+          "note": "Dimension column names come from Record.FieldNames of the first record."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "138-138",
+          "function": "GetCubeWiseDetails",
+          "note": "Cube data column names come from Record.FieldNames of the first record."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "139-139",
+          "function": "GetCubeWiseDetails",
+          "note": "Table.TransformColumnTypes converts the Amount column of returned cube data to number."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "12-12",
+          "function": "Acterys.Contents",
+          "note": "Web.Contents is called with no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "135-135",
+          "function": "GetCubeWiseDetails",
+          "note": "The cube data request also has no ManualStatusHandling."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "51-57",
+          "function": "Acterys.Contents",
+          "note": "The root navigation table is a hardcoded #table of Dimensions, Cubes and ServiceAccount rows, then built with Table.ToNavigationTable."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "22-24",
+          "function": "Acterys.Contents",
+          "note": "Dimension items are listed at runtime from the Dimension API."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "30-41",
+          "function": "Acterys.Contents",
+          "note": "Cube items are listed at runtime from the Cube API."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "53-54",
+          "function": "Acterys.Contents",
+          "note": "The Dimensions and Cubes rows have IsLeaf false and open further navigation tables."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "212-212",
+          "function": "Acterys",
+          "note": "TestConnection returns the name of the shared entry function, Acterys.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Acterys.pq",
+          "lines": "1-235",
+          "function": "Acterys",
+          "note": "The connector is a single Acterys.pq file, and no other source files are present."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "219-219",
+          "function": "Acterys",
+          "note": "Extension.LoadString loads the DataSourceLabel string."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "227-227",
+          "function": "Acterys.Publish",
+          "note": "Extension.LoadString loads the ButtonTitle and ButtonHelp strings."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "232-235",
+          "function": "Acterys.Icons",
+          "note": "Icon16, Icon20 and Icon32 sizes are loaded with Extension.Contents."
+        },
+        {
+          "file": "Acterys.pq",
+          "lines": "225-225",
+          "function": "Acterys.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:37:07Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.006325000000000001,
+    "duration_ms": 24598
+  },
+  "source_sha256": "e8754302f81eb0041e2d37305f9145b2e3cf85b9b7c567ae49a291793278574b",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

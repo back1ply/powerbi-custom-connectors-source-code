@@ -1,0 +1,377 @@
+{
+  "connector": "CommonDataService",
+  "answers": {
+    "auth": {
+      "values": [
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "336-350",
+          "function": "CommonDataService",
+          "note": "Authentication record declares only an Aad block (AuthorizationUri, Resource, DefaultClientApplication). No key, username-password, anonymous, or custom OAuth flow is implemented in the connector."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "sql-database",
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73-73",
+          "function": "CommonDataService.Database",
+          "note": "Data tables are read through Sql.Database(validatedServer, database, sqlOptions)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159-159",
+          "function": "EnvironmentListTable",
+          "note": "Web.Contents(BapEndpoint) is a live request that lists environments for the navigation table."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "210-210",
+          "function": "GetAuthUri",
+          "note": "Web.Contents call to the Dataverse api/data endpoint to read the WWW-Authenticate header for the AAD authorization URI."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "63-63",
+          "function": "CommonDataService.Database",
+          "note": "Parameter 'server' (optional text) names the Dataverse host, for example orgname.crm.dynamics.com; this is url-or-server."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "63-63",
+          "function": "CommonDataService.Database",
+          "note": "Parameter 'options' (optional nullable record) is the connector settings record, which is options-record."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "67-67",
+          "function": "CommonDataService.Database",
+          "note": "The database name is derived from the server host, so the user supplies no separate database or resource id."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "Accepts CreateNavigationProperties (nullable logical, default true; read at line 71). Two hidden fields are also validated by OptionsMap: EnableDisplayNames (nullable logical, default true; read at line 70) and UnsafeTypeConversions (nullable logical, default false). Any other key is rejected by ValidateOptions.",
+          "evidence": [
+            {
+              "file": "CommonDataService.pq",
+              "lines": "126-132",
+              "function": "OptionsMap",
+              "note": "Declares the accepted options: CreateNavigationProperties, EnableDisplayNames (hidden), and UnsafeTypeConversions (hidden)."
+            },
+            {
+              "file": "CommonDataService.pq",
+              "lines": "70-71",
+              "function": "CommonDataService.Database",
+              "note": "Reads EnableDisplayNames and CreateNavigationProperties from validated options."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "157-177",
+          "function": "EnvironmentListTable",
+          "note": "One Web.Contents/Json.Document call; no nextLink or skip-token loop."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159-159",
+          "function": "EnvironmentListTable",
+          "note": "Json.Document parses the BAP environment list that becomes the navigation table returned to the user (json)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73-80",
+          "function": "CommonDataService.Database",
+          "note": "Sql.Database driver returns the entity tables as rows (driver-rows)."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "134-150",
+          "function": "EnvironmentListType",
+          "note": "Hardcoded table type with M types for DisplayName, Name, Location, IsDefault, and Data."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "172-175",
+          "function": "EnvironmentListTable",
+          "note": "Table.FromRecords(locations, EnvironmentListType) applies the declared type."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73-73",
+          "function": "CommonDataService.Database",
+          "note": "Sql.Database supplies names and types for the entity tables; only captions are adjusted (AdjustTypeForCaptions keeps the underlying types)."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "CommonDataService.pq",
+              "lines": "172-175",
+              "function": "EnvironmentListTable",
+              "note": "Table.FromRecords with the declared EnvironmentListType keeps the declared columns even when the environment list is empty."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "159-159",
+          "function": "EnvironmentListTable",
+          "note": "Live Web.Contents(BapEndpoint) data request with no ManualStatusHandling, so Power Query handles status codes."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "208-210",
+          "function": "GetAuthUri",
+          "note": "ManualStatusHandling={401} is set on the Web.Contents call, and the WWW-Authenticate response header is inspected manually."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "115-121",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.Name, Caption, and LongDescription are set on the function type."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "98-110",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.FieldCaption is set on the parameters and options (FieldDescription at lines 105 and 110)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "99-106",
+          "function": "CommonDataService.Type",
+          "note": "Documentation.SampleValues is set for CreateNavigationProperties (true) and server (orgname.crm.dynamics.com)."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "157-177",
+          "function": "EnvironmentListTable",
+          "note": "Navigator rows are listed at runtime from the BAP environments API."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "145-147",
+          "function": "EnvironmentListType",
+          "note": "NavigationTable.SupportsIndirection is set, so environment rows are indirect."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "195-203",
+          "function": "MakeIndirectTable",
+          "note": "Each environment's Data re-invokes CommonDataService.Database(endpoint), which returns the entity navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "327-327",
+          "function": "CommonDataService",
+          "note": "TestConnection returns the shared CommonDataService.Database with ServerFromPath(path), so the test runs the normal entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "source-function-folding",
+        "native-query"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "73-73",
+          "function": "CommonDataService.Database",
+          "note": "Folding is delegated to Sql.Database (source-function-folding)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "74-89",
+          "function": "CommonDataService.Database",
+          "note": "Table.View with an OnNativeQuery handler that calls Value.NativeQuery (native-query)."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "302-316",
+          "function": "ApplyDisplayNamesOption",
+          "note": "SqlDatabase.View declares NativeQueryOptions EnableFolding and PreserveTypes; no OnTake, OnSelectRows, or similar folding handlers are written."
+        }
+      ],
+      "sub": {
+        "native-query-enabled": {
+          "text": "Enabled by an OnNativeQuery handler on the Table.View wrapping Sql.Database. The handler calls Value.NativeQuery on navTable, or on a SqlDatabase.View whose NativeQueryOptions include EnableFolding, and it reads the EnableFolding and DisplayNames options.",
+          "evidence": [
+            {
+              "file": "CommonDataService.pq",
+              "lines": "74-80",
+              "function": "CommonDataService.Database",
+              "note": "OnNativeQuery handler calling Value.NativeQuery; options EnableFolding and DisplayNames are read."
+            },
+            {
+              "file": "CommonDataService.pq",
+              "lines": "308-308",
+              "function": "ApplyDisplayNamesOption",
+              "note": "NativeQueryOptions {\"EnableFolding\",\"PreserveTypes\"} are declared."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "1-423",
+          "function": "(file)",
+          "note": "The connector is one .pq file with no pqm modules."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "98-120",
+          "function": "CommonDataService.Type",
+          "note": "Extension.LoadString supplies localized captions, descriptions, and button text."
+        },
+        {
+          "file": "CommonDataService.pq",
+          "lines": "417-420",
+          "function": "CommonDataService.Icons",
+          "note": "Extension.Contents loads Dataverse PNG icons at multiple sizes."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "1-423",
+          "function": "(file)",
+          "note": "No Diagnostics.Trace call appears in the file."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "157-177",
+          "function": "EnvironmentListTable",
+          "note": "A single synchronous request; no job polling or export is started."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "CommonDataService.pq",
+          "lines": "1-423",
+          "function": "(file)",
+          "note": "No Action functions or table mutations are defined."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:44:35Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0088227,
+    "duration_ms": 39049
+  },
+  "source_sha256": "cff004c93a1863cc9ac740db7fa7249d8db8c17e3482f843a5d49b0a16b44a88",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

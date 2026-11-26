@@ -1,0 +1,295 @@
+{
+  "connector": "ADPAnalytics",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "336-347",
+          "function": "ADPAnalytics",
+          "note": "Data source kind declares Authentication with OAuth StartLogin, FinishLogin and Refresh; no anonymous, key or other kind."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "ADPAnalytics.m",
+              "lines": "238-252",
+              "function": "StartLogin",
+              "note": "Authorize URL carries only redirect_uri and state; no code_challenge or code_verifier is generated or sent."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "ADPAnalytics.m",
+              "lines": "290-314",
+              "function": "Refresh, RefreshTokenMethod",
+              "note": "Refresh calls RefreshTokenMethod, which posts refresh_token to token_uri via Web.Contents."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "17-21",
+          "function": "ADPAnalytics.Contents",
+          "note": "Metric selection is read with Web.Contents."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "137",
+          "function": "getMetricDetailsResponse",
+          "note": "Metric details are read with Web.Contents."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "198",
+          "function": "getEmpDetailsResponse",
+          "note": "Employee details are read with Web.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "15",
+          "function": "ADPAnalytics.Contents",
+          "note": "Shared entry function takes no parameters, so the user supplies nothing."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "22",
+          "function": "ADPAnalytics.Contents",
+          "note": "Metric selection response parsed with Json.Document."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "147",
+          "function": "getMetricDetailsResponse",
+          "note": "Metric detail data parsed with Json.Document."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "206",
+          "function": "getEmpDetailsResponse",
+          "note": "Employee detail data parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "316-333",
+          "function": "getDataTypes",
+          "note": "Connector maps ADP type codes (number, currency, date, and so on) to M types, so it assigns its own declared types."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "129",
+          "function": "getMetricData",
+          "note": "Table.TransformColumnTypes applies the declared types to returned metric data."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "190",
+          "function": "getEmployeeData",
+          "note": "Table.TransformColumnTypes applies the declared types to returned employee data."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "ADPAnalytics.m",
+              "lines": "104-106",
+              "function": "getMetricData",
+              "note": "Empty metric rows raise an error instead of returning an empty table, so the empty-result case is not defined here."
+            },
+            {
+              "file": "ADPAnalytics.m",
+              "lines": "207-209",
+              "function": "getEmpDetailsResponse",
+              "note": "Empty employee output raises an error; no code shows declared columns being kept on an empty result."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "20",
+          "function": "ADPAnalytics.Contents",
+          "note": "Metric selection sets ManualStatusHandling = {401} and inspects Response.Status at line 24."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "137-147",
+          "function": "getMetricDetailsResponse",
+          "note": "ManualStatusHandling is set and the status is inspected; error branches build Error.Record values."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "198-206",
+          "function": "getEmpDetailsResponse",
+          "note": "ManualStatusHandling is set and the status is inspected; error branches build Error.Record values."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "15-83",
+          "function": "ADPAnalytics.Contents",
+          "note": "Navigator rows are built at runtime from the metricsSelected response returned by the service."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "80",
+          "function": "ADPAnalytics.Contents",
+          "note": "Navigation table is produced by Table.ToNavigationTable."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "337",
+          "function": "ADPAnalytics",
+          "note": "TestConnection returns the shared entry function name \"ADPAnalytics.Contents\", so the gateway test evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "1-363",
+          "function": "section ADPAnalytics",
+          "note": "Connector logic is a single .m file with no pqm modules or LoadFunction/LoadExpression helpers."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "5-12",
+          "function": "section ADPAnalytics",
+          "note": "Endpoint and config strings are loaded with Extension.LoadString from resource strings."
+        },
+        {
+          "file": "ADPAnalytics.m",
+          "lines": "359-362",
+          "function": "ADPAnalytics.Icons",
+          "note": "Icon16 and Icon32 are supplied with Extension.Contents(\"ADPLOGO.jpeg\")."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:37:18Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0082157,
+    "duration_ms": 35112
+  },
+  "source_sha256": "6de3ee50b6f6221000f0b506ffc789f046ac7e43bb92a46bf71a0c4eecfd6121",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

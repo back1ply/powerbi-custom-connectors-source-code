@@ -1,0 +1,391 @@
+{
+  "connector": "LEAP",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "71-81",
+          "function": "LEAP",
+          "note": "Data source kind record declares Authentication OAuth with StartLogin, FinishLogin, Refresh and Logout."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "164-193",
+          "function": "StartLogin / FinishLogin",
+          "note": "Authorization-code OAuth flow; the hardcoded X-API-KEY header is an app key, not a user credential, so it is not counted as key."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "175-176",
+              "function": "StartLogin",
+              "note": "code_challenge_method = s256 and code_challenge derived from S256.Encode of a verifier."
+            },
+            {
+              "file": "LEAP.m",
+              "lines": "197-206",
+              "function": "TokenMethod",
+              "note": "code_verifier is sent with the authorization_code exchange."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "218-222",
+              "function": "Refresh",
+              "note": "Refresh calls TokenMethod with the refresh_token grant."
+            },
+            {
+              "file": "LEAP.m",
+              "lines": "198",
+              "function": "TokenMethod",
+              "note": "refresh_token grant parameter selected when grantType is not authorization_code."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "593-601",
+          "function": "CallLEAP",
+          "note": "Data is fetched with Web.Contents against LEAP REST endpoints."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "40-41",
+          "function": "LEAP.Contents",
+          "note": "The only shared data source function takes no parameters; LEAPNavTable is declared with no arguments (line 227)."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "612-663",
+          "function": "CallRowVersion",
+          "note": "Matters and Cards are paged with a rowVersion cursor passed as ?rowVersion= on each request."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "627",
+          "function": "CallRowVersion",
+          "note": "Next-page URL built from the lastRowVersion token."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "621-645",
+              "function": "getListFx",
+              "note": "getListFx calls itself with the lastRowVersion until it is null."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response's lastRowVersion is null; the recursion then returns the combined list.",
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "639-643",
+              "function": "getListFx",
+              "note": "lastRowVersion null check decides between recursing and returning the combined list."
+            },
+            {
+              "file": "LEAP.m",
+              "lines": "657-658",
+              "function": "CallRowVersion",
+              "note": "Initial lastRowVersion feeds the first recursion call."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "604",
+          "function": "CallLEAP",
+          "note": "Response body parsed with Json.Document."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "637",
+          "function": "CallRowVersion / getListFx",
+          "note": "Paged responses parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "812",
+          "function": "GetMatters",
+          "note": "Table.TransformColumnTypes assigns M types (datetimezone) to named columns."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "881",
+          "function": "GetSubStaff",
+          "note": "Table.TransformColumnTypes converts rate columns to number."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "885-891",
+          "function": "GetSubBranches",
+          "note": "Columns named from the response with no declared types, so inferred."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "1317-1326",
+          "function": "GetBillingModeTable",
+          "note": "Table.FromRecords creates columns whose types are inferred from the record values."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "unclear"
+          ],
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "806-814",
+              "function": "GetMatters",
+              "note": "No empty-result handler; an empty list loses the declared columns."
+            },
+            {
+              "file": "LEAP.m",
+              "lines": "1140-1149",
+              "function": "GetFirmReportingGroup",
+              "note": "Uses EmptyListHandler so declared columns are kept; behaviour is mixed across functions."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "105",
+          "function": "CallPreSign",
+          "note": "ManualStatusHandling = {400}."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "211",
+          "function": "TokenMethod",
+          "note": "ManualStatusHandling = {400, 401, 403} on the token call."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "600",
+          "function": "CallLEAP",
+          "note": "ManualStatusHandling = {400, 404}, with 404 mapped to an empty list."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "740",
+          "function": "GetReportAsync",
+          "note": "ManualStatusHandling = {202, 303, 201, 400} with status inspected at line 744."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "44-56",
+          "function": "LEAPMetadataType",
+          "note": "Documentation.Name, Description and Examples are attached to LEAP.Contents."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "240-248",
+          "function": "LEAPNavTable",
+          "note": "Root navigator rows are a hardcoded #table list."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "373-384",
+          "function": "CreateTrustBankRegisterTable",
+          "note": "Rows are built at runtime from GetAccounts, so the navigator items come from the source."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "241-247",
+          "function": "LEAPNavTable",
+          "note": "Folder rows use IsLeaf false and open further navigation tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "72",
+          "function": "LEAP",
+          "note": "TestConnection returns {\"LEAP.Contents\"}, naming the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "47-53",
+          "function": "LEAPMetadataType",
+          "note": "Extension.LoadString supplies localized documentation strings."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "155-158",
+          "function": "LEAP.Icons",
+          "note": "Icons loaded with Extension.Contents from PNG files, used by LEAP.Publish."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "85",
+          "function": "LEAP.Publish",
+          "note": "Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "LEAP.m",
+          "lines": "666-695",
+          "function": "CallLEAPBalance",
+          "note": "Report request returns an id that is then polled through GetReportAsync."
+        },
+        {
+          "file": "LEAP.m",
+          "lines": "724-752",
+          "function": "GetReportAsync",
+          "note": "Value.WaitFor polls the async request until a non-202 status."
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Polls via Value.WaitFor with a delay of 10^iteration seconds (1, 10, 100, ...), capped at 15 attempts. Status 202 keeps polling; 400 returns a fixed empty AsyncRequestId/MatterCriticalDates body; other statuses (200, 201, 303) return the buffered body. No separate timeout beyond the attempt cap.",
+          "evidence": [
+            {
+              "file": "LEAP.m",
+              "lines": "725-750",
+              "function": "GetReportAsync",
+              "note": "Interval expression, attempt count 15, and status-based result selection."
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:52:24Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.025868000000000002,
+    "duration_ms": 63041
+  },
+  "source_sha256": "266bdf55cfa4be3ef5374d94fc16c29ce7d4b5dc8ac8a6d6e13ed76c1b73aa75",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

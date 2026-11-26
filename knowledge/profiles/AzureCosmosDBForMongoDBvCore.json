@@ -1,0 +1,407 @@
+{
+  "connector": "AzureCosmosDBForMongoDBvCore",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "170-177",
+          "function": "AzureCosmosDBForMongoDBvCore",
+          "note": "Data source kind record declares Authentication = [UsernamePassword = []]; no key, OAuth, or AAD handling in the code."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "186-186",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.ReturnsDatabases",
+          "note": "Web.Contents POST to the Cosmos DB for MongoDB data API."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "448-450",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetRows",
+          "note": "Web.Contents POST to the aggregate endpoint for data rows."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "92-113",
+          "function": "CosmosDbType",
+          "note": "baseURL is the endpoint (url-or-server); database and optional collection are resources inside the target (database-or-resource-id)."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "448-455",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetRows",
+          "note": "Each request is a single aggregate POST with no next-page or cursor loop."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "451-453",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetRows",
+          "note": "Json.Document parses the returned EJSON payload, which ExtendedJson.Extract then decodes."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "61-90",
+          "function": "SchemaMapping",
+          "note": "Connector maps MongoDB bsonType names to M types (for example int to nullable Number.Type, string to nullable Text.Type)."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "469-481",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.SchemaFormatter",
+          "note": "Builds the table type with the mapped column types."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "436-438",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.NativeQueryCalculateSchema",
+          "note": "Column names come from the first returned record's field names, with no declared types."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "478-478",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.SchemaFormatter",
+          "note": "Without a list of types, each column gets Any.Type."
+        },
+        {
+          "file": "ExtendedJson.Extract.pqm",
+          "lines": "23-34",
+          "function": "ExtendedJson.Extract",
+          "note": "Per-value Int32.From, Int64.From and Double.From conversions on returned data cells."
+        },
+        {
+          "file": "ExtendedJson.Extract.pqm",
+          "lines": "191-200",
+          "function": "ExtractNumberDecimal",
+          "note": "Double.From conversion on $numberDecimal data cells."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "463-463",
+              "function": "AzureCosmosDBForMongoDBvCoreImpl.FormatAggregationResponse",
+              "note": "Table.FromRecords with the declared schema keeps the columns when there are no records; an empty NativeQuery schema also falls back to the declared schema (lines 430-433)."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "186-186",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.ReturnsDatabases",
+          "note": "Web.Contents with no ManualStatusHandling; status handling is left to Power Query."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "448-450",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetRows",
+          "note": "Live data request with no ManualStatusHandling and no retry or delay."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "92-117",
+          "function": "CosmosDbType",
+          "note": "Function type carries Documentation.Name and LongDescription on its return type, plus parameter FieldCaption, FieldDescription and SampleValues metadata."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "119-137",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl",
+          "note": "Database list is read from listDatabases at runtime to build the navigator."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "153-166",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetCollections",
+          "note": "Collections are listed from listCollections at runtime; each collection is a leaf (IsLeaf true)."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "141-151",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.NavigationTable",
+          "note": "Database rows have IsLeaf false and open collection navigation tables. The column is written as Isleaf while the metadata names IsLeaf, a case mismatch worth noting."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "170-171",
+          "function": "AzureCosmosDBForMongoDBvCore",
+          "note": "TestConnection returns the entry function name AzureCosmosDBForMongoDBvCore.Contents with the baseURL from the data source path, so the gateway evaluates a normal query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers",
+        "native-query",
+        "custom-sql-generator"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "967-1007",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.View",
+          "note": "Table.View with folding handlers for take, skip, select rows, select columns, sort, group, add columns, rename, distinct, invoke, native query and GetExpression."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "535-553",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.OnNativeQuery",
+          "note": "OnNativeQuery handler accepts a JSON pipeline as query text."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "279-321",
+          "function": "AzureCosmosDBForMongoDBvCoreImpl.GetExpression",
+          "note": "Builds an AST that wraps Value.NativeQuery."
+        },
+        {
+          "file": "Visitors.VisitAstKind.pqm",
+          "lines": "1-793",
+          "function": "Visitors.VisitAstKind",
+          "note": "Connector's own M-AST-to-MongoDB dialect translator. The output is an aggregation pipeline JSON, not SQL, so custom-sql-generator is the closest id."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take",
+            "on-skip",
+            "on-select-rows",
+            "on-select-columns",
+            "on-sort",
+            "on-group",
+            "on-add-columns",
+            "get-expression",
+            "other"
+          ],
+          "evidence": [
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "580-603",
+              "function": "OnTake and OnSkip",
+              "note": "Row limit and skip are pushed down as $limit and $skip stages."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "484-532",
+              "function": "OnSelectRows and OnSelectColumns",
+              "note": "Filters become $match stages and column selection becomes $project."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "556-578",
+              "function": "OnSort",
+              "note": "Sorting becomes a $sort stage."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "606-678",
+              "function": "OnGroup",
+              "note": "Grouping becomes $group and $project stages."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "733-793",
+              "function": "OnAddColumns",
+              "note": "Added columns become $addFields stages."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "279-321",
+              "function": "GetExpression",
+              "note": "GetExpression handler is implemented."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "797-934",
+              "function": "OnRenameColumns and OnDistinct",
+              "note": "Rename and distinct handlers have no matching id, so other applies."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "324-404",
+              "function": "OnInvoke",
+              "note": "OnInvoke handler is not in the list, so other applies."
+            }
+          ]
+        },
+        "native-query-enabled": {
+          "text": "Native query is enabled by the OnNativeQuery handler in the Table.View record of AzureCosmosDBForMongoDBvCoreImpl.View. It parses the query text as a JSON pipeline and appends it to the pipeline state. GetExpression wraps the source in Value.NativeQuery.",
+          "evidence": [
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "989-990",
+              "function": "AzureCosmosDBForMongoDBvCoreImpl.View",
+              "note": "OnNativeQuery handler registered in the Table.View record."
+            },
+            {
+              "file": "AzureCosmosDBForMongoDBvCore.pq",
+              "lines": "287-287",
+              "function": "AzureCosmosDBForMongoDBvCoreImpl.GetExpression",
+              "note": "Value.NativeQuery is the wrapping function in the generated AST."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "5-43",
+          "function": "Extension.LoadFunction",
+          "note": "Code is split into .pqm files loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "95-95",
+          "function": "CosmosDbType",
+          "note": "Strings loaded with Extension.LoadString."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "1019-1032",
+          "function": "AzureCosmosDBForMongoDBvCore.Icons",
+          "note": "Icon images loaded with Extension.Contents."
+        },
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "1010-1011",
+          "function": "AzureCosmosDBForMongoDBvCore.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "AzureCosmosDBForMongoDBvCore.pq",
+          "lines": "21-39",
+          "function": "EnableDiagnostics",
+          "note": "Diagnostics.LogValue, LogFailure and WrapHandlers are no-ops unless EnableDiagnostics is true."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-8",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.Trace is reached only through the gated wrappers."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:39:39Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.022324899999999998,
+    "duration_ms": 59411
+  },
+  "source_sha256": "bbff40335e8ae9388992db8125358aadc1b203dad40a47244a15ba3c03619a36",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

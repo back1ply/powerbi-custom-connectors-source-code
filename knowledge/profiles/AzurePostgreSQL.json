@@ -1,0 +1,244 @@
+{
+  "connector": "AzurePostgreSQL",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "151-163",
+          "function": "AzurePostgreSQL",
+          "note": "Authentication record enables UsernamePassword = [] (line 153) and Aad = [...] (lines 156-162). Key, Windows and Anonymous are commented out (lines 152, 154, 155)."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "31-34",
+          "function": "InvokePostgresSqlDatabaseImpl",
+          "note": "Data is reached through the built-in PostgreSQL.Database function, which is not one of the listed transport ids. Credentials come from Extension.InvokeWithCredentials / Extension.CurrentCredential."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "24-24",
+          "function": "AzurePostgreSQL.DatabaseImpl",
+          "note": "Parameters are server as text (url-or-server), database as text (database-or-resource-id) and optional options as record (options-record)."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "115-127",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "Declared function type gives server, database and options parameters."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts only CommandTimeout (nullable duration, default null). It must be null or >= Duration.From(0.0). Any other key raises an Expression.Error from ValidateOptions.",
+          "evidence": [
+            {
+              "file": "AzurePostgreSQL.pq",
+              "lines": "36-39",
+              "function": "OptionsMap",
+              "note": "Defines the single option CommandTimeout with its type, default and validation."
+            },
+            {
+              "file": "AzurePostgreSQL.pq",
+              "lines": "41-90",
+              "function": "ValidateOptions",
+              "note": "Rejects keys not in OptionsMap and validates values."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "31-34",
+          "function": "InvokePostgresSqlDatabaseImpl",
+          "note": "Returns the table produced by PostgreSQL.Database, which yields driver-provided rows."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "112-132",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "The declared return type is a bare table with no column declarations. Column names and types come from the PostgreSQL.Database driver. The only declared types are for the options parameters."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": []
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "133-141",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "Value.ReplaceMetadata sets Documentation.Name, Caption, Description and LongDescription on the function."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "115-127",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "Documentation.FieldCaption is set on server, database and options. Documentation.FieldDescription is set on server and database (lines 116-117, 121-122)."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "109-110",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "CommandTimeoutType has a FieldCaption and Documentation.SampleValues."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "118-123",
+          "function": "AzurePostgreSQLDataBaseType",
+          "note": "Documentation.SampleValues are set on server and database."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "22-22",
+          "function": "AzurePostgreSQL.Database",
+          "note": "The shared function returns one data table directly, with ReturnType = type table (line 129) and no navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "150-150",
+          "function": "AzurePostgreSQL",
+          "note": "TestConnection evaluates {\"AzurePostgreSQL.Database\"} & ParseResourcePath(resourcePath), which is the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "source-function-folding"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "31-34",
+          "function": "InvokePostgresSqlDatabaseImpl",
+          "note": "Query folding is delegated to the built-in PostgreSQL.Database source function. The connector writes no folding handlers of its own."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "1-188",
+          "function": "section AzurePostgreSQL",
+          "note": "The whole connector is one .pq file with no PQM module loading."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "47-47",
+          "function": "ValidateOptions",
+          "note": "Extension.LoadString is used for localized strings (also lines 109, 116, 170)."
+        },
+        {
+          "file": "AzurePostgreSQL.pq",
+          "lines": "175-188",
+          "function": "AzurePostgreSQL.Icons",
+          "note": "Icon16 and Icon32 are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:40:17Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0051865999999999995,
+    "duration_ms": 20023
+  },
+  "source_sha256": "7cfc21bb32121bf57e7918ad48334d3e657bd96c905c06c82c1fbad74cac6661",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

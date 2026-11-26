@@ -1,0 +1,442 @@
+{
+  "connector": "BuildingConnected",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "98-108",
+          "function": "BuildingConnected",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "18-52",
+          "function": "StartLogin",
+          "note": "Builds the Autodesk authorize URL with the authorization-code flow."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "55-59",
+          "function": "FinishLogin",
+          "note": "Exchanges the callback code for tokens through TokenMethod."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "94-94",
+          "function": "Refresh",
+          "note": "Refresh token exchange via TokenMethod."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "15-15",
+              "function": "code_challenge_method",
+              "note": "Code challenge method is S256."
+            },
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "22-43",
+              "function": "StartLogin",
+              "note": "Generates a code verifier and sends code_challenge and code_challenge_method in the authorize URL."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "94-94",
+              "function": "Refresh",
+              "note": "Implements refresh_token grant through TokenMethod."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "364-364",
+          "function": "GetPage",
+          "note": "Data pages are fetched with Web.Contents."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "74-74",
+          "function": "TokenMethod",
+          "note": "Token calls use Web.Contents (auth only, not a data path)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "date-range",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "179-191",
+          "function": "BuildingConnectedType",
+          "note": "Declares optional rangeStart and rangeEnd as DateTimeZone parameters. The base URL is hardcoded (line 10), so no URL parameter is supplied by the user."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "188-190",
+          "function": "BuildingConnectedType",
+          "note": "Parameter includeClosed is a logical flag. It fits no other id, so it is recorded as other."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "175-176",
+          "function": "BuildingConnected.Contents",
+          "note": "Shared entry function that exposes these parameters."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "470-496",
+          "function": "GetAllPagesByNextLink",
+          "note": "Next page is requested by sending the cursorState value as a query parameter."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "512-512",
+          "function": "GetNextLink",
+          "note": "Reads cursorState from the pagination record of the response body."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "465-466",
+              "function": "GetAllPagesByNextLink",
+              "note": "Pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "587-587",
+              "function": "Table.GenerateByPage",
+              "note": "Loads the Table.GenerateByPage.pqm helper."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response pagination.cursorState is null. The metadata NextLink is then null, so the next getNextPage call returns null and List.Generate ends. Table.GenerateByPage also returns an empty table when the first page is empty.",
+          "evidence": [
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "390-390",
+              "function": "GetPage",
+              "note": "Stores the next cursor as metadata NextLink."
+            },
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "499-505",
+              "function": "GetAllPagesByNextLink",
+              "note": "Returns null for nextLink when the previous page has no cursorState, so no further page is fetched."
+            },
+            {
+              "file": "Table.GenerateByPage.pqm",
+              "lines": "3-9",
+              "function": "Table.GenerateByPage.pqm",
+              "note": "List.Generate stops when getNextPage returns null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "365-367",
+          "function": "GetPage",
+          "note": "Data response body is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "111-136",
+          "function": "SchemaTable_bc",
+          "note": "Entities map to declared M table types (SchemaTable_bc and SchemaTable_tt)."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "375-380",
+          "function": "GetPage",
+          "note": "Expands results using the declared schema field names."
+        },
+        {
+          "file": "Schemas.pqm",
+          "lines": "69-115",
+          "function": "Schema.ProjectType",
+          "note": "Example of M types assigned to named columns."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "358-358",
+          "function": "GetEntity",
+          "note": "Table.ChangeType applies declared types to returned data."
+        },
+        {
+          "file": "Table.ChangeType.pqm",
+          "lines": "35-68",
+          "function": "Table.ChangeType",
+          "note": "Converts column values to declared types and drops columns that are not declared."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "BuildingConnected.pq",
+              "lines": "372-380",
+              "function": "GetPage",
+              "note": "With a schema, an empty results list is still expanded by the declared field names, so the empty page carries the declared columns."
+            },
+            {
+              "file": "Table.GenerateByPage.pqm",
+              "lines": "20-21",
+              "function": "Table.GenerateByPage.pqm",
+              "note": "When the first page is empty, the helper returns that page table unchanged, keeping its declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "364-365",
+          "function": "GetPage",
+          "note": "Data request sets ManualStatusHandling = {401, 403} and reads the status code itself."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "382-388",
+          "function": "GetPage",
+          "note": "Builds Error.Record values from the 401/403 response body."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "88-89",
+          "function": "TokenMethod",
+          "note": "Error.Record built from the token response error body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "192-201",
+          "function": "BuildingConnectedType",
+          "note": "Documentation.Name, LongDescription and Examples on the function type."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "180-190",
+          "function": "BuildingConnectedType",
+          "note": "Documentation.FieldCaption and Documentation.FieldDescription on each parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "111-136",
+          "function": "SchemaTable_bc",
+          "note": "Navigation entities are a hardcoded list of rows."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "204-225",
+          "function": "BuildingConnectedNavTable",
+          "note": "Builds the navigation table from the fixed list with Table.ToNavigationTable."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "221-221",
+          "function": "BuildingConnectedNavTable",
+          "note": "Every row is a leaf (IsLeaf true), so there is no hierarchy."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "99-99",
+          "function": "BuildingConnected",
+          "note": "TestConnection names BuildingConnected.Contents, the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "227-330",
+          "function": "BuildingConnected.View",
+          "note": "Table.View folding handlers exist only in a commented-out block, so no folding is live."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "533-537",
+          "function": "Extension.LoadFunction",
+          "note": "Loads .pqm modules via Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "564-591",
+          "function": "Schemas",
+          "note": "Schemas.pqm, Table.ChangeType.pqm, Table.GenerateByPage.pqm, Table.ToNavigationTable.pqm and Diagnostics.pqm are loaded as modules."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "107-107",
+          "function": "BuildingConnected",
+          "note": "Extension.LoadString for the label."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "541-543",
+          "function": "BuildingConnected.Publish",
+          "note": "Extension.LoadString for the button title and help text."
+        },
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "549-562",
+          "function": "BuildingConnected.Icons",
+          "note": "Icon images loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "334-335",
+          "function": "BuildingConnected.Feed",
+          "note": "Diagnostics.LogValue runs on every feed call with no switch."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-8",
+          "function": "Diagnostics.LogValue",
+          "note": "Calls Diagnostics.Trace without any gating switch."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "BuildingConnected.pq",
+          "lines": "518-531",
+          "function": "Value.WaitFor",
+          "note": "Polling helper is defined but never called from a live path."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:42:43Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0281012,
+    "duration_ms": 70377,
+    "repair_attempts": 1
+  },
+  "source_sha256": "e0b312038da3f9472c6c8adfeb181f6cc96221c1000337b1e8affaeb839b4ab5",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

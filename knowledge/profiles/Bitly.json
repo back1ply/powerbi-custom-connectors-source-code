@@ -1,0 +1,357 @@
+{
+  "connector": "Bitly",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "222-222",
+          "function": "Bitly.RequestHeaders",
+          "note": "Authorization header is built from Extension.CurrentCredential()[Key] as a Bearer token."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "368-370",
+          "function": "Bitly",
+          "note": "Data source kind declares a single Key authentication kind (BearerTokenAuthLabel)."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Bitly.pq",
+              "lines": "222-222",
+              "function": "Bitly.RequestHeaders",
+              "note": "The key is sent in the Authorization request header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "236-236",
+          "function": "Bitly.Request",
+          "note": "Data is fetched with Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "346-349",
+          "function": "Bitly.ContentsType",
+          "note": "The url parameter is the Bitly API base URL (sample https://api-ssl.bitly.com/v4)."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "351-354",
+          "function": "Bitly.ContentsType",
+          "note": "The optional options record parameter."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "319-322",
+          "function": "Bitly.ContentsImpl",
+          "note": "options is read for the TestConnection flag."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record is read only for TestConnection (boolean, default false). Any other fields are ignored. PageSize and LimitParam are internal FetchCollection options, not fields of the shared options record.",
+          "evidence": [
+            {
+              "file": "Bitly.pq",
+              "lines": "321-322",
+              "function": "Bitly.ContentsImpl",
+              "note": "Reads options[TestConnection] with a default of false."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "112-112",
+          "function": "Bitly.Collections",
+          "note": "Every collection sets Paging = [Style = \"none\"]."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "311-313",
+          "function": "Bitly.FetchCollection",
+          "note": "LimitParam is never set by any collection, so no page-size query is sent and there is a single request."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "250-251",
+          "function": "Bitly.RequestJson",
+          "note": "Response bodies are parsed with Json.Document."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "315-315",
+          "function": "Bitly.FetchCollection",
+          "note": "Parsed JSON is converted to tables."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "7-65",
+          "function": "Bitly.Schemas",
+          "note": "Hardcoded column names with M types (Text.Type, Logical.Type, Int64.Type) for each collection."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "306-306",
+          "function": "Bitly.FetchCollection",
+          "note": "Table.FromRecords takes column names from the data, so response fields beyond the declared ones are kept untyped."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "421-455",
+          "function": "ApplySchema",
+          "note": "Declared types are applied to the returned data with Table.TransformColumnTypes (line 451) and Table.TransformColumns for structured columns."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Bitly.pq",
+              "lines": "304-305",
+              "function": "Bitly.FetchCollection",
+              "note": "An empty response builds an empty table from the declared column names, and ApplySchema then types it. The getBSDs schema is empty, so its empty result has no columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "226-230",
+          "function": "Bitly.Request",
+          "note": "ManualStatusHandling is set to {500, 502} for every data request, so no request leaves status handling to Power Query by default."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "239-245",
+          "function": "Bitly.Request",
+          "note": "After retries are exhausted, an Error.Record \"HttpRequestFailed\" is raised with the status code."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "239-241",
+          "function": "Bitly.Request",
+          "note": "Retries use Function.InvokeAfter with a delay of (attempt + 1) seconds."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Statuses 500 and 502 are retried. There are up to 2 retries, so 3 attempts in total. The delays are 1 second after the first failure and 2 seconds after the second. Other statuses are returned to the caller unchanged, and there is no 429 or rate-limit handling.",
+          "evidence": [
+            {
+              "file": "Bitly.pq",
+              "lines": "226-241",
+              "function": "Bitly.Request",
+              "note": "manualRetryStatusCodes = {500, 502}; attempt < 2 retries; delay (attempt + 1) seconds via Function.InvokeAfter."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "357-361",
+          "function": "Bitly.ContentsType",
+          "note": "Documentation.Name, Caption and Description are set on the function type."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "346-354",
+          "function": "Bitly.ContentsType",
+          "note": "Documentation.FieldCaption and FieldDescription are set on the url and options parameters."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "349-349",
+          "function": "Bitly.ContentsType",
+          "note": "Documentation.SampleValues is set on the url parameter."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "98-218",
+          "function": "Bitly.Collections",
+          "note": "The navigation rows are a hardcoded list of seven operations."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "335-340",
+          "function": "Bitly.ContentsImpl",
+          "note": "Table.ToNavigationTable is built from that fixed list, and every row has IsLeaf = true."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "367-367",
+          "function": "Bitly",
+          "note": "TestConnection calls Bitly.Contents with a TestConnection = true flag."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "322-325",
+          "function": "Bitly.ContentsImpl",
+          "note": "The flag branches to Bitly.TestConnectionProbe instead of the full navigation."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "253-258",
+          "function": "Bitly.TestConnectionProbe",
+          "note": "The probe requests only the /groups endpoint."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Bitly.pq",
+          "lines": "1-476",
+          "function": "Bitly",
+          "note": "The whole connector is in one Bitly.pq file, with no .pqm modules."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "346-371",
+          "function": "Bitly",
+          "note": "Strings are loaded with Extension.LoadString (localized-strings)."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "382-385",
+          "function": "Bitly.Icons",
+          "note": "Icon PNG files are loaded with Extension.Contents (icons)."
+        },
+        {
+          "file": "Bitly.pq",
+          "lines": "374-375",
+          "function": "Bitly.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:41:28Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0072583000000000005,
+    "duration_ms": 28312
+  },
+  "source_sha256": "fdef71bee6b9342f3eb8686271de6cbebd0c1c477860a78251b78d56c237babb",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

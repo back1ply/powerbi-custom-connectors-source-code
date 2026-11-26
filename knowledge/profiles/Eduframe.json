@@ -1,0 +1,467 @@
+{
+  "connector": "Eduframe",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "350-356",
+          "function": "EduFrame",
+          "note": "Authentication record declares an OAuth kind with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "357-360",
+          "function": "EduFrame",
+          "note": "Authentication record also declares a Key kind."
+        },
+        {
+          "file": "Requests.pqm",
+          "lines": "28-33",
+          "function": "AddAuthHeader",
+          "note": "For the Key kind, the key is sent as an Authorization: Bearer header."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "EduFrame.pq",
+              "lines": "382-397",
+              "function": "StartLogin",
+              "note": "The authorize URL has no code_challenge parameter."
+            },
+            {
+              "file": "EduFrame.pq",
+              "lines": "409-412",
+              "function": "TokenMethod",
+              "note": "code_verifier is only sent when a verifier is passed; FinishLogin passes the null context, so PKCE is not used."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "EduFrame.pq",
+              "lines": "406",
+              "function": "RefreshLogin",
+              "note": "Refresh token exchange through TokenMethod with grant_type refresh_token."
+            }
+          ]
+        },
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Requests.pqm",
+              "lines": "31",
+              "function": "AddAuthHeader",
+              "note": "The key is placed in the Authorization header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Requests.pqm",
+          "lines": "3",
+          "function": "DefaultHttp",
+          "note": "Data requests go through Web.Contents."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "420-426",
+          "function": "TokenMethod",
+          "note": "Token exchange uses Web.Contents."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "database-or-resource-id"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "19",
+          "function": "EduFrame.Contents",
+          "note": "Shared entry takes domainSlug, the customer portal slug that identifies the organization/tenant."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "137",
+          "function": "NavTable",
+          "note": "The slug parameter is declared as text. It is used only for the portal host in StartLogin and in TestConnection, while API calls go to the environment domain from the file."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "384",
+          "function": "StartLogin",
+          "note": "The slug forms the organization's portal host in the authorize URL."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Requests.pqm",
+          "lines": "59-69",
+          "function": "GetNextLink",
+          "note": "The next page is read from the rel=\"next\" entry of the Link response header."
+        },
+        {
+          "file": "Requests.pqm",
+          "lines": "37-50",
+          "function": "Eduframe.PagedRecords",
+          "note": "Each following page is requested from the next link in the previous page's metadata."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "Requests.pqm",
+              "lines": "75-80",
+              "function": "List.GenerateByPage",
+              "note": "The connector's own List.GenerateByPage wrapper calls List.Generate directly; Table.GenerateByPage is not used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the Link header has no rel=\"next\" entry, so GetNextLink returns null. The next-page step then returns null, and List.Generate ends when the page value is null.",
+          "evidence": [
+            {
+              "file": "Requests.pqm",
+              "lines": "46",
+              "function": "Eduframe.PagedRecords",
+              "note": "current is null when the previous page has no next link."
+            },
+            {
+              "file": "Requests.pqm",
+              "lines": "59-69",
+              "function": "GetNextLink",
+              "note": "Returns null via try ... otherwise null when there is no next link."
+            },
+            {
+              "file": "Requests.pqm",
+              "lines": "78",
+              "function": "List.GenerateByPage",
+              "note": "Generation continues only while the last page is not null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Requests.pqm",
+          "lines": "14",
+          "function": "Eduframe.Request",
+          "note": "Response content is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "inferred-from-data",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "183-189",
+          "function": "AvailabilityBlocksType",
+          "note": "Hardcoded M column types for the availability blocks table."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "201",
+          "function": "AvailabilityBlocksTable",
+          "note": "The declared type is applied to returned data with Value.ReplaceType."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "275",
+          "function": "QueryRecords",
+          "note": "Most tables take their column names from record fields via Table.FromRecords, with no declared types."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "200",
+          "function": "AvailabilityBlocksTable",
+          "note": "Table.TransformColumnTypes converts start_date_time and end_date_time values to datetimezone."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "EduFrame.pq",
+              "lines": "198-201",
+              "function": "AvailabilityBlocksTable",
+              "note": "Table.SelectColumns with MissingField.UseNull and the ReplaceType ascription keep the declared columns when the result is empty."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "retry-with-delay",
+        "rate-limit-aware"
+      ],
+      "evidence": [
+        {
+          "file": "Requests.pqm",
+          "lines": "19",
+          "function": "Fetcher",
+          "note": "Data requests set ManualStatusHandling = {429}."
+        },
+        {
+          "file": "Requests.pqm",
+          "lines": "22-24",
+          "function": "Fetcher",
+          "note": "The status is read from metadata and a 429 is handled in code."
+        },
+        {
+          "file": "Requests.pqm",
+          "lines": "84-98",
+          "function": "Value.WaitFor",
+          "note": "Failed requests are re-sent after a delay."
+        },
+        {
+          "file": "Requests.pqm",
+          "lines": "24",
+          "function": "Fetcher",
+          "note": "Retry-After header value is read on 429 responses."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Only HTTP 429 is retried. Up to 10 attempts (count argument 10). The first retry has no delay; later retries wait the Retry-After header seconds when present, otherwise 65 seconds. After the attempts run out, the error 'Failed after multiple retry attempts' is raised.",
+          "evidence": [
+            {
+              "file": "Requests.pqm",
+              "lines": "10-11",
+              "function": "Eduframe.Request",
+              "note": "Delay is 0 on the first iteration and 65 seconds afterwards; Value.WaitFor is called with count 10."
+            },
+            {
+              "file": "Requests.pqm",
+              "lines": "24",
+              "function": "Fetcher",
+              "note": "Only status 429 returns null for retry."
+            },
+            {
+              "file": "Requests.pqm",
+              "lines": "88-90",
+              "function": "Value.WaitFor",
+              "note": "Retry-After seconds override the interval when present."
+            },
+            {
+              "file": "Requests.pqm",
+              "lines": "13",
+              "function": "Eduframe.Request",
+              "note": "Error raised when the retries are exhausted."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "133-135",
+          "function": "NavTableType",
+          "note": "Documentation.Name gives the shared entry function its name."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "128-132",
+          "function": "NavTableType",
+          "note": "Parameter caption, description and sample value are attached to domainSlug."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "140-149",
+          "function": "NavTable",
+          "note": "The navigation rows are a hardcoded table of items."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "142-147",
+          "function": "NavTable",
+          "note": "Folder rows with IsLeaf false open further sub-tables."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "174-175",
+          "function": "SubTable",
+          "note": "Sub-tables contain further rows that open tables."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "343-349",
+          "function": "EduFrame",
+          "note": "TestConnection returns the shared entry function name and the slug, so the gateway test runs through EduFrame.Contents. The test makes no separate probe request."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "205-210",
+          "function": "AvailabilityBlocksTable",
+          "note": "OnSelectRows folds date-range conditions into the request bounds."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "193-198",
+          "function": "AvailabilityBlocksTable",
+          "note": "Table.View defines the table, and the folded bounds are passed as request query parameters."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-select-rows"
+          ],
+          "evidence": [
+            {
+              "file": "EduFrame.pq",
+              "lines": "205-210",
+              "function": "AvailabilityBlocksTable",
+              "note": "The only handler implemented is OnSelectRows."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "EduFrame.pq",
+          "lines": "283-299",
+          "function": "Extension.LoadFunction",
+          "note": "Requests.pqm is loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "129-134",
+          "function": "NavTableType",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "377-378",
+          "function": "EduFrame.Icons",
+          "note": "Icon PNG files are loaded with Extension.Contents."
+        },
+        {
+          "file": "EduFrame.pq",
+          "lines": "366-367",
+          "function": "EduFrame.Publish",
+          "note": "Publish sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T12:47:28Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0110828,
+    "duration_ms": 51426
+  },
+  "source_sha256": "5d8bdc03ebac437e3e6cbc4e690583c737249fdae560fae40c3e0f45f51b20ce",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}
