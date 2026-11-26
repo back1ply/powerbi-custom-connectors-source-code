@@ -1,0 +1,323 @@
+{
+  "connector": "SurveyMonkey",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "66-66",
+          "function": "SurveyMonkeyNavTable",
+          "note": "Access token comes from Extension.CurrentCredential()[Key], the Key auth kind declared at lines 129-134."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "FetchResource.pqm",
+              "lines": "39-40",
+              "function": "GetPage",
+              "note": "Token is sent as an Authorization: bearer header on Web.Contents."
+            },
+            {
+              "file": "SurveyMonkey.m",
+              "lines": "30-30",
+              "function": "SurveyMonkey.GetDomain",
+              "note": "Token is sent as an Authorization: bearer header in the domain probe."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "FetchResource.pqm",
+          "lines": "39-40",
+          "function": "GetPage",
+          "note": "Data is fetched with Web.Contents."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "28-31",
+          "function": "SurveyMonkey.GetDomain",
+          "note": "Domain probe is also a Web.Contents call."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "13-23",
+          "function": "SurveyMonkey.Contents",
+          "note": "The entry function takes no parameters (type function ()). The region is detected by probing the US, CA and EU endpoints, not chosen by the user."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "FetchResource.pqm",
+          "lines": "2-2",
+          "function": "GetNextLink",
+          "note": "The next page URL is read from the response links.next field."
+        },
+        {
+          "file": "FetchResource.pqm",
+          "lines": "26-35",
+          "function": "GetAllPagesByNextLink",
+          "note": "Each page request uses the NextLink carried in the previous page's metadata."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "FetchResource.pqm",
+              "lines": "5-24",
+              "function": "Table.GenerateByPage",
+              "note": "Pages are produced by the Table.GenerateByPage helper, which is built on List.Generate."
+            },
+            {
+              "file": "FetchResource.pqm",
+              "lines": "27-27",
+              "function": "GetAllPagesByNextLink",
+              "note": "GetAllPagesByNextLink calls Table.GenerateByPage."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no links.next, so GetNextLink returns null and GetPage returns null. Table.GenerateByPage's List.Generate stop condition (lastPage <> null) then ends the loop.",
+          "evidence": [
+            {
+              "file": "FetchResource.pqm",
+              "lines": "2-2",
+              "function": "GetNextLink",
+              "note": "Returns null when links.next is absent."
+            },
+            {
+              "file": "FetchResource.pqm",
+              "lines": "30-32",
+              "function": "GetAllPagesByNextLink",
+              "note": "nextLink is null and the page is null when there is no next link."
+            },
+            {
+              "file": "FetchResource.pqm",
+              "lines": "9-9",
+              "function": "Table.GenerateByPage",
+              "note": "The List.Generate stop condition ends when a page is null."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "FetchResource.pqm",
+          "lines": "41-41",
+          "function": "GetPage",
+          "note": "Responses are parsed with Json.Document."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "33-33",
+          "function": "SurveyMonkey.GetDomain",
+          "note": "The domain probe response is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "FetchResource.pqm",
+          "lines": "43-43",
+          "function": "GetPage",
+          "note": "Table.FromRecords builds columns from the JSON record field names with no declared M types."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "73-73",
+          "function": "SurveyMonkeyNavTable",
+          "note": "Table.FromRecords builds response columns from the data. No types are assigned."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling"
+      ],
+      "evidence": [
+        {
+          "file": "FetchResource.pqm",
+          "lines": "39-40",
+          "function": "GetPage",
+          "note": "The live data request Web.Contents has no ManualStatusHandling, so status handling is left to Power Query."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "30-30",
+          "function": "SurveyMonkey.GetDomain",
+          "note": "ManualStatusHandling={401,403,503} is set on a live call, and the status codes are inspected at lines 34-57."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "40-40",
+          "function": "SurveyMonkey.GetDomain",
+          "note": "ManualStatusHandling={503} is set on the EU token-validated call."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "15-23",
+          "function": "SurveyMonkeyNavTableType",
+          "note": "Documentation.Name, LongDescription and Examples are attached to the shared SurveyMonkey.Contents function type."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "63-80",
+          "function": "SurveyMonkeyNavTable",
+          "note": "Navigator rows are built at runtime from the surveys returned by the API via SurveyMonkey.GetSurveys."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "75-75",
+          "function": "SurveyMonkeyNavTable",
+          "note": "Every row has IsLeaf = true, so there are no folders."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "128-128",
+          "function": "SurveyMonkey",
+          "note": "TestConnection returns the name \"SurveyMonkey.Contents\", which reuses the entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "162-167",
+          "function": "FetchResource / Diagnostics",
+          "note": "Code is split into .pqm files loaded with Extension.LoadFunction."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "142-142",
+          "function": "SurveyMonkey.Publish",
+          "note": "ButtonText uses Extension.LoadString for localized strings."
+        },
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "148-151",
+          "function": "SurveyMonkey.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "SurveyMonkey.m",
+          "lines": "168-168",
+          "function": "Diagnostics.LogValue",
+          "note": "The live LogValue is replaced by a no-op unless EnableTraceOutput (false) is set, so every live trace is gated."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2-2",
+          "function": "Diagnostics.LogValue",
+          "note": "The Diagnostics.Trace call sits inside LogValue and is reached only through the EnableTraceOutput gate."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T10:03:22Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.008036000000000001,
+    "duration_ms": 33115
+  },
+  "source_sha256": "a7e15f37b716d7b228a47526125c3aeb5858eea6f8c4d63a62a57f127054986e",
+  "checklist_sha256": "9de1ec39b6700a9e351a1cbb7b2ff4a5324259fbe3cd6067343a056d3ea68f1e",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -231,12 +231,17 @@ answers:
       note: Beta = true
   diagnostics:
     values:
-    - tracing-gated
+    - tracing-always
     evidence:
+    - file: ClickHouseSqlGenerator.pqm
+      lines: 141-146
+      function: TryVisit
+      note: Calls Diagnostics.Trace directly, with no EnableTraceOutput check, whenever a fold is declined. TryVisit
+        is called 28 times in the SQL generator, which is wired at ClickHouseArrowFlight.pq line 471.
     - file: ClickHouseArrowFlight.pq
       lines: 11-11
       function: EnableTraceOutput
-      note: EnableTraceOutput = false
+      note: EnableTraceOutput = false, so the connector's own LogValue traces are gated; the generator trace above is not
     - file: ClickHouseArrowFlight.pq
       lines: 209-209
       function: Diagnostics.LogValue

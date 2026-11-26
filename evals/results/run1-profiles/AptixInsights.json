@@ -1,0 +1,302 @@
+{
+  "connector": "AptixInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "39-41",
+          "function": "AptixInsightsImpl",
+          "note": "Reads the token from Extension.CurrentCredential()[Key] and sends it as a Bearer Authorization header."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "58-60",
+          "function": "AptixInsights",
+          "note": "Data source kind declares Authentication = [Key = []]."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "AptixInsights.pq",
+              "lines": "41-41",
+              "function": "AptixInsightsImpl",
+              "note": "Key is placed in the Authorization header as \"Bearer \" & token."
+            },
+            {
+              "file": "AptixInsights.pq",
+              "lines": "50-50",
+              "function": "AptixInsightsImpl",
+              "note": "headers record is passed to OData.Feed."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50-50",
+          "function": "AptixInsightsImpl",
+          "note": "Data is reached through OData.Feed(url, headers, serviceOptions)."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "18-24",
+          "function": "AptixInsightsType",
+          "note": "Required url parameter of type text."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "25-31",
+          "function": "AptixInsightsType",
+          "note": "Optional query parameter of type any, used as an options record."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "46-46",
+          "function": "AptixInsightsImpl",
+          "note": "query is passed as the OData Query option."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The optional query parameter is typed as any and is passed unchanged as the OData.Feed Query option (Query = if query = null then [] else query). The connector declares and validates no specific fields.",
+          "evidence": [
+            {
+              "file": "AptixInsights.pq",
+              "lines": "25-31",
+              "function": "AptixInsightsType",
+              "note": "Declares optional query as type any with no field-level schema."
+            },
+            {
+              "file": "AptixInsights.pq",
+              "lines": "46-46",
+              "function": "AptixInsightsImpl",
+              "note": "Passes query through as the OData Query option."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50-50",
+          "function": "AptixInsightsImpl",
+          "note": "The connector itself builds no pages. Any paging is left to OData.Feed, and no paging code exists in the connector."
+        }
+      ],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50-50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed consumes OData JSON responses. The connector has no explicit parser."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "44-44",
+          "function": "AptixInsightsImpl",
+          "note": "MoreColumns = true, so columns are discovered from the returned rows."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "32-35",
+          "function": "AptixInsightsType",
+          "note": "The return type is a bare table with no declared columns, so declared-schema does not apply."
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50-50",
+          "function": "AptixInsightsImpl",
+          "note": "No manual status code handling, retry, or structured error records. Errors use OData.Feed defaults."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "33-34",
+          "function": "AptixInsightsType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "19-23",
+          "function": "AptixInsightsType",
+          "note": "url has FieldCaption, FieldDescription and SampleValues."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "26-30",
+          "function": "AptixInsightsType",
+          "note": "query has FieldCaption, FieldDescription and SampleValues."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "37-52",
+          "function": "AptixInsightsImpl",
+          "note": "The function returns a single OData table directly. No navigation table is built."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "57-57",
+          "function": "AptixInsights",
+          "note": "TestConnection returns {\"AptixInsights.Feed\", Json.Document(dataSourcePath)[url]}, which reuses the entry function."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50-50",
+          "function": "AptixInsightsImpl",
+          "note": "Folding comes from OData.Feed. The connector defines no Table.View handlers, native query, or custom SQL generator."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "AptixInsights.pq",
+          "note": "All connector logic is in one .pq file."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "20-22",
+          "function": "AptixInsightsType",
+          "note": "Extension.LoadString is used for localized captions and descriptions."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "74-87",
+          "function": "AptixInsights.Icons",
+          "note": "Icon16 and Icon32 sets are loaded with Extension.Contents."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-25T22:23:35Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0039004,
+    "duration_ms": 19902
+  },
+  "source_sha256": "edd4059f61dfac8b5ddc96920f675a48d926a9597a75efefe069e51e98b83530",
+  "checklist_sha256": "88cdc440847adb00d2d6699b8383a9a9ef72e8543b2f243c91aee4ede2c3bef2",
+  "prompt_sha256": "19204eaeb0275de4c1e0d405749c6ffbfe9321157454d6d111418438d75d51f4"
+}

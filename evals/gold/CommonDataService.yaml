@@ -171,7 +171,6 @@ answers:
   folding:
     values:
     - native-query
-    - table-view-handlers
     - source-function-folding
     evidence:
     - file: CommonDataService.pq
@@ -183,7 +182,7 @@ answers:
       lines: 74-89
       function: CommonDataService.Database
       note: The wrapping Table.View overrides only OnNativeQuery, so every other operation falls through
-        to the Sql.Database table
+        to the Sql.Database table. An OnNativeQuery-only view is native-query, not table-view-handlers.
     - file: CommonDataService.pq
       lines: 74-89
       function: CommonDataService.Database
@@ -194,14 +193,6 @@ answers:
       note: SqlDatabase.View([Dialect = "T-SQL", GetRows, GetNativeQuery, NativeQueryOptions = {EnableFolding,
         PreserveTypes}]) when DisplayNames is given
     sub:
-      table-view-handlers:
-        values:
-        - other
-        evidence:
-        - file: CommonDataService.pq
-          lines: 74-89
-          function: CommonDataService.Database
-          note: the only folding handler is OnNativeQuery (no answer id for it)
       native-query-enabled:
         text: The Sql.Database navigation table is wrapped in Table.View with an OnNativeQuery handler.
           The handler strips DisplayNames from the options. If DisplayNames is null, it calls Value.NativeQuery

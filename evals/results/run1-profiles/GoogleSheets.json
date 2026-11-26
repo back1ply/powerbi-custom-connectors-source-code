@@ -1,0 +1,255 @@
+{
+  "connector": "GoogleSheets",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "69-75",
+          "function": "GoogleSheets",
+          "note": "Authentication record declares only an OAuth block with StartLogin, FinishLogin and Refresh."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "9-26",
+          "function": "StartLogin",
+          "note": "Builds the Google OAuth2 v2 authorization URL with client_id, scope and access_type=offline."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "28-46",
+          "function": "FinishLogin",
+          "note": "Exchanges the authorization code for tokens at oauth2.googleapis.com/token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": []
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "GoogleSheets.pq",
+              "lines": "48-62",
+              "function": "Refresh",
+              "note": "Implements the refresh_token grant against oauth2.googleapis.com/token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "253-259",
+          "function": "Web.JsonContents",
+          "note": "Calls Web.Contents on sheets.googleapis.com REST URLs and parses the response with Json.Document."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "82-91",
+          "function": "GoogleSheetsImpl",
+          "note": "The only user input is a Google Sheets URL; the spreadsheet id is extracted from it at index 5 of the split path."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "93-98",
+          "function": "GoogleSheetsType",
+          "note": "The url parameter is the sole declared input."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "253-259",
+          "function": "Web.JsonContents",
+          "note": "Responses are parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "160-175",
+          "function": "AddTypeToValue",
+          "note": "Cell values are converted using the cell's effectiveFormat number-format type."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "177-190",
+          "function": "CheckNumberValue",
+          "note": "DATE, TIME and DATE_TIME values are converted with Date.From, Time.From and DateTime.From."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "253-259",
+          "function": "Web.JsonContents",
+          "note": "Web.Contents is called with ManualStatusHandling = ApiErrorStatusCodes, so 400/403/404/500/503 are handled manually."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "261-270",
+          "function": "Web.ErrorResponse",
+          "note": "Raises Error.Record(\"DataSource.Error\", ...) with status, message and code detail. No retry or rate-limit logic exists."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "99-103",
+          "function": "GoogleSheetsType",
+          "note": "Function-level Documentation.Name, Caption, Description and LongDescription."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "94-98",
+          "function": "GoogleSheetsType",
+          "note": "Parameter url has Documentation.FieldCaption, FieldDescription and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "106-126",
+          "function": "GetResults",
+          "note": "Sheet names and ids come from the sheets/properties response, and named ranges come from namedRanges, combined into a navigation table."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "303-324",
+          "function": "Table.ToNavigationTable",
+          "note": "Marks the table with NavigationTable name, data, item-kind and leaf columns."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "68-68",
+          "function": "GoogleSheets",
+          "note": "TestConnection returns {\"GoogleSheets.Contents\"} & ParseResourcePath(resourcePath), which reuses the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "1-2",
+          "function": "section",
+          "note": "The whole connector is a single .pq section file with a Version attribute."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "74-74",
+          "function": "GoogleSheets",
+          "note": "Labels are loaded with Extension.LoadString, for example AuthenticationLabel, so strings come from resources."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-25T22:26:19Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.005547400000000001,
+    "duration_ms": 21292
+  },
+  "source_sha256": "b007bbfabe1c0002ddc005c869cd017c52cd6e11c1be70ca5f692e4ee3f61b96",
+  "checklist_sha256": "88cdc440847adb00d2d6699b8383a9a9ef72e8543b2f243c91aee4ede2c3bef2",
+  "prompt_sha256": "19204eaeb0275de4c1e0d405749c6ffbfe9321157454d6d111418438d75d51f4"
+}

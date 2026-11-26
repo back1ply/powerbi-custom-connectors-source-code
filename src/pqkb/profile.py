@@ -16,7 +16,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pqkb.checklist import load_checklist, validate_profile
+from pqkb.checklist import answer_ids, load_checklist, validate_profile
 from pqkb.functions import index_connector
 from pqkb.match_agent import claude_executable
 from pqkb.match_reviews import source_fingerprint
@@ -24,10 +24,11 @@ from pqkb.refresh import load_index
 from pqkb.reviews import digest
 
 PROFILE_DIR = Path("knowledge") / "profiles"
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 SYSTEM_PROMPT = """You profile one Power Query (M) connector against a fixed checklist.
 Input JSON has: checklist (questions with allowed answer ids, `multi`, conditional
-`sub` questions with `when`, and `free_text` follow-ups), functions (top-level
+`sub` questions with `when`, `free_text` follow-ups, and `definitions` that say what
+an answer id means and which Microsoft Learn page it follows), functions (top-level
 functions with file, line range, and calls), and files (every source file with
 1-based line numbers as "<n>| <code>").
 
@@ -45,7 +46,13 @@ Rules:
   data source kind record, or Publish. Ignore helpers that are never called.
 - Every value other than none/no/default/not-defined needs evidence with the exact
   file and line range from the numbered source.
-- "other" only when no id fits; explain it in the evidence note."""
+- When a question has `definitions`, an answer id applies only if the code meets its
+  definition. Do not add an id because the code is merely related to it.
+- "values" is always a JSON list, even for a single answer.
+- "other" only when no id fits; explain it in the evidence note.
+- If the input has "validation_problems", your earlier "previous_answers" failed the
+  checks listed there. Return the full corrected object, changing only what the
+  problems require."""
 
 
 def profile_inputs(repo: Path, name: str) -> tuple[dict, dict[str, str]]:
@@ -107,9 +114,6 @@ def ask_claude(payload: dict, model: str) -> tuple[dict, dict]:
     envelope = json.loads(response.stdout)
     if envelope.get("is_error"):
         raise ValueError(f"Claude profile failed: {envelope.get('subtype', 'provider error')}")
-    text = (
-        envelope["result"].strip().removeprefix("```json").removeprefix("```").removesuffix("```")
-    )
     identity = {
         "provider": "claude-code",
         "requested_model": model,
@@ -117,16 +121,59 @@ def ask_claude(payload: dict, model: str) -> tuple[dict, dict]:
         "cost_usd": envelope.get("total_cost_usd"),
         "duration_ms": envelope.get("duration_ms"),
     }
-    return json.loads(text.strip()), identity
+    return first_json_object(envelope["result"]), identity
+
+
+def first_json_object(text: str) -> dict:
+    """The first JSON object in the reply; code fences and trailing prose are ignored."""
+    start = text.find("{")
+    if start < 0:
+        raise ValueError("model reply contains no JSON object")
+    value, _ = json.JSONDecoder().raw_decode(text, start)
+    return value
+
+
+def normalize_answers(answers: dict) -> dict:
+    """Wrap bare-string `values` in a list, at both question and sub-question level."""
+    for answer in answers.values():
+        if not isinstance(answer, dict):
+            continue
+        for item in [answer, *(answer.get("sub") or {}).values()]:
+            if isinstance(item, dict) and "values" in item:
+                item["values"] = answer_ids(item["values"])
+    return answers
+
+
+def _merge_identity(first: dict, second: dict) -> dict:
+    """Sum cost and duration over the first call and its repair call."""
+    merged = {**second, "repair_attempts": 1}
+    for key in ("cost_usd", "duration_ms"):
+        if first.get(key) is not None or second.get(key) is not None:
+            merged[key] = (first.get(key) or 0) + (second.get(key) or 0)
+    merged["models"] = sorted(set(first.get("models", [])) | set(second.get("models", [])))
+    return merged
 
 
 def profile_connector(repo: Path, name: str, model: str) -> dict:
+    """Ask the model once; on validation problems, send them back for one repair."""
     payload, files = profile_inputs(repo, name)
     answer, identity = ask_claude(payload, model)
-    profile = {"connector": name, "answers": answer.get("answers", {})}
+    profile = {"connector": name, "answers": normalize_answers(answer.get("answers", {}))}
     problems = validate_profile(repo, profile, payload["checklist"])
     if problems:
-        raise ValueError(f"{len(problems)} validation problems, first: {problems[0]}")
+        repair = {
+            **payload,
+            "previous_answers": profile["answers"],
+            "validation_problems": problems,
+        }
+        answer, second = ask_claude(repair, model)
+        identity = _merge_identity(identity, second)
+        profile = {"connector": name, "answers": normalize_answers(answer.get("answers", {}))}
+        problems = validate_profile(repo, profile, payload["checklist"])
+    if problems:
+        raise ValueError(
+            f"{len(problems)} validation problems after one repair, first: {problems[0]}"
+        )
     return {
         **profile,
         "generated": {

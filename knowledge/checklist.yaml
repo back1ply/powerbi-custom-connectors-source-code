@@ -21,6 +21,12 @@
 #   odata-folding, source-function-folding), not `none`.
 # - A TestConnection that calls the entry function with a flag which branches to a
 #   separate probe counts as dedicated-probe.
+#
+# `definitions` (optional, per question) pins down what an answer id means. Each entry
+# has `means` and `source`: a Learn page under docs_base whose wording the definition
+# follows, `archive:<page>` for the retired certification pages (Wayback snapshots,
+# 2024; Microsoft closed new certification in Oct 2025), or `convention` when no
+# official page settles the boundary and the rule is this project's own.
 version: 2
 docs_base: https://learn.microsoft.com/en-us/power-query/
 questions:
@@ -63,6 +69,22 @@ questions:
     question: What does the user supply to connect?
     multi: true
     answers: [url-or-server, database-or-resource-id, options-record, region-or-environment, date-range, none, other]
+    definitions:
+      url-or-server:
+        means: A parameter naming the connection target - a URL, host/server name, or an ODBC DSN.
+        source: handling-resource-path
+      database-or-resource-id:
+        means: A parameter naming a database, project, workspace, organization, tenant, or other resource inside the target.
+        source: convention
+      options-record:
+        means: An optional record parameter of connector settings (conventionally `options`). A parameter passed straight through as another function's option, such as an OData Query record, is `other`.
+        source: convention
+      region-or-environment:
+        means: The user picks a region, cloud, or deployment environment by name (for example EU, prod, sandbox). Not a URL, and not an organization or project name even when the connector uses it to look up an endpoint.
+        source: convention
+      none:
+        means: The data source function has no parameters the user must supply.
+        source: handling-resource-path
     sub:
       - id: options-fields
         when: [options-record]
@@ -81,6 +103,16 @@ questions:
         question: Which construct generates the pages?
         multi: true
         answers: [table-generatebypage, list-generate, recursion, other]
+        definitions:
+          table-generatebypage:
+            means: Pages come from the Table.GenerateByPage helper. Name only this outermost construct; the helper is built on List.Generate, so do not also answer list-generate for it.
+            source: helper-functions
+          list-generate:
+            means: The connector calls List.Generate itself to fetch pages, not through Table.GenerateByPage.
+            source: helper-functions
+          recursion:
+            means: A function calls itself with the next page URL or token and combines the results.
+            source: convention
       - id: paging-stop
         when: [offset-limit, cursor-token, next-link-url, skip-token, graphql-cursor, other]
         question: What ends paging?
@@ -92,6 +124,16 @@ questions:
     question: What data formats does it parse?
     multi: true
     answers: [json, csv, xml, parquet, excel, binary-compressed, arrow, driver-rows, other]
+    definitions:
+      arrow:
+        means: Results arrive as Apache Arrow, including Arrow Flight SQL through an ADBC driver, even when the driver decodes it.
+        source: convention
+      driver-rows:
+        means: Rows come from an ODBC, ADO.NET/OLE DB, or Sql.Database driver as tables.
+        source: handling-data-access
+      excel:
+        means: Excel.Workbook is reachable for data the connector actually returns. Like every answer, count it only on a live path.
+        source: convention
 
   - id: schema
     topic: Handling schemas
@@ -99,6 +141,19 @@ questions:
     question: How are column names and types set?
     multi: true
     answers: [declared-schema, inferred-from-data, explicit-type-conversion, driver-provided, none]
+    definitions:
+      declared-schema:
+        means: The connector itself assigns M types to the named columns of the data tables it returns - a hardcoded schema table or table type, or its own mapping from source type names to M types. Column names without types do not count, nor do navigation tables or other helper tables the connector builds for itself.
+        source: handling-schema
+      inferred-from-data:
+        means: Column names come from the data itself (record field names, Table.FromRecords, Csv.Document Column1..N) and the connector assigns them no declared M types.
+        source: handling-schema
+      explicit-type-conversion:
+        means: The connector converts column values of returned data to specific types - Table.TransformColumnTypes, Table.ChangeType, or per-value Date.From/Number.From on data cells. Rewriting driver metadata (for example SQLColumns type names) stays driver-provided, and converting values used only internally is not counted.
+        source: handling-schema
+      driver-provided:
+        means: The transport supplies names and types - an ODBC driver, Sql.Database, ADO.NET, or OData.Feed from $metadata - and the connector does not redefine them.
+        source: handling-schema
     sub:
       - id: empty-result-columns
         when: [declared-schema]
@@ -112,6 +167,19 @@ questions:
     multi: true
     applies_when: {transport: [web-contents, odata-feed]}
     answers: [default, manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]
+    definitions:
+      default:
+        means: At least one live data request (Web.Contents or OData.Feed, not an OAuth token or auth exchange) leaves status handling to Power Query, with no ManualStatusHandling.
+        source: handling-status-codes
+      manual-status-handling:
+        means: At least one live call, token calls included, sets ManualStatusHandling and inspects the status itself.
+        source: handling-status-codes
+      structured-error-records:
+        means: Errors raised from HTTP responses (status code or error body) are built as Error.Record values. Error records for invalid user input do not count.
+        source: handling-status-codes
+      retry-with-delay:
+        means: A failed request is sent again after a delay (Value.WaitFor, Function.InvokeAfter). Polling a job's status until it finishes is long-running, not retry.
+        source: handling-status-codes
     sub:
       - id: retry-rule
         when: [retry-with-delay, rate-limit-aware]
@@ -131,6 +199,22 @@ questions:
     question: How is the navigation table built?
     multi: true
     answers: [single-table, fixed-list, discovered-from-api, hierarchical, none]
+    definitions:
+      single-table:
+        means: The data source function returns one data table directly, with no navigation table.
+        source: handling-navigation-tables
+      fixed-list:
+        means: The navigation table's rows are a hardcoded list, even a single row. A hardcoded folder or action inside an otherwise discovered tree does not count.
+        source: handling-navigation-tables
+      discovered-from-api:
+        means: The navigator's items are listed at runtime from the source. OData.Feed on a service root counts, because it builds the navigator from the service document.
+        source: handling-navigation-tables
+      hierarchical:
+        means: Some navigation rows are folders (IsLeaf false) that open further navigation tables.
+        source: handling-navigation-tables
+      none:
+        means: No shared function returns a table (for example it only returns functions or scalar values).
+        source: convention
 
   - id: test-connection
     topic: Handling gateway support
@@ -144,6 +228,22 @@ questions:
     question: Does it fold queries to the source, and how?
     multi: true
     answers: [none, table-view-handlers, odbc-sql-capabilities, native-query, custom-sql-generator, odata-folding, source-function-folding]
+    definitions:
+      table-view-handlers:
+        means: The connector writes its own folding handlers in Table.View (OnTake, OnSelectRows, OnSort and the like). A Table.View that adds only GetRows or OnNativeQuery is not folding; OnNativeQuery alone is native-query. Handlers built by the engine's SqlView.Generator count under custom-sql-generator.
+        source: samples/trippin/10-tableview1/readme
+      native-query:
+        means: Value.NativeQuery is supported, through an OnNativeQuery handler or a source function that accepts native queries.
+        source: native-query-sdk
+      odbc-sql-capabilities:
+        means: Folding through Odbc.DataSource, shaped by SqlCapabilities, SQLGetInfo, SQLGetTypeInfo, or AstVisitor overrides. An AstVisitor that rewrites LIMIT/OFFSET belongs here, not under custom-sql-generator.
+        source: odbc
+      custom-sql-generator:
+        means: The connector writes its own SQL text generator outside the ODBC driver, usually behind Table.View handlers.
+        source: samples/trippin/10-tableview1/readme
+      source-function-folding:
+        means: Folding is delegated to a source function that folds on its own, such as Sql.Database.
+        source: convention
     sub:
       - id: table-view-handlers
         when: [table-view-handlers]
@@ -161,12 +261,29 @@ questions:
     question: How is the connector packaged?
     multi: true
     answers: [single-file, pqm-modules, localized-strings, icons, beta-flag]
+    definitions:
+      beta-flag:
+        means: The data source kind or Publish record sets Beta = true. Beta = false or no Beta field is not a beta flag.
+        source: handling-data-access
+      pqm-modules:
+        means: Code is split into .pqm files loaded with Extension.Contents or a LoadFunction/LoadExpression helper.
+        source: convention
 
   - id: diagnostics
     topic: TripPin 8 (Diagnostics)
     docs: samples/trippin/8-diagnostics/readme
     question: Does it emit diagnostics?
     answers: [none, tracing-always, tracing-gated]
+    definitions:
+      tracing-always:
+        means: At least one live Diagnostics.Trace call (directly or through a helper) runs without a switch such as EnableTraceOutput.
+        source: samples/trippin/8-diagnostics/readme
+      tracing-gated:
+        means: Every live Diagnostics.Trace call sits behind a switch such as EnableTraceOutput.
+        source: samples/trippin/8-diagnostics/readme
+      none:
+        means: No live code calls Diagnostics.Trace. Correlation headers sent to the server (traceparent) are not diagnostics.
+        source: samples/trippin/8-diagnostics/readme
 
   - id: long-running
     question: Does it run long-running operations?
@@ -180,3 +297,7 @@ questions:
   - id: writes
     question: Does it write data back to the source?
     answers: [none, table-view-mutations, actions]
+    definitions:
+      actions:
+        means: The connector changes data in the source through Action functions (insert, update, delete). Starting an export or query job to read data is not a write.
+        source: convention

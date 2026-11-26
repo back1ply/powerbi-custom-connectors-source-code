@@ -91,3 +91,11 @@ def test_check_profiles_command(repo, capsys):
     assert "1 profiles checked: 0 problems." in capsys.readouterr().out
     (folder / "Other.yaml").write_text(yaml.safe_dump(negative_profile()), encoding="utf-8")
     assert main(["--repo", str(repo), "check-profiles"]) == 1
+
+
+def test_comma_separated_line_ranges_are_each_checked(repo):
+    profile = copy.deepcopy(negative_profile())
+    profile["answers"]["auth"]["evidence"] = [{"file": "Demo.pq", "lines": "1-1, 2"}]
+    assert validate_profile(repo, profile) == []
+    profile["answers"]["auth"]["evidence"] = [{"file": "Demo.pq", "lines": "1, 9"}]
+    assert any("lines 9 outside" in p for p in validate_profile(repo, profile))

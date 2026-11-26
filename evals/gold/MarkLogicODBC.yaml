@@ -117,11 +117,13 @@ answers:
   navigation:
     values:
     - hierarchical
+    - discovered-from-api
     evidence:
     - file: MarkLogicODBC.m
       lines: 315-317
       function: MarkLogicODBCImpl
       note: Odbc.DataSource with HierarchicalNavigation = true (tables grouped by schema)
+        - Odbc.DataSource also lists catalogs, schemas and tables from the driver at runtime, so discovered-from-api.
   test-connection:
     values:
     - reuses-entry-function

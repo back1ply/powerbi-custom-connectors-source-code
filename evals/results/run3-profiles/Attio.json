@@ -1,0 +1,429 @@
+{
+  "connector": "Attio",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "472-472",
+          "function": "Attio.RequestHeaders",
+          "note": "Sends Authorization = \"Bearer \" & Extension.CurrentCredential()[Key] on every data request."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "674-676",
+          "function": "Attio",
+          "note": "Authentication record declares a Key (bearer token) credential type."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "472-472",
+              "function": "Attio.RequestHeaders",
+              "note": "The key is sent in the Authorization request header."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "486-486",
+          "function": "Attio.Request",
+          "note": "Data is fetched with Web.Contents(url, requestOptions)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "625-628",
+          "function": "Attio.ContentsImpl",
+          "note": "Takes a url parameter (API base URL, sample https://api.attio.com at line 655) and an optional options record."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "652-659",
+          "function": "Attio.ContentsType",
+          "note": "Declares url as text and options as record for the user."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts only TestConnection (logical, default false), read with Record.FieldOrDefault. When true, ContentsImpl runs the connection probe instead of building the navigator.",
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "627-631",
+              "function": "Attio.ContentsImpl",
+              "note": "Reads TestConnection and branches to Attio.TestConnectionProbe when it is true."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "offset-limit",
+        "cursor-token"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "600-604",
+          "function": "Attio.FetchCollection",
+          "note": "offsetLimit style pages by offset, using NextOffset metadata."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "607-613",
+          "function": "Attio.FetchCollection",
+          "note": "cursor style pages by cursor token, using NextCursor metadata."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "379-379",
+          "function": "Attio.Collections",
+          "note": "getNotes uses Style = \"offsetLimit\"; similar offset use at lines 396, 413, 447."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "430-430",
+          "function": "Attio.Collections",
+          "note": "getMeetings uses Style = \"cursor\" with CursorParam and CursorField nextCursor."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "table-generatebypage"
+          ],
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "601-614",
+              "function": "Attio.FetchCollection",
+              "note": "Both offset and cursor pages are produced by Table.GenerateByPage."
+            },
+            {
+              "file": "Attio.pq",
+              "lines": "727-729",
+              "function": "Table.GenerateByPage",
+              "note": "The helper is built on List.Generate. Only the outer construct is named here."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Offset style stops when a page has fewer rows than PageSize (default 50) or zero rows (lines 571-573). Cursor style stops when the response has hasMore = false, or the cursor is null or blank (lines 594-596). Table.GenerateByPage stops when the next-page function returns null (lines 603-604 and 610-613, via the List.Generate condition at line 729).",
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "571-573",
+              "function": "Attio.FetchCollection",
+              "note": "nextOffset is null when itemCount < __pageSize, and the page is null when itemCount = 0."
+            },
+            {
+              "file": "Attio.pq",
+              "lines": "594-596",
+              "function": "Attio.FetchCollection",
+              "note": "nextCursor is null when hasMore = false or the cursor is null or blank."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "500-501",
+          "function": "Attio.RequestJson",
+          "note": "Parses the response with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "7-111",
+          "function": "Attio.Schemas",
+          "note": "Hardcoded table of column names with M types (Text.Type, Logical.Type, type any, type nullable record) for each collection."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "738-772",
+          "function": "ApplySchema",
+          "note": "Assigns the declared types to returned data columns with Table.TransformColumnTypes (line 768) and Table.TransformColumns (line 772)."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "554-558",
+              "function": "Attio.FetchCollection",
+              "note": "An empty result builds #table with the declared column names, and ApplySchema still applies the declared types."
+            },
+            {
+              "file": "Attio.pq",
+              "lines": "603-605",
+              "function": "Attio.FetchCollection",
+              "note": "The empty first page falls back to toTable({}), which keeps the declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "474-498",
+          "function": "Attio.Request",
+          "note": "Every data request sets ManualStatusHandling = {500, 502} and inspects the status code (lines 480, 487, 489)."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "492-495",
+          "function": "Attio.Request",
+          "note": "Raises error Error.Record(\"HttpRequestFailed\", ...) with the status when retries are exhausted."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "490-491",
+          "function": "Attio.Request",
+          "note": "Retries with Function.InvokeAfter and a delay that grows with each attempt."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Only HTTP 500 and 502 are retried (line 476). There are at most 2 retries after the first send, so 3 sends in total (attempt < 2, line 490). The delay before retry n is n seconds, from (attempt + 1) * 1 (line 491), so 1 s then 2 s. Other statuses, including 429, are not retried.",
+          "evidence": [
+            {
+              "file": "Attio.pq",
+              "lines": "476-476",
+              "function": "Attio.Request",
+              "note": "manualRetryStatusCodes = {500, 502}."
+            },
+            {
+              "file": "Attio.pq",
+              "lines": "489-495",
+              "function": "Attio.Request",
+              "note": "Retry condition, attempt limit, and the error raised after retries."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "650-667",
+          "function": "Attio.ContentsType",
+          "note": "Function-level Documentation.Name, Caption, and Description on the function type."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "652-659",
+          "function": "Attio.ContentsType",
+          "note": "Parameter Documentation.FieldCaption and Documentation.FieldDescription for url and options."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "655-655",
+          "function": "Attio.ContentsType",
+          "note": "Documentation.SampleValues for url."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "314-468",
+          "function": "Attio.Collections",
+          "note": "Hardcoded list of eight collections (Objects, Lists, WorkspaceMembers, Notes, Tasks, Threads, Meetings, Webhooks), plus Self at 451-467."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "638-646",
+          "function": "Attio.ContentsImpl",
+          "note": "Builds the navigation table from that fixed list, with every row a leaf (IsLeaf true, line 641)."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "dedicated-probe"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "503-508",
+          "function": "Attio.TestConnectionProbe",
+          "note": "Dedicated probe that requests /v2/objects and returns a Connected table."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "673-673",
+          "function": "Attio",
+          "note": "TestConnection = (resource) => {\"Attio.Contents\", resource, [TestConnection = true]} routes to the probe."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "630-631",
+          "function": "Attio.ContentsImpl",
+          "note": "Branches to Attio.TestConnectionProbe when TestConnection is true."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "1-793",
+          "function": "Attio",
+          "note": "No Table.View, Value.NativeQuery, Odbc, or SQL generator code exists. Table operations run locally."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons",
+        "beta-flag"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "1-793",
+          "function": "Attio",
+          "note": "All code is in one Attio.pq file with no .pqm modules."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "653-677",
+          "function": "Attio",
+          "note": "Uses Extension.LoadString for captions, descriptions, labels, and button text."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "688-691",
+          "function": "Attio.Icons",
+          "note": "Icons loaded with Extension.Contents(\"Attio16.png\") and similar files."
+        },
+        {
+          "file": "Attio.pq",
+          "lines": "680-681",
+          "function": "Attio.Publish",
+          "note": "Publish record sets Beta = true."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "1-793",
+          "function": "Attio",
+          "note": "No Diagnostics.Trace calls in the connector."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "1-793",
+          "function": "Attio",
+          "note": "No export job or status polling. Retries are the only delayed re-sends (line 491)."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "Attio.pq",
+          "lines": "1-793",
+          "function": "Attio",
+          "note": "Only GET requests through Web.Contents. No Action functions or table mutations."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T11:20:49Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0087965,
+    "duration_ms": 31545
+  },
+  "source_sha256": "1d8d5c3bbd5ab1d85417c1dbd2f3eaf2a4fae1f32347cabbebf503ff9add63cb",
+  "checklist_sha256": "31b4d247db99693de4d27c707d3f06c9f2ab371b48470f8a6053d8470e3f8077",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

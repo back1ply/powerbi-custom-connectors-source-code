@@ -1,0 +1,369 @@
+{
+  "connector": "ClickHouse",
+  "answers": {
+    "auth": {
+      "values": [
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "422-425",
+          "function": "ClickHouse",
+          "note": "Authentication record declares only UsernamePassword = []; Windows is commented out and no OAuth or key auth exists."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "252-254",
+          "function": "DatabaseCoreImplementation",
+          "note": "Credential = Extension.CurrentCredential() and CredentialConnectionString maps UID and PWD from Username and Password."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "91",
+          "function": "Config_DefaultUsernamePasswordHandling",
+          "note": "Driver-level UsernamePassword handling is enabled, so the ODBC layer also applies the supplied credentials."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "All data access goes through Odbc.DataSource with the ClickHouse ODBC driver connection string."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "ClickHouseConnector.pq",
+              "lines": "260-267",
+              "function": "DatabaseCoreImplementation",
+              "note": "SqlCapabilities is overridden on top of the BuildOdbcConfig defaults."
+            },
+            {
+              "file": "ClickHouseConnector.pq",
+              "lines": "270-281",
+              "function": "DatabaseCoreImplementation",
+              "note": "SQLGetInfo overrides are declared, including SQL_CONVERT_FUNCTIONS, SQL_SQL92_PREDICATES and SQL_AGGREGATE_FUNCTIONS."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "database-or-resource-id",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "129-133",
+          "function": "DatabaseType",
+          "note": "The server parameter is the ClickHouse host name, which names the connection target."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "139-143",
+          "function": "DatabaseType",
+          "note": "The optional database parameter names a ClickHouse database inside the target."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "144-148",
+          "function": "DatabaseType",
+          "note": "The optional options record carries connector settings."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts Timeout (nullable number, non-negative integer), VerifyConnectionEarly (nullable text), SSLMode (nullable text), HugeIntAsString (nullable text) and UseANSIDriver (nullable logical). Any other key raises an error through ValidateOptions.",
+          "evidence": [
+            {
+              "file": "ClickHouseConnector.pq",
+              "lines": "168-213",
+              "function": "DatabaseCoreImplementation",
+              "note": "ValidOptionsMap defines the five accepted option names and their types."
+            },
+            {
+              "file": "ClickHouseConnector.pq",
+              "lines": "573-632",
+              "function": "ValidateOptions",
+              "note": "Invalid option keys and invalid values are rejected."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "Rows arrive as tables from the ODBC driver through Odbc.DataSource. No JSON, CSV, XML or Excel parsing of returned data exists; Json.Document at line 413 only parses the TestConnection path."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "315-362",
+          "function": "SQLColumns",
+          "note": "The SQLColumns override only remaps driver metadata DATA_TYPE codes (BOOLEAN, UUID, INT8, INT64). Names and types still come from the driver, so no M types are declared."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "Column names and types are supplied by Odbc.DataSource."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "The transport is odbc only. There is no Web.Contents or OData.Feed call, so applies_when excludes this connector."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "123",
+          "function": "ClickHouse.Database",
+          "note": "The shared function's type is replaced with DatabaseType, which carries the documentation metadata."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "149-156",
+          "function": "DatabaseType",
+          "note": "Documentation.Name, LongDescription and Examples are set on the function's table type."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "130-147",
+          "function": "DatabaseType",
+          "note": "Each parameter has Documentation.FieldCaption and Documentation.FieldDescription."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "132-147",
+          "function": "DatabaseType",
+          "note": "Documentation.SampleValues are given for server, port, database and options."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "Odbc.DataSource lists the navigator's items from the driver at runtime, so the navigation table is discovered from the source."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "370-371",
+          "function": "DatabaseCoreImplementation",
+          "note": "HierarchicalNavigation = true groups tables into schema folders that open further navigation tables."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "394",
+          "function": "DatabaseCoreImplementation",
+          "note": "The result is filtered to the selected database name."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "411-420",
+          "function": "ClickHouse",
+          "note": "TestConnection parses the data source path and invokes ClickHouse.Database with the same server, port, database and options parameters."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "260-267",
+          "function": "DatabaseCoreImplementation",
+          "note": "SqlCapabilities is overridden and passed to Odbc.DataSource."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "270-281",
+          "function": "DatabaseCoreImplementation",
+          "note": "SQLGetInfo overrides (SQL_SQL92_PREDICATES, SQL_AGGREGATE_FUNCTIONS, SQL_CONVERT_FUNCTIONS) shape folding."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "542-544",
+          "function": "BuildOdbcConfig",
+          "note": "LimitClauseKind is set from Config_LimitClauseKind, which is LimitOffset, controlling LIMIT and OFFSET folding."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "367-385",
+          "function": "DatabaseCoreImplementation",
+          "note": "The capabilities reach the ODBC driver through Odbc.DataSource."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "637-641",
+          "function": "Extension.LoadFunction",
+          "note": "Helper loads .pqm code through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "644-650",
+          "function": "Diagnostics, ODBC",
+          "note": "Diagnostics.pqm and OdbcConstants.pqm are loaded through Extension.LoadFunction."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "427",
+          "function": "ClickHouse",
+          "note": "Label comes from Extension.LoadString(\"DataSourceLabel\")."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "434",
+          "function": "ClickHouse.Publish",
+          "note": "ButtonText uses Extension.LoadString for the title and help text."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "441-454",
+          "function": "ClickHouse.Icons",
+          "note": "Icons are loaded from PNG files through Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-gated"
+      ],
+      "evidence": [
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "13",
+          "function": "EnableTraceOutput",
+          "note": "The EnableTraceOutput switch is false by default."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "646",
+          "function": "Diagnostics.LogValue",
+          "note": "Diagnostics.LogValue reaches Diagnostics.Trace only when EnableTraceOutput is true. Otherwise it returns the value unchanged."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "295-296",
+          "function": "SQLGetTypeInfo",
+          "note": "Trace output in SQLGetTypeInfo runs only when EnableTraceOutput = true."
+        },
+        {
+          "file": "ClickHouseConnector.pq",
+          "lines": "347-353",
+          "function": "SQLColumns",
+          "note": "Trace output in SQLColumns runs only when EnableTraceOutput is true."
+        },
+        {
+          "file": "Diagnostics.pqm",
+          "lines": "2",
+          "function": "Diagnostics.LogValue",
+          "note": "The Diagnostics.Trace call is inside the helper and is reached only through the switched wrapper at ClickHouseConnector.pq line 646."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T10:00:26Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.014199,
+    "duration_ms": 32746
+  },
+  "source_sha256": "be089a67827b87fcf38b0f461dabcf73787d9f9ea866cb9494ccdc339d322d7c",
+  "checklist_sha256": "9de1ec39b6700a9e351a1cbb7b2ff4a5324259fbe3cd6067343a056d3ea68f1e",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -17,7 +17,12 @@ NEGATIVE = {"none", "no", "not-defined", "default", NOT_APPLICABLE}
 
 
 def answer_ids(values) -> list[str]:
-    """Answer ids as text; YAML 1.1 reads unquoted yes/no as booleans."""
+    """Answer ids as text; YAML 1.1 reads unquoted yes/no as booleans.
+
+    A bare string or boolean is read as a one-item list, not iterated letter by letter.
+    """
+    if isinstance(values, (str, bool)):
+        values = [values]
     return ["yes" if v is True else "no" if v is False else str(v) for v in values or []]
 
 
@@ -41,14 +46,15 @@ def _check_evidence(repo: Path, connector: str, where: str, answer: dict) -> lis
         if total is None:
             problems.append(f"{where}: cited file {file!r} does not exist")
             continue
-        first, _, last = lines.partition("-")
-        try:
-            start, end = int(first), int(last or first)
-        except ValueError:
-            problems.append(f"{where}: bad line range {lines!r}")
-            continue
-        if not 1 <= start <= end <= total:
-            problems.append(f"{where}: lines {lines} outside {file} (1-{total})")
+        for part in lines.split(","):  # "26-27, 71" cites two ranges.
+            first, _, last = part.strip().partition("-")
+            try:
+                start, end = int(first), int(last or first)
+            except ValueError:
+                problems.append(f"{where}: bad line range {lines!r}")
+                break
+            if not 1 <= start <= end <= total:
+                problems.append(f"{where}: lines {part.strip()} outside {file} (1-{total})")
     return problems
 
 

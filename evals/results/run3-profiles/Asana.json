@@ -1,0 +1,379 @@
+{
+  "connector": "Asana",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "84-88",
+          "function": "Asana",
+          "note": "Authentication record declares OAuth with StartLogin and FinishLogin."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "108-127",
+          "function": "StartLogin",
+          "note": "Builds the OAuth authorize URL and returns LoginUri, CallbackUri, and Context."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "129-140",
+          "function": "FinishLogin",
+          "note": "Exchanges the authorization code for a token through TokenMethod."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "192-198",
+          "function": "RefreshToken",
+          "note": "Gets a new access token from the stored refresh_token credential."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "117-118",
+              "function": "StartLogin",
+              "note": "Sends code_challenge with code_challenge_method S256."
+            },
+            {
+              "file": "Asana.m",
+              "lines": "149-152",
+              "function": "TokenMethod",
+              "note": "Sends code_verifier in the token exchange."
+            },
+            {
+              "file": "Asana.m",
+              "lines": "217-229",
+              "function": "GenerateCodeVerifier",
+              "note": "Creates the random verifier and derives the S256 challenge from it."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "192-198",
+              "function": "RefreshToken",
+              "note": "Implements the refresh_token grant through TokenMethod."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "157-164",
+          "function": "TokenMethod",
+          "note": "Web.Contents to the auth endpoint."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "176-183",
+          "function": "GetTasks",
+          "note": "Web.Contents to the reporting API for task data."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "210-211",
+          "function": "AsanaSchema",
+          "note": "Web.Contents to the schema endpoint."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "14-19",
+          "function": "Asana_Type",
+          "note": "The first parameter is a link of Uri type, a URL that names the connection target."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "11-12",
+          "function": "Asana.Tables",
+          "note": "Shared entry function typed with Asana_Type."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "62-66",
+          "function": "Asana.View",
+          "note": "The link is used as the base URL for the query."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "165",
+          "function": "TokenMethod",
+          "note": "Json.Document parses the token response."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "184",
+          "function": "GetTasks",
+          "note": "Json.Document parses task data."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "211",
+          "function": "AsanaSchema",
+          "note": "Json.Document parses the schema response."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "declared-schema"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "208-215",
+          "function": "AsanaSchema",
+          "note": "Builds a table type from the schema fields returned by the connector's schema endpoint."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "41",
+          "function": "Asana.View",
+          "note": "GetType reports Value.Type(AsanaSchema())."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "204-205",
+          "function": "ProcessResponse",
+          "note": "Empty results use the declared schema type."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "203-205",
+              "function": "ProcessResponse",
+              "note": "When there are no rows, the result is #table(Value.Type(AsanaSchema()), {}), which keeps the declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "210",
+          "function": "AsanaSchema",
+          "note": "Live schema request with no ManualStatusHandling, so Power Query handles status."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "163",
+          "function": "TokenMethod",
+          "note": "ManualStatusHandling = {400} on the token call."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "179",
+          "function": "GetTasks",
+          "note": "ManualStatusHandling={403} on the data request."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "166-167",
+          "function": "TokenMethod",
+          "note": "Builds Error.Record from the token error body."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "185-186",
+          "function": "GetTasks",
+          "note": "Builds Error.Record from the data error body."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "20-23",
+          "function": "Asana_Type",
+          "note": "Table meta sets Documentation.Name and LongDescription (function documentation)."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "16-18",
+          "function": "Asana_Type",
+          "note": "The link parameter sets FieldCaption, FieldDescription, and SampleValues."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "fixed-list"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "28-32",
+          "function": "AsanaNavTable",
+          "note": "The navigation table is a hardcoded single-row list with the Tasks item."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "82",
+          "function": "Asana",
+          "note": "TestConnection returns {\"Asana.Tables\", dataSourcePath}."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "table-view-handlers"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "37-78",
+          "function": "Asana.View",
+          "note": "Table.View implementation with GetType and GetRows."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "53-57",
+          "function": "Asana.View",
+          "note": "OnTake stores the limit in state, and CalculateUrl applies it to the request."
+        }
+      ],
+      "sub": {
+        "table-view-handlers": {
+          "values": [
+            "on-take"
+          ],
+          "evidence": [
+            {
+              "file": "Asana.m",
+              "lines": "53-57",
+              "function": "Asana.View",
+              "note": "OnTake handler implemented."
+            }
+          ]
+        }
+      }
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Asana.m",
+          "lines": "243-250",
+          "function": "Extension.LoadFunction",
+          "note": "Table.ToNavigationTable.pqm is loaded through Extension.Contents and LoadFunction."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "16-22",
+          "function": "Asana_Type",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "Asana.m",
+          "lines": "102-105",
+          "function": "Asana.Icons",
+          "note": "Icon images are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T11:20:15Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0060511,
+    "duration_ms": 27171
+  },
+  "source_sha256": "f13ae0ecf3e1e8241ed62b81aced87758dfb19163b4c998dfc916b6038aee8fc",
+  "checklist_sha256": "31b4d247db99693de4d27c707d3f06c9f2ab371b48470f8a6053d8470e3f8077",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

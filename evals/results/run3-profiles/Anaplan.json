@@ -1,0 +1,372 @@
+{
+  "connector": "Anaplan",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth",
+        "username-password"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "226-233",
+          "function": "Anaplan",
+          "note": "Authentication record declares OAuth (StartLogin, FinishLogin, Refresh) and UsernamePassword"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "655-676",
+          "function": "GetApiToken",
+          "note": "Username/password credential is sent as Basic authorization to the token endpoint, and a 401 raises Extension.CredentialError"
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Anaplan.pq",
+              "lines": "64-70",
+              "function": "StartLogin",
+              "note": "Authorize URL carries code_challenge with code_challenge_method=plain"
+            },
+            {
+              "file": "Anaplan.pq",
+              "lines": "101-108",
+              "function": "TokenMethod",
+              "note": "The login code_verifier is sent as code_verifier in the authorization_code exchange"
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "Anaplan.pq",
+              "lines": "92-97",
+              "function": "Refresh",
+              "note": "Implements the refresh_token grant through TokenMethod"
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "603-606",
+          "function": "GetWebContents",
+          "note": "All data requests go through Web.Contents"
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "316-317",
+          "function": "Anaplan.Connect",
+          "note": "Entry function takes apiUrl and authUrl as text URLs"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "292-306",
+          "function": "AnaplanType",
+          "note": "Connection UI fields apiUrl and authUrl are URLs with sample values"
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "next-link-url"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "370-386",
+          "function": "GetModelsTable",
+          "note": "GetAllModels calls itself with the next URL taken from meta.paging.next"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "375-383",
+          "function": "GetModelsTable",
+          "note": "Next page URL is read from the response's meta.paging.next field"
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "recursion"
+          ],
+          "evidence": [
+            {
+              "file": "Anaplan.pq",
+              "lines": "370-386",
+              "function": "GetModelsTable",
+              "note": "Self-recursive GetAllModels builds pages; Table.GenerateByPage and List.Generate are not used for paging"
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the response has no meta.paging.next value (missing or null); the nextUrl check returns null and the recursion ends with the accumulated models.",
+          "evidence": [
+            {
+              "file": "Anaplan.pq",
+              "lines": "375-386",
+              "function": "GetModelsTable",
+              "note": "Null or missing meta.paging.next ends the recursion"
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json",
+        "csv"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "607-609",
+          "function": "GetWebContents",
+          "note": "Default responses are parsed with Json.Document"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "583-584",
+          "function": "DownloadFileListAccumulate",
+          "note": "Export file chunks are parsed with Csv.Document for text/csv and text/plain exports"
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "349-350",
+          "function": "GetWorkspacesTable",
+          "note": "Column names are expanded from the JSON record fields with no M types assigned"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "443-444",
+          "function": "GetExportsTable",
+          "note": "Export columns are expanded from JSON fields with no declared types"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "583",
+          "function": "DownloadFileListAccumulate",
+          "note": "Csv.Document is called with only a column count, so the columns are named Column1..N and not typed"
+        }
+      ],
+      "sub": {}
+    },
+    "http-errors": {
+      "values": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "631-632",
+          "function": "GetWebContentsExportRunSuccess",
+          "note": "Export task status poll uses Web.Contents with no ManualStatusHandling, so Power Query handles status"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "604",
+          "function": "GetWebContents",
+          "note": "ManualStatusHandling set for 401, 404, 500, 501, 502, 503 and the status is inspected"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "666",
+          "function": "GetApiToken",
+          "note": "Token call sets ManualStatusHandling = {401} and inspects status"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "176-192",
+          "function": "PickClientId",
+          "note": "Error.Record is built from HTTP status codes (401, 5xx, other non-200)"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "119-120",
+          "function": "TokenMethod",
+          "note": "Error.Record is built from the token response error body"
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "292-306",
+          "function": "AnaplanType",
+          "note": "Function return type carries Documentation.Name; apiUrl and authUrl have FieldCaption, FieldDescription and SampleValues"
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "341-361",
+          "function": "GetWorkspacesTable",
+          "note": "Workspace rows are listed at runtime from the workspaces API"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "354-356",
+          "function": "GetWorkspacesTable",
+          "note": "Workspace rows are folders with IsLeaf false that open model navigation tables"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "411-412",
+          "function": "GetModelsTable",
+          "note": "Model rows are non-leaf View items that open label and export folders"
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "219-225",
+          "function": "Anaplan",
+          "note": "TestConnection returns the Anaplan.Contents entry function name and its arguments"
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "802-810",
+          "function": "Extension.LoadFunction",
+          "note": "TraceContext.pqm and Diagnostics.pqm are loaded with Extension.Contents through LoadFunction"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "234",
+          "function": "Anaplan",
+          "note": "Label and other strings come from Extension.LoadString"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "248-249",
+          "function": "AnaplanPowerBIConnector.Icons",
+          "note": "Icons loaded with Extension.Contents"
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "async-export-polling"
+      ],
+      "evidence": [
+        {
+          "file": "Anaplan.pq",
+          "lines": "631-645",
+          "function": "GetWebContentsExportRunSuccess",
+          "note": "Export task status is polled repeatedly through getTaskStatusLoop"
+        },
+        {
+          "file": "Anaplan.pq",
+          "lines": "638",
+          "function": "GetWebContentsExportRunSuccess",
+          "note": "Polling ends on the first task state that is not the TaskInProgress string"
+        }
+      ],
+      "sub": {
+        "polling-rule": {
+          "text": "Polls the export task status (exports/{exportId}/tasks/{taskId}) with up to 200 attempts (getTaskStatusLoop(200, ...) at line 645). The first attempt is immediate and each later attempt is delayed by 10 seconds (#duration(0,0,0,10)). The terminal state is the first response whose taskState is not the localized TaskInProgress string. If no attempt reaches a terminal state, it returns ErrorTable(2, ...). There is no separate timeout beyond the attempt count and the 200 attempts are all scheduled up front.",
+          "evidence": [
+            {
+              "file": "Anaplan.pq",
+              "lines": "634-645",
+              "function": "GetWebContentsExportRunSuccess",
+              "note": "getTaskStatusLoop uses 200 attempts with a 10-second delay and selects the first non-in-progress result"
+            }
+          ]
+        }
+      }
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T11:20:16Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0260075,
+    "duration_ms": 85419,
+    "repair_attempts": 1
+  },
+  "source_sha256": "5fbab7f6e7488e3621f0c6cf1d688acd7dcf4921015083f137304a57bad3747d",
+  "checklist_sha256": "31b4d247db99693de4d27c707d3f06c9f2ab371b48470f8a6053d8470e3f8077",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

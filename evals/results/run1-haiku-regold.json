@@ -1,0 +1,506 @@
+{
+  "connectors_scored": 13,
+  "missing": [
+    "Attio",
+    "LakeHouse"
+  ],
+  "overall": {
+    "precision": 0.916,
+    "recall": 0.956,
+    "exact": 0.858,
+    "n": 219
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "transport/odbc-capabilities": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 3
+    },
+    "user-inputs": {
+      "precision": 0.846,
+      "recall": 0.917,
+      "exact": 0.692,
+      "n": 13
+    },
+    "paging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "data-formats": {
+      "precision": 0.875,
+      "recall": 0.933,
+      "exact": 0.846,
+      "n": 13
+    },
+    "schema": {
+      "precision": 0.636,
+      "recall": 0.875,
+      "exact": 0.308,
+      "n": 13
+    },
+    "http-errors": {
+      "precision": 0.913,
+      "recall": 0.955,
+      "exact": 0.846,
+      "n": 13
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "navigation": {
+      "precision": 0.765,
+      "recall": 0.812,
+      "exact": 0.692,
+      "n": 13
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "folding": {
+      "precision": 0.933,
+      "recall": 0.875,
+      "exact": 0.846,
+      "n": 13
+    },
+    "packaging": {
+      "precision": 0.929,
+      "recall": 1.0,
+      "exact": 0.769,
+      "n": 13
+    },
+    "diagnostics": {
+      "precision": 0.923,
+      "recall": 0.923,
+      "exact": 0.923,
+      "n": 13
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 13
+    },
+    "writes": {
+      "precision": 0.923,
+      "recall": 0.923,
+      "exact": 0.923,
+      "n": 13
+    },
+    "auth/oauth-pkce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 5
+    },
+    "auth/oauth-refresh": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 5
+    },
+    "paging/paging-generator": {
+      "precision": 0.714,
+      "recall": 1.0,
+      "exact": 0.6,
+      "n": 5
+    },
+    "auth/key-placement": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 2
+    },
+    "folding/table-view-handlers": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "exact": 0.5,
+      "n": 2
+    },
+    "schema/empty-result-columns": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 2
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "AmazonAthena",
+      "question": "user-inputs",
+      "expected": [
+        "options-record",
+        "other",
+        "url-or-server"
+      ],
+      "got": [
+        "database-or-resource-id",
+        "options-record",
+        "other"
+      ]
+    },
+    {
+      "connector": "AmazonAthena",
+      "question": "schema",
+      "expected": [
+        "driver-provided"
+      ],
+      "got": [
+        "driver-provided",
+        "explicit-type-conversion"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "user-inputs",
+      "expected": [
+        "url-or-server"
+      ],
+      "got": [
+        "region-or-environment",
+        "url-or-server"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "data-formats",
+      "expected": [
+        "csv",
+        "json"
+      ],
+      "got": [
+        "csv",
+        "excel",
+        "json"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "schema",
+      "expected": [
+        "inferred-from-data"
+      ],
+      "got": [
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "http-errors",
+      "expected": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "got": [
+        "manual-status-handling",
+        "retry-with-delay",
+        "structured-error-records"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "navigation",
+      "expected": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "got": [
+        "discovered-from-api",
+        "fixed-list",
+        "hierarchical"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "diagnostics",
+      "expected": [
+        "none"
+      ],
+      "got": [
+        "tracing-always"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "writes",
+      "expected": [
+        "none"
+      ],
+      "got": [
+        "actions"
+      ]
+    },
+    {
+      "connector": "AptixInsights",
+      "question": "user-inputs",
+      "expected": [
+        "other",
+        "url-or-server"
+      ],
+      "got": [
+        "options-record",
+        "url-or-server"
+      ]
+    },
+    {
+      "connector": "AptixInsights",
+      "question": "schema",
+      "expected": [
+        "driver-provided"
+      ],
+      "got": [
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "AptixInsights",
+      "question": "navigation",
+      "expected": [
+        "discovered-from-api"
+      ],
+      "got": [
+        "none"
+      ]
+    },
+    {
+      "connector": "Asana",
+      "question": "schema",
+      "expected": [
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "Asana",
+      "question": "navigation",
+      "expected": [
+        "fixed-list"
+      ],
+      "got": [
+        "single-table"
+      ]
+    },
+    {
+      "connector": "Asana",
+      "question": "packaging",
+      "expected": [
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ],
+      "got": [
+        "beta-flag",
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ]
+    },
+    {
+      "connector": "AzureResourceGraph",
+      "question": "paging/paging-generator",
+      "expected": [
+        "table-generatebypage"
+      ],
+      "got": [
+        "list-generate",
+        "table-generatebypage"
+      ]
+    },
+    {
+      "connector": "AzureResourceGraph",
+      "question": "navigation",
+      "expected": [
+        "single-table"
+      ],
+      "got": [
+        "none"
+      ]
+    },
+    {
+      "connector": "ClickHouse",
+      "question": "packaging",
+      "expected": [
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ],
+      "got": [
+        "beta-flag",
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ]
+    },
+    {
+      "connector": "ClickHouseArrowFlight",
+      "question": "data-formats",
+      "expected": [
+        "arrow"
+      ],
+      "got": [
+        "driver-rows"
+      ]
+    },
+    {
+      "connector": "ClickHouseArrowFlight",
+      "question": "schema",
+      "expected": [
+        "declared-schema"
+      ],
+      "got": [
+        "declared-schema",
+        "driver-provided"
+      ]
+    },
+    {
+      "connector": "CogniteDataSource",
+      "question": "user-inputs",
+      "expected": [
+        "database-or-resource-id"
+      ],
+      "got": [
+        "database-or-resource-id",
+        "region-or-environment"
+      ]
+    },
+    {
+      "connector": "CogniteDataSource",
+      "question": "schema",
+      "expected": [
+        "driver-provided",
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "driver-provided",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "schema",
+      "expected": [
+        "driver-provided"
+      ],
+      "got": [
+        "declared-schema",
+        "driver-provided"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "http-errors",
+      "expected": [
+        "default",
+        "manual-status-handling"
+      ],
+      "got": [
+        "manual-status-handling",
+        "structured-error-records"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "folding",
+      "expected": [
+        "native-query",
+        "source-function-folding",
+        "table-view-handlers"
+      ],
+      "got": [
+        "native-query"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "folding/table-view-handlers",
+      "expected": [
+        "other"
+      ],
+      "got": []
+    },
+    {
+      "connector": "GoogleSheets",
+      "question": "schema",
+      "expected": [
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ],
+      "got": [
+        "explicit-type-conversion"
+      ]
+    },
+    {
+      "connector": "MarkLogicODBC",
+      "question": "folding",
+      "expected": [
+        "odbc-sql-capabilities"
+      ],
+      "got": [
+        "custom-sql-generator",
+        "odbc-sql-capabilities"
+      ]
+    },
+    {
+      "connector": "SurveyMonkey",
+      "question": "paging/paging-generator",
+      "expected": [
+        "table-generatebypage"
+      ],
+      "got": [
+        "list-generate",
+        "table-generatebypage"
+      ]
+    },
+    {
+      "connector": "SurveyMonkey",
+      "question": "schema",
+      "expected": [
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "ZendeskData",
+      "question": "packaging",
+      "expected": [
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ],
+      "got": [
+        "beta-flag",
+        "icons",
+        "localized-strings",
+        "pqm-modules"
+      ]
+    }
+  ]
+}

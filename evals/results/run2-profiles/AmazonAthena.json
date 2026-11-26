@@ -1,0 +1,303 @@
+{
+  "connector": "AmazonAthena",
+  "answers": {
+    "auth": {
+      "values": [
+        "anonymous",
+        "aad"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "225-237",
+          "function": "AmazonAthena",
+          "note": "Authentication record declares Aad (AuthorizationUri, Resource) and Implicit (no fields, label 'Use Data Source Configuration'). Implicit is the anonymous kind. The OAuth/OAuth2 branches at lines 58-66 and 74 test kind names that this record never declares, so they are unreachable and 'oauth' is not given."
+        }
+      ]
+    },
+    "transport": {
+      "values": [
+        "odbc"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "124-205",
+          "function": "AthenaImpl",
+          "note": "Connect is Odbc.DataSource(ConnectionString, ...) built from a DSN connection string."
+        }
+      ],
+      "sub": {
+        "odbc-capabilities": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "AmazonAthena.m",
+              "lines": "163-202",
+              "function": "AthenaImpl",
+              "note": "SqlCapabilities record is declared and passed to Odbc.DataSource."
+            },
+            {
+              "file": "AmazonAthena.m",
+              "lines": "81-117",
+              "function": "AthenaImpl",
+              "note": "SQLGetInfo override record is declared and passed to Odbc.DataSource (line 204)."
+            }
+          ]
+        }
+      }
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "options-record",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "22-26",
+          "function": "AthenaType",
+          "note": "DSN parameter, an ODBC data source name (definition of url-or-server)."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "27-30",
+          "function": "AthenaType",
+          "note": "Optional role parameter. It is an AAD/IAM role mapped to preferred_role, not a database or resource inside the target, so no listed id fits and it is recorded as other."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "32-35",
+          "function": "AthenaType",
+          "note": "Optional options parameter, declared as an open empty record type."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "42",
+          "function": "AthenaImpl",
+          "note": "The options parameter is declared on AthenaImpl and never referenced in the body."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "No fields are read. The optional options parameter (AthenaImpl, line 42) is never referenced, and AthenaType declares it as an open empty record type (lines 32-35).",
+          "evidence": [
+            {
+              "file": "AmazonAthena.m",
+              "lines": "32-35",
+              "function": "AthenaType",
+              "note": "Empty open record type declaration."
+            },
+            {
+              "file": "AmazonAthena.m",
+              "lines": "42",
+              "function": "AthenaImpl",
+              "note": "Parameter declared but unused."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "data-formats": {
+      "values": [
+        "driver-rows"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "124-205",
+          "function": "AthenaImpl",
+          "note": "Rows come from the Odbc.DataSource driver as tables. No other format is parsed."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "145-162",
+          "function": "AthenaImpl (SQLColumns override)",
+          "note": "Rewrites driver metadata DATA_TYPE/TYPE_NAME from float to double. Per the definition this is still driver-provided, and no M types are assigned to columns."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "not-applicable"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "124-124",
+          "function": "AthenaImpl",
+          "note": "Transport is odbc, which is outside the applies_when set (web-contents, odata-feed)."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "37-40",
+          "function": "AthenaType",
+          "note": "Documentation.Name and Documentation.LongDescription on the function type."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "23-24",
+          "function": "AthenaType",
+          "note": "Documentation.FieldCaption and FieldDescription for DSN."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "25-25",
+          "function": "AthenaType",
+          "note": "Documentation.SampleValues for DSN."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "28-29",
+          "function": "AthenaType",
+          "note": "FieldCaption and FieldDescription for role."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "33-34",
+          "function": "AthenaType",
+          "note": "FieldCaption for options."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "124-127",
+          "function": "AthenaImpl",
+          "note": "Odbc.DataSource builds the navigator from the driver's catalogs and tables at runtime. HierarchicalNavigation = true produces schema folders that are not leaves."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "220-220",
+          "function": "AmazonAthena",
+          "note": "TestConnection returns {\"AmazonAthena.Databases\"} & ParseResourcePathTC(resourcePath), which calls the shared entry function."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odbc-sql-capabilities"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "163-202",
+          "function": "AthenaImpl",
+          "note": "SqlCapabilities override shapes folding through Odbc.DataSource."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "81-117",
+          "function": "AthenaImpl",
+          "note": "SQLGetInfo overrides, including SQL_TIMEDATE_ADD/DIFF_INTERVALS and SQL_AGGREGATE_FUNCTIONS."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "pqm-modules",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AmazonAthena.m",
+          "lines": "285-292",
+          "function": "Extension.LoadFunction",
+          "note": "OdbcConstants.pqm is loaded through Extension.Contents and Expression.Evaluate."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "76-76",
+          "function": "AthenaImpl",
+          "note": "Extension.LoadString(\"MissingRoleError\") uses localized strings."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "277-280",
+          "function": "AmazonAthena.Icons",
+          "note": "Icon arrays are loaded through Extension.Contents."
+        },
+        {
+          "file": "AmazonAthena.m",
+          "lines": "254-255",
+          "function": "AmazonAthena.UI",
+          "note": "SourceImage and SourceTypeImage use the icons."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T09:58:23Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.011948700000000001,
+    "duration_ms": 32643
+  },
+  "source_sha256": "4b37a169fbfa75fdd77936395102bad5e63fe8018dacdc14a7a33c3cd66f5118",
+  "checklist_sha256": "9de1ec39b6700a9e351a1cbb7b2ff4a5324259fbe3cd6067343a056d3ea68f1e",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

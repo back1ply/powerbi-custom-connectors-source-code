@@ -1,0 +1,323 @@
+{
+  "connector": "GoogleSheets",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "69-75",
+          "function": "GoogleSheets",
+          "note": "Authentication record declares only OAuth, with StartLogin, FinishLogin and Refresh handlers."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "GoogleSheets.pq",
+              "lines": "9-26",
+              "function": "StartLogin",
+              "note": "The authorize URL has no code_challenge or code_challenge_method parameters, so PKCE is not used."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "GoogleSheets.pq",
+              "lines": "48-62",
+              "function": "Refresh",
+              "note": "Posts grant_type=refresh_token to the token endpoint and returns the parsed token response."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "255",
+          "function": "Web.JsonContents",
+          "note": "All live Google Sheets API data requests go through Web.Contents."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "34-35",
+          "function": "FinishLogin",
+          "note": "Web.Contents is used for the token exchange."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "50",
+          "function": "Refresh",
+          "note": "Web.Contents is used for the token refresh."
+        }
+      ],
+      "sub": {}
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "93-98",
+          "function": "GoogleSheetsType",
+          "note": "The single user parameter is a url text parameter that names the spreadsheet target."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "82-86",
+          "function": "GoogleSheetsImpl",
+          "note": "The spreadsheet ID is parsed from the URL, so no separate resource-ID parameter exists."
+        }
+      ],
+      "sub": {}
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "106-126",
+          "function": "GetResults",
+          "note": "Each sheet and range is fetched with a single request. No nextPageToken or other paging logic appears."
+        }
+      ],
+      "sub": {}
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "253-259",
+          "function": "Web.JsonContents",
+          "note": "Responses are parsed with Json.Document."
+        }
+      ],
+      "sub": {}
+    },
+    "schema": {
+      "values": [
+        "declared-schema",
+        "explicit-type-conversion"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "177-190",
+          "function": "CheckNumberValue",
+          "note": "The connector maps Google number format type names to M types (DATE to Date.From, TIME to Time.From, DATE_TIME to DateTime.From) and converts each data cell."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "160-175",
+          "function": "AddTypeToValue",
+          "note": "Per-cell values are converted using the mapped format types."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "152-158",
+          "function": "AttachTypestoData",
+          "note": "Rows are built with Table.FromRows, which generates column names with no declared column types."
+        }
+      ],
+      "sub": {
+        "empty-result-columns": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "GoogleSheets.pq",
+              "lines": "242-251",
+              "function": "GetPaddedRowsData",
+              "note": "With no rows, List.Max returns null and the result is an empty list, so Table.FromRows yields a table with no columns."
+            },
+            {
+              "file": "GoogleSheets.pq",
+              "lines": "152-158",
+              "function": "AttachTypestoData",
+              "note": "Table.FromRows({}) builds no declared columns."
+            }
+          ]
+        }
+      }
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "253-259",
+          "function": "Web.JsonContents",
+          "note": "Every live data request sets ManualStatusHandling = ApiErrorStatusCodes and inspects the status code itself."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "261-270",
+          "function": "Web.ErrorResponse",
+          "note": "Error bodies are turned into Error.Record(\"DataSource.Error\", ...) values."
+        }
+      ],
+      "sub": {}
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "93-104",
+          "function": "GoogleSheetsType",
+          "note": "The shared function carries Documentation.Name, Caption and Description metadata."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "94-98",
+          "function": "GoogleSheetsType",
+          "note": "The url parameter has Documentation.FieldCaption, FieldDescription and SampleValues."
+        }
+      ],
+      "sub": {}
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "106-126",
+          "function": "GetResults",
+          "note": "The navigation table is built from the sheets and named ranges returned by the API."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "303-324",
+          "function": "Table.ToNavigationTable",
+          "note": "Navigation metadata is attached to the runtime-discovered rows."
+        }
+      ],
+      "sub": {}
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "68",
+          "function": "GoogleSheets",
+          "note": "TestConnection returns the GoogleSheets.Contents entry function with the resource path."
+        }
+      ],
+      "sub": {}
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "106-126",
+          "function": "GetResults",
+          "note": "No Table.View, native query, or source-side query generation is present."
+        }
+      ],
+      "sub": {}
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings"
+      ],
+      "evidence": [
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "1-324",
+          "function": "GoogleSheets.pq",
+          "note": "The connector is one .pq file with no pqm modules."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "74",
+          "function": "GoogleSheets",
+          "note": "Extension.LoadString(\"AuthenticationLabel\") loads localized strings."
+        },
+        {
+          "file": "GoogleSheets.pq",
+          "lines": "293-301",
+          "function": "GoogleSheets.Publish",
+          "note": "Beta = false, so no beta flag is set."
+        }
+      ],
+      "sub": {}
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [],
+      "sub": {}
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T11:22:51Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0064738,
+    "duration_ms": 25282
+  },
+  "source_sha256": "b007bbfabe1c0002ddc005c869cd017c52cd6e11c1be70ca5f692e4ee3f61b96",
+  "checklist_sha256": "31b4d247db99693de4d27c707d3f06c9f2ab371b48470f8a6053d8470e3f8077",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

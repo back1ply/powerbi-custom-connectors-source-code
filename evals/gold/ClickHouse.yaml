@@ -137,11 +137,13 @@ answers:
   navigation:
     values:
     - hierarchical
+    - discovered-from-api
     evidence:
     - file: ClickHouseConnector.pq
       lines: 369-371
       function: DatabaseCoreImplementation
-      note: 'HierarchicalNavigation = true: the engine builds a database/table tree'
+      note: 'HierarchicalNavigation = true: the engine builds a database/table tree
+        - Odbc.DataSource also lists catalogs, schemas and tables from the driver at runtime, so discovered-from-api.'
     - file: ClickHouseConnector.pq
       lines: 393-394
       function: DatabaseCoreImplementation

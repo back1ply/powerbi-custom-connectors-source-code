@@ -1,0 +1,266 @@
+{
+  "connectors_scored": 12,
+  "missing": [
+    "Attio",
+    "CogniteDataSource",
+    "LakeHouse"
+  ],
+  "overall": {
+    "precision": 0.973,
+    "recall": 0.99,
+    "exact": 0.95,
+    "n": 201
+  },
+  "per_question": {
+    "auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "transport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "transport/odbc-capabilities": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 3
+    },
+    "user-inputs": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "paging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "data-formats": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "schema": {
+      "precision": 0.933,
+      "recall": 1.0,
+      "exact": 0.917,
+      "n": 12
+    },
+    "http-errors": {
+      "precision": 0.9,
+      "recall": 1.0,
+      "exact": 0.833,
+      "n": 12
+    },
+    "documentation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "navigation": {
+      "precision": 0.778,
+      "recall": 0.933,
+      "exact": 0.667,
+      "n": 12
+    },
+    "test-connection": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "folding": {
+      "precision": 0.933,
+      "recall": 0.933,
+      "exact": 0.833,
+      "n": 12
+    },
+    "packaging": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "diagnostics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "long-running": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "writes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 12
+    },
+    "auth/oauth-pkce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "auth/oauth-refresh": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "paging/paging-generator": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 4
+    },
+    "auth/key-placement": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 2
+    },
+    "folding/table-view-handlers": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "exact": 0.5,
+      "n": 2
+    },
+    "schema/empty-result-columns": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "exact": 1.0,
+      "n": 2
+    }
+  },
+  "mistakes": [
+    {
+      "connector": "AmazonAthena",
+      "question": "navigation",
+      "expected": [
+        "hierarchical"
+      ],
+      "got": [
+        "discovered-from-api",
+        "hierarchical"
+      ]
+    },
+    {
+      "connector": "Anaplan",
+      "question": "http-errors",
+      "expected": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "got": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ]
+    },
+    {
+      "connector": "AptixInsights",
+      "question": "navigation",
+      "expected": [
+        "discovered-from-api"
+      ],
+      "got": [
+        "single-table"
+      ]
+    },
+    {
+      "connector": "Asana",
+      "question": "http-errors",
+      "expected": [
+        "manual-status-handling",
+        "structured-error-records"
+      ],
+      "got": [
+        "default",
+        "manual-status-handling",
+        "structured-error-records"
+      ]
+    },
+    {
+      "connector": "ClickHouse",
+      "question": "navigation",
+      "expected": [
+        "hierarchical"
+      ],
+      "got": [
+        "discovered-from-api",
+        "hierarchical"
+      ]
+    },
+    {
+      "connector": "ClickHouseArrowFlight",
+      "question": "folding",
+      "expected": [
+        "custom-sql-generator",
+        "native-query"
+      ],
+      "got": [
+        "custom-sql-generator",
+        "native-query",
+        "table-view-handlers"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "folding",
+      "expected": [
+        "native-query",
+        "source-function-folding",
+        "table-view-handlers"
+      ],
+      "got": [
+        "native-query",
+        "source-function-folding"
+      ]
+    },
+    {
+      "connector": "CommonDataService",
+      "question": "folding/table-view-handlers",
+      "expected": [
+        "other"
+      ],
+      "got": []
+    },
+    {
+      "connector": "GoogleSheets",
+      "question": "schema",
+      "expected": [
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ],
+      "got": [
+        "declared-schema",
+        "explicit-type-conversion",
+        "inferred-from-data"
+      ]
+    },
+    {
+      "connector": "MarkLogicODBC",
+      "question": "navigation",
+      "expected": [
+        "hierarchical"
+      ],
+      "got": [
+        "discovered-from-api",
+        "hierarchical"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "connector": "AptixInsights",
+  "answers": {
+    "auth": {
+      "values": [
+        "key"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "39-41",
+          "function": "AptixInsightsImpl",
+          "note": "Reads the credential Key and sends it as an Authorization: Bearer header."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "58-60",
+          "function": "AptixInsights",
+          "note": "Data source kind declares Authentication = [Key = []]."
+        }
+      ],
+      "sub": {
+        "key-placement": {
+          "values": [
+            "header"
+          ],
+          "evidence": [
+            {
+              "file": "AptixInsights.pq",
+              "lines": "41",
+              "function": "AptixInsightsImpl",
+              "note": "The key is placed in the Authorization header as a Bearer token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "odata-feed"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "Data is retrieved with OData.Feed(url, headers, serviceOptions)."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "url-or-server",
+        "other"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "18-24",
+          "function": "AptixInsightsType",
+          "note": "The required url parameter names the connection target, a URL."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "25-31,46",
+          "function": "AptixInsightsType / AptixInsightsImpl",
+          "note": "The optional query parameter is passed straight through as the OData Query option, so it is other and not options-record."
+        }
+      ]
+    },
+    "paging": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "Paging is left entirely to OData.Feed; the connector has no paging code."
+        }
+      ]
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "43-45,50",
+          "function": "AptixInsightsImpl",
+          "note": "OData v4 (Implementation 2.0) is read by OData.Feed, which parses the JSON payload. Only the connector's own Json.Document call in TestConnection (line 57) is not counted, since it does not parse returned data."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "driver-provided"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "32",
+          "function": "AptixInsightsType",
+          "note": "The return type is a bare 'as table' with no column names or types declared."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "Names and types come from the OData service $metadata via OData.Feed."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "default"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The live OData.Feed request has no ManualStatusHandling, and no error records or retries are built."
+        }
+      ]
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "33-34",
+          "function": "AptixInsightsType",
+          "note": "Documentation.Name and Documentation.LongDescription are set on the function type."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "20,27",
+          "function": "AptixInsightsType",
+          "note": "Documentation.FieldCaption is set on both parameters."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "21,28",
+          "function": "AptixInsightsType",
+          "note": "Documentation.FieldDescription is set on both parameters."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "22,29",
+          "function": "AptixInsightsType",
+          "note": "Documentation.SampleValues is set on both parameters."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "single-table"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "9,17,50",
+          "function": "AptixInsights.Feed",
+          "note": "The shared function returns one table from OData.Feed of the user-supplied URL. The connector builds no navigator. Note: if a user passes a service root, OData.Feed would build a navigator, but the code does not establish that."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "57",
+          "function": "AptixInsights",
+          "note": "TestConnection calls \"AptixInsights.Feed\" with the url from the data source path."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "odata-folding"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "OData.Feed folds queries to the OData source itself. The connector writes no Table.View handlers, and passes the Query option at line 46."
+        }
+      ]
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "(file)",
+          "note": "The connector is a single .pq file with no pqm modules."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "20-22,27-29,33-34,61,68-69",
+          "function": "AptixInsightsType / AptixInsights / AptixInsights.Publish",
+          "note": "Strings are loaded with Extension.LoadString."
+        },
+        {
+          "file": "AptixInsights.pq",
+          "lines": "74-87",
+          "function": "AptixInsights.Icons",
+          "note": "PNG icons are loaded with Extension.Contents."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "1-87",
+          "function": "(file)",
+          "note": "No Diagnostics.Trace calls exist."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "37-52",
+          "function": "AptixInsightsImpl",
+          "note": "There is no job, export, or polling logic."
+        }
+      ]
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": [
+        {
+          "file": "AptixInsights.pq",
+          "lines": "50",
+          "function": "AptixInsightsImpl",
+          "note": "The connector only reads via OData.Feed and defines no Action functions."
+        }
+      ]
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T11:19:46Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.004799299999999999,
+    "duration_ms": 23638
+  },
+  "source_sha256": "edd4059f61dfac8b5ddc96920f675a48d926a9597a75efefe069e51e98b83530",
+  "checklist_sha256": "31b4d247db99693de4d27c707d3f06c9f2ab371b48470f8a6053d8470e3f8077",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

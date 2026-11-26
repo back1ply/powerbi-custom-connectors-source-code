@@ -122,12 +122,14 @@ answers:
   navigation:
     values:
     - hierarchical
+    - discovered-from-api
     evidence:
     - file: AmazonAthena.m
       lines: 124-127
       function: AthenaImpl
       note: Odbc.DataSource HierarchicalNavigation = true (tables grouped by schema under each database);
         SupportsIncrementalNavigation = true (line 203)
+        - Odbc.DataSource also lists catalogs, schemas and tables from the driver at runtime, so discovered-from-api.
   test-connection:
     values:
     - reuses-entry-function
