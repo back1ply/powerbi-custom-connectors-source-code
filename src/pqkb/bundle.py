@@ -17,6 +17,7 @@ from pqkb.provenance import source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Rule, auth_kinds, read_source
+from pqkb.techniques import techniques_pages
 
 PRODUCER = "process:pqkb-build"
 BUNDLE_DIR = "bundle"  # Generated OKF bundle, committed so agents can browse it.
@@ -227,7 +228,17 @@ def tags_index(pages: Path) -> str:
     return "\n".join(lines)
 
 
-def root_index(patterns: list[Pattern], connector_count: int) -> str:
+def root_index(patterns: list[Pattern], connector_count: int, techniques: bool = False) -> str:
+    techniques_entry = (
+        index_entry(
+            "Techniques",
+            "techniques/index.md",
+            "Which connectors use each answer of the connector checklist, with source lines.",
+        )
+        + "\n"
+        if techniques
+        else ""
+    )
     return (
         '---\nokf_version: "0.3"\n'
         "title: Power Query Connector Source Reference\n"
@@ -260,6 +271,7 @@ def root_index(patterns: list[Pattern], connector_count: int) -> str:
             "Connector tags", "tags/index.md", "Browse connectors by authentication kind."
         )
         + "\n"
+        + techniques_entry
         + index_entry(
             "Refresh log",
             "log.md",
@@ -390,9 +402,19 @@ def build(repo: Path, now: datetime | None = None) -> None:
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))
     write_text_if_changed(knowledge / "patterns" / "index.md", patterns_index(patterns))
-    write_text_if_changed(knowledge / "index.md", root_index(patterns, len(records)))
+    techniques = techniques_pages(repo, sorted(records))
+    write_text_if_changed(
+        knowledge / "index.md", root_index(patterns, len(records), bool(techniques))
+    )
     (knowledge / "tags").mkdir(exist_ok=True)
     write_text_if_changed(knowledge / "tags" / "index.md", tags_index(knowledge / "connectors"))
+    for name, (meta, body) in techniques.items():
+        path = knowledge / "techniques" / name
+        if meta is None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_text_if_changed(path, body)
+        else:
+            write_if_changed(path, meta, body, now)
     log = repo / "knowledge" / "log.md"
     if not log.exists():
         heading = f"## {now.astimezone(UTC):%Y-%m-%d}"

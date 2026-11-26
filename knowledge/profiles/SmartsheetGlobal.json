@@ -1,0 +1,408 @@
+{
+  "connector": "SmartsheetGlobal",
+  "answers": {
+    "auth": {
+      "values": [
+        "oauth"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "17-23",
+          "function": "SmartsheetGlobal",
+          "note": "Authentication record declares OAuth with StartLogin, FinishLogin and Refresh; no anonymous, key or other kind."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "99-118",
+          "function": "StartLogin",
+          "note": "Authorization request has response_type code, state and client_id, with no code_challenge or code_verifier."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "128-150",
+          "function": "Refresh",
+          "note": "Exchanges refresh_token for a new token using grant_type refresh_token."
+        }
+      ],
+      "sub": {
+        "oauth-pkce": {
+          "values": [
+            "no"
+          ],
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "99-118",
+              "function": "StartLogin",
+              "note": "No PKCE parameters are sent; the token exchange uses a client_secret hash instead (lines 78-97)."
+            }
+          ]
+        },
+        "oauth-refresh": {
+          "values": [
+            "yes"
+          ],
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "128-150",
+              "function": "Refresh",
+              "note": "Implements token refresh with grant_type refresh_token."
+            }
+          ]
+        }
+      }
+    },
+    "transport": {
+      "values": [
+        "web-contents"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "236-280",
+          "function": "Smartsheet.QueryInternal",
+          "note": "All data requests go through Web.Contents(url, [Headers, ManualStatusHandling, IsRetry]) at line 249."
+        }
+      ]
+    },
+    "user-inputs": {
+      "values": [
+        "region-or-environment",
+        "database-or-resource-id",
+        "other",
+        "options-record"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "543-568",
+          "function": "RegionParameterType",
+          "note": "The user picks US or EU by name from an enum (RegionCode values), which is a region choice."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "592-597",
+          "function": "QueryFunctionType",
+          "note": "The endpoint parameter is a resource path such as sheets/{id} or reports/{id} that names a resource inside the target."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "598-609",
+          "function": "QueryFunctionType",
+          "note": "args (raw query-string fragment such as pageSize=) and headers (record passed straight through to Web.Contents) are covered by other."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "610-615",
+          "function": "QueryFunctionType",
+          "note": "options is an optional connector-settings record, and Contents takes options as well."
+        }
+      ],
+      "sub": {
+        "options-fields": {
+          "text": "The options record accepts MaxRetries (number, clamped to 1-2, default 1; used at line 240) and ReportPageSize (number, clamped to 500-10000, default 1000; used at line 330). Other fields are ignored.",
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "173-180",
+              "function": "SmartsheetGlobal.GetMaxRetries",
+              "note": "MaxRetries is read from options and bounded to 1-2."
+            },
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "317-324",
+              "function": "SmartsheetGlobal.GetReportPageSize",
+              "note": "ReportPageSize is read from options and bounded to 500-10000."
+            }
+          ]
+        }
+      }
+    },
+    "paging": {
+      "values": [
+        "offset-limit"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "339-344",
+          "function": "ReportExpand",
+          "note": "Pages are requested by page number (page=i+1) with a fixed pageSize."
+        }
+      ],
+      "sub": {
+        "paging-generator": {
+          "values": [
+            "list-generate"
+          ],
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "339-344",
+              "function": "ReportExpand",
+              "note": "The connector calls List.Generate directly to fetch pages; Table.GenerateByPage is not used."
+            }
+          ]
+        },
+        "paging-stop": {
+          "text": "Paging stops when the page index times pageSize is no longer less than raw[totalRowCount], which is the List.Generate continuation condition. Sheets are not paged because the API returns all rows in one response.",
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "342",
+              "function": "ReportExpand",
+              "note": "Continuation condition [i] * pageSize < raw[totalRowCount]."
+            },
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "293-294",
+              "function": "SheetExpand",
+              "note": "Comment states no paging is needed for the sheets endpoint."
+            }
+          ]
+        }
+      }
+    },
+    "data-formats": {
+      "values": [
+        "json"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "277-278",
+          "function": "Smartsheet.QueryInternal",
+          "note": "Returned response body is parsed with Json.Document."
+        }
+      ]
+    },
+    "schema": {
+      "values": [
+        "inferred-from-data"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "298-312",
+          "function": "SheetExpand",
+          "note": "Column names come from the API column titles through Table.FromRows, and no M types are assigned."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "333-354",
+          "function": "ReportExpand",
+          "note": "Report column names come from the API titles through Table.FromRows, with no declared types or type conversion."
+        }
+      ]
+    },
+    "http-errors": {
+      "values": [
+        "manual-status-handling",
+        "structured-error-records",
+        "retry-with-delay",
+        "rate-limit-aware"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "246-266",
+          "function": "Smartsheet.QueryInternal",
+          "note": "Data requests set ManualStatusHandling and inspect Response.Status against the retry list."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "216-224",
+          "function": "Value.WaitFor",
+          "note": "Retry driver: failed requests are re-issued through Function.InvokeAfter with a delay."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "283-291",
+          "function": "ExponentialBackoff",
+          "note": "Computes the delay between attempts with exponential backoff and jitter."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "229-241",
+          "function": "Smartsheet.QueryInternal",
+          "note": "429 (Too Many Requests) is in the retried status list. This is the only rate-limit handling, and Retry-After is not honored."
+        }
+      ],
+      "sub": {
+        "retry-rule": {
+          "text": "Retried statuses: 408, 429, 500, 502, 503, 504, 509. Attempts = 1 + MaxRetries, where MaxRetries defaults to 1 and is clamped to 1-2, so 2 or 3 attempts in total. The first attempt has no delay. Retry delays use ExponentialBackoff(n) = 2^n seconds with about +/-50% random jitter (n = 1 gives about 2-4 s, n = 2 gives about 3-7 s). Retry-After is not honored.",
+          "evidence": [
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "240-241",
+              "function": "Smartsheet.QueryInternal",
+              "note": "maxAttempts = 1 + clamped MaxRetries; the retried status list."
+            },
+            {
+              "file": "SmartsheetGlobal.pq",
+              "lines": "283-291",
+              "function": "ExponentialBackoff",
+              "note": "Iteration 0 has no delay; delay = RoundDown(2^n + 1 + random(-2^n/2, 2^n/2)) seconds."
+            }
+          ]
+        }
+      }
+    },
+    "documentation": {
+      "values": [
+        "function-documentation",
+        "parameter-captions",
+        "parameter-descriptions",
+        "sample-values",
+        "allowed-values"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "570-587",
+          "function": "ContentsFunctionType",
+          "note": "Documentation.Description, DisplayName, Caption, Name, LongDescription and Examples are set."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "592-615",
+          "function": "QueryFunctionType",
+          "note": "Parameters have Documentation.FieldCaption and Documentation.FieldDescription."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "594",
+          "function": "QueryFunctionType",
+          "note": "Documentation.SampleValues is set for endpoint (also line 600 for args)."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "562-566",
+          "function": "RegionParameterType",
+          "note": "Documentation.AllowedValues is set to the US and EU enum values, which makes a dropdown."
+        }
+      ]
+    },
+    "navigation": {
+      "values": [
+        "discovered-from-api",
+        "hierarchical"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "521-524",
+          "function": "ContentsInternal",
+          "note": "Root nodes are built at runtime from the live folders/personal and workspaces responses."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "421-424",
+          "function": "TransformFolders",
+          "note": "Folder rows have IsLeaf false and lazily open a further navigation table."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "441-444",
+          "function": "TransformWorkspaces",
+          "note": "Workspace rows have IsLeaf false and lazily open a further navigation table."
+        }
+      ]
+    },
+    "test-connection": {
+      "values": [
+        "reuses-entry-function"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "10-16",
+          "function": "SmartsheetGlobal",
+          "note": "TestConnection returns {\"SmartsheetGlobal.Contents\", region}, which names the shared Contents entry function, so the test runs a normal navigation query."
+        }
+      ]
+    },
+    "folding": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "packaging": {
+      "values": [
+        "single-file",
+        "localized-strings",
+        "icons"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "1-2",
+          "function": "",
+          "note": "The whole connector is in one .pq file with no pqm modules or LoadExpression helpers."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "51",
+          "function": "SmartsheetGlobal.Publish",
+          "note": "ButtonText uses Extension.LoadString, so the strings are localized."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "56-69",
+          "function": "Smartsheet.Icons",
+          "note": "Icons are loaded with Extension.Contents from PNG files."
+        }
+      ]
+    },
+    "diagnostics": {
+      "values": [
+        "tracing-always"
+      ],
+      "evidence": [
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "255-266",
+          "function": "Smartsheet.QueryInternal",
+          "note": "Diagnostics.Trace at Information level runs on retry and failure, with no switch."
+        },
+        {
+          "file": "SmartsheetGlobal.pq",
+          "lines": "163-165",
+          "function": "SmartsheetGlobal.Clamp",
+          "note": "Diagnostics.Trace warnings run ungated during live clamping, reached from GetMaxRetries and GetReportPageSize."
+        }
+      ]
+    },
+    "long-running": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    },
+    "writes": {
+      "values": [
+        "none"
+      ],
+      "evidence": []
+    }
+  },
+  "generated": {
+    "by": "haiku",
+    "at": "2026-11-26T14:31:49Z"
+  },
+  "reviewer": {
+    "provider": "claude-code",
+    "requested_model": "haiku",
+    "models": [
+      "claude-haiku-5-5"
+    ],
+    "cost_usd": 0.0058356,
+    "duration_ms": 45479
+  },
+  "source_sha256": "428c6c3d62db81e2a5965d6a3d8362e594431e4dfd9a7df7dcd1fda475763b22",
+  "checklist_sha256": "868654850e9a0388d4f4249b5e773f20934d4e31ba1875aa31774736d6a9ead3",
+  "prompt_sha256": "ba3b77459827ab2c72ab9caa18ea3de631fb85b40507523c4262cc7c4c0224c5"
+}

@@ -8,7 +8,7 @@
     {
       "name": "pq-connectors",
       "source": "./skills",
-      "description": "Find how Microsoft's certified Power Query connectors implement things, maintain the connector archive and its pattern guides, and read or write the OKF bundle (includes the official okf-generate and okf-consume skills).",
+      "description": "Write production-grade Power Query connectors following Microsoft's SDK guidance, find how Microsoft's certified Power Query connectors implement things, maintain the connector archive and its pattern guides, and read or write the OKF bundle (includes the official okf-generate and okf-consume skills).",
       "version": "0.1.0",
       "author": {
         "name": "back1ply"

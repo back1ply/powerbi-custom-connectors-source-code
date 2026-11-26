@@ -20,4 +20,5 @@ Examples describe archived source and have not been runtime-tested. Uncertain an
 * [Patterns](patterns/index.md) - 23 implementation patterns, grouped by topic.
 * [Connectors](connectors/index.md) - All 135 connectors in the archive, and their source files.
 * [Connector tags](tags/index.md) - Browse connectors by authentication kind.
+* [Techniques](techniques/index.md) - Which connectors use each answer of the connector checklist, with source lines.
 * [Refresh log](log.md) - Successful refreshes, verification checks, and package changes.

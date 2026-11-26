@@ -7,6 +7,7 @@ and publishes it as an Open Knowledge Format (OKF) v0.3 bundle.
 
 | To | Go to |
 | --- | --- |
+| Write, extend, or review a connector to production grade | Skill: `skills/write-connector` (Microsoft SDK steps, quality bar, pitfalls). Evidence: `bundle/techniques/`. Self-checks: `uv run pqkb certification --path <folder>`, `uv run pqkb functions --path <folder>`. |
 | Find how connectors implement something | `bundle/index.md`, then `bundle/patterns/` and `bundle/connectors/`; source in `connectors/<Name>/`. Skill: `skills/find-connector-code`. |
 | Search the bundle through MCP | `.mcp.json` runs okf-mcp on `bundle/` (search, neighbors, provenance). |
 | Refresh the archive or fix a refresh PR | Skill: `skills/refresh-archive`. |
