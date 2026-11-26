@@ -327,7 +327,13 @@ answers:
     - table-view-handlers
     - custom-sql-generator
     - source-function-folding
+    - native-query
     evidence:
+    - file: DualTable.View.pqm
+      lines: 275-288
+      function: DualTable.View
+      note: 'native-query: OnNativeQuery passes Value.NativeQuery through to both tables of the Spark dual view,
+        reached through SparkCompute[SparkSqlViewOnDelta] (LakeHouse.pq line 1564)'
     - file: LakeHouse.pq
       lines: 2945-2954
       function: Sql.Contents
@@ -369,6 +375,18 @@ answers:
       note: Uses the SQL endpoint view when available, SparkCompute nav when IsSparkComputeEnabled(options)
         (feature switch + options[UseSparkCompute]), else raw Delta
     sub:
+      native-query-enabled:
+        text: On the Spark compute path (options[UseSparkCompute] with the feature switch on), each table is a
+          DualTable.View whose OnNativeQuery handler runs Value.NativeQuery on both underlying tables.
+        evidence:
+        - file: DualTable.View.pqm
+          lines: 275-288
+          function: DualTable.View
+          note: OnNativeQuery = (query, optional parameters, optional options) => ... Value.NativeQuery(...)
+        - file: LakeHouse.pq
+          lines: 1561-1573
+          function: GenerateOneLakeTable
+          note: each table wired to SparkCompute[SparkSqlViewOnDelta]
       table-view-handlers:
         values:
         - on-take

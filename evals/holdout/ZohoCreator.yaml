@@ -1,0 +1,93 @@
+connector: ZohoCreator
+labelled_by: claude-code/claude-opus-5-5
+source_note: ZohoCreator.m (234 lines) and WebApp.json; labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [oauth]
+    evidence:
+      - {file: ZohoCreator.m, lines: "132-139", function: ZohoCreator, note: "Authentication = [OAuth = [StartLogin, FinishLogin, Refresh, Logout]]"}
+    sub:
+      oauth-pkce:
+        values: ["no"]
+        evidence:
+          - {file: ZohoCreator.m, lines: "143-163", function: StartLogin, note: "authorize URL has no code_challenge; client_secret is sent instead (191)"}
+      oauth-refresh:
+        values: ["yes"]
+        evidence:
+          - {file: ZohoCreator.m, lines: "180", function: Refresh, note: "TokenMethod with grant_type refresh_token"}
+  transport:
+    values: [web-contents]
+    evidence:
+      - {file: ZohoCreator.m, lines: "62", function: GetRecords, note: "Web.Contents on the report export URL"}
+    sub: {}
+  user-inputs:
+    values: [region-or-environment, database-or-resource-id]
+    evidence:
+      - {file: ZohoCreator.m, lines: "89-93", function: DialogInput, note: "creatordomain picked from AllowedValues zoho.com, zoho.eu, zoho.com.cn, zoho.in, zoho.com.au (the data centre); mapped to a host by GetDomain (30-36)"}
+      - {file: ZohoCreator.m, lines: "94-108", function: DialogInput, note: "workspace, application link name and report link name"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: ZohoCreator.m, lines: "48-71", function: GetRecords, note: "one CSV export request per report; GetRec maps over {0..0}, a single page"}
+    sub: {}
+  data-formats:
+    values: [csv]
+    evidence:
+      - {file: ZohoCreator.m, lines: "61-66", function: GetRecords, note: "export?filetype=csv parsed with Csv.Document"}
+  schema:
+    values: [inferred-from-data]
+    evidence:
+      - {file: ZohoCreator.m, lines: "66", function: GetRecords, note: "Csv.Document with no Columns or types"}
+      - {file: ZohoCreator.m, lines: "75", function: fetchData, note: "Table.PromoteHeaders; no type conversion"}
+    sub: {}
+  http-errors:
+    values: [manual-status-handling, structured-error-records]
+    evidence:
+      - {file: ZohoCreator.m, lines: "62", function: GetRecords, note: "ManualStatusHandling = {401, 400, 500} on the data request; the status read at 64 is never used"}
+      - {file: ZohoCreator.m, lines: "202", function: TokenMethod, note: "ManualStatusHandling = {400} on the token call"}
+      - {file: ZohoCreator.m, lines: "205-206", function: TokenMethod, note: "Error.Record(error, error_description) from the token response body"}
+    sub: {}
+  documentation:
+    values: [function-documentation, parameter-captions, parameter-descriptions, sample-values, allowed-values]
+    evidence:
+      - {file: ZohoCreator.m, lines: "86", function: ZohoCreator.Contents, note: "Value.ReplaceType(ConnectorEntryPoint, DialogInput)"}
+      - {file: ZohoCreator.m, lines: "89-108", function: DialogInput, note: "FieldCaption and FieldDescription on all parameters; SampleValues on three; AllowedValues on creatordomain"}
+      - {file: ZohoCreator.m, lines: "109-117", function: DialogInput, note: "Documentation.Name, LongDescription, Examples"}
+  navigation:
+    values: [single-table]
+    evidence:
+      - {file: ZohoCreator.m, lines: "79-83", function: ConnectorEntryPoint, note: "returns the report's table directly; no navigation table"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: ZohoCreator.m, lines: "122-130", function: ZohoCreator, note: "TestConnection = {\"ZohoCreator.Contents\", creatordomain, scopname, applinkname, reportlinkname}"}
+  folding:
+    values: [none]
+    evidence:
+      - {file: ZohoCreator.m, lines: "56-77", function: GetRecords, note: "whole report exported as CSV; no Table.View"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons]
+    evidence:
+      - {file: ZohoCreator.m, lines: "1-234", function: ZohoCreator, note: "one section document; WebApp.json is a config file read with Extension.Contents, not a .pqm module"}
+      - {file: ZohoCreator.m, lines: "225", function: ZohoCreator.Publish, note: "Extension.LoadString"}
+      - {file: ZohoCreator.m, lines: "231-234", function: ZohoCreator.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: ZohoCreator.m, lines: "1-234", function: ZohoCreator, note: "no Diagnostics.Trace"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: ZohoCreator.m, lines: "56-71", function: GetRecords, note: "the export call is synchronous; no job polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: ZohoCreator.m, lines: "1-234", function: ZohoCreator, note: "read-only, although the requested scopes include CREATE (13)"}
+notes: |
+  GetRecords wraps the request in Value.WaitFor with exponential delays and max_retry = 5 from WebApp.json, but the
+  producer always returns Csv.Document(...), never null, so WaitFor stops after the first attempt: there is no retry,
+  only a 1-second delay (2^0) before the first request. Hence no retry-with-delay.
+  Beta = false (223), so no beta-flag. throttle_limit in WebApp.json is read but never used.

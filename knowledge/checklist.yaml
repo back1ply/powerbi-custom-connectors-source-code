@@ -36,6 +36,10 @@ questions:
     question: How does the connector authenticate?
     multi: true
     answers: [anonymous, key, username-password, windows, oauth, aad, signed-request, other]
+    definitions:
+      anonymous:
+        means: The data source kind offers a credential-free kind - Anonymous, or ODBC's Implicit, where the DSN or driver supplies the credentials.
+        source: handling-authentication
     sub:
       - id: oauth-pkce
         when: [oauth]
@@ -125,6 +129,9 @@ questions:
     multi: true
     answers: [json, csv, xml, parquet, excel, binary-compressed, arrow, driver-rows, other]
     definitions:
+      json:
+        means: JSON payloads, whether parsed with Json.Document or by OData.Feed from an OData service.
+        source: handling-transformations
       arrow:
         means: Results arrive as Apache Arrow, including Arrow Flight SQL through an ADBC driver, even when the driver decodes it.
         source: convention
@@ -138,7 +145,7 @@ questions:
         means: The connector parses Parquet itself (Parquet.Document, Parquet.Metadata).
         source: convention
       other:
-        means: A format with no id of its own, such as Delta tables read through DeltaLake.Table. Name it in the evidence note.
+        means: A format with no id of its own, such as Delta tables read through DeltaLake.Table. Name it in the evidence note. OData payloads are json, not other.
         source: convention
 
   - id: schema

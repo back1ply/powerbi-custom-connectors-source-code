@@ -1,0 +1,85 @@
+connector: Linkar
+labelled_by: claude-code/claude-opus-5-5
+source_note: LinkarConnector.pq (205 lines); labelled blind, before any model profiled this connector
+answers:
+  auth:
+    values: [username-password]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "29-31", function: Linkar, note: "Authentication = [UsernamePassword = []]"}
+    sub: {}
+  transport:
+    values: [adonet-oledb]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "170", function: FullDatabase, note: "AdoDotNet.DataSource(\"LinkarClientPowerBi\", ConnectionString, null)"}
+      - {file: LinkarConnector.pq, lines: "202", function: ExecuteQuery, note: "AdoDotNet.Query"}
+    sub: {}
+  user-inputs:
+    values: [url-or-server, database-or-resource-id, other]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "139", function: LinkarImpl, note: "required server and port (connection target)"}
+      - {file: LinkarConnector.pq, lines: "139", function: LinkarImpl, note: "required entrypoint, sent as Database (line 148)"}
+      - {file: LinkarConnector.pq, lines: "139", function: LinkarImpl, note: "other: optional language, freetext, customvars, FileName, SelectClause, DictClause, SortClause, sqlmode as separate parameters, not an options record"}
+    sub: {}
+  paging:
+    values: [none]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "167-204", function: FullDatabase, note: "rows come from the ADO.NET provider; no paging"}
+    sub: {}
+  data-formats:
+    values: [driver-rows]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "179", function: FullDatabase, note: "AdoDotNet.Query rows per table"}
+  schema:
+    values: [driver-provided]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "179", function: FullDatabase, note: "columns and types from the ADO.NET provider; no schema code"}
+    sub: {}
+  http-errors:
+    values: [not-applicable]
+  documentation:
+    values: [parameter-captions, parameter-descriptions, sample-values, allowed-values]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "9", function: Linkar.Contents, note: "Value.ReplaceType(LinkarImpl, LinkarType)"}
+      - {file: LinkarConnector.pq, lines: "79-128", function: LinkarType, note: "FieldCaption, FieldDescription, SampleValues on every parameter"}
+      - {file: LinkarConnector.pq, lines: "129-134", function: LinkarType, note: "sqlmode AllowedValues = {true, false}"}
+      - {file: LinkarConnector.pq, lines: "136", function: LinkarType, note: "the function type itself has no Documentation.* metadata, so no function-documentation"}
+  navigation:
+    values: [discovered-from-api]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "170-172", function: FullDatabase, note: "tables listed at runtime from the provider's Tables collection"}
+      - {file: LinkarConnector.pq, lines: "174-186", function: FullDatabase, note: "flat navigation table, IsLeaf = true"}
+  test-connection:
+    values: [reuses-entry-function]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "14-27", function: Linkar, note: "TestConnection = {\"Linkar.Contents\", server, entrypoint, port}"}
+  folding:
+    values: [none]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "179", function: FullDatabase, note: "each table is an AdoDotNet.Query with a fixed command; no Table.View or folding options"}
+    sub: {}
+  packaging:
+    values: [single-file, localized-strings, icons, beta-flag]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "1-205", function: Linkar, note: "one section document, no .pqm modules"}
+      - {file: LinkarConnector.pq, lines: "32", function: Linkar, note: "Extension.LoadString"}
+      - {file: LinkarConnector.pq, lines: "48-51", function: Linkar.Icons, note: "Icon16 / Icon32 via Extension.Contents"}
+      - {file: LinkarConnector.pq, lines: "38", function: Linkar.Publish, note: "Beta = true"}
+  diagnostics:
+    values: [none]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "1-205", function: Linkar, note: "no Diagnostics.Trace"}
+  long-running:
+    values: [none]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "167-204", function: FullDatabase, note: "no polling"}
+    sub: {}
+  writes:
+    values: [none]
+    evidence:
+      - {file: LinkarConnector.pq, lines: "1-205", function: Linkar, note: "read-only"}
+notes: |
+  CredentialConnectionString (156) is built but never passed to the provider; ConnectionString (145-153) has no
+  UID/PWD, so the engine's UsernamePassword credential handling is all that applies.
+  When FileName is given, LinkarImpl returns one table from ExecuteQuery (161, 193-204): a user-written
+  select/dict/sort command. Like a user query option, this path is not counted as navigation or folding.
+  FullDatabase's sqlmode parameter is unused.
