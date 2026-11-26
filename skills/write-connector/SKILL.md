@@ -59,15 +59,18 @@ Finish each step's check before starting the next.
    are listed from the source where possible; keep `Data` lazy. Check: opening the
    navigator does not fetch table data.
 6. **Paging.** Use `Table.GenerateByPage` with an explicit stop rule from the API
-   (next link, cursor, or total). Check: the empty first page, the last page, and a
+   (next link, cursor, or total). Build every request as
+   `Web.Contents(baseUrl, [RelativePath = ..., Query = [...]])`: the base URL stays
+   static, which the service needs in order to validate it for refresh. Check: the empty first page, the last page, and a
    single page all return the right rows.
 7. **Schema.** Declare a table type per entity and enforce it (`Table.ChangeType` or
    `Value.ReplaceType`) so empty and sparse pages keep their columns. Check: an empty
    result has the declared columns and types.
 8. **Errors and retries.** Use `ManualStatusHandling` only for statuses you then read;
    raise `Error.Record` with the API's message; retry transient statuses (429, 503)
-   with `Value.WaitFor` or `Function.InvokeAfter` and a retry limit. Check: a forced
-   401, 404, and 429 each produce the intended result.
+   with `Value.WaitFor` or `Function.InvokeAfter` and a retry limit, passing
+   `IsRetry = true` on retries so the engine's cache does not return the failed
+   response. Check: a forced 401, 404, and 429 each produce the intended result.
 9. **Diagnostics.** Trace through one switch (`EnableTraceOutput = false` before
    release); never trace credentials or row data. Check: no `Diagnostics.Trace` call
    runs with the switch off.

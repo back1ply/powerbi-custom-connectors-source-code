@@ -1,0 +1,19 @@
+# What a correct Ledgerly connector answers, in knowledge/checklist.yaml terms.
+# `require`: ids that must all be present; `forbid`: ids that must not appear.
+# Each item is one point. Derived from spec.md and Microsoft's SDK guidance.
+auth: {require: [key]}
+auth/key-placement: {require: [header], forbid: [query-string]}
+transport: {require: [web-contents]}
+user-inputs: {require: [url-or-server]}
+paging: {require: [cursor-token], forbid: [none]}
+paging/paging-generator: {require: [table-generatebypage]}
+data-formats: {require: [json]}
+schema: {require: [declared-schema]}
+schema/empty-result-columns: {require: ["yes"]}
+http-errors: {require: [manual-status-handling, structured-error-records, retry-with-delay, rate-limit-aware]}
+documentation: {require: [function-documentation, parameter-captions]}
+navigation: {require: [fixed-list], forbid: [none, single-table]}
+test-connection: {forbid: [not-defined]}
+diagnostics: {forbid: [tracing-always]}
+packaging: {require: [beta-flag]}
+writes: {require: [none]}

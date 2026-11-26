@@ -17,6 +17,8 @@ Official guidance first. All Learn links are under
 | Transformations | [handling-transformations](https://learn.microsoft.com/en-us/power-query/handling-transformations) |
 | Schema | [handling-schema](https://learn.microsoft.com/en-us/power-query/handling-schema), TripPin [6](https://learn.microsoft.com/en-us/power-query/samples/trippin/6-schema/readme) and [7](https://learn.microsoft.com/en-us/power-query/samples/trippin/7-advancedschema/readme) |
 | Errors and retries | [handling-status-codes](https://learn.microsoft.com/en-us/power-query/handling-status-codes), [wait-retry](https://learn.microsoft.com/en-us/power-query/wait-retry) |
+| Requests | [Web.Contents](https://learn.microsoft.com/en-us/powerquery-m/web-contents) (`RelativePath`, `Query`, `Headers`, `ManualStatusHandling`, `IsRetry`, `Timeout`) |
+| The M language | [function reference](https://learn.microsoft.com/en-us/powerquery-m/power-query-m-function-reference), [language specification](https://learn.microsoft.com/en-us/powerquery-m/m-spec-introduction) |
 | Diagnostics | [TripPin 8](https://learn.microsoft.com/en-us/power-query/samples/trippin/8-diagnostics/readme) |
 | TestConnection and gateway | [handling-gateway-support](https://learn.microsoft.com/en-us/power-query/handling-gateway-support), [TripPin 9](https://learn.microsoft.com/en-us/power-query/samples/trippin/9-testconnection/readme) |
 | Folding | [TripPin 10](https://learn.microsoft.com/en-us/power-query/samples/trippin/10-tableview1/readme), [native-query-sdk](https://learn.microsoft.com/en-us/power-query/native-query-sdk) |
@@ -30,6 +32,24 @@ Official guidance first. All Learn links are under
 | Service-only failures | [custom-connector-development-faq](https://learn.microsoft.com/en-us/power-query/custom-connector-development-faq) (missing `TestConnection`, missing OAuth `state`, eager navigation tables) |
 | Security | [security-best-practices-power-query](https://learn.microsoft.com/en-us/power-query/security-best-practices-power-query) |
 | Using custom connectors | [Power BI connector extensibility](https://learn.microsoft.com/en-us/power-bi/connect-data/desktop-connector-extensibility) |
+
+## Microsoft tooling (MIT, on GitHub)
+
+- [vscode-powerquery-sdk](https://github.com/microsoft/vscode-powerquery-sdk): the Power
+  Query SDK for VS Code; its issues and changelog track SDK behaviour.
+- [powerquery-parser](https://github.com/microsoft/powerquery-parser),
+  [powerquery-formatter](https://github.com/microsoft/powerquery-formatter),
+  [powerquery-language-services](https://github.com/microsoft/powerquery-language-services):
+  the M parser, formatter and language service behind the VS Code extension.
+- `PQTest.exe` and `MakePQX.exe` ship in the
+  [Microsoft.PowerQuery.SdkTools](https://www.nuget.org/packages/Microsoft.PowerQuery.SdkTools)
+  NuGet package (Windows): build a `.mez`, then `info`, `validate`, `test-connection`
+  and `compare` run it on the real engine.
+
+## Further reading (link only)
+
+- [Power Query M Primer](https://bengribaudo.com/blog/2017/11/17/4107/power-query-m-primer-part1-introduction-simple-expressions-let),
+  Ben Gribaudo: the language in depth (evaluation, scope, types, errors).
 
 ## Retired certification pages (archived)
 
