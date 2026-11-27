@@ -11,49 +11,49 @@ generated:
 detect: [\bGetGraphQLPage\s*=]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L312
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L312
   title: CogniteDataSource/CogniteDataSource.pq
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L311
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L311
   title: CogniteDataSource/CogniteDataSource.pq
 - id: navEntry
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L287
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L287
   title: CogniteDataSource/CogniteDataSource.pq
 - id: callback
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L739
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L739
   title: CogniteDataSource/CogniteDataSource.pq
 - id: branch
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1039
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L1039
   title: CogniteDataSource/CogniteDataSource.pq
 - id: getgraphql
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L987
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L987
   title: CogniteDataSource/CogniteDataSource.pq
 - id: validate
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L997
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L997
   title: CogniteDataSource/CogniteDataSource.pq
 - id: transient
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1047
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L1047
   title: CogniteDataSource/CogniteDataSource.pq
 - id: shape
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1082
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L1082
   title: CogniteDataSource/CogniteDataSource.pq
 - id: cursorRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1150
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L1150
   title: CogniteDataSource/CogniteDataSource.pq
 - id: defaults
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L5
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L5
   title: CogniteDataSource/CogniteDataSource.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L213
+  resource: connectors/ProductInsights/ProductInsightsConnector.m#L213
   title: ProductInsights/ProductInsightsConnector.m
 - id: productQuery
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L466
+  resource: connectors/ProductInsights/ProductInsightsConnector.m#L466
   title: ProductInsights/ProductInsightsConnector.m
 - id: productData
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ProductInsights/ProductInsightsConnector.m#L352
+  resource: connectors/ProductInsights/ProductInsightsConnector.m#L352
   title: ProductInsights/ProductInsightsConnector.m
 - id: generator
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
+  resource: connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
   title: CogniteDataSource/Table.GenerateByPage.pqm
 review:
   content_sha256: 06e96dfefd43b9665541e57ddbe800074683844cc33a812edcdfca435dbe306e

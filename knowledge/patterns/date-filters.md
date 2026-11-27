@@ -11,22 +11,22 @@ generated:
 detect: [\bRangeStart\b]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L71
+  resource: connectors/InformationGrid/InformationGrid.pq#L71
   title: InformationGrid/InformationGrid.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L32
+  resource: connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L32
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: defaults
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L58
+  resource: connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L58
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L47
+  resource: connectors/InformationGrid/InformationGrid.pq#L47
   title: InformationGrid/InformationGrid.pq
 - id: paging
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L115
+  resource: connectors/SolarwindsServiceDesk/SolarWindsServiceDesk.pq#L115
   title: SolarwindsServiceDesk/SolarWindsServiceDesk.pq
 - id: query
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/InformationGrid/InformationGrid.pq#L89
+  resource: connectors/InformationGrid/InformationGrid.pq#L89
   title: InformationGrid/InformationGrid.pq
 verified:
   by: codex/gpt-6

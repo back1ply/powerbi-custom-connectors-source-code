@@ -11,16 +11,16 @@ generated:
 detect: [\bRelativePath\s*=]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L655
+  resource: connectors/Anaplan/Anaplan.pq#L655
   title: Anaplan/Anaplan.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L253
+  resource: connectors/GoogleSheets/GoogleSheets.pq#L253
   title: GoogleSheets/GoogleSheets.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
+  resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: getweb
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L590
+  resource: connectors/Anaplan/Anaplan.pq#L590
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: 7ba9ec62d58c3df8d57e3a2f80672b88609ce1b839372836fbcd4eba4d0d880c

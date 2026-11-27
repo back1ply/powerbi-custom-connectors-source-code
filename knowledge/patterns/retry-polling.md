@@ -11,25 +11,25 @@ generated:
 detect: ['\b(?:Value\.WaitFor|Function\.InvokeAfter)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
+  resource: connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: arg
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
+  resource: connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L774
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L774
   title: CogniteDataSource/CogniteDataSource.pq
 - id: statusList
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L1009
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L1009
   title: CogniteDataSource/CogniteDataSource.pq
 - id: defaults
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L5
+  resource: connectors/CogniteDataSource/CogniteDataSource.pq#L5
   title: CogniteDataSource/CogniteDataSource.pq
 - id: polling
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L618
+  resource: connectors/Anaplan/Anaplan.pq#L618
   title: Anaplan/Anaplan.pq
 - id: anaWaitFor
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L777
+  resource: connectors/Anaplan/Anaplan.pq#L777
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: 96f8fbd2b4d38cd8a90bb829ced5d4691a6d3acc3fc3a158da20c62e88afee80

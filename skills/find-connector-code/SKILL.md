@@ -48,9 +48,8 @@ runtime-tested; say so when it matters.
    file in `connectors/`. The `okf-consume` skill explains trust tiers and
    staleness if the user asks how far to trust a page.
 4. **Answer with citations.** Give the connector, file, and line, and quote the
-   relevant lines. Link to
-   `https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/<Name>/<file>#L<line>`
-   when the user wants a URL. Name more than one connector when they implement it
+   relevant lines. When the user wants a URL, take the GitHub link from the
+   connector's page in `bundle/connectors/` (its `sources`) and add `#L<line>`. Name more than one connector when they implement it
    differently.
 
 ## Rules

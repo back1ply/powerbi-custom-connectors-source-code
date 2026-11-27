@@ -11,19 +11,19 @@ generated:
 detect: [\bTable\.View\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L37
+  resource: connectors/Asana/Asana.m#L37
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
+  resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: schema
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L208
+  resource: connectors/Asana/Asana.m#L208
   title: Asana/Asana.m
 - id: config
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L4
+  resource: connectors/Asana/Asana.m#L4
   title: Asana/Asana.m
 - id: config-value
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L6
+  resource: connectors/Asana/Config.json#L6
   title: Asana/Config.json
 review:
   content_sha256: f2e58a43013218762bc4a3ad37af3ecb8d961d9991f54683db399ec45bd2cda2

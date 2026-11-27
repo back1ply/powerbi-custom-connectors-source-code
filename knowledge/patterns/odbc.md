@@ -11,34 +11,34 @@ generated:
 detect: ['\bOdbc\.(?:DataSource|Query)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L67
+  resource: connectors/AmazonAthena/AmazonAthena.m#L67
   title: AmazonAthena/AmazonAthena.m
 - id: athena-connect
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L123
+  resource: connectors/AmazonAthena/AmazonAthena.m#L123
   title: AmazonAthena/AmazonAthena.m
 - id: athena-sqlcolumns
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L145
+  resource: connectors/AmazonAthena/AmazonAthena.m#L145
   title: AmazonAthena/AmazonAthena.m
 - id: athena-capabilities
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L163
+  resource: connectors/AmazonAthena/AmazonAthena.m#L163
   title: AmazonAthena/AmazonAthena.m
 - id: athena-ui
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L240
+  resource: connectors/AmazonAthena/AmazonAthena.m#L240
   title: AmazonAthena/AmazonAthena.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L303
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L303
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: directquery
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L362
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L362
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlcreds
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L132
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L132
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlcall
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L315
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L315
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: mlbuild
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L380
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L380
   title: MarkLogicODBC/MarkLogicODBC.m
 review:
   content_sha256: b0a8e50e8bb746981941a7bec8def960a3b9c56af416f31a14d45040d290c512

@@ -11,31 +11,31 @@ generated:
 detect: ['\b(?:Extension\.Contents|Extension\.LoadString|Expression\.Evaluate)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L2
+  resource: connectors/Asana/Asana.m#L2
   title: Asana/Asana.m
 - id: loader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L243
+  resource: connectors/Asana/Asana.m#L243
   title: Asana/Asana.m
 - id: publish
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L93
+  resource: connectors/Asana/Asana.m#L93
   title: Asana/Asana.m
 - id: icons
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L102
+  resource: connectors/Asana/Asana.m#L102
   title: Asana/Asana.m
 - id: hardcoded
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
+  resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: config
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L2
+  resource: connectors/Asana/Config.json#L2
   title: Asana/Config.json
 - id: configComma
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Config.json#L6
+  resource: connectors/Asana/Config.json#L6
   title: Asana/Config.json
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L802
+  resource: connectors/Anaplan/Anaplan.pq#L802
   title: Anaplan/Anaplan.pq
 - id: inlineNav
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L754
+  resource: connectors/Anaplan/Anaplan.pq#L754
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: 835861c0563f15191475800b04896fe508663c31436420de83e421bd38338367

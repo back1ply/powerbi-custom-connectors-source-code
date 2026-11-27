@@ -11,19 +11,19 @@ generated:
 detect: [\bDiagnostics\.Trace\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Diagnostics.pqm#L1
+  resource: connectors/Actian/Diagnostics.pqm#L1
   title: Actian/Diagnostics.pqm
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L178
+  resource: connectors/Actian/Actian.m#L178
   title: Actian/Actian.m
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L371
+  resource: connectors/Actian/Actian.m#L371
   title: Actian/Actian.m
 - id: anaplan
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Diagnostics.pqm#L1
+  resource: connectors/Anaplan/Diagnostics.pqm#L1
   title: Anaplan/Diagnostics.pqm
 - id: anaplan-registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L810
+  resource: connectors/Anaplan/Anaplan.pq#L810
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: 0bc10f7b92e6835ad76a327b2e1dd5301526dead0191a1f53797bb1897e94f02

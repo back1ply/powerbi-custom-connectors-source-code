@@ -5,12 +5,16 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from pqkb import frontmatter
+from pqkb import frontmatter, repo
 from pqkb.bundle import load_patterns, patterns_by_category
 from pqkb.excerpts import Excerpt, excerpts
 
 
 def on_config(config):
+    # Set here, not in mkdocs.yml, so the site follows the repository's current name.
+    config.site_url = repo.pages_url()
+    config.repo_url = repo.github_url()
+    config.repo_name = "GitHub"
     root = Path(config.docs_dir)
     patterns = ["patterns/index.md"]
     for category, pages in patterns_by_category(load_patterns(root / "patterns")).items():
