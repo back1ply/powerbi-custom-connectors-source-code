@@ -1,0 +1,84 @@
+---
+type: Power Query Topic
+title: Paging
+description: How does it page through results?
+generated:
+  by: process:pqkb-build
+  at: '2026-11-27T20:44:44Z'
+---
+
+# Paging
+
+How does it page through results? ([Learn](https://learn.microsoft.com/en-us/power-query/handling-paging))
+
+## Patterns
+
+* [GraphQL requests](../patterns/graphql.md) - GraphQL request bodies, cursors, and application errors.
+* [Page generation and cursor traversal](../patterns/pagination.md) - Cursor and offset pagination through table metadata.
+* [Response and pagination metadata](../patterns/response-metadata.md) - Pagination state versus HTTP response metadata.
+
+## Connectors by answer
+
+Connector lists come from the connector checklist (`knowledge/checklist.yaml`), with the first cited source line. **✓** marks hand-checked labels; the rest are model-generated profiles (about 95% exact against hand labels), so open the cited line before relying on one. Counts show what certified connectors do, which is evidence rather than advice: Microsoft's guidance and the `write-connector` skill say what to do.
+
+### paging: How does it page through results?
+
+#### `none`: 83 connectors
+
+[AmazonAthena](../connectors/AmazonAthena.md) ✓ `AmazonAthena.m:123`, [AptixInsights](../connectors/AptixInsights.md) ✓ `AptixInsights.pq:37`, [Asana](../connectors/Asana.md) ✓ `Asana.m:173`, [ClickHouse](../connectors/ClickHouse.md) ✓ `ClickHouseConnector.pq:367`, [ClickHouseArrowFlight](../connectors/ClickHouseArrowFlight.md) ✓ `ClickHouseArrowFlight.pq:442`, [CommonDataService](../connectors/CommonDataService.md) ✓ `CommonDataService.pq:157`, [GoogleSheets](../connectors/GoogleSheets.md) ✓ `GoogleSheets.pq:140`, [LakeHouse](../connectors/LakeHouse.md) ✓ `Workspace.pqm:32`, [Linkar](../connectors/Linkar.md) ✓ `LinkarConnector.pq:167`, [MarkLogicODBC](../connectors/MarkLogicODBC.md) ✓ `MarkLogicODBC.m:315`, [PlanviewOKR](../connectors/PlanviewOKR.md) ✓ `PlanviewOKR.m:171`, [PowerBIDatamarts](../connectors/PowerBIDatamarts.md) ✓ `PowerBIDatamarts.pq:104`, [TIBCO](../connectors/TIBCO.md) ✓ `TIBCO.ODBC.TDV.m:114`, [ZohoCreator](../connectors/ZohoCreator.md) ✓ `ZohoCreator.m:48`, [ADPAnalytics](../connectors/ADPAnalytics.md), [Acterys](../connectors/Acterys.md), [Actian](../connectors/Actian.md), [AmazonOpenSearchService](../connectors/AmazonOpenSearchService.md), [AtScale](../connectors/AtScale.md), [AutomationAnywhere](../connectors/AutomationAnywhere.md), [AutomyDataAnalytics](../connectors/AutomyDataAnalytics.md), [AzureCosmosDBForMongoDBvCore](../connectors/AzureCosmosDBForMongoDBvCore.md) `AzureCosmosDBForMongoDBvCore.pq:448`, [AzureDatabaseForMySQL](../connectors/AzureDatabaseForMySQL.md), [AzureHorizonDB](../connectors/AzureHorizonDB.md), [AzurePostgreSQL](../connectors/AzurePostgreSQL.md), [BIConnector](../connectors/BIConnector.md), [Bitly](../connectors/Bitly.md) `Bitly.pq:112`, [CDataConnectCloud](../connectors/CDataConnectCloud.md), [Cherwell](../connectors/Cherwell.md), [Cognite](../connectors/Cognite.md) `Cognite.pq:147`, [CosmosDB](../connectors/CosmosDB.md), [CustomerInsights](../connectors/CustomerInsights.md) `CustomerInsights.m:254`, [DCWInsights](../connectors/DCWInsights.md), [DataVirtuality](../connectors/DataVirtuality.md), [Databricks](../connectors/Databricks.md), [Denodo](../connectors/Denodo.md), [Dremio](../connectors/Dremio.md), [DynatraceGrail](../connectors/DynatraceGrail.md), [EQuIS](../connectors/EQuIS.md) `EQuIS.m:294`, [Emigo](../connectors/Emigo.md), [ExactOnlinePremium](../connectors/ExactOnlinePremium.md) `ExactOnlinePremium.m:25`, [Exasol](../connectors/Exasol.md), [FabricSql](../connectors/FabricSql.md), [FactSetAnalytics](../connectors/FactSetAnalytics.md) `request-request.pqm:63`, [FactSetRMS](../connectors/FactSetRMS.md) `FactSetRMS.m:72`, [Foundry](../connectors/Foundry.md), [IRIS](../connectors/IRIS.md), [Indexima](../connectors/Indexima.md), [IndustrialAppStore](../connectors/IndustrialAppStore.md), [InformationGrid](../connectors/InformationGrid.md), [IntersystemsHealthInsight](../connectors/IntersystemsHealthInsight.md), [IntuneDataWarehouse](../connectors/IntuneDataWarehouse.md), [IntuneV2](../connectors/IntuneV2.md), [JethroData1.0.1](../connectors/JethroData1.0.1.md), [Kyligence](../connectors/Kyligence.md), [KyvosODBC](../connectors/KyvosODBC.md), [MariaDB](../connectors/MariaDB.md), [MicrosoftGraphSecurity](../connectors/MicrosoftGraphSecurity.md) `MicrosoftGraphSecurity.m:106`, [MongoDBAtlasODBC](../connectors/MongoDBAtlasODBC.md), [OneLakeFile](../connectors/OneLakeFile.md) `OneLakeFile.pq:200`, [OneLakeSql](../connectors/OneLakeSql.md), [OpenSearchProject](../connectors/OpenSearchProject.md) `OpenSearchProject.m:154`, [Paxata](../connectors/Paxata.md) `Paxata.m:39`, [PlanviewProjectplace](../connectors/PlanviewProjectplace.md), [ProductInsights](../connectors/ProductInsights.md), [QubolePresto](../connectors/QubolePresto.md), [SDMX](../connectors/SDMX.md) `SDMX.m:38`, [Sentinel](../connectors/Sentinel.md) `Sentinel.pq:103`, [SingleStoreODBC](../connectors/SingleStoreODBC.md), [SoftOneBI](../connectors/SoftOneBI.md), [Spigit](../connectors/Spigit.md) `Spigit.m:132`, [StarburstPresto](../connectors/StarburstPresto.md), [SumTotal](../connectors/SumTotal.md), [Supermetrics](../connectors/Supermetrics.md) `Supermetrics.m:277`, [Synapse](../connectors/Synapse.md) `Synapse.pq:348`, [Tenforce](../connectors/Tenforce.md) `Tenforce.m:121`, [VesselInsight](../connectors/VesselInsight.md), [Warehouse](../connectors/Warehouse.md), [WebtrendsAnalytics](../connectors/WebtrendsAnalytics.md) `WebtrendsAnalytics.pq:90`, [Windsor](../connectors/Windsor.md), [WorkforceDimensions](../connectors/WorkforceDimensions.md) `WorkforceDimensions.m:280`, [Zucchetti](../connectors/Zucchetti.md), [kxkdbinsightsenterprise](../connectors/kxkdbinsightsenterprise.md) `kxkdbinsightsenterprise.pq:211`
+
+#### `offset-limit`: 14 connectors
+
+Explained in: [Page generation and cursor traversal](../patterns/pagination.md).
+
+[Attio](../connectors/Attio.md) ✓ `Attio.pq:379`, [SolarwindsServiceDesk](../connectors/SolarwindsServiceDesk.md) ✓ `SolarWindsServiceDesk.pq:127`, [EntersoftBusinessSuite](../connectors/EntersoftBusinessSuite.md) `Entersoft_Business_Suite.m:198`, [JamfPro](../connectors/JamfPro.md) `JamfPro.pq:75`, [Kognitwin](../connectors/Kognitwin.md) `Kognitwin.pq:881`, [LinkedInLearning](../connectors/LinkedInLearning.md) `LinkedInLearning.pq:54`, [MicrostrategyDataset](../connectors/MicrostrategyDataset.md) `MicroStrategyDataset.m:634`, [QuickBase](../connectors/QuickBase.md) `qbconnector.m:272`, [Roamler](../connectors/Roamler.md) `Roamler.m:113`, [ShortcutsBI](../connectors/ShortcutsBI.md) `Function.GetData.pqm:12`, [SmartsheetGlobal](../connectors/SmartsheetGlobal.md) `SmartsheetGlobal.pq:339`, [TeamDesk.PowerBI.DataConnector](../connectors/TeamDesk.PowerBI.DataConnector.md) `TeamDesk.m:222`, [eWayCRM](../connectors/eWayCRM.md) `eWay_CRM.m:142`, [inwink](../connectors/inwink.md) `inwink.pq:408`
+
+#### `cursor-token`: 14 connectors
+
+Explained in: [Page generation and cursor traversal](../patterns/pagination.md).
+
+[Attio](../connectors/Attio.md) ✓ `Attio.pq:379`, [CogniteDataSource](../connectors/CogniteDataSource.md) ✓ `CogniteDataSource.pq:689`, [BuildingConnected](../connectors/BuildingConnected.md) `BuildingConnected.pq:470`, [DeltaSharing](../connectors/DeltaSharing.md) `DeltaSharing.pq:497`, [Kognitwin](../connectors/Kognitwin.md) `Kognitwin.pq:881`, [LEAP](../connectors/LEAP.md) `LEAP.m:612`, [MicrosoftAzureDataManagerForEnergy](../connectors/MicrosoftAzureDataManagerForEnergy.md) `MicrosoftAzureDataManagerForEnergy.pq:111`, [PowerPlatformDataflows](../connectors/PowerPlatformDataflows.md) `PowerPlatformDataflows.pq:1008`, [Samsara](../connectors/Samsara.md) `Samsara.Client.Depage.pqm:63`, [TeamsAnalytics](../connectors/TeamsAnalytics.md) `TeamsAnalytics.pq:90`, [TimeSeriesInsights](../connectors/TimeSeriesInsights.md) `TimeSeriesInsightsConnector.m:583`, [Usercube](../connectors/Usercube.md) `Usercube.m:176`, [WorkplaceAnalytics](../connectors/WorkplaceAnalytics.md) `WorkplaceAnalytics.pq:512`, [Wrike](../connectors/Wrike.md) `wrike.m:362`
+
+#### `next-link-url`: 16 connectors
+
+[Anaplan](../connectors/Anaplan.md) ✓ `Anaplan.pq:366`, [Bitbucket](../connectors/Bitbucket.md) ✓ `Bitbucket.pq:80`, [SurveyMonkey](../connectors/SurveyMonkey.md) ✓ `FetchResource.pqm:2`, [ZendeskData](../connectors/ZendeskData.md) ✓ `zendesk.pq:163`, [AssembleViews](../connectors/AssembleViews.md) `AssembleViews.m:634`, [AutodeskConstructionCloud](../connectors/AutodeskConstructionCloud.md) `AutodeskConstructionCloud.pq:286`, [AzureCostManagement](../connectors/AzureCostManagement.md) `AzureCostManagement.pq:2450`, [BI360](../connectors/BI360.md) `Solver.m:74`, [BitSightSecurityRatings](../connectors/BitSightSecurityRatings.md) `BitSightSecurityRatings.pq:1815`, [Eduframe](../connectors/Eduframe.md) `Requests.pqm:59`, [FifteenFive](../connectors/FifteenFive.md) `FifteenFive.pq:473`, [Funnel](../connectors/Funnel.md) `DataLoading.pqm:127`, [HexagonSmartApi](../connectors/HexagonSmartApi.md) `ParametricFilter.pqm:785`, [Profisee](../connectors/Profisee.md) `Profisee.m:180`, [Vena](../connectors/Vena.md) `Utils.pqm:209`, [Witivio](../connectors/Witivio.md) `Witivio.pq:216`
+
+#### `skip-token`: 2 connectors
+
+Explained in: [Response and pagination metadata](../patterns/response-metadata.md).
+
+[AzureResourceGraph](../connectors/AzureResourceGraph.md) ✓ `AzureResourceGraph.pq:52`, [AzureDeviceRegistry](../connectors/AzureDeviceRegistry.md) `AzureDeviceRegistry.pq:150`
+
+#### `graphql-cursor`: 2 connectors
+
+Explained in: [GraphQL requests](../patterns/graphql.md), [Page generation and cursor traversal](../patterns/pagination.md).
+
+[CogniteDataSource](../connectors/CogniteDataSource.md) ✓ `CogniteDataSource.pq:689`, [Bloomberg](../connectors/Bloomberg.md) `Data-Handler.pqm:245`
+
+#### `other`: 5 connectors
+
+[BQECore](../connectors/BQECore.md) `BQECore.pq:2242`, [CCHTagetik](../connectors/CCHTagetik.md) `CCHTagetik.pq:499`, [Celonis](../connectors/Celonis.md) `Celonis.m:68`, [CloudBluePSA](../connectors/CloudBluePSA.md) `CloudBluePSAConnector.m:31`, [OneStream](../connectors/OneStream.md) `OneStream.pq:725`
+
+### paging/paging-generator: Which construct generates the pages?
+
+#### `table-generatebypage`: 27 connectors
+
+Pages come from the Table.GenerateByPage helper. Name only this outermost construct; the helper is built on List.Generate, so do not also answer list-generate for it.
+
+[Attio](../connectors/Attio.md) ✓ `Attio.pq:599`, [AzureResourceGraph](../connectors/AzureResourceGraph.md) ✓ `AzureResourceGraph.pq:204`, [Bitbucket](../connectors/Bitbucket.md) ✓ `Bitbucket.pq:189`, [CogniteDataSource](../connectors/CogniteDataSource.md) ✓ `CogniteDataSource.pq:695`, [SolarwindsServiceDesk](../connectors/SolarwindsServiceDesk.md) ✓ `SolarWindsServiceDesk.pq:115`, [SurveyMonkey](../connectors/SurveyMonkey.md) ✓ `FetchResource.pqm:5`, [ZendeskData](../connectors/ZendeskData.md) ✓ `zendesk.pq:210`, [AssembleViews](../connectors/AssembleViews.md) `AssembleViews.m:645`, [AutodeskConstructionCloud](../connectors/AutodeskConstructionCloud.md) `AutodeskConstructionCloud.pq:298`, [AzureCostManagement](../connectors/AzureCostManagement.md) `AzureCostManagement.pq:2450`, [AzureDeviceRegistry](../connectors/AzureDeviceRegistry.md) `AzureDeviceRegistry.pq:147`, [BI360](../connectors/BI360.md) `Solver.m:70`, [BitSightSecurityRatings](../connectors/BitSightSecurityRatings.md) `BitSightSecurityRatings.pq:1815`, [Bloomberg](../connectors/Bloomberg.md) `Data-Handler.pqm:27`, [BuildingConnected](../connectors/BuildingConnected.md) `BuildingConnected.pq:465`, [FifteenFive](../connectors/FifteenFive.md) `FifteenFive.pq:940`, [HexagonSmartApi](../connectors/HexagonSmartApi.md) `ParametricFilter.pqm:801`, [Kognitwin](../connectors/Kognitwin.md) `Kognitwin.pq:881`, [MicrosoftAzureDataManagerForEnergy](../connectors/MicrosoftAzureDataManagerForEnergy.md) `MicrosoftAzureDataManagerForEnergy.pq:108`, [Profisee](../connectors/Profisee.md) `Profisee.m:129`, [QuickBase](../connectors/QuickBase.md) `qbconnector.m:284`, [TeamsAnalytics](../connectors/TeamsAnalytics.md) `TeamsAnalytics.pq:109`, [Usercube](../connectors/Usercube.md) `Usercube.m:185`, [Witivio](../connectors/Witivio.md) `Witivio.pq:203`, [WorkplaceAnalytics](../connectors/WorkplaceAnalytics.md) `WorkplaceAnalytics.pq:73`, [Wrike](../connectors/Wrike.md) `wrike.m:347`, [inwink](../connectors/inwink.md) `inwink.pq:364`
+
+#### `list-generate`: 10 connectors
+
+The connector calls List.Generate itself to fetch pages, not through Table.GenerateByPage.
+
+[BQECore](../connectors/BQECore.md) `BQECore.pq:686`, [Eduframe](../connectors/Eduframe.md) `Requests.pqm:75`, [EntersoftBusinessSuite](../connectors/EntersoftBusinessSuite.md) `Entersoft_Business_Suite.m:212`, [Funnel](../connectors/Funnel.md) `DataLoading.pqm:103`, [LinkedInLearning](../connectors/LinkedInLearning.md) `LinkedInLearning.pq:64`, [MicrostrategyDataset](../connectors/MicrostrategyDataset.md) `MicroStrategyDataset.m:640`, [PowerPlatformDataflows](../connectors/PowerPlatformDataflows.md) `PowerPlatformDataflows.pq:1015`, [SmartsheetGlobal](../connectors/SmartsheetGlobal.md) `SmartsheetGlobal.pq:339`, [TeamDesk.PowerBI.DataConnector](../connectors/TeamDesk.PowerBI.DataConnector.md) `TeamDesk.m:213`, [Vena](../connectors/Vena.md) `Utils.pqm:197`
+
+#### `recursion`: 6 connectors
+
+A function calls itself with the next page URL or token and combines the results.
+
+[Anaplan](../connectors/Anaplan.md) ✓ `Anaplan.pq:370`, [DeltaSharing](../connectors/DeltaSharing.md) `DeltaSharing.pq:513`, [LEAP](../connectors/LEAP.md) `LEAP.m:621`, [Samsara](../connectors/Samsara.md) `Samsara.Client.Depage.pqm:68`, [TimeSeriesInsights](../connectors/TimeSeriesInsights.md) `TimeSeriesInsightsConnector.m:510`, [eWayCRM](../connectors/eWayCRM.md) `eWay_CRM.m:94`
+
+#### `other`: 7 connectors
+
+[CCHTagetik](../connectors/CCHTagetik.md) `CCHTagetik.pq:587`, [Celonis](../connectors/Celonis.md) `Celonis.m:70`, [CloudBluePSA](../connectors/CloudBluePSA.md) `CloudBluePSAConnector.m:42`, [JamfPro](../connectors/JamfPro.md) `JamfPro.pq:314`, [OneStream](../connectors/OneStream.md) `OneStream.pq:725`, [Roamler](../connectors/Roamler.md) `Roamler.m:119`, [ShortcutsBI](../connectors/ShortcutsBI.md) `Function.GetData.pqm:15`

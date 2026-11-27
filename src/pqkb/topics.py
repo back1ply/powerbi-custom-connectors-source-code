@@ -196,15 +196,15 @@ def render_pages(
     topics: Topics, matrix: dict, all_connectors: list[str]
 ) -> dict[str, tuple[dict | None, str]]:
     """Path under `topics/` -> (frontmatter or None, Markdown body): an index plus one
-    `<question>/index.md` per question. The index has no frontmatter, like the other
-    bundle indexes."""
+    `<question>.md` per question. The index has no frontmatter: OKF reserves `index.md`
+    for listings."""
     pages: dict[str, tuple[dict | None, str]] = {}
     index = ["# Topics", "", INDEX_INTRO, ""]
     for spec in topics.checklist:
         qid, title = spec["id"], topics.titles[spec["id"]]
         meta = {"type": "Power Query Topic", "title": title, "description": spec["question"]}
         body = _topic_body(topics, spec, matrix)
-        pages[f"{qid}/index.md"] = (meta, body)
+        pages[f"{qid}.md"] = (meta, body)
         index += _index_entry(spec, title, matrix, topics.homed(qid))
     index += _unprofiled(matrix, all_connectors)
     pages["index.md"] = (None, "\n".join(index).rstrip() + "\n")
@@ -213,7 +213,7 @@ def render_pages(
 
 def _index_entry(spec: dict, title: str, matrix: dict, homed: list[Guide]) -> list[str]:
     counts = ", ".join(f"`{a}` {len(u)}" for a, u in _ordered(spec, matrix.get(spec["id"], {})))
-    lines = [f"## [{title}]({spec['id']}/index.md)", "", f"{spec['question']} {counts}".strip()]
+    lines = [f"## [{title}]({spec['id']}.md)", "", f"{spec['question']} {counts}".strip()]
     if homed:
         lines += ["", *(f"* {g.link('../')} - {g.description}" for g in homed)]
     return lines + [""]
@@ -242,7 +242,7 @@ def _topic_body(topics: Topics, spec: dict, matrix: dict) -> str:
         body += [
             "## Patterns",
             "",
-            *(f"* {g.link('../../')} - {g.description}" for g in related),
+            *(f"* {g.link('../')} - {g.description}" for g in related),
             "",
         ]
     body += ["## Connectors by answer", "", INTRO, ""]
@@ -267,7 +267,7 @@ def _question_section(key: str, spec: dict, answers: dict, related: list[Guide])
         meaning = definitions.get(answer_id, {}).get("means")
         if meaning:
             lines += [meaning, ""]
-        explained = [g.link("../../") for g in related if answer_id in g.answers.get(key, [])]
+        explained = [g.link("../") for g in related if answer_id in g.answers.get(key, [])]
         if explained:
             lines += [f"Explained in: {', '.join(explained)}.", ""]
         lines += [", ".join(_entry(u) for u in uses), ""]
@@ -277,7 +277,7 @@ def _question_section(key: str, spec: dict, answers: dict, related: list[Guide])
 def _entry(use: Use) -> str:
     mark = " ✓" if use.hand_checked else ""
     cite = f" `{use.citation}`" if use.citation else ""
-    return f"[{use.connector}](../../connectors/{quote(use.connector)}.md){mark}{cite}"
+    return f"[{use.connector}](../connectors/{quote(use.connector)}.md){mark}{cite}"
 
 
 def topic_pages(
@@ -297,7 +297,8 @@ def topic_menu(topics: Topics | None) -> list:
         return []
     menu: list = [f"{TOPICS_DIR}/index.md"]
     for spec in topics.checklist:
-        page = f"{TOPICS_DIR}/{spec['id']}/index.md"
+        page = f"{TOPICS_DIR}/{spec['id']}.md"
         children = [{g.title: f"patterns/{g.pattern_id}.md"} for g in topics.homed(spec["id"])]
-        menu.append({topics.titles[spec["id"]]: [page, *children] if children else page})
+        entry = [{"Overview": page}, *children] if children else page
+        menu.append({topics.titles[spec["id"]]: entry})
     return [{"Topics": menu}]

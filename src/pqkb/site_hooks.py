@@ -85,15 +85,14 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
     raw = f"{raw.rstrip('/')}/main/bundle"
     root = frontmatter.read(bundle_root / "index.md").meta
 
-    def entries(folder: str, pattern: str = "*.md") -> list[str]:
+    def entries(folder: str) -> list[str]:
         lines = []
-        for page in sorted((bundle_root / folder).glob(pattern)):
-            if page.parent == bundle_root / folder and page.name == "index.md":
+        for page in sorted((bundle_root / folder).glob("*.md")):
+            if page.name == "index.md":
                 continue
             meta = frontmatter.read(page).meta
             description = " ".join(str(meta.get("description", "")).split())
-            path = page.relative_to(bundle_root).as_posix()
-            lines.append(f"- [{meta['title']}]({raw}/{path}): {description}")
+            lines.append(f"- [{meta['title']}]({raw}/{folder}/{page.name}): {description}")
         return lines
 
     return "\n".join(
@@ -115,7 +114,7 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
             "",
             "## Topics",
             "",
-            *entries(TOPICS_DIR, "*/index.md"),
+            *entries(TOPICS_DIR),
             "",
             "## Optional",
             "",

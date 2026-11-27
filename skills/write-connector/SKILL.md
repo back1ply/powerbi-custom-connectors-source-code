@@ -24,7 +24,7 @@ question per SDK topic) and defines each answer id, citing the Learn page it fol
 Use its ids when you plan, and record your choice for each question as you go: the
 finished set of answers is the connector's design record.
 
-To find real implementations of an answer, open `bundle/topics/<question>/index.md`
+To find real implementations of an answer, open `bundle/topics/<question>.md`
 (every archived connector grouped by its answer, with the cited line), read the
 pattern pages it links for that answer, and search the source:
 

@@ -50,20 +50,20 @@ def test_hand_checked_labels_win_and_free_text_is_skipped():
 def test_topic_pages_link_patterns_and_connectors_from_their_folder():
     matrix = collect(CHECKLIST, {"Alpha": (answers("next-link-url"), True)})
     pages = render_pages(topics(), matrix, ["Alpha", "Gamma"])
-    assert set(pages) == {"index.md", "paging/index.md", "auth/index.md"}
+    assert set(pages) == {"index.md", "paging.md", "auth.md"}
     index_meta, index = pages["index.md"]
-    meta, paging = pages["paging/index.md"]
+    meta, paging = pages["paging.md"]
     assert index_meta is None and meta == {
         "type": "Power Query Topic",
         "title": "Paging",
         "description": "How does it page?",
     }
-    assert "## [Paging](paging/index.md)" in index and "`next-link-url` 1" in index
+    assert "## [Paging](paging.md)" in index and "`next-link-url` 1" in index
     assert "[Gamma](../connectors/Gamma.md)" in index
-    assert "[Alpha](../../connectors/Alpha.md) ✓ `A.pq:10`" in paging
+    assert "[Alpha](../connectors/Alpha.md) ✓ `A.pq:10`" in paging
     assert "Follows a next link." in paging
     assert "([Learn](https://learn/handling-paging))" in paging
-    assert "Explained in: [Page generation](../../patterns/pagination.md)." in paging
+    assert "Explained in: [Page generation](../patterns/pagination.md)." in paging
 
 
 def test_index_lists_each_pattern_under_its_first_topic_only():
@@ -71,8 +71,8 @@ def test_index_lists_each_pattern_under_its_first_topic_only():
     assert index.count("(../patterns/pagination.md)") == 1
     paging, auth = index.split("## [Authentication]")
     assert "pagination.md" in paging and "oauth2.md" in auth
-    _, auth_page = render_pages(topics(), {}, [])["auth/index.md"]
-    assert "(../../patterns/pagination.md)" in auth_page  # Still linked from other topics.
+    _, auth_page = render_pages(topics(), {}, [])["auth.md"]
+    assert "(../patterns/pagination.md)" in auth_page  # Still linked from other topics.
 
 
 def test_menu_nests_patterns_under_their_first_topic():
@@ -82,11 +82,16 @@ def test_menu_nests_patterns_under_their_first_topic():
                 "topics/index.md",
                 {
                     "Paging": [
-                        "topics/paging/index.md",
+                        {"Overview": "topics/paging.md"},
                         {"Page generation": "patterns/pagination.md"},
                     ]
                 },
-                {"Authentication": ["topics/auth/index.md", {"OAuth2": "patterns/oauth2.md"}]},
+                {
+                    "Authentication": [
+                        {"Overview": "topics/auth.md"},
+                        {"OAuth2": "patterns/oauth2.md"},
+                    ]
+                },
             ]
         }
     ]
