@@ -73,7 +73,8 @@ survive only in the Wayback Machine:
   start a new connector from the TripPin part that matches the step you are on.
 
 - `knowledge/checklist.yaml`: the design questions and answer definitions.
-- `bundle/patterns/`: reviewed technique guides with exact excerpts.
+- `bundle/topics/`: one page per checklist question, linking the reviewed pattern guides
+  (`bundle/patterns/`, exact excerpts) and the connectors that use each answer.
 - `connectors/<Name>/`: archived certified connector source; `knowledge/profiles/` and
   `evals/gold/` describe each one's design with line citations.
 - `uv run pqkb certification --path <folder>`: static checks of a connector against the

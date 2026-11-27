@@ -1,0 +1,85 @@
+# Topic pages: one per checklist question (knowledge/checklist.yaml), in checklist order.
+# Authored; edit here, not in generated output. Kept apart from checklist.yaml because
+# that file is hashed into every connector profile's cache key, and apart from the
+# pattern pages because their frontmatter is hashed into their review fingerprints.
+#
+# `titles`: short menu label per question id. Every checklist question needs one.
+# `patterns`: pattern id -> {question id: [answer ids the pattern explains]}. An empty
+# list means the pattern covers the question as a whole. The first question listed is
+# where the pattern sits in the site menu; the others link to it from their topic page.
+# Every pattern in knowledge/patterns/ must appear here; the build fails otherwise.
+titles:
+  auth: Authentication
+  transport: Data access
+  user-inputs: Resource path
+  paging: Paging
+  data-formats: Transformations
+  schema: Schemas
+  http-errors: Status codes and errors
+  documentation: Documentation
+  navigation: Navigation tables
+  test-connection: Gateway and TestConnection
+  folding: Query folding
+  packaging: Packaging
+  diagnostics: Diagnostics
+  long-running: Long-running operations
+  writes: Writes
+
+patterns:
+  credentials:
+    auth: []
+  oauth2:
+    auth: [oauth]
+  pkce:
+    auth: [oauth]
+  hmac:
+    auth: [signed-request]
+  web-requests:
+    transport: [web-contents]
+    http-errors: [manual-status-handling, structured-error-records]
+  odata:
+    transport: [odata-feed]
+    folding: [odata-folding]
+  odbc:
+    folding: [odbc-sql-capabilities]
+    transport: [odbc]
+    schema: [driver-provided]
+  graphql:
+    transport: [web-contents]
+    paging: [graphql-cursor]
+    http-errors: [manual-status-handling, structured-error-records, retry-with-delay]
+  date-filters:
+    user-inputs: [date-range]
+  pagination:
+    paging: [offset-limit, cursor-token, graphql-cursor]
+    http-errors: [manual-status-handling, retry-with-delay]
+  response-metadata:
+    paging: [skip-token]
+    http-errors: [manual-status-handling, structured-error-records]
+  buffering:
+    http-errors: [manual-status-handling]
+  schema:
+    schema: [declared-schema]
+  errors:
+    http-errors: [manual-status-handling, structured-error-records]
+  retry-polling:
+    http-errors: [retry-with-delay, manual-status-handling, structured-error-records]
+    long-running: [async-export-polling]
+  async-exports:
+    long-running: [async-export-polling]
+  parameter-metadata:
+    user-inputs: [url-or-server, database-or-resource-id, other]
+    documentation: [function-documentation, parameter-captions, parameter-descriptions, sample-values, allowed-values]
+  navigation:
+    navigation: [fixed-list]
+    test-connection: [reuses-entry-function]
+  native-query:
+    folding: [native-query]
+  table-view:
+    folding: [table-view-handlers]
+  packaging:
+    packaging: [pqm-modules, localized-strings, icons]
+  diagnostics:
+    diagnostics: [tracing-always, tracing-gated]
+  actions:
+    writes: [table-view-mutations, actions]

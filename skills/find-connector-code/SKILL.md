@@ -18,9 +18,9 @@ runtime-tested; say so when it matters.
 | Path | What it is |
 | --- | --- |
 | `bundle/index.md` | Start here: what the bundle covers and its sections. |
-| `bundle/patterns/<id>.md` | Guides to one technique each (pagination, oauth2, pkce, table-view, odbc, errors, retry-polling, ...), with quoted excerpts and links to the source lines. `bundle/patterns/index.md` lists them by topic. |
+| `bundle/patterns/<id>.md` | Guides to one technique each (pagination, oauth2, pkce, table-view, odbc, errors, retry-polling, ...), with quoted excerpts and links to the source lines. Pattern pages are listed under their topic in `bundle/topics/`. |
 | `bundle/connectors/<Name>.md` | One page per connector: publisher, version, authentication kinds, source files, and the patterns detected in it with line links. |
-| `bundle/tags/index.md` | Connectors grouped by authentication kind and detected pattern. |
+| `bundle/topics/<question>/index.md` | One topic per checklist question in SDK order: the patterns that explain it and every archived connector grouped by its answer, with the cited line. |
 | `connectors/<Name>/` | The connector's real M source (`.pq`, `.pqm`, `.m`) and resources. |
 | `connectors/index.json` | Machine-readable list: name, title, publisher, version, files. |
 
@@ -28,7 +28,7 @@ runtime-tested; say so when it matters.
 
 1. **Find candidates.** For a technique, read the matching `bundle/patterns/<id>.md`
    for how it works and which connectors it cites. Connector pages list source
-   files and authentication kinds; `bundle/tags/index.md` groups connectors by
+   files and authentication kinds; `bundle/topics/auth/index.md` groups connectors by
    authentication kind. For a library function or identifier, search the source
    directly:
 

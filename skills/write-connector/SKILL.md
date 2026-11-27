@@ -24,9 +24,9 @@ question per SDK topic) and defines each answer id, citing the Learn page it fol
 Use its ids when you plan, and record your choice for each question as you go: the
 finished set of answers is the connector's design record.
 
-To find real implementations of an answer, open `bundle/techniques/<question>.md`
+To find real implementations of an answer, open `bundle/topics/<question>/index.md`
 (every archived connector grouped by its answer, with the cited line), read the
-matching `bundle/patterns/<id>.md`, and search the source:
+pattern pages it links for that answer, and search the source:
 
 ```bash
 rg -n "Table.GenerateByPage" connectors --glob "*.{pq,pqm,m}"

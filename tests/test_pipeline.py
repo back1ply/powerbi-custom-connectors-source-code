@@ -310,9 +310,8 @@ def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     assert pattern.read_bytes() == authored
     assert (repo / "knowledge" / "patterns" / "retries.md").read_bytes() == authored
     root = (repo / "bundle" / "index.md").read_text(encoding="utf-8")
-    assert "patterns/index.md" in root
-    directory = (repo / "bundle" / "patterns" / "index.md").read_text(encoding="utf-8")
-    assert "# Data retrieval" in directory and "retries.md" in directory
+    assert "connectors/index.md" in root
+    assert not (repo / "bundle" / "patterns" / "index.md").exists()  # Topics list patterns.
     meta = frontmatter.parse(root).meta
     assert meta["okf_version"] == "0.3"
     assert meta["title"] and meta["description"]  # OKF 0.3 section 8.1 bundle metadata

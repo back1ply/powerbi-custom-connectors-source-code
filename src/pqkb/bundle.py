@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import re
 import shutil
-from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -18,20 +17,12 @@ from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.repo import pages_url, slug
 from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Rule, auth_kinds, read_source
-from pqkb.techniques import techniques_pages
+from pqkb.topics import TOPICS_DIR, topic_pages
 
 PRODUCER = "process:pqkb-build"
 BUNDLE_DIR = "bundle"  # Generated OKF bundle, committed so agents can browse it.
 STALE_AFTER = timedelta(days=14)
 VOLATILE = ("generated", "stale_after", "verified")
-CATEGORY_ORDER = (
-    "Authentication",
-    "Data retrieval",
-    "Query folding",
-    "Schema and errors",
-    "Navigation and UI",
-    "Packaging",
-)
 
 
 @dataclass
@@ -182,35 +173,16 @@ def connectors_index(records: dict[str, ConnectorRecord]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def patterns_by_category(patterns: list[Pattern]) -> dict[str, list[Pattern]]:
-    groups: dict[str, list[Pattern]] = defaultdict(list)
-    for p in patterns:
-        groups[p.doc.meta.get("category", "Other")].append(p)
-    order = {c: i for i, c in enumerate(CATEGORY_ORDER)}
-    return dict(sorted(groups.items(), key=lambda kv: (order.get(kv[0], len(order)), kv[0])))
-
-
-def patterns_index(patterns: list[Pattern]) -> str:
-    lines: list[str] = []
-    for category, items in patterns_by_category(patterns).items():
-        lines += [f"# {category}", ""]
-        for p in sorted(items, key=lambda p: p.title.lower()):
-            lines.append(
-                index_entry(p.title, f"{p.pattern_id}.md", p.doc.meta.get("description", ""))
-            )
-        lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def root_index(patterns: list[Pattern], connector_count: int, techniques: bool = False) -> str:
-    techniques_entry = (
+def root_index(patterns: list[Pattern], connector_count: int, topics: bool = False) -> str:
+    topics_entry = (
         index_entry(
-            "Techniques",
-            "techniques/index.md",
-            "Which connectors use each answer of the connector checklist, with source lines.",
+            "Topics",
+            f"{TOPICS_DIR}/index.md",
+            "One topic per Power Query SDK concept: the patterns that explain it "
+            f"({len(patterns)} in all) and which connectors use each approach.",
         )
         + "\n"
-        if techniques
+        if topics
         else ""
     )
     return (
@@ -234,13 +206,7 @@ def root_index(patterns: list[Pattern], connector_count: int, techniques: bool =
             f"All {connector_count} connectors in the archive, and their source files.",
         )
         + "\n"
-        + techniques_entry
-        + index_entry(
-            "Patterns",
-            "patterns/index.md",
-            f"{len(patterns)} implementation patterns, grouped by topic.",
-        )
-        + "\n"
+        + topics_entry
         + index_entry(
             "Refresh log",
             "log.md",
@@ -371,13 +337,11 @@ def build(repo: Path, now: datetime | None = None) -> None:
     apply_confirmation(repo)
 
     write_text_if_changed(knowledge / "connectors" / "index.md", connectors_index(records))
-    write_text_if_changed(knowledge / "patterns" / "index.md", patterns_index(patterns))
-    techniques = techniques_pages(repo, sorted(records))
-    write_text_if_changed(
-        knowledge / "index.md", root_index(patterns, len(records), bool(techniques))
-    )
-    for name, (meta, body) in techniques.items():
-        path = knowledge / "techniques" / name
+    summaries = {p.pattern_id: (p.title, p.doc.meta["description"]) for p in patterns}
+    topics = topic_pages(repo, sorted(records), summaries)
+    write_text_if_changed(knowledge / "index.md", root_index(patterns, len(records), bool(topics)))
+    for name, (meta, body) in topics.items():
+        path = knowledge / TOPICS_DIR / name
         if meta is None:
             path.parent.mkdir(parents=True, exist_ok=True)
             write_text_if_changed(path, body)

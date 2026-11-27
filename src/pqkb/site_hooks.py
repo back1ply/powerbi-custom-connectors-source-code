@@ -6,8 +6,9 @@ from collections import defaultdict
 from pathlib import Path
 
 from pqkb import frontmatter, repo
-from pqkb.bundle import load_patterns, patterns_by_category
+from pqkb.bundle import load_patterns
 from pqkb.excerpts import Excerpt, excerpts
+from pqkb.topics import TOPICS_DIR, load_topics, topic_menu
 
 
 def on_config(config):
@@ -16,50 +17,32 @@ def on_config(config):
     config.repo_url = repo.github_url()
     config.repo_name = "GitHub"
     root = Path(config.docs_dir)
-    patterns = ["patterns/index.md"]
-    for category, pages in patterns_by_category(load_patterns(root / "patterns")).items():
-        patterns.append(
-            {
-                category: [
-                    {p.title: f"patterns/{p.pattern_id}.md"}
-                    for p in sorted(pages, key=lambda p: p.title.lower())
-                ]
-            }
-        )
-    groups = defaultdict(list)
-    for path in (root / "connectors").glob("*.md"):
-        if path.name == "index.md":
-            continue
-        title = frontmatter.read(path).meta["title"]
-        letter = title[0].upper() if title[0].isascii() and title[0].isalpha() else "#"
-        groups[letter].append((title, path.name))
-    connectors = ["connectors/index.md"]
-    for letter, pages in sorted(groups.items()):
-        connectors.append(
-            {
-                letter: [
-                    {title: f"connectors/{name}"}
-                    for title, name in sorted(pages, key=lambda item: item[0].lower())
-                ]
-            }
-        )
+    patterns = load_patterns(root / "patterns")
+    summaries = {p.pattern_id: (p.title, p.doc.meta["description"]) for p in patterns}
+    topics = load_topics(Path(config.config_file_path).parent, summaries)
     config.nav = [
         {"Overview": "index.md"},
-        {"Connectors": connectors},
-        *techniques_nav(root / "techniques"),
-        {"Patterns": patterns},
+        {"Connectors": connectors_nav(root / "connectors")},
+        *topic_menu(topics),
         {"Refresh log": "log.md"},
     ]
     return config
 
 
-def techniques_nav(folder: Path) -> list:
-    """Return the Techniques menu entry, or nothing when the build has no matrix."""
-    if not (folder / "index.md").is_file():
-        return []
-    pages = sorted(path for path in folder.glob("*.md") if path.name != "index.md")
-    entries = [{p.stem: f"techniques/{p.name}"} for p in pages]
-    return [{"Techniques": ["techniques/index.md", *entries]}]
+def connectors_nav(folder: Path) -> list:
+    """The connector index, then connector pages grouped by first letter."""
+    groups = defaultdict(list)
+    for path in folder.glob("*.md"):
+        if path.name == "index.md":
+            continue
+        title = frontmatter.read(path).meta["title"]
+        letter = title[0].upper() if title[0].isascii() and title[0].isalpha() else "#"
+        groups[letter].append((title, path.name))
+    nav: list = ["connectors/index.md"]
+    for letter, pages in sorted(groups.items()):
+        entries = sorted(pages, key=lambda item: item[0].lower())
+        nav.append({letter: [{title: f"connectors/{name}"} for title, name in entries]})
+    return nav
 
 
 def on_page_content(content, page, **kwargs):
@@ -102,14 +85,15 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
     raw = f"{raw.rstrip('/')}/main/bundle"
     root = frontmatter.read(bundle_root / "index.md").meta
 
-    def entries(folder: str) -> list[str]:
+    def entries(folder: str, pattern: str = "*.md") -> list[str]:
         lines = []
-        for page in sorted((bundle_root / folder).glob("*.md")):
-            if page.name == "index.md":
+        for page in sorted((bundle_root / folder).glob(pattern)):
+            if page.parent == bundle_root / folder and page.name == "index.md":
                 continue
             meta = frontmatter.read(page).meta
             description = " ".join(str(meta.get("description", "")).split())
-            lines.append(f"- [{meta['title']}]({raw}/{folder}/{page.name}): {description}")
+            path = page.relative_to(bundle_root).as_posix()
+            lines.append(f"- [{meta['title']}]({raw}/{path}): {description}")
         return lines
 
     return "\n".join(
@@ -129,9 +113,9 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
             "",
             *entries("connectors"),
             "",
-            "## Techniques",
+            "## Topics",
             "",
-            *entries("techniques"),
+            *entries(TOPICS_DIR, "*/index.md"),
             "",
             "## Optional",
             "",
