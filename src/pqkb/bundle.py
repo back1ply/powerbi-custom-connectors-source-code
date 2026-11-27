@@ -11,10 +11,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-from pqkb import frontmatter, repo
+from pqkb import frontmatter
 from pqkb.certification import CERTIFICATION_SOURCE, RULES, Finding, check_connector
 from pqkb.provenance import published, source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
+from pqkb.repo import pages_url, slug
 from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Rule, auth_kinds, read_source
 from pqkb.techniques import techniques_pages
@@ -253,7 +254,7 @@ def root_index(patterns: list[Pattern], connector_count: int, techniques: bool =
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
         + "Examples describe archived source and have not been runtime-tested. "
         + "Uncertain and unreviewed matches are labelled.\n\n"
-        + f"[Download the OKF bundle]({repo.pages_url()}knowledge.zip).\n\n"
+        + f"[Download the OKF bundle]({pages_url()}knowledge.zip).\n\n"
         + index_entry(
             "Patterns",
             "patterns/index.md",
@@ -393,6 +394,7 @@ def archive_digest(repo: Path) -> str:
 def build(repo: Path, now: datetime | None = None) -> None:
     """Render authored knowledge and archive metadata into ``bundle/``."""
     now = now or datetime.now(UTC)
+    slug()  # Fail on an unknown repository before anything in bundle/ changes.
     knowledge, connectors_dir = repo / BUNDLE_DIR, repo / "connectors"
     records = archive_records(connectors_dir)
     patterns = render_patterns(repo, knowledge)

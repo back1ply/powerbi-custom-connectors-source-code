@@ -27,16 +27,27 @@ def renamed(monkeypatch):
     [
         "https://github.com/owner/some-repo.git",
         "https://github.com/owner/some-repo",
+        "https://x-access-token:secret@github.com/owner/some-repo.git",
         "git@github.com:owner/some-repo.git",
+        "ssh://git@github.com/owner/some-repo.git",
     ],
 )
 def test_remote_url_forms_give_the_slug(url):
     assert repo.parse_remote(url + "\n") == "owner/some-repo"
 
 
-def test_non_github_remote_is_rejected():
-    with pytest.raises(ValueError, match="not a GitHub repository"):
-        repo.parse_remote("https://gitlab.com/owner/some-repo.git")
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://gitlab.com/owner/some-repo.git",
+        "https://user:secret@mirror.example/github.com/owner/some-repo.git",
+        "https://github.com.evil.example/owner/some-repo.git",
+    ],
+)
+def test_non_github_remote_is_rejected_without_echoing_the_url(url):
+    with pytest.raises(ValueError, match="not a GitHub repository") as error:
+        repo.parse_remote(url)
+    assert "secret" not in str(error.value) and "example" not in str(error.value)
 
 
 def test_github_repository_variable_wins_over_the_remote(monkeypatch):
@@ -73,6 +84,19 @@ def test_bundle_rewrites_only_citation_lines_and_keeps_line_endings(renamed):
     assert published == authored.replace(
         b"connectors/Demo", b"https://github.com/back1ply/renamed-repo/blob/main/connectors/Demo"
     )
+
+
+def test_unknown_repository_fails_the_build_before_bundle_changes(tmp_path, monkeypatch):
+    def unknown():
+        raise RuntimeError("Cannot tell which GitHub repository this is")
+
+    monkeypatch.setattr(bundle, "slug", unknown)
+    stale = tmp_path / "bundle" / "patterns" / "old.md"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("generated earlier", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="Cannot tell"):
+        bundle.build(tmp_path)
+    assert stale.read_text(encoding="utf-8") == "generated earlier"
 
 
 def test_renaming_keeps_every_recorded_review_valid(renamed):

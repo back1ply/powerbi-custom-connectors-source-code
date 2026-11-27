@@ -14,13 +14,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SLUG = re.compile(r"^[\w.-]+/[\w.-]+$")
-REMOTE = re.compile(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$")
+REMOTE = re.compile(
+    r"^(?:https://(?:[^@/\s]+@)?github\.com/|git@github\.com:|ssh://git@github\.com/)"
+    r"([\w.-]+/[\w.-]+?)(?:\.git)?/?$"
+)
 
 
 def parse_remote(url: str) -> str:
-    match = REMOTE.search(url.strip())
+    match = REMOTE.match(url.strip())
     if not match:
-        raise ValueError(f"Origin remote is not a GitHub repository: {url.strip()}")
+        # The URL is left out: remotes can embed credentials.
+        raise ValueError("Origin remote is not a GitHub repository")
     return match.group(1)
 
 
