@@ -16,6 +16,7 @@ ARCHIVE = "connectors/"
 # reviews.authored_digest still hashes them in this form; changing it would
 # invalidate every recorded review. It is not where the repository lives.
 HASHED_REPO_URL = "https://github.com/back1ply/powerbi-custom-connectors-source-code"
+HASHED_PAGES_URL = "https://back1ply.github.io/powerbi-custom-connectors-source-code"
 
 
 def citation(connector: str, file: str, line: int | None = None) -> str:
@@ -49,9 +50,13 @@ def hashed(resource: str) -> str:
 
 
 def hashed_text(text: str) -> str:
-    """Replace links to the current repository with the hashed name, for fingerprints."""
-    current = re.compile(re.escape(repo.github_url()) + r"(?![\w.-])")
-    return current.sub(HASHED_REPO_URL, text)
+    """Replace links to the current repository and site with the hashed name, for fingerprints."""
+    for current, fixed in (
+        (repo.github_url(), HASHED_REPO_URL),
+        (repo.pages_url().rstrip("/"), HASHED_PAGES_URL),
+    ):
+        text = re.sub(re.escape(current) + r"(?![\w.-])", fixed, text)
+    return text
 
 
 def source_path(repo_root: Path, resource: str) -> Path:

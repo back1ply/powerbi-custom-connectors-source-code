@@ -11,19 +11,19 @@ generated:
 detect: [\bValue\.NativeQuery\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L61
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L61
   title: CommonDataService/CommonDataService.pq
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L298
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L298
   title: CommonDataService/CommonDataService.pq
 - id: wrapper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L152
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L152
   title: CommonDataService/CommonDataService.pq
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L375
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L375
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: hide
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L308
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L308
   title: SingleStoreODBC/SingleStoreODBC.m
 review:
   content_sha256: 5815467c4837f79bf45e6d7fa6836dad06d0b4ad7eac45099322ac2d986e2da7

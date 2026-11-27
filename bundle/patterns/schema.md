@@ -11,13 +11,13 @@ generated:
 detect: ['\b(?:SchemaTransformTable|Table\.ChangeType|Value\.ReplaceType)\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L11
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L11
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L200
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L200
   title: Asana/Asana.m
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L283
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L283
   title: CommonDataService/CommonDataService.pq
 review:
   content_sha256: 8601126655d9b5cea648c65aedf777603f3aadf428f947e1567e5143d96d2f0d

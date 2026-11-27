@@ -3,7 +3,7 @@
     "powerbi-connector-source": {
       "source": {
         "source": "github",
-        "repo": "back1ply/powerbi-custom-connectors-source-code"
+        "repo": "back1ply/power-bi-custom-connectors-source-code"
       }
     }
   },

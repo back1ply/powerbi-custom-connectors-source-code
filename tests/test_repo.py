@@ -86,6 +86,16 @@ def test_bundle_rewrites_only_citation_lines_and_keeps_line_endings(renamed):
     )
 
 
+def test_prose_links_hash_the_same_under_any_name(monkeypatch):
+    def text():
+        return f"[Site]({repo.pages_url()}llms.txt) and [code]({repo.github_url()}#readme)"
+
+    before = provenance.hashed_text(text())
+    monkeypatch.setattr(repo, "slug", lambda: "back1ply/renamed-repo")
+    assert provenance.hashed_text(text()) == before
+    assert provenance.hashed_text(text() + " changed") != before
+
+
 def test_unknown_repository_fails_the_build_before_bundle_changes(tmp_path, monkeypatch):
     def unknown():
         raise RuntimeError("Cannot tell which GitHub repository this is")
@@ -99,10 +109,15 @@ def test_unknown_repository_fails_the_build_before_bundle_changes(tmp_path, monk
     assert stale.read_text(encoding="utf-8") == "generated earlier"
 
 
-def test_renaming_keeps_every_recorded_review_valid(renamed):
+def test_renaming_keeps_every_recorded_review_valid(monkeypatch):
+    links = {repo.github_url(): "", repo.pages_url(): ""}
+    monkeypatch.setattr(repo, "slug", lambda: "back1ply/renamed-repo")
+    links = dict(zip(links, (repo.github_url(), repo.pages_url()), strict=True))
     reviewed = 0
     for path in reviews.pattern_paths(ROOT):
         document = frontmatter.read(path)
+        for old, new in links.items():  # A rename updates prose links, as after a real one.
+            document.body = document.body.replace(old, new)
         if review := document.meta.get("review"):
             assert reviews.fingerprint(ROOT, document) == {
                 "content_sha256": review["content_sha256"],

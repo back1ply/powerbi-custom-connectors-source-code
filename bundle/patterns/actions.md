@@ -11,22 +11,22 @@ generated:
 detect: ['\b(?:Action\.(?:Sequence|Return)|TableAction\.(?:InsertRows|UpdateRows|DeleteRows))\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L994
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L994
   title: LakeHouse/LakeHouse.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L958
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L958
   title: LakeHouse/LakeHouse.pq
 - id: builder
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2802
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2802
   title: LakeHouse/LakeHouse.pq
 - id: cachetable
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2772
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2772
   title: LakeHouse/LakeHouse.pq
 - id: wrapper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2863
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L2863
   title: LakeHouse/LakeHouse.pq
 - id: flag
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L57
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L57
   title: LakeHouse/LakeHouse.pq
 review:
   content_sha256: 928aa3250374154e5d63bad0b1c98c2f757a029d024705f2bc8b6ec1811f5034
