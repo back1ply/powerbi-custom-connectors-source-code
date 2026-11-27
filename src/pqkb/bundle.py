@@ -202,33 +202,6 @@ def patterns_index(patterns: list[Pattern]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def tag_groups(pages: Path) -> dict[str, list[tuple[Path, frontmatter.Document]]]:
-    groups: dict[str, list[tuple[Path, frontmatter.Document]]] = defaultdict(list)
-    for page in sorted(pages.glob("*.md")):
-        if page.name == "index.md":
-            continue
-        document = frontmatter.read(page)
-        for tag in document.meta["tags"]:
-            groups[tag].append((page, document))
-    return groups
-
-
-def tags_index(pages: Path) -> str:
-    lines: list[str] = []
-    for tag, documents in sorted(tag_groups(pages).items()):
-        lines += [f"# {tag}", ""]
-        for page, document in documents:
-            lines.append(
-                index_entry(
-                    document.meta["title"],
-                    f"../connectors/{quote(page.name)}",
-                    "",
-                )
-            )
-        lines.append("")
-    return "\n".join(lines)
-
-
 def root_index(patterns: list[Pattern], connector_count: int, techniques: bool = False) -> str:
     techniques_entry = (
         index_entry(
@@ -256,22 +229,18 @@ def root_index(patterns: list[Pattern], connector_count: int, techniques: bool =
         + "Uncertain and unreviewed matches are labelled.\n\n"
         + f"[Download the OKF bundle]({pages_url()}knowledge.zip).\n\n"
         + index_entry(
-            "Patterns",
-            "patterns/index.md",
-            f"{len(patterns)} implementation patterns, grouped by topic.",
-        )
-        + "\n"
-        + index_entry(
             "Connectors",
             "connectors/index.md",
             f"All {connector_count} connectors in the archive, and their source files.",
         )
         + "\n"
+        + techniques_entry
         + index_entry(
-            "Connector tags", "tags/index.md", "Browse connectors by authentication kind."
+            "Patterns",
+            "patterns/index.md",
+            f"{len(patterns)} implementation patterns, grouped by topic.",
         )
         + "\n"
-        + techniques_entry
         + index_entry(
             "Refresh log",
             "log.md",
@@ -407,8 +376,6 @@ def build(repo: Path, now: datetime | None = None) -> None:
     write_text_if_changed(
         knowledge / "index.md", root_index(patterns, len(records), bool(techniques))
     )
-    (knowledge / "tags").mkdir(exist_ok=True)
-    write_text_if_changed(knowledge / "tags" / "index.md", tags_index(knowledge / "connectors"))
     for name, (meta, body) in techniques.items():
         path = knowledge / "techniques" / name
         if meta is None:

@@ -45,12 +45,21 @@ def on_config(config):
         )
     config.nav = [
         {"Overview": "index.md"},
-        {"Patterns": patterns},
         {"Connectors": connectors},
-        {"Connector tags": "tags/index.md"},
+        *techniques_nav(root / "techniques"),
+        {"Patterns": patterns},
         {"Refresh log": "log.md"},
     ]
     return config
+
+
+def techniques_nav(folder: Path) -> list:
+    """Return the Techniques menu entry, or nothing when the build has no matrix."""
+    if not (folder / "index.md").is_file():
+        return []
+    pages = sorted(path for path in folder.glob("*.md") if path.name != "index.md")
+    entries = [{p.stem: f"techniques/{p.name}"} for p in pages]
+    return [{"Techniques": ["techniques/index.md", *entries]}]
 
 
 def on_page_content(content, page, **kwargs):
@@ -119,6 +128,10 @@ def llms_txt(bundle_root: Path, site_url: str, repo_url: str) -> str:
             "## Connectors",
             "",
             *entries("connectors"),
+            "",
+            "## Techniques",
+            "",
+            *entries("techniques"),
             "",
             "## Optional",
             "",

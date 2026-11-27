@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from pqkb import bundle
 from pqkb.cli import main
-from pqkb.site_hooks import llms_txt
+from pqkb.site_hooks import llms_txt, techniques_nav
 
 pytest_plugins = ("test_pipeline",)
 
@@ -32,3 +32,20 @@ def test_viz_command_writes_a_self_contained_graph_of_the_bundle(repo, capsys):
     assert "connectors/Demo" in html
     assert "patterns/retries" in html
     assert "Wrote" in capsys.readouterr().out
+
+
+def test_techniques_nav_lists_the_index_then_each_question(tmp_path):
+    assert techniques_nav(tmp_path / "techniques") == []
+    folder = tmp_path / "techniques"
+    folder.mkdir()
+    for name in ("index.md", "paging.md", "auth.md"):
+        (folder / name).write_text("# x\n", encoding="utf-8")
+    assert techniques_nav(folder) == [
+        {
+            "Techniques": [
+                "techniques/index.md",
+                {"auth": "techniques/auth.md"},
+                {"paging": "techniques/paging.md"},
+            ]
+        }
+    ]

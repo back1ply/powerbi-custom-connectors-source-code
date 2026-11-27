@@ -317,9 +317,7 @@ def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     assert meta["okf_version"] == "0.3"
     assert meta["title"] and meta["description"]  # OKF 0.3 section 8.1 bundle metadata
     assert (repo / "knowledge" / "log.md").is_file()
-    tags = (repo / "bundle" / "tags" / "index.md").read_text()
-    assert "# retries" not in tags
-    assert "# oauth" in tags and "(../connectors/Demo.md)" in tags
+    assert not (repo / "bundle" / "tags").exists()
 
 
 def test_build_is_stable_when_nothing_changed(repo):

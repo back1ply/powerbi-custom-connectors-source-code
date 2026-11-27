@@ -1,6 +1,6 @@
 # Power Query Connector Source Reference
 
-[Browse the reference site](https://back1ply.github.io/power-bi-custom-connectors-source-code/): source-reviewed patterns, connector source links, authentication tags, and a refresh log.
+[Browse the reference site](https://back1ply.github.io/power-bi-custom-connectors-source-code/): source-reviewed patterns, connector source links, a technique matrix, and a refresh log.
 
 This unofficial archive extracts Microsoft's certified Power BI connector packages for studying Power Query (M). Pattern explanations and excerpts live in `knowledge/patterns/`; the Python tools generate the connector directory, indexes, and detection lists. Static evidence finds candidates; source-bound Claude Haiku or DeepSeek Flash assessments separate supported, uncertain, and rejected matches. These are source-reading assessments, not runtime verification. See the [source-review record](REVIEW.md) for scope and review validity.
 
