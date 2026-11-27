@@ -11,6 +11,7 @@ and publishes it as an Open Knowledge Format (OKF) v0.3 bundle.
 | Find how connectors implement something | `bundle/index.md`, then `bundle/topics/` (one per SDK concept, linking its patterns in `bundle/patterns/`) and `bundle/connectors/`; source in `connectors/<Name>/`. Skill: `skills/find-connector-code`. |
 | Search the bundle through MCP | `.mcp.json` runs okf-mcp on `bundle/` (search, neighbors, provenance). |
 | Refresh the archive or fix a refresh PR | Skill: `skills/refresh-archive`. |
+| Add a pattern page | Write `knowledge/patterns/<id>.md`, then list it in `knowledge/topics.yaml` under its topic and the checklist answers it explains; the build fails on an unlisted pattern. |
 | Renew a drifted pattern page | Skill: `skills/review-pattern`. |
 | Run or retry LLM candidate reviews | Skill: `skills/run-candidate-reviews`. |
 | Write, validate, or read OKF | Official skills: `skills/okf-generate` (validator: `scripts/validate.py`), `skills/okf-consume`. |
