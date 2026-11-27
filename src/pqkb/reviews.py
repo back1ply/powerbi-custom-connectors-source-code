@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from pqkb import frontmatter
-from pqkb.provenance import source_path
+from pqkb.provenance import hashed, hashed_text, source_path
 
 REVIEW_METADATA = {"generated", "verified", "review", "review_pending", "status"}
 MATCH_LIST = re.compile(
@@ -35,9 +35,14 @@ def digest(content: bytes) -> str:
 
 
 def authored_digest(document: frontmatter.Document) -> str:
+    """Hash authored content; citation and link forms don't depend on the repo's name."""
     metadata = {key: val for key, val in document.meta.items() if key not in REVIEW_METADATA}
+    if "sources" in metadata:
+        metadata["sources"] = [
+            {**source, "resource": hashed(source["resource"])} for source in metadata["sources"]
+        ]
     header = json.dumps(metadata, sort_keys=True, ensure_ascii=False)
-    body = MATCH_LIST.sub("", document.body).strip()
+    body = hashed_text(MATCH_LIST.sub("", document.body).strip())
     return digest(f"{header}\n{body}".encode())
 
 

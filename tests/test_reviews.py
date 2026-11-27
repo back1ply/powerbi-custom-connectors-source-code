@@ -6,7 +6,7 @@ import pytest
 
 from pqkb import bundle, frontmatter, reviews
 from pqkb.cli import main
-from pqkb.provenance import source_url
+from pqkb.provenance import citation
 from pqkb.refresh import ConnectorRecord, write_index
 
 DAY = datetime(2026, 10, 18, tzinfo=UTC)
@@ -28,7 +28,7 @@ def reviewed_repo(tmp_path):
         "title": "Demo",
         "description": "A source review fixture.",
         "detect": [r"\bDemo\b"],
-        "sources": [{"id": "example", "resource": source_url("Demo", "Demo.pq", 1)}],
+        "sources": [{"id": "example", "resource": citation("Demo", "Demo.pq", 1)}],
     }
     page.write_text(frontmatter.render(metadata, "Reviewed source explanation."), encoding="utf-8")
     bundle.build(tmp_path, DAY)
@@ -50,7 +50,7 @@ def test_changed_review_scope_is_reported_and_marked_stale_without_editing_the_p
         elif change == "detect":
             document.meta["detect"] = ["unreviewed-rule"]
         else:
-            document.meta["sources"][0]["resource"] = source_url("Demo", "missing.pq", 1)
+            document.meta["sources"][0]["resource"] = citation("Demo", "missing.pq", 1)
         page.write_text(frontmatter.render(document.meta, document.body), encoding="utf-8")
     authored = page.read_bytes()
     assert main(["--repo", str(repo), "verify-reviews"]) == 1
@@ -123,8 +123,10 @@ def test_drifted_page_with_windows_line_endings_keeps_them_and_rebuilds_identica
     bundle.build(repo, DAY)
     built_path = repo / "bundle" / "patterns" / page.name
     first = built_path.read_bytes()
-    expected = bundle.mark_drift(authored, "2026-10-18T00:00:00Z").replace("\n", "\r\n")
+    published = bundle.publish_citations(authored.encode("utf-8")).decode("utf-8")
+    expected = bundle.mark_drift(published, "2026-10-18T00:00:00Z").replace("\n", "\r\n")
     assert first == expected.encode("utf-8")
+    assert b"resource: https://github.com/" in first
     bundle.build(repo, datetime(2026, 11, 1, tzinfo=UTC))
     assert built_path.read_bytes() == first
 

@@ -11,19 +11,19 @@ generated:
 detect: [\bOData\.Feed\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L37
+  resource: connectors/AptixInsights/AptixInsights.pq#L37
   title: AptixInsights/AptixInsights.pq
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L11
+  resource: connectors/AptixInsights/AptixInsights.pq#L11
   title: AptixInsights/AptixInsights.pq
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L55
+  resource: connectors/AptixInsights/AptixInsights.pq#L55
   title: AptixInsights/AptixInsights.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/IntuneV2/IntuneV2.pq#L33
+  resource: connectors/IntuneV2/IntuneV2.pq#L33
   title: IntuneV2/IntuneV2.pq
 - id: intuneAuth
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/IntuneV2/IntuneV2.pq#L62
+  resource: connectors/IntuneV2/IntuneV2.pq#L62
   title: IntuneV2/IntuneV2.pq
 review:
   content_sha256: e798530f90b0f1c1e697ba575463cb449d87e9f6cf543d1009d6206f7eafa2aa

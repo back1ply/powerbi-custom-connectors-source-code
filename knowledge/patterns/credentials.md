@@ -11,16 +11,16 @@ generated:
 detect: [\bExtension\.CurrentCredential\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L111
+  resource: connectors/Actian/Actian.m#L111
   title: Actian/Actian.m
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Actian.m#L218
+  resource: connectors/Actian/Actian.m#L218
   title: Actian/Actian.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L316
+  resource: connectors/Anaplan/Anaplan.pq#L316
   title: Anaplan/Anaplan.pq
 - id: trace
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Actian/Diagnostics.pqm#L101
+  resource: connectors/Actian/Diagnostics.pqm#L101
   title: Actian/Diagnostics.pqm
 review:
   content_sha256: 8909da767fa982d6f0df9d1d2eed5d33b7520840d2f5f0c3d56dcf0f11f6eb9e

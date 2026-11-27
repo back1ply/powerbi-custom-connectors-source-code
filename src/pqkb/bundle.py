@@ -13,8 +13,9 @@ from urllib.parse import quote
 
 from pqkb import frontmatter
 from pqkb.certification import CERTIFICATION_SOURCE, RULES, Finding, check_connector
-from pqkb.provenance import source_url
+from pqkb.provenance import published, source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
+from pqkb.repo import pages_url, slug
 from pqkb.reviews import authored_digest, digest, review_reason
 from pqkb.scan import Rule, auth_kinds, read_source
 from pqkb.techniques import techniques_pages
@@ -253,8 +254,7 @@ def root_index(patterns: list[Pattern], connector_count: int, techniques: bool =
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
         + "Examples describe archived source and have not been runtime-tested. "
         + "Uncertain and unreviewed matches are labelled.\n\n"
-        + "[Download the OKF bundle](https://back1ply.github.io/"
-        + "powerbi-custom-connectors-source-code/knowledge.zip).\n\n"
+        + f"[Download the OKF bundle]({pages_url()}knowledge.zip).\n\n"
         + index_entry(
             "Patterns",
             "patterns/index.md",
@@ -394,6 +394,7 @@ def archive_digest(repo: Path) -> str:
 def build(repo: Path, now: datetime | None = None) -> None:
     """Render authored knowledge and archive metadata into ``bundle/``."""
     now = now or datetime.now(UTC)
+    slug()  # Fail on an unknown repository before anything in bundle/ changes.
     knowledge, connectors_dir = repo / BUNDLE_DIR, repo / "connectors"
     records = archive_records(connectors_dir)
     patterns = render_patterns(repo, knowledge)
@@ -460,6 +461,16 @@ def mark_drift(text: str, stale_after: str | None) -> str:
     return f"{header}\n---\n\n{body}"
 
 
+CITATION_LINE = re.compile(rb"^(\s*resource: )(\S+?)(\r?)$", re.MULTILINE)
+
+
+def publish_citations(content: bytes) -> bytes:
+    """Turn repository-relative citations into GitHub URLs for the published bundle."""
+    return CITATION_LINE.sub(
+        lambda m: m[1] + published(m[2].decode("utf-8")).encode("utf-8") + m[3], content
+    )
+
+
 def render_patterns(repo: Path, destination: Path) -> list[Pattern]:
     """Copy authored patterns into the bundle; authored files are never modified."""
     folder = destination / "patterns"
@@ -468,7 +479,8 @@ def render_patterns(repo: Path, destination: Path) -> list[Pattern]:
     remove_stale_pages(folder, {pattern.pattern_id for pattern in sources})
     stale_after = receipt_time(repo)
     for pattern in sources:
-        content = pattern.path.read_bytes()  # Byte copy keeps the author's line endings.
+        # Byte copy keeps the author's line endings; only citation paths become URLs.
+        content = publish_citations(pattern.path.read_bytes())
         if pattern.doc.meta.get("review") and review_reason(repo, pattern.doc):
             crlf = b"\r\n" in content
             text = mark_drift(content.decode("utf-8").replace("\r\n", "\n"), stale_after)

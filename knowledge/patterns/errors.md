@@ -11,16 +11,16 @@ generated:
 detect: ['\b(?:Error\.Record\s*\(|ManualStatusHandling\s*=)']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L129
+  resource: connectors/Asana/Asana.m#L129
   title: Asana/Asana.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L253
+  resource: connectors/GoogleSheets/GoogleSheets.pq#L253
   title: GoogleSheets/GoogleSheets.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
+  resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 - id: errortable
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L735
+  resource: connectors/Anaplan/Anaplan.pq#L735
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: bb8f1087b75f95a82654e003a1270eb3101e7deee2b90a212b7a2fa5f7b82274

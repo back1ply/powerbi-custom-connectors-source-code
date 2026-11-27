@@ -11,16 +11,16 @@ generated:
 detect: [code_challenge\s*=]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L217
+  resource: connectors/Asana/Asana.m#L217
   title: Asana/Asana.m
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L108
+  resource: connectors/Asana/Asana.m#L108
   title: Asana/Asana.m
 - id: callback
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L129
+  resource: connectors/Asana/Asana.m#L129
   title: Asana/Asana.m
 - id: anaplan
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L54
+  resource: connectors/Anaplan/Anaplan.pq#L54
   title: Anaplan/Anaplan.pq
 review:
   content_sha256: 400dff5a1e53cbd4e5cc8b110c816fc16bb8b01cd6b0567119f8f9716a703c8e

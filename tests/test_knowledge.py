@@ -2,23 +2,21 @@ import re
 import shutil
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
 
 import pytest
 
 from pqkb import bundle, frontmatter, reviews
 from pqkb.excerpts import excerpts
+from pqkb.provenance import source_path
 
 ROOT = Path(__file__).resolve().parents[1]
 PATTERNS = sorted((ROOT / "knowledge" / "patterns").glob("*.md"))
 
 
 def cited_source(resource):
-    source = urlsplit(resource)
-    relative = unquote(source.path.split("/blob/main/", 1)[1])
-    path = (ROOT / relative).resolve()
-    assert path.is_relative_to((ROOT / "connectors").resolve())
-    start = int(source.fragment.removeprefix("L")) - 1
+    path = source_path(ROOT, resource)
+    start = int(urlsplit(resource).fragment.removeprefix("L")) - 1
     return path.read_text(encoding="utf-8-sig").splitlines(), start
 
 

@@ -11,19 +11,19 @@ generated:
 detect: ['\b(?:StartLogin|FinishLogin|Refresh)\s*=']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L48
+  resource: connectors/GoogleSheets/GoogleSheets.pq#L48
   title: GoogleSheets/GoogleSheets.pq
 - id: start
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L9
+  resource: connectors/GoogleSheets/GoogleSheets.pq#L9
   title: GoogleSheets/GoogleSheets.pq
 - id: callback
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/GoogleSheets/GoogleSheets.pq#L28
+  resource: connectors/GoogleSheets/GoogleSheets.pq#L28
   title: GoogleSheets/GoogleSheets.pq
 - id: anaplan-refresh
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L92
+  resource: connectors/Anaplan/Anaplan.pq#L92
   title: Anaplan/Anaplan.pq
 - id: asana-refresh
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L173
+  resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 review:
   content_sha256: 21f369f3e5b4e2b5281d14547fed5e419746e06406b32093e7f016186631e638

@@ -11,22 +11,22 @@ generated:
 detect: ['\b(?:Table|List|Binary)\.Buffer\s*\(']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L590
+  resource: connectors/Anaplan/Anaplan.pq#L590
   title: Anaplan/Anaplan.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L316
+  resource: connectors/Anaplan/Anaplan.pq#L316
   title: Anaplan/Anaplan.pq
 - id: traceRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L592
+  resource: connectors/Anaplan/Anaplan.pq#L592
   title: Anaplan/Anaplan.pq
 - id: serviceBuffer
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L153
+  resource: connectors/Anaplan/Anaplan.pq#L153
   title: Anaplan/Anaplan.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/EQuIS/EQuIS.m#L93
+  resource: connectors/EQuIS/EQuIS.m#L93
   title: EQuIS/EQuIS.m
 - id: deltaRead
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
+  resource: connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
   content_sha256: 38cfdb66fb565d47477ff8896311da0a27b1947cf3a90f94d1b706b35254d820

@@ -11,25 +11,25 @@ generated:
 detect: ['\b(?:Table\.ToNavigationTable\s*\(|TestConnection\s*=)']
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L26
+  resource: connectors/Asana/Asana.m#L26
   title: Asana/Asana.m
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L81
+  resource: connectors/Asana/Asana.m#L81
   title: Asana/Asana.m
 - id: loader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L243
+  resource: connectors/Asana/Asana.m#L243
   title: Asana/Asana.m
 - id: pqm
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Asana/Table.ToNavigationTable.pqm#L1
+  resource: connectors/Asana/Table.ToNavigationTable.pqm#L1
   title: Asana/Table.ToNavigationTable.pqm
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L134
+  resource: connectors/CommonDataService/CommonDataService.pq#L134
   title: CommonDataService/CommonDataService.pq
 - id: json-path
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L347
+  resource: connectors/MarkLogicODBC/MarkLogicODBC.m#L347
   title: MarkLogicODBC/MarkLogicODBC.m
 - id: split-path
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L218
+  resource: connectors/AmazonAthena/AmazonAthena.m#L218
   title: AmazonAthena/AmazonAthena.m
 review:
   content_sha256: b87f97414b479561db79bb240e4c7f5c7b7d603e95f38abce6c69d810b6235ce
