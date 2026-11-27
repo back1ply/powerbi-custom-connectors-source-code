@@ -20,6 +20,27 @@ env:
   PYTHONUTF8: '1'
 
 jobs:
+  # Tests on the oldest Python that pyproject.toml's requires-python allows. uv installs
+  # it through UV_PYTHON so Renovate's Python bumps don't move this floor; change it
+  # together with requires-python. Ruff already lints against requires-python.
+  test-minimum-python:
+    runs-on: windows-latest
+    env:
+      UV_PYTHON: '3.12'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.15'
+      - name: Install locked tooling on the minimum Python
+        run: |
+          python -m pip install uv==0.11.3
+          uv sync --locked
+      - name: Test
+        run: uv run pytest -q
+
   validate:
     runs-on: windows-latest
     steps:
