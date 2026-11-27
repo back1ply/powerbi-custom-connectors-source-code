@@ -11,28 +11,28 @@ generated:
 detect: [\bDocumentation\.FieldCaption\s*=]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L99
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L99
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L63
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L63
   title: Bloomberg/Bloomberg.m
 - id: registration
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L399
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L399
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: binding
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L7
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L7
   title: Bloomberg/Bloomberg.m
 - id: consumer
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L355
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L355
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: ssl
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L166
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L166
   title: SingleStoreODBC/SingleStoreODBC.m
 - id: validation
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L96
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Bloomberg/Bloomberg.m#L96
   title: Bloomberg/Bloomberg.m
 - id: connection
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L446
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L446
   title: SingleStoreODBC/SingleStoreODBC.m
 verified:
   by: codex/gpt-6

@@ -6,8 +6,8 @@
     "name": "back1ply",
     "url": "https://github.com/back1ply"
   },
-  "homepage": "https://back1ply.github.io/powerbi-custom-connectors-source-code/",
-  "repository": "https://github.com/back1ply/powerbi-custom-connectors-source-code",
+  "homepage": "https://back1ply.github.io/power-bi-custom-connectors-source-code/",
+  "repository": "https://github.com/back1ply/power-bi-custom-connectors-source-code",
   "license": "MIT AND Apache-2.0",
   "keywords": [
     "power-query",
@@ -30,6 +30,6 @@
       "How do certified Power Query connectors implement cursor paging?",
       "Refresh the connector archive and fix any failing checks."
     ],
-    "websiteURL": "https://back1ply.github.io/powerbi-custom-connectors-source-code/"
+    "websiteURL": "https://back1ply.github.io/power-bi-custom-connectors-source-code/"
   }
 }

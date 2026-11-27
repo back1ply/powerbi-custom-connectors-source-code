@@ -13,8 +13,8 @@
       "author": {
         "name": "back1ply"
       },
-      "homepage": "https://back1ply.github.io/powerbi-custom-connectors-source-code/",
-      "repository": "https://github.com/back1ply/powerbi-custom-connectors-source-code",
+      "homepage": "https://back1ply.github.io/power-bi-custom-connectors-source-code/",
+      "repository": "https://github.com/back1ply/power-bi-custom-connectors-source-code",
       "license": "MIT AND Apache-2.0",
       "keywords": [
         "power-query",

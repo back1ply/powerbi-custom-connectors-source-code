@@ -11,25 +11,25 @@ generated:
 detect: [\bValue\.Metadata\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L64
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L64
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: option
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L32
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L32
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: status
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: skipReader
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L153
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L153
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: postContent
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L120
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L120
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
   content_sha256: b227b277545fe7ef2db7591fbf547bd150d1ddd28bdb1edc0e697cc2b7576d77

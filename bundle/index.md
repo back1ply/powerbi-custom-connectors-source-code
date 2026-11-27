@@ -15,7 +15,7 @@ Browse extracted connector implementations and source-reviewed patterns.
 
 Examples describe archived source and have not been runtime-tested. Uncertain and unreviewed matches are labelled.
 
-[Download the OKF bundle](https://back1ply.github.io/powerbi-custom-connectors-source-code/knowledge.zip).
+[Download the OKF bundle](https://back1ply.github.io/power-bi-custom-connectors-source-code/knowledge.zip).
 
 * [Patterns](patterns/index.md) - 23 implementation patterns, grouped by topic.
 * [Connectors](connectors/index.md) - All 135 connectors in the archive, and their source files.

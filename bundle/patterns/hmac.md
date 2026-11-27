@@ -11,19 +11,19 @@ generated:
 detect: [\bCrypto\.CreateHmac\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
   title: ShortcutsBI/Function.OAuthSignatureGenerator.pqm
 - id: caller
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/ShortcutsBI.pq#L28
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/ShortcutsBI.pq#L28
   title: ShortcutsBI/ShortcutsBI.pq
 - id: timestamp
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.TimestampGenerator.pqm#L1
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.TimestampGenerator.pqm#L1
   title: ShortcutsBI/Function.TimestampGenerator.pqm
 - id: nonce
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.RandomStringGenerator.pqm#L1
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.RandomStringGenerator.pqm#L1
   title: ShortcutsBI/Function.RandomStringGenerator.pqm
 - id: access
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.GetAccessCode.pqm#L3
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.GetAccessCode.pqm#L3
   title: ShortcutsBI/Function.GetAccessCode.pqm
 review:
   content_sha256: e4d2a0d8d5b8e3b55e4eae032f6a79acc456638a32219e36d14e13506ffcf9c6

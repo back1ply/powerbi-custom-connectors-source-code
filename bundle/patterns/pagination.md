@@ -11,40 +11,40 @@ generated:
 detect: [\bTable\.GenerateByPage\s*\(]
 sources:
 - id: example
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L574
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L574
   title: Attio/Attio.pq
 - id: variant
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L559
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L559
   title: Attio/Attio.pq
 - id: helper
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L727
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L727
   title: Attio/Attio.pq
 - id: endpoints
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L314
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L314
   title: Attio/Attio.pq
 - id: config
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L519
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L519
   title: Attio/Attio.pq
 - id: dispatch
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L599
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L599
   title: Attio/Attio.pq
 - id: collection
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L530
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L530
   title: Attio/Attio.pq
 - id: tabled
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L551
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L551
   title: Attio/Attio.pq
 - id: request
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L474
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Attio/Attio.pq#L474
   title: Attio/Attio.pq
 - id: contrast
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L739
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/CogniteDataSource.pq#L739
   title: CogniteDataSource/CogniteDataSource.pq
 - id: arg
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L52
   title: AzureResourceGraph/AzureResourceGraph.pq
 - id: generator
-  resource: https://github.com/back1ply/powerbi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
+  resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
   title: CogniteDataSource/Table.GenerateByPage.pqm
 review:
   content_sha256: 2607efd7a437c06a44099dc3647766fcad4007e3f82e3da1f1ff2536e5e9421e
