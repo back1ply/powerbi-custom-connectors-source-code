@@ -6,6 +6,17 @@
     "group:allNonMajor",
     "helpers:pinGitHubActionDigests"
   ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "reference/**"
+  ],
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
