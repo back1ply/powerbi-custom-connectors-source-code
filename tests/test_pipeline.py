@@ -14,7 +14,7 @@ from pqkb.manifest import latest_packages
 from pqkb.package import extract_package, safe_extract
 from pqkb.redact import REDACTED, redact_file
 from pqkb.refresh import ConnectorRecord, diff, write_index
-from pqkb.scan import Rule, auth_kinds, scan
+from pqkb.scan import auth_kinds
 
 HOST = "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions"
 RESX = """<?xml version="1.0" encoding="utf-8"?><root>
@@ -149,12 +149,6 @@ def test_safe_extract_refuses_path_traversal(tmp_path):
 
 def test_auth_kinds_reads_top_level_fields_only():
     assert auth_kinds(M_SOURCE) == {"OAuth", "UsernamePassword"}
-
-
-def test_scan_reports_first_matching_line_per_file():
-    rule = Rule.build("retries", [r"Value\.WaitFor"])
-    hits = scan({"Demo": {"Demo.pq": M_SOURCE, "Other.pqm": "x"}}, [rule])
-    assert [(h.connector, h.file, h.line) for h in hits["retries"]] == [("Demo", "Demo.pq", 12)]
 
 
 def test_diff_reports_added_removed_and_updated():
@@ -304,7 +298,7 @@ def test_build_writes_connector_page_without_appending_pattern_evidence(repo):
     assert page.meta["tags"] == ["oauth", "usernamepassword"]
     assert page.meta["generated"] == {"by": "process:pqkb-build", "at": "2026-10-17T00:00:00Z"}
     assert "stale_after" not in page.meta  # Building is not a source refresh.
-    # Scanner and candidate-review matches are not published on connector pages.
+    # Connector pages do not list pattern evidence.
     assert "../patterns/" not in page.body and "Pattern evidence" not in page.body
     pattern = repo / "bundle" / "patterns" / "retries.md"
     assert pattern.read_bytes() == authored

@@ -1,14 +1,14 @@
 # Connector reference roadmap
 
-Updated: 2026-11-27. This is planned work, not a claim that the reference is
+Updated: 2026-11-28. This is planned work, not a claim that the reference is
 exhaustive or that archived connectors have been runtime-tested.
 
 ## Current baseline
 
 The reference has 23 source-reviewed patterns, 70 exact archived excerpts, and
-133 connectors. The candidate ledger contains 874 supported, 171 uncertain, and
-90 rejected decisions. These are connector/pattern decisions, not counts of
-distinct connectors. Counts describe this baseline and will change on refresh.
+133 connectors. 132 connectors have checklist profiles; against hand labels they
+are 95.8% exact on the 17 scored gold connectors and 95.4% on 4 held-out ones
+(`evals/results/`). Counts describe this baseline and will change on refresh.
 
 Authored explanations live in `knowledge/patterns/`, and `knowledge/topics.yaml`
 files each one under a checklist question. Connector pages, one topic page per
@@ -22,7 +22,7 @@ available locally (`pqkb viz`) and unpublished until phase 2. Review drift is re
 | Order | Work | Deliverable | Acceptance criteria |
 | --- | --- | --- | --- |
 | 1 | Audit coverage gaps | A ranked backlog with source locations, affected connectors, reader tasks, and existing related patterns. | Examine every connector for techniques outside the current catalog. Distinguish genuinely missing topics from details that belong in an existing page; record the audit scope and unresolved gaps. |
-| 2 | Resolve uncertain matches | Reviewed decisions for the current 171 uncertainties, starting with patterns used across many connectors. | Read complete functions, imported helpers, and entry-point wiring. Resolve each verdict or state precisely which evidence is unavailable. Preserve justified uncertainty. |
+| 2 | Check profiles against source | More hand-checked answers, starting with answers shared by many connectors and recurring `other` answers. | Read complete functions, imported helpers, and entry-point wiring. Correct wrong answers or state precisely which evidence is unavailable; turn recurring `other` answers into answer ids. |
 | 3 | Fill demonstrated gaps | New pattern pages or targeted expansions of existing pages. Two topics have no pattern of their own yet: Transformations (data formats) and Gateway and TestConnection. | Each addition addresses a gap from step 1 and includes implementation paths, dependencies, failure cases, selection guidance, and adaptation checks. Use contrasting source implementations where available; identify single-implementation coverage explicitly. |
 | 4 | Add runnable teaching examples | Small examples with mock inputs/responses and expected results. | Examples run without vendor credentials and declare their host requirements. Keep authored teaching code distinct from exact vendor excerpts; do not imply that excerpts are standalone connectors. |
 | 5 | Add runtime evidence | A reproducible harness for the teaching examples and selected techniques. | Exercise empty/last pages, pagination termination, retry exhaustion, malformed responses, schema drift, and date boundaries. Record the engine/host version and distinguish executed results from source-reading assessments. |
@@ -31,7 +31,7 @@ available locally (`pqkb viz`) and unpublished until phase 2. Review drift is re
 
 Implement review cost limits and quota handling before another large review run,
 even though the broader maintenance work is listed last. Independent teaching
-examples can proceed while some uncertain matches remain unresolved.
+examples can proceed while profile checks continue.
 
 The gap audit should investigate areas such as data-source identity, host/gateway
 constraints, rate-limit response handling, and XML/binary parsing. These are
@@ -41,11 +41,11 @@ questions to investigate, not confirmed missing patterns or promised additions.
 
 1. Audit the connector corpus and produce the ranked gap backlog. Link every
    proposed addition to concrete source evidence and an existing reader task.
-2. Group uncertain matches by cause: missing helper context, unclear wiring,
-   disabled branches, or insufficient evidence. Review complete source where
-   possible instead of repeatedly submitting the same limited context.
+2. Group profile mistakes from `evals/` by cause: missing helper context, unclear
+   wiring, disabled branches, or insufficient evidence. Review complete source
+   where possible instead of repeatedly submitting the same limited context.
 3. Add per-run spending/token limits, bounded retries, and a stop condition for
-   quota or billing errors before running bulk external reviews again. Reuse
+   quota or billing errors before running bulk profiling again. Reuse
    completed results and report which records remain pending.
 4. Evaluate further OKF tools below in isolation. Record compatibility
    findings and adopt them only if they add a capability the existing pipeline
@@ -105,7 +105,7 @@ appropriate checks, and a clear account of what was actually executed. Renew
 authored pattern reviews only after checking changed claims against their
 sources, with the actual reviewer identity. Keep generated output ignored.
 
-Measure progress through reviewed gap closure, useful examples, resolved
-uncertainties, retrieval quality, and maintenance effort. A larger pattern count
+Measure progress through reviewed gap closure, useful examples, profile
+accuracy, retrieval quality, and maintenance effort. A larger pattern count
 alone is not evidence of depth, and no tool's conformance result proves that a
 connector works against its vendor service.

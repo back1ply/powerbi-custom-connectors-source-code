@@ -10,6 +10,7 @@ fingerprints, so unchanged connectors are not asked again.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
@@ -18,8 +19,6 @@ from pathlib import Path
 
 from pqkb.checklist import answer_ids, load_checklist, validate_profile
 from pqkb.functions import index_connector
-from pqkb.match_agent import claude_executable
-from pqkb.match_reviews import source_fingerprint
 from pqkb.refresh import load_index
 from pqkb.reviews import digest
 
@@ -79,6 +78,23 @@ def profile_inputs(
         "files": numbered,
     }
     return payload, files
+
+
+def claude_executable() -> list[str]:
+    executable = shutil.which("claude")
+    if not executable:
+        raise FileNotFoundError("Install Claude Code and sign in before profiling connectors")
+    if Path(executable).suffix.lower() == ".cmd":
+        native = Path(executable).parent / "node_modules/@anthropic-ai/claude-code/bin/claude.exe"
+        if not native.is_file():
+            raise FileNotFoundError("Pinned Claude npm installation is incomplete")
+        return [str(native)]
+    return [executable]
+
+
+def source_fingerprint(files: dict[str, str]) -> str:
+    """Hash of a connector's source files; part of each cached profile's key."""
+    return digest(json.dumps(files, sort_keys=True, ensure_ascii=False).encode())
 
 
 def fingerprints(repo: Path, files: dict[str, str]) -> dict:

@@ -13,7 +13,7 @@ the newest certified connector packages, rebuilds `bundle/`, and opens the PR
 "Refresh certified connectors from Microsoft" on branch
 `automation/certified-connectors`. It merges that PR automatically when tests,
 lint, the OKF validator, the secret scan, and the site build pass. Review drift
-and candidate coverage are reported in the PR body but never block.
+is reported in the PR body but never blocks.
 
 ## Run locally
 
@@ -38,7 +38,6 @@ packages instead of downloading. Never edit files in `bundle/` by hand; change
 | Source excerpts and pipeline: failure | `pytest` failed | Fix the code or test; never weaken an assertion. |
 | Lint, metadata, and links: failure | ruff or the OKF validator failed | Run the commands above and fix the errors. |
 | Pattern review drift: failure | Some pattern pages cite code that changed | Not blocking. Renew them with the `review-pattern` skill when convenient. |
-| Candidate review coverage: failure | Some connectors have no current Haiku review | Not blocking. Use the `run-candidate-reviews` skill when convenient. |
 | Site build: failure | `mkdocs build --strict` failed | Usually a broken link in a pattern page. |
 
 After fixing on the refresh branch, dispatch the "Validate reference" workflow

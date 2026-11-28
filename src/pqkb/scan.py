@@ -1,12 +1,9 @@
-"""Find pattern usages and authentication kinds in connector source code."""
+"""Read connector source, mask comments and strings, and find authentication kinds."""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 from pathlib import Path
-
-from pqkb.signals import SIGNALS, Signal
 
 AUTH_KINDS = ("Aad", "Anonymous", "Implicit", "Key", "OAuth", "UsernamePassword", "Windows")
 AUTH_START = re.compile(r"\bAuthentication\s*=\s*\[")
@@ -14,82 +11,8 @@ FIELD = re.compile(r"\b([A-Za-z_]\w*)\s*=(?!=|>)")
 OPEN, CLOSE = "[({", "])}"
 
 
-@dataclass(frozen=True)
-class Rule:
-    """A pattern and the regexes that detect it."""
-
-    pattern_id: str
-    regexes: tuple[re.Pattern[str], ...]
-    labels: tuple[str, ...] = ()
-    scope_sha256: str = ""
-    scope: dict = field(default_factory=dict)
-
-    @classmethod
-    def build(cls, pattern_id: str, expressions: list[str]) -> Rule:
-        signals = SIGNALS.get(
-            pattern_id, tuple(Signal("pattern expression", e) for e in expressions)
-        )
-        return cls(
-            pattern_id,
-            tuple(re.compile(s.expression) for s in signals),
-            tuple(s.label for s in signals),
-        )
-
-
-@dataclass(frozen=True)
-class Evidence:
-    file: str
-    line: int
-    label: str
-    code: str
-
-
-@dataclass(frozen=True)
-class Hit:
-    connector: str
-    file: str
-    line: int
-    evidence: tuple[Evidence, ...] = ()
-    confidence: str = "partial"
-    verdict: str = "pending"
-
-
 def read_source(path: Path) -> str:
     return path.read_text(encoding="utf-8-sig", errors="replace")
-
-
-def file_evidence(rule: Rule, file: str, text: str, clean: str) -> list[Evidence]:
-    lines = text.split("\n")
-    evidence = []
-    for label, regex in zip(rule.labels, rule.regexes, strict=True):
-        match = regex.search(clean)
-        if match:
-            line = clean.count("\n", 0, match.start()) + 1
-            evidence.append(Evidence(file, line, label, lines[line - 1].strip()))
-    return evidence
-
-
-def candidate_hit(connector: str, rule: Rule, files: dict, cleaned: dict) -> Hit | None:
-    evidence = [
-        e for file, text in files.items() for e in file_evidence(rule, file, text, cleaned[file])
-    ]
-    primary = next((e for e in evidence if e.label == rule.labels[0]), None)
-    if primary is None:
-        return None
-    confidence = "corroborated" if set(rule.labels) <= {e.label for e in evidence} else "partial"
-    return Hit(connector, primary.file, primary.line, tuple(evidence), confidence)
-
-
-def scan(sources: dict[str, dict[str, str]], rules: list[Rule]) -> dict[str, list[Hit]]:
-    """Collect candidates; corroboration is co-occurrence, not data-flow proof."""
-    hits: dict[str, list[Hit]] = {rule.pattern_id: [] for rule in rules}
-    for connector, files in sources.items():
-        cleaned = {file: _strip_strings_and_comments(text) for file, text in files.items()}
-        for rule in rules:
-            hit = candidate_hit(connector, rule, files, cleaned)
-            if hit is not None:
-                hits[rule.pattern_id].append(hit)
-    return hits
 
 
 def _blank(text: str) -> str:

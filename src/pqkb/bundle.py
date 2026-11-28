@@ -1,11 +1,11 @@
-"""Generate the OKF knowledge bundle from the connector archive and pattern rules."""
+"""Generate the OKF knowledge bundle from the connector archive and authored knowledge."""
 
 from __future__ import annotations
 
 import json
 import re
 import shutil
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -15,8 +15,8 @@ from pqkb.certification import CERTIFICATION_SOURCE, RULES, Finding, check_conne
 from pqkb.provenance import published, source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.repo import pages_url, slug
-from pqkb.reviews import authored_digest, digest, review_reason
-from pqkb.scan import Rule, auth_kinds, read_source
+from pqkb.reviews import digest, review_reason
+from pqkb.scan import auth_kinds, read_source
 from pqkb.topics import TOPICS_DIR, topic_pages
 
 PRODUCER = "process:pqkb-build"
@@ -47,26 +47,6 @@ def link_text(text: str) -> str:
 def load_patterns(folder: Path) -> list[Pattern]:
     paths = sorted(p for p in folder.glob("*.md") if p.name not in ("index.md", "log.md"))
     return [Pattern(p.stem, p, frontmatter.read(p)) for p in paths]
-
-
-def pattern_scope(pattern: Pattern) -> dict:
-    return {
-        "title": pattern.title,
-        "description": pattern.doc.meta["description"],
-        "scope": re.split(r"(?m)^#{1,2} Examples\b", pattern.doc.body, maxsplit=1)[0],
-    }
-
-
-def rules_for(patterns: list[Pattern]) -> list[Rule]:
-    return [
-        replace(
-            Rule.build(p.pattern_id, p.doc.meta["detect"]),
-            scope_sha256=authored_digest(p.doc),
-            scope=pattern_scope(p),
-        )
-        for p in patterns
-        if p.doc.meta.get("detect")
-    ]
 
 
 def read_sources(
@@ -198,7 +178,7 @@ def root_index(patterns: list[Pattern], connector_count: int, topics: bool = Fal
         + "# Power Query Connector Source Reference\n\n"
         + "Browse extracted connector implementations and source-reviewed patterns.\n\n"
         + "Examples describe archived source and have not been runtime-tested. "
-        + "Uncertain and unreviewed matches are labelled.\n\n"
+        + "Pattern pages whose cited source changed since review are labelled.\n\n"
         + f"[Download the OKF bundle]({pages_url()}knowledge.zip).\n\n"
         + index_entry(
             "Connectors",

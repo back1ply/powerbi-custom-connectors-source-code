@@ -19,7 +19,7 @@ runtime-tested; say so when it matters.
 | --- | --- |
 | `bundle/index.md` | Start here: what the bundle covers and its sections. |
 | `bundle/patterns/<id>.md` | Guides to one technique each (pagination, oauth2, pkce, table-view, odbc, errors, retry-polling, ...), with quoted excerpts and links to the source lines. Pattern pages are listed under their topic in `bundle/topics/`. |
-| `bundle/connectors/<Name>.md` | One page per connector: publisher, version, authentication kinds, source files, and the patterns detected in it with line links. |
+| `bundle/connectors/<Name>.md` | One page per connector: publisher, version, authentication kinds, source files, and certification check results with line links. |
 | `bundle/topics/<question>.md` | One topic per checklist question in SDK order: the patterns that explain it and every archived connector grouped by its answer, with the cited line. |
 | `connectors/<Name>/` | The connector's real M source (`.pq`, `.pqm`, `.m`) and resources. |
 | `connectors/index.json` | Machine-readable list: name, title, publisher, version, files. |
@@ -57,5 +57,6 @@ runtime-tested; say so when it matters.
 - Do not modify the repository; maintenance has its own skills.
 - Extracted connector source keeps its owners' rights. Quote what the user needs;
   do not present vendor code as this repository's own.
-- A connector missing from a pattern's tag list does not prove it lacks the
-  technique; detection is static and approximate.
+- A connector missing from a topic's answer list does not prove it lacks the
+  technique; most answers are model-generated profiles (about 95% exact), so open
+  the cited line before relying on one.

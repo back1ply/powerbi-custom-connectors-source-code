@@ -30,14 +30,6 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser(
         "verify-reviews", help="check pattern reviews against prose and cited source"
     )
-    review_parser = commands.add_parser("review-matches", help="review changed pattern candidates")
-    review_parser.add_argument(
-        "--provider",
-        choices=("claude-code", "opencode"),
-        default="claude-code",
-        help="Claude Haiku (default) or OpenCode with DeepSeek Flash",
-    )
-    commands.add_parser("verify-matches", help="check source-bound candidate assessments")
     functions_parser = commands.add_parser(
         "functions", help="list a connector's top-level functions, line ranges, and calls"
     )
@@ -96,11 +88,6 @@ def main(argv: list[str] | None = None) -> int:
     viz_parser.add_argument("--out", type=Path, default=Path("build/viz.html"), help="output HTML")
     args = parser.parse_args(argv)
 
-    if args.command == "review-matches":
-        from pqkb.match_agent import review_matches
-
-        review_matches(args.repo, provider=args.provider)
-        return 0
     if args.command == "profile":
         return run_profile_command(args)
     if args.command == "eval":
@@ -119,8 +106,8 @@ def main(argv: list[str] | None = None) -> int:
         counts = generate_visualization(args.repo / bundle.BUNDLE_DIR, args.repo / args.out)
         print(f"Wrote {args.out}: {counts['concepts']} concepts, {counts['edges']} links.")
         return 0
-    if args.command in ("verify-reviews", "verify-matches"):
-        return verify(args.command, args.repo)
+    if args.command == "verify-reviews":
+        return verify_reviews(args.repo)
 
     now = datetime.now(UTC)
     if args.command == "refresh":
@@ -316,10 +303,8 @@ def list_functions(
     return 0
 
 
-def verify(command: str, repo: Path) -> int:
-    from pqkb.match_agent import verify_matches
-
-    problems = verify_matches(repo) if command == "verify-matches" else reviews.check_reviews(repo)
+def verify_reviews(repo: Path) -> int:
+    problems = reviews.check_reviews(repo)
     for problem in problems:
         print(problem)
     return int(bool(problems))

@@ -72,10 +72,6 @@ jobs:
       - name: Report pattern review drift
         continue-on-error: true
         run: uv run pqkb verify-reviews
-      # Report only: stale candidate reviews keep their last verdict, labelled as older.
-      - name: Report candidate review coverage
-        continue-on-error: true
-        run: uv run pqkb verify-matches
       - name: Scan archive and bundle for secrets
         uses: ./.github/actions/scan-secrets
       - name: Build review preview

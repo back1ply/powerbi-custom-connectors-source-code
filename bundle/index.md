@@ -13,7 +13,7 @@ description: >-
 
 Browse extracted connector implementations and source-reviewed patterns.
 
-Examples describe archived source and have not been runtime-tested. Uncertain and unreviewed matches are labelled.
+Examples describe archived source and have not been runtime-tested. Pattern pages whose cited source changed since review are labelled.
 
 [Download the OKF bundle](https://back1ply.github.io/power-bi-custom-connectors-source-code/knowledge.zip).
 

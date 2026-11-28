@@ -24,8 +24,6 @@ jobs:
       head: ${{ steps.pr.outputs.pull-request-head-sha }}
       ready: ${{ steps.readiness.outputs.ready }}
     runs-on: windows-latest
-    env:
-      MATCH_REVIEW_AVAILABLE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -39,18 +37,6 @@ jobs:
           uv sync --locked --group site
       - name: Refresh from Microsoft
         run: uv run pqkb refresh
-      - name: Review changed implementation candidates
-        if: env.MATCH_REVIEW_AVAILABLE == 'true'
-        id: candidate_agent
-        continue-on-error: true
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          npm install --global @anthropic-ai/claude-code@2.1.303
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run pqkb review-matches
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          uv run pqkb build
       - name: Check source excerpts and pipeline
         id: tests
         continue-on-error: true
@@ -69,11 +55,6 @@ jobs:
         id: reviews
         continue-on-error: true
         run: uv run pqkb verify-reviews
-      # Report only: stale candidate reviews keep their last verdict, labelled as older.
-      - name: Report candidate review coverage
-        id: matches
-        continue-on-error: true
-        run: uv run pqkb verify-matches
       - name: Build review preview
         id: site
         continue-on-error: true
@@ -99,13 +80,12 @@ jobs:
           title: Refresh certified connectors from Microsoft
           draft: ${{ steps.readiness.outputs.ready != 'true' }}
           body: |
-            Updates the extracted archive, generated connector pages, pattern match lists, and refresh log.
+            Updates the extracted archive, generated connector and topic pages, and refresh log.
 
             Checks run in this refresh workflow:
             - Source excerpts and pipeline: ${{ steps.tests.outcome }}
             - Lint, metadata, and links: ${{ steps.static.outcome }}
             - Pattern review drift (report only, does not block): ${{ steps.reviews.outcome }}
-            - Candidate review coverage (report only, does not block): ${{ steps.matches.outcome }}
             - Site build: ${{ steps.site.outcome }}
             - Secret scan: passed (a failure prevents this PR step)
 
