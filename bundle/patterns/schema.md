@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Schema and type enforcement
 description: Function metadata, returned table types, and dynamic expansion.
-category: Schema and errors
-tags: [schema-and-errors]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:SchemaTransformTable|Table\.ChangeType|Value\.ReplaceType)\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L11
@@ -20,7 +17,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L283
   title: CommonDataService/CommonDataService.pq
 review:
-  content_sha256: 8601126655d9b5cea648c65aedf777603f3aadf428f947e1567e5143d96d2f0d
+  content_sha256: 7f94cb400ed4ad34b6a199bc564a89a4a8be5d03fd021cdca2c7e5573fd35533
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     helper: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914

@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Native queries
 description: Native-query interception and display-name handling.
-category: Query folding
-tags: [query-folding]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bValue\.NativeQuery\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/CommonDataService/CommonDataService.pq#L61
@@ -26,7 +23,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L308
   title: SingleStoreODBC/SingleStoreODBC.m
 review:
-  content_sha256: 5815467c4837f79bf45e6d7fa6836dad06d0b4ad7eac45099322ac2d986e2da7
+  content_sha256: 88d954054296adcd60eec6972a6ce0d51b08a0195630c947af3fb99fd45ae6f9
   sources_sha256:
     example: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660
     helper: fd801ef9f147017cf538400d7a26fa667670eb1840189b5de755fc221a26d660

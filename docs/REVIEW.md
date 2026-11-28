@@ -48,7 +48,7 @@ authored metadata and prose, and fingerprints of the complete cited files.
 Generated match lists are excluded from authored review scope.
 CRLF and LF line endings are treated equivalently.
 
-Changing reviewed prose, detection rules, citation metadata, or cited source
+Changing reviewed prose, authored metadata, citations, or cited source
 expires the review. Since 2026-11-25 an expired review is reported, not
 enforced: the authored page is left unchanged (frozen), and its copy in
 `bundle/` gets OKF `stale_after` (the refresh receipt time) and a "Changed since
@@ -72,6 +72,14 @@ source URL in the pattern pages moved from `blob/master` to `blob/main`. For the
 URLs; `verified` events were not changed and no claim was re-reviewed. In 20
 pages the combined verifier `claude/claude-haiku-5-5 + codex/gpt-6` was split into
 two `verified` events with the same time, so each names one valid OKF actor.
+
+## Unused field removal, 2026-11-28
+
+The `category`, `tags`, and `detect` fields were removed from all 23 pages:
+topics in `knowledge/topics.yaml` replaced the categories, and the scanner that
+read `detect` was retired. Prose, citations, and cited source were unchanged.
+`content_sha256` was recomputed; `verified` events were not changed and no claim
+was re-reviewed.
 
 ## Presentation cleanup
 

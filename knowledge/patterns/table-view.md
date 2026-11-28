@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Table.View handlers
 description: Stateful Table.View handlers and request parameter generation.
-category: Query folding
-tags: [query-folding]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:42Z'
-detect: [\bTable\.View\s*\(]
 sources:
 - id: example
   resource: connectors/Asana/Asana.m#L37
@@ -26,7 +23,7 @@ sources:
   resource: connectors/Asana/Config.json#L6
   title: Asana/Config.json
 review:
-  content_sha256: f2e58a43013218762bc4a3ad37af3ecb8d961d9991f54683db399ec45bd2cda2
+  content_sha256: 8f4e6f7d61d8fe9b4063f4d65eca22358d9fbc05eacaa60ba62c6ea5e995713e
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     helper: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914

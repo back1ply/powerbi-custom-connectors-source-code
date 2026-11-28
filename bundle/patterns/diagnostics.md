@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Diagnostic tracing
 description: Tracing values while preserving return and error behavior.
-category: Schema and errors
-tags: [schema-and-errors]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bDiagnostics\.Trace\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Actian/Diagnostics.pqm#L1
@@ -26,7 +23,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L810
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 0bc10f7b92e6835ad76a327b2e1dd5301526dead0191a1f53797bb1897e94f02
+  content_sha256: 34d9efe4284fab1b576963776245f6511d0c1822e3836411357918ce5d8782e1
   sources_sha256:
     example: ec0852823d563e91e08f72d06f4a06d577be886c373775390d775409ac8319df
     caller: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7

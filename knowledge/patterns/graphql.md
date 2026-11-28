@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: GraphQL requests
 description: GraphQL request bodies, cursors, and application errors.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bGetGraphQLPage\s*=]
 sources:
 - id: example
   resource: connectors/CogniteDataSource/CogniteDataSource.pq#L312
@@ -56,7 +53,7 @@ sources:
   resource: connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
   title: CogniteDataSource/Table.GenerateByPage.pqm
 review:
-  content_sha256: 06e96dfefd43b9665541e57ddbe800074683844cc33a812edcdfca435dbe306e
+  content_sha256: 06c7cfda8c66a6fe2ae15e7bc60806543586587a6e852e4db29d2d53eafdb69d
   sources_sha256:
     example: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423
     registration: b8f483ebbd8313de5e3934521cc9d417f1dede58321917bcd7fa883f0766f423

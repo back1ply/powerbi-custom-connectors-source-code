@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: OAuth2 login and token refresh
 description: OAuth2 callbacks and refresh-token exchange.
-category: Authentication
-tags: [authentication]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:StartLogin|FinishLogin|Refresh)\s*=']
 sources:
 - id: example
   resource: connectors/GoogleSheets/GoogleSheets.pq#L48
@@ -26,7 +23,7 @@ sources:
   resource: connectors/Asana/Asana.m#L173
   title: Asana/Asana.m
 review:
-  content_sha256: 21f369f3e5b4e2b5281d14547fed5e419746e06406b32093e7f016186631e638
+  content_sha256: 698a91fa4004e70f4d218095b5f6a1206fcc62dfa71f895c215fded98be88cae
   sources_sha256:
     example: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9
     start: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9

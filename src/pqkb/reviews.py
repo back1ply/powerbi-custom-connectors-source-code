@@ -65,7 +65,7 @@ def review_reason(repo: Path, document: frontmatter.Document) -> str:
     except (OSError, ValueError) as error:
         return f"Cited source unavailable: {error}"
     if baseline.get("content_sha256") != current["content_sha256"]:
-        return "Authored content or detection rules changed"
+        return "Authored content changed"
     if baseline.get("sources_sha256") != current["sources_sha256"]:
         return "Cited source content changed"
     if document.meta.get("status") != "stable":

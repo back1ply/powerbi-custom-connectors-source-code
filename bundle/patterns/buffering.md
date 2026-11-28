@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Buffering tables, lists, and binaries
 description: Binary response snapshots and buffered configuration lists.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Table|List|Binary)\.Buffer\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L590
@@ -29,7 +26,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
-  content_sha256: 38cfdb66fb565d47477ff8896311da0a27b1947cf3a90f94d1b706b35254d820
+  content_sha256: 1ba7da99f56745790ff0fb27c8fec7369980bd20e479e70d9f201c866f189445
   sources_sha256:
     example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     caller: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f

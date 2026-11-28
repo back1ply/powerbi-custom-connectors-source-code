@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Actions and table mutation handlers
 description: Actions and table mutation handlers in extracted connector implementations.
-category: Actions
-tags: [actions]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Action\.(?:Sequence|Return)|TableAction\.(?:InsertRows|UpdateRows|DeleteRows))\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L994
@@ -29,7 +26,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/LakeHouse/LakeHouse.pq#L57
   title: LakeHouse/LakeHouse.pq
 review:
-  content_sha256: 928aa3250374154e5d63bad0b1c98c2f757a029d024705f2bc8b6ec1811f5034
+  content_sha256: 47da0750657afbe853cc80813299c4cc71939a268b958397c0b885f43d5f8f4b
   sources_sha256:
     example: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e
     caller: 0d189022e99dd3df4f35bd34e67c02681b66de50f2ed1013b365c0981b64734e

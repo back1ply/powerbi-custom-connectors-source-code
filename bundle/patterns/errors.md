@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Structured errors and HTTP status handling
 description: Explicit API errors and the limits of handled-status branches.
-category: Schema and errors
-tags: [schema-and-errors]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Error\.Record\s*\(|ManualStatusHandling\s*=)']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L129
@@ -23,7 +20,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L735
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: bb8f1087b75f95a82654e003a1270eb3101e7deee2b90a212b7a2fa5f7b82274
+  content_sha256: 3b2935333307806f9c287d4253b0fd2ba7bd163667d4eba59d413152eaee50ed
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     variant: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9

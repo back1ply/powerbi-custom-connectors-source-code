@@ -68,8 +68,8 @@
 * [InformationGrid](InformationGrid.md) - Luminis. Access BI services from InformationGrid
 * [InterSystems Health Insight](IntersystemsHealthInsight.md) - IntersystemsHealthInsight. Connect to InterSystems Health Insight
 * [InterSystems IRIS](IRIS.md) - InterSystems. Connect to InterSystems IRIS
-* [Intune Data Warehouse](IntuneDataWarehouse.md) - Microsoft. Connect to Intune Data Warehouse
-* [Intune Data Warehouse](IntuneV2.md) - Microsoft. Connect to Intune Data Warehouse
+* [Intune Data Warehouse (IntuneDataWarehouse)](IntuneDataWarehouse.md) - Microsoft. Connect to Intune Data Warehouse
+* [Intune Data Warehouse (IntuneV2)](IntuneV2.md) - Microsoft. Connect to Intune Data Warehouse
 * [inwink](inwink.md) - inwink. Connect to inwink
 * [Jamf Pro](JamfPro.md) - Jamf. Import data from Jamf Pro
 * [JethroDataConnector](JethroData1.0.1.md) - Jethro. Connect to JethroDataConnector

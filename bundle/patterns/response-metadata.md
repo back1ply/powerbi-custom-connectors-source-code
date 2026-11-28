@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Response and pagination metadata
 description: Pagination state versus HTTP response metadata.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bValue\.Metadata\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AzureResourceGraph/AzureResourceGraph.pq#L64
@@ -32,7 +29,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/DeltaSharing/DeltaSharing.pq#L462
   title: DeltaSharing/DeltaSharing.pq
 review:
-  content_sha256: b227b277545fe7ef2db7591fbf547bd150d1ddd28bdb1edc0e697cc2b7576d77
+  content_sha256: 204da96f4c997914897bd52b1c38e4f192aa402440cfbb0cb38efd0c9bf83e81
   sources_sha256:
     example: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
     caller: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce

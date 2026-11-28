@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: OData feeds
 description: Credential headers and explicit OData feed options.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bOData\.Feed\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AptixInsights/AptixInsights.pq#L37
@@ -26,7 +23,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/IntuneV2/IntuneV2.pq#L62
   title: IntuneV2/IntuneV2.pq
 review:
-  content_sha256: e798530f90b0f1c1e697ba575463cb449d87e9f6cf543d1009d6206f7eafa2aa
+  content_sha256: 936520825e9e3b1b2e0197e5df94770aded8feb9b3c1aa478e5bdda5f2f219c5
   sources_sha256:
     example: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75
     helper: 6a7c94fb9ba68a34571e7d750093b679be8070224209a7a323728194b1b3bb75

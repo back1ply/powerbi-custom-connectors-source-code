@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Retries, delays, and polling
 description: Retry producers, page delays, and exhaustion behavior.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Value\.WaitFor|Function\.InvokeAfter)\s*\(']
 sources:
 - id: example
   resource: connectors/AzureResourceGraph/AzureResourceGraph.pq#L85
@@ -32,7 +29,7 @@ sources:
   resource: connectors/Anaplan/Anaplan.pq#L777
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 96f8fbd2b4d38cd8a90bb829ced5d4691a6d3acc3fc3a158da20c62e88afee80
+  content_sha256: 2fdebb8840447d3165c6d909d57aa38b40b7e118a41220ac5c03b7847e84f038
   sources_sha256:
     example: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce
     arg: a725cec6c35b49a84c0381dec02ff666451c3f1b4dda29c66e54da7882b733ce

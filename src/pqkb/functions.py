@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 
-from pqkb.scan import _strip_strings_and_comments
+from pqkb.source import _strip_strings_and_comments
 
 IDENTIFIER = re.compile(r'#"(?:[^"]|"")*"|[A-Za-z_][\w.]*')
 SECTION = re.compile(r"\bsection\s+[^;]+;")
@@ -37,7 +37,7 @@ def _mask(text: str) -> str:
     masked = list(_strip_strings_and_comments(text))
     for match in QUOTED.finditer(text):
         start, end = match.span()
-        # The scanner rewrites a quoted identifier as two spaces, its name, and a space;
+        # Masking rewrites a quoted identifier as two spaces, its name, and a space;
         # restore it only where that rewrite happened (not inside comments or strings).
         if "".join(masked[start:end]) == "  " + match.group()[2:-1] + " ":
             masked[start:end] = match.group()

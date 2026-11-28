@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: HMAC request signing
 description: HMAC request signing in extracted connector implementations.
-category: Authentication
-tags: [authentication]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bCrypto\.CreateHmac\s*\(]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.OAuthSignatureGenerator.pqm#L1
@@ -26,7 +23,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/ShortcutsBI/Function.GetAccessCode.pqm#L3
   title: ShortcutsBI/Function.GetAccessCode.pqm
 review:
-  content_sha256: e4d2a0d8d5b8e3b55e4eae032f6a79acc456638a32219e36d14e13506ffcf9c6
+  content_sha256: fc4768e646cc625b69218e2eb50bf9c413f4d22097b5ca98d62d59e3d0ff5b38
   sources_sha256:
     example: 386be20de30e6051da9bb4697b0642066f0b23f89af211a953716bb9c1c77f99
     caller: 60f0e7fdd1a7b966a9b819e82aadb58f8512646b72518e32cd26d416b548db8d

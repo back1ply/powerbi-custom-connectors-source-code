@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import re
 import shutil
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -16,7 +17,7 @@ from pqkb.provenance import published, source_url
 from pqkb.refresh import Changes, ConnectorRecord, load_index
 from pqkb.repo import pages_url, slug
 from pqkb.reviews import digest, review_reason
-from pqkb.scan import auth_kinds, read_source
+from pqkb.source import auth_kinds, read_source
 from pqkb.topics import TOPICS_DIR, topic_pages
 
 PRODUCER = "process:pqkb-build"
@@ -239,7 +240,7 @@ def remove_stale_pages(folder: Path, names: set[str]) -> None:
 
 
 def write_connector_pages(repo: Path, now: datetime) -> None:
-    records = load_index(repo / "connectors")
+    records = distinct_titles(load_index(repo / "connectors"))
     sources = read_sources(repo / "connectors", records)
     pages = repo / BUNDLE_DIR / "connectors"
     for name, record in records.items():
@@ -253,11 +254,22 @@ def write_connector_pages(repo: Path, now: datetime) -> None:
     remove_stale_pages(pages, set(records))
 
 
+def distinct_titles(records: dict[str, ConnectorRecord]) -> dict[str, ConnectorRecord]:
+    """Add the package name to titles that several connectors share, e.g. two Intune versions."""
+    counts = Counter(record.title for record in records.values())
+    return {
+        name: replace(record, title=f"{record.title} ({name})")
+        if counts[record.title] > 1
+        else record
+        for name, record in records.items()
+    }
+
+
 def archive_records(connectors_dir: Path) -> dict[str, ConnectorRecord]:
     records = load_index(connectors_dir)
     if not records or not any(record.files for record in records.values()):
         raise ValueError("connectors/index.json is missing. Run `pqkb refresh` first.")
-    return records
+    return distinct_titles(records)
 
 
 def write_receipt(repo: Path, now: datetime) -> None:

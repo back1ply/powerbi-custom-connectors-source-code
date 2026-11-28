@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Resources and modular source loading
 description: Configuration resources, localization calls, and extracted archives.
-category: Packaging
-tags: [packaging]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Extension\.Contents|Extension\.LoadString|Expression\.Evaluate)\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L2
@@ -38,7 +35,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L754
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 835861c0563f15191475800b04896fe508663c31436420de83e421bd38338367
+  content_sha256: 6d801399e0768dadaeeea1a32f20f8ab639e50b1511902d487d41d1770bc68e2
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     loader: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914

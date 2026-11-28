@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Function parameters and data-source identity
 description: Typed exported functions, parameter documentation, and data-source path exclusions.
-category: Navigation and UI
-tags: [navigation-and-ui]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-19T09:37:15.893347+00:00'
-detect: [\bDocumentation\.FieldCaption\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/SingleStoreODBC/SingleStoreODBC.m#L99
@@ -38,7 +35,7 @@ verified:
   by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 review:
-  content_sha256: 1fdbd6fe3ba46d0bdb4fb97e3fd169ddd23fa1543b584ed3e17e601094e6cd06
+  content_sha256: 392ac144d0e331010b1d3f17d45abb7ae421d66d474db8026ec2249baa084c18
   sources_sha256:
     example: 593c578f7107251b6c2c6ccac6235a10a07971d3e2ecaad0ff6b44b2befca1ff
     variant: db725e4012b15f843ec0fca43c0a9982808171e4287d78c079218e624e7e88a4

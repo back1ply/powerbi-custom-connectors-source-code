@@ -14,7 +14,7 @@ from pqkb.manifest import latest_packages
 from pqkb.package import extract_package, safe_extract
 from pqkb.redact import REDACTED, redact_file
 from pqkb.refresh import ConnectorRecord, diff, write_index
-from pqkb.scan import auth_kinds
+from pqkb.source import auth_kinds
 
 HOST = "https://content.prod.powerquery.microsoft.com/api/certifiedExtensions"
 RESX = """<?xml version="1.0" encoding="utf-8"?><root>
@@ -144,11 +144,25 @@ def test_safe_extract_refuses_path_traversal(tmp_path):
         safe_extract(archive, tmp_path / "out")
 
 
-# scanning ---------------------------------------------------------------------------------
+# source -----------------------------------------------------------------------------------
 
 
 def test_auth_kinds_reads_top_level_fields_only():
     assert auth_kinds(M_SOURCE) == {"OAuth", "UsernamePassword"}
+
+
+def test_shared_titles_get_the_package_name():
+    def rec(name, title):
+        return ConnectorRecord(name, title, "", "", "1", "", [])
+
+    titles = bundle.distinct_titles(
+        {
+            "IntuneV1": rec("IntuneV1", "Intune"),
+            "IntuneV2": rec("IntuneV2", "Intune"),
+            "A": rec("A", "A"),
+        }
+    )
+    assert [r.title for r in titles.values()] == ["Intune (IntuneV1)", "Intune (IntuneV2)", "A"]
 
 
 def test_diff_reports_added_removed_and_updated():
@@ -167,8 +181,6 @@ PATTERN = """---
 type: Power Query Pattern
 title: Retries with Value.WaitFor
 description: Retry transient failures.
-category: Data retrieval
-detect: ['Value\\.WaitFor']
 ---
 
 Body text.

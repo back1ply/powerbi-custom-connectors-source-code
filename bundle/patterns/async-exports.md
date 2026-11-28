@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Asynchronous exports and result downloads
 description: Starting export tasks, polling state, and assembling chunked results.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-19T09:37:15.890078+00:00'
-detect: [\btaskState\b]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L618
@@ -29,7 +26,7 @@ verified:
   by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 review:
-  content_sha256: 6a82f4954afac856375583a50e429fac0df96b9d872ffdcef997f575fd3f8ae8
+  content_sha256: 91b85c3482867eb1f4d2293f1294a0cc3aa1119727796ee807172d78ea089653
   sources_sha256:
     example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     chunks: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f

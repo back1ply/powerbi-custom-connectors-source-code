@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Web requests and relative paths
 description: Web request options and explicit HTTP response branches.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:42Z'
-detect: [\bRelativePath\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L655
@@ -23,7 +20,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L590
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 7ba9ec62d58c3df8d57e3a2f80672b88609ce1b839372836fbcd4eba4d0d880c
+  content_sha256: a8246260ee785fa807b8f8df22f3633987c4d0a1b033b65fe0f1f6ae0272734b
   sources_sha256:
     example: e706d3009d50e259a16ea6deef1d58f1cf5d1b23a9800cc12e2384266b56221f
     variant: 519949be7c5aeca7a8a3247800070971191df416b28a9b3db18b8a8cdeac7dd9

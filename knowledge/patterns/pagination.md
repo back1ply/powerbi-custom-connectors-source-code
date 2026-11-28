@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Page generation and cursor traversal
 description: Cursor and offset pagination through table metadata.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bTable\.GenerateByPage\s*\(]
 sources:
 - id: example
   resource: connectors/Attio/Attio.pq#L574
@@ -47,7 +44,7 @@ sources:
   resource: connectors/CogniteDataSource/Table.GenerateByPage.pqm#L5
   title: CogniteDataSource/Table.GenerateByPage.pqm
 review:
-  content_sha256: 2607efd7a437c06a44099dc3647766fcad4007e3f82e3da1f1ff2536e5e9421e
+  content_sha256: 9f814e048a96fe24de490042c70fdc5e5ecf5d1cdba10e20ac807159af037da5
   sources_sha256:
     example: 9237133d2cb709127824ca5896d32cdade6740fcb7be0e88ccd18268b5f30758
     variant: 9237133d2cb709127824ca5896d32cdade6740fcb7be0e88ccd18268b5f30758

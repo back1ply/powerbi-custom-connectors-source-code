@@ -259,7 +259,7 @@ def check_profiles(repo: Path, folder: Path) -> int:
 def folder_sources(path: Path) -> tuple[str, dict[str, str]]:
     """Name and M source files (.pq, .pqm, .m) of a connector folder outside the archive."""
     from pqkb.package import m_sources
-    from pqkb.scan import read_source
+    from pqkb.source import read_source
 
     if not path.is_dir():
         raise FileNotFoundError(f"{path} is not a folder")

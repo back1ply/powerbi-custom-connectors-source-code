@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: ODBC and DirectQuery configuration
 description: ODBC capabilities and a separate DirectQuery declaration.
-category: Query folding
-tags: [query-folding]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\bOdbc\.(?:DataSource|Query)\s*\(']
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/AmazonAthena/AmazonAthena.m#L67
@@ -41,7 +38,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/MarkLogicODBC/MarkLogicODBC.m#L380
   title: MarkLogicODBC/MarkLogicODBC.m
 review:
-  content_sha256: b0a8e50e8bb746981941a7bec8def960a3b9c56af416f31a14d45040d290c512
+  content_sha256: ceb396949fedcb5b1ff17f0572a8e26df96495e5aecfd1176bb9a6509c489553
   sources_sha256:
     example: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8
     athena-connect: fe4d2fa4c6e8eb8778bc55737620f3fe827c84146e8a7c82f63b51ffcf6cb0b8

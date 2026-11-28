@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: PKCE and URL-safe encoding
 description: PKCE verifier transport, SHA-256, and URL-safe encoding.
-category: Authentication
-tags: [authentication]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [code_challenge\s*=]
 sources:
 - id: example
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Asana/Asana.m#L217
@@ -23,7 +20,7 @@ sources:
   resource: https://github.com/back1ply/power-bi-custom-connectors-source-code/blob/main/connectors/Anaplan/Anaplan.pq#L54
   title: Anaplan/Anaplan.pq
 review:
-  content_sha256: 400dff5a1e53cbd4e5cc8b110c816fc16bb8b01cd6b0567119f8f9716a703c8e
+  content_sha256: d2d08b09046b9c708bb9ad090eb78003c5b998e86749e181638c1bc3bc6896d1
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     caller: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914

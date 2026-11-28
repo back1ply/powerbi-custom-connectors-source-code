@@ -27,7 +27,6 @@ def reviewed_repo(tmp_path):
         "type": "Power Query Pattern",
         "title": "Demo",
         "description": "A source review fixture.",
-        "detect": [r"\bDemo\b"],
         "sources": [{"id": "example", "resource": citation("Demo", "Demo.pq", 1)}],
     }
     page.write_text(frontmatter.render(metadata, "Reviewed source explanation."), encoding="utf-8")
@@ -36,7 +35,7 @@ def reviewed_repo(tmp_path):
     return tmp_path, page, source
 
 
-@pytest.mark.parametrize("change", ["source", "prose", "detect", "citation"])
+@pytest.mark.parametrize("change", ["source", "prose", "metadata", "citation"])
 def test_changed_review_scope_is_reported_and_marked_stale_without_editing_the_page(
     reviewed_repo, change
 ):
@@ -47,8 +46,8 @@ def test_changed_review_scope_is_reported_and_marked_stale_without_editing_the_p
         document = frontmatter.read(page)
         if change == "prose":
             document.body += "\nAn unreviewed assertion.\n"
-        elif change == "detect":
-            document.meta["detect"] = ["unreviewed-rule"]
+        elif change == "metadata":
+            document.meta["description"] = "An unreviewed summary."
         else:
             document.meta["sources"][0]["resource"] = citation("Demo", "missing.pq", 1)
         page.write_text(frontmatter.render(document.meta, document.body), encoding="utf-8")
@@ -131,7 +130,7 @@ def test_drifted_page_with_windows_line_endings_keeps_them_and_rebuilds_identica
     assert built_path.read_bytes() == first
 
 
-def test_new_detector_matches_preserve_review_of_unchanged_prose_and_sources(reviewed_repo):
+def test_new_connectors_preserve_review_of_unchanged_prose_and_sources(reviewed_repo):
     repo, page, _ = reviewed_repo
     original = frontmatter.read(page)
     other = repo / "connectors" / "Other" / "Other.pq"

@@ -1,6 +1,6 @@
 ---
 type: Power Query Connector
-title: Intune Data Warehouse
+title: Intune Data Warehouse (IntuneV2)
 description: Connect to Intune Data Warehouse
 tags: [aad]
 x-pqkb-publisher: Microsoft
@@ -12,7 +12,7 @@ sources:
 resource: https://content.prod.powerquery.microsoft.com/api/certifiedExtensions/IntuneV2/2.0.0/IntuneV2_2.0.0.pqx
 generated:
   by: process:pqkb-build
-  at: '2026-11-27T12:12:40Z'
+  at: '2026-11-28T13:07:31Z'
 verified:
   by: process:pqkb-refresh
   at: '2026-11-25T17:23:17Z'

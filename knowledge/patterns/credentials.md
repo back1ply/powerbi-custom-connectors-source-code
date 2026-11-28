@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Credential access
 description: Authentication-kind dispatch and credential connection strings.
-category: Authentication
-tags: [authentication]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: [\bExtension\.CurrentCredential\s*\(]
 sources:
 - id: example
   resource: connectors/Actian/Actian.m#L111
@@ -23,7 +20,7 @@ sources:
   resource: connectors/Actian/Diagnostics.pqm#L101
   title: Actian/Diagnostics.pqm
 review:
-  content_sha256: 8909da767fa982d6f0df9d1d2eed5d33b7520840d2f5f0c3d56dcf0f11f6eb9e
+  content_sha256: 2786a7e0b68fd94ddac40ac31921af33891bd0571a0c1d005692aa72a124ac09
   sources_sha256:
     example: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7
     caller: fd2d31eeba79778f2f1221a22b0dc78942f0b603d8381d4e3dbe7bd8e77a04d7

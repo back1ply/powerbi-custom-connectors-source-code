@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Navigation tables and connection checks
 description: Navigation-column mappings and connection-test entry points.
-category: Navigation and UI
-tags: [navigation-and-ui]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-18T09:58:41Z'
-detect: ['\b(?:Table\.ToNavigationTable\s*\(|TestConnection\s*=)']
 sources:
 - id: example
   resource: connectors/Asana/Asana.m#L26
@@ -32,7 +29,7 @@ sources:
   resource: connectors/AmazonAthena/AmazonAthena.m#L218
   title: AmazonAthena/AmazonAthena.m
 review:
-  content_sha256: b87f97414b479561db79bb240e4c7f5c7b7d603e95f38abce6c69d810b6235ce
+  content_sha256: cc9fdfa087900b57db9051112f55e440e6e480cc19a6e4ab9b9ab2737f2470b8
   sources_sha256:
     example: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914
     helper: b1b0850a719fd67d1848ca036d59578fe6259e71e5c5203ae020a049d1bf6914

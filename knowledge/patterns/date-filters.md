@@ -2,13 +2,10 @@
 type: Power Query Pattern
 title: Date-range request filters
 description: Optional date bounds, request serialization, and validation before paging.
-category: Data retrieval
-tags: [data-retrieval]
 status: stable
 generated:
   by: codex/gpt-6
   at: '2026-10-19T09:37:15.896791+00:00'
-detect: [\bRangeStart\b]
 sources:
 - id: example
   resource: connectors/InformationGrid/InformationGrid.pq#L71
@@ -32,7 +29,7 @@ verified:
   by: codex/gpt-6
   at: '2026-10-19T10:10:51Z'
 review:
-  content_sha256: 1fa9994df1559dbc1e65032b920fdd780d939653bd16518f2b0f6ee5865c06a6
+  content_sha256: fd05a2fe1e40d9775155de84a0b9b25d116cf0f9804b06b7b5ebe0592718de5d
   sources_sha256:
     example: 57692c235ea7f33763489154d14c500f2a1a0885e77178b72cdcf4874e8f89a9
     variant: 370dc5d1abea6ed13ba0ee182c5b03038cc7a8add2896d3fff3937b3158d7f26
