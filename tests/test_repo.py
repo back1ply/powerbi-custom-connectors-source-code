@@ -11,7 +11,6 @@ STATIC_FILES = [
     "README.md",
     ".claude-plugin/marketplace.json",
     "skills/.claude-plugin/plugin.json",
-    "skills/.codex-plugin/plugin.json",
     *sorted(str(p.relative_to(ROOT)) for p in (ROOT / "knowledge" / "patterns").glob("*.md")),
 ]
 
