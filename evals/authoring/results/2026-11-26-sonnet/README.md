@@ -29,7 +29,7 @@ page, column types for all three tables, an empty table's rows, one request to p
 engine's credential error, per Learn's handling-status-codes), 404, 429 and 503 sent
 forever, an `http://` URL, and `validate` on the TestConnection call. A copy of repo-1
 with `TestConnection` deleted fails that last check, so it is not a free point.
-Results are in each trial's `runtime.json`.
+Per-trial outputs (connector code, grades, `runtime.json`) were pruned on 2026-11-28; they are in git history at commit b0af997.
 
 | Trial | Runtime | Failed |
 | --- | --- | --- |

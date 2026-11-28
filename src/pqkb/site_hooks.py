@@ -73,7 +73,7 @@ def on_post_build(config):
     import shutil
 
     destination = Path(config.site_dir) / "assets"
-    for asset in (Path(config.config_file_path).parent / "site-assets").iterdir():
+    for asset in (Path(__file__).parent / "site_assets").iterdir():
         shutil.copyfile(asset, destination / asset.name)
     llms = llms_txt(Path(config.docs_dir), config.site_url, config.repo_url)
     (Path(config.site_dir) / "llms.txt").write_text(llms, encoding="utf-8", newline="\n")

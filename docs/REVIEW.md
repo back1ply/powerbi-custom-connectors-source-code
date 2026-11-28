@@ -36,10 +36,10 @@ not results from executing the archived connectors.
 
 | Pattern | Finding and correction | Source evidence |
 | --- | --- | --- |
-| [Pagination](knowledge/patterns/pagination.md) | Qualified offset/limit transmission with the actual `__sendsLimit(url)` condition. | [Attio request construction](connectors/Attio/Attio.pq#L98) |
-| [Native queries](knowledge/patterns/native-query.md) | Described the alternative navigation-table binding without implying that it is always evaluated whenever display names are requested. | [Native-query handler and final selection](connectors/CommonDataService/CommonDataService.pq#L75) |
-| [ODBC](knowledge/patterns/odbc.md) | Replaced an inferred UI effect with the literal `HideNativeQuery` option; the source alone does not establish a general UI contract. | [ODBC options](connectors/AmazonAthena/AmazonAthena.m#L124) |
-| [Web requests](knowledge/patterns/web-requests.md) | Distinguished the inner null branches from `GetApiToken`'s declared `as record` return contract. | [Authentication helper](connectors/Anaplan/Anaplan.pq#L655) |
+| [Pagination](../knowledge/patterns/pagination.md) | Qualified offset/limit transmission with the actual `__sendsLimit(url)` condition. | [Attio request construction](../connectors/Attio/Attio.pq#L98) |
+| [Native queries](../knowledge/patterns/native-query.md) | Described the alternative navigation-table binding without implying that it is always evaluated whenever display names are requested. | [Native-query handler and final selection](../connectors/CommonDataService/CommonDataService.pq#L75) |
+| [ODBC](../knowledge/patterns/odbc.md) | Replaced an inferred UI effect with the literal `HideNativeQuery` option; the source alone does not establish a general UI contract. | [ODBC options](../connectors/AmazonAthena/AmazonAthena.m#L124) |
+| [Web requests](../knowledge/patterns/web-requests.md) | Distinguished the inner null branches from `GetApiToken`'s declared `as record` return contract. | [Authentication helper](../connectors/Anaplan/Anaplan.pq#L655) |
 
 ## Review lifecycle
 
