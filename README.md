@@ -6,7 +6,7 @@ This unofficial archive extracts Microsoft's certified Power BI connector packag
 
 ## For agents and LLMs
 
-Start at [`bundle/index.md`](bundle/index.md): the generated [Open Knowledge Format v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md) bundle, committed so it can be browsed directly. [`AGENTS.md`](AGENTS.md) maps the repository. To build a connector, use the `write-connector` skill: Microsoft's SDK steps in TripPin order, the quality bar from the retired certification rules, and pitfalls found in certified connectors, with [`bundle/topics/`](bundle/topics/index.md) showing which archived connectors use each approach and the patterns that explain it. The `skills/` folder holds agent skills for writing connectors (`write-connector`), using the archive (`find-connector-code`), maintaining it (`refresh-archive`, `review-pattern`), and the official OKF skills (`okf-generate`, `okf-consume`); it installs as a plugin from this repository's marketplace. [`.mcp.json`](.mcp.json) runs [okf-mcp](https://github.com/mfdaves/okf-mcp) on the bundle for search and link navigation. The site publishes [`llms.txt`](https://back1ply.github.io/power-bi-custom-connectors-source-code/llms.txt).
+Start at [`bundle/index.md`](bundle/index.md), the generated [Open Knowledge Format v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md) bundle. [`AGENTS.md`](AGENTS.md) says where to go for each task and which skill to use; the `skills/` folder installs as a plugin from this repository's marketplace. The site also publishes [`llms.txt`](https://back1ply.github.io/power-bi-custom-connectors-source-code/llms.txt).
 
 ## Local development
 
@@ -32,7 +32,7 @@ uv run mkdocs build --strict
 
 ## Pattern pages
 
-Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. The excerpts are archived source with explicit dependencies, not standalone runnable connectors. Every Power Query block carries a `<!-- source: ID -->` marker tied to a frontmatter source URL and start line. Tests compare every block with that source while the page's review is current, and the site shows each block with its original line numbers and a source link. When the cited source changes, the page is frozen rather than blocking: its bundle copy gets OKF `stale_after` and a "Changed since review" banner until an agent renews the review with the `review-pattern` skill.
+Each pattern compares source implementations, explains their dependencies and failure paths, and lists adaptation checks. Excerpts are exact archived source, tested against the cited lines; they are not standalone runnable connectors. When the cited source changes, the page is labelled "Changed since review" instead of blocking anything; the [source-review record](docs/REVIEW.md) explains how reviews expire and are renewed.
 
 ## Refreshing the archive
 
@@ -40,19 +40,9 @@ Each pattern compares source implementations, explains their dependencies and fa
 uv run pqkb refresh
 ```
 
-Refresh selects the highest package version per connector from Microsoft's feed, extracts and redacts source, replaces `connectors/`, and rebuilds the reference. It does not filter by Power BI engine compatibility. Missing connectors are removed; package changes and unchanged checks are logged. Successful refreshes record a receipt in `knowledge/refresh.json` and renew connector freshness for 14 days. Rebuilding the site does not renew that receipt.
-
-For local packages, use `uv run pqkb refresh --source-dir 'C:\packages\certified-connectors'`. Supply the complete set of `.mez` and `.pqx` files in a folder outside `connectors/`; absent connectors are removed. Local packages have no inferred publisher, version, or certification.
-
-Download and extraction failures leave the archive intact. Installation failure attempts rollback and reports the backup location if recovery fails. If the subsequent bundle build fails, the refreshed archive remains: fix the reported problem and rerun `uv run pqkb build`.
+Refresh downloads the newest package per connector from Microsoft's feed, extracts and redacts the source, replaces `connectors/`, and rebuilds `bundle/`. A [weekly workflow](.github/workflows/refresh.yml) does this every Monday and merges the result when checks pass; the [Pages workflow](.github/workflows/pages.yml) publishes `main`. Local packages, failure handling, and the refresh PR report are covered by the `refresh-archive` skill.
 
 Recognized secret values become `<redacted>`; public OAuth client IDs remain. Redaction is heuristic, and git history retains earlier content. Stripped resources and redacted values can prevent these sources from running as connectors.
-
-## Automation
-
-The [weekly refresh](.github/workflows/refresh.yml) runs Mondays at 03:23 UTC and supports manual dispatch. It opens a PR, validates its exact commit, and merges passing updates without bypassing repository restrictions. Drifted pattern reviews are reported in the PR and marked stale in the bundle, but do not block the merge. Failed tests, lint, OKF validation, or site build leave a draft PR; a failed secret scan prevents PR creation.
-
-The [Pages workflow](.github/workflows/pages.yml) validates and publishes `main`. Bot merges explicitly dispatch publication because their push events do not trigger another workflow.
 
 ## Repository layout
 

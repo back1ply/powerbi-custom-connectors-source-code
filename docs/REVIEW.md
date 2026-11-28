@@ -45,7 +45,6 @@ not results from executing the archived connectors.
 
 Stable patterns carry an agent verification event, a fingerprint of their
 authored metadata and prose, and fingerprints of the complete cited files.
-Generated match lists are excluded from authored review scope.
 CRLF and LF line endings are treated equivalently.
 
 Changing reviewed prose, authored metadata, citations, or cited source

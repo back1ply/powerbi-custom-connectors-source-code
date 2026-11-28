@@ -48,10 +48,8 @@ resolve reported regressions. Run `analyze_change_set` before opening a PR.
 
 - The user delegated source review to agents and requested hands-off
   maintenance. Nothing about documentation blocks a refresh or publication.
-- When cited connector source or reviewed page content changes, the page's
-  review is drifted: `pqkb verify-reviews` reports it and the build marks the
-  page's copy in `bundle/` with OKF `stale_after` and a banner. The authored file
-  is never rewritten by a build.
+- Drifted reviews are reported and labelled, never blocking; `docs/REVIEW.md`
+  explains the lifecycle.
 - An agent may renew a drifted page only after checking every claim against its
   cited source (`skills/review-pattern`), recording its own actor identity with
   `reviews.record_review(repo, path, reviewer, now)`. Never call it merely to

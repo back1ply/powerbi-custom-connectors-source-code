@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,10 +15,6 @@ from pqkb import frontmatter
 from pqkb.provenance import hashed, hashed_text, source_path
 
 REVIEW_METADATA = {"generated", "verified", "review", "review_pending", "status"}
-MATCH_LIST = re.compile(
-    r"(?:\n#{1,2} (?:Seen in|Source evidence)\s*)?<!-- seen-in:start -->.*?<!-- seen-in:end -->",
-    re.DOTALL,
-)
 
 
 def pattern_paths(repo: Path) -> list[Path]:
@@ -42,7 +37,7 @@ def authored_digest(document: frontmatter.Document) -> str:
             {**source, "resource": hashed(source["resource"])} for source in metadata["sources"]
         ]
     header = json.dumps(metadata, sort_keys=True, ensure_ascii=False)
-    body = hashed_text(MATCH_LIST.sub("", document.body).strip())
+    body = hashed_text(document.body.strip())
     return digest(f"{header}\n{body}".encode())
 
 

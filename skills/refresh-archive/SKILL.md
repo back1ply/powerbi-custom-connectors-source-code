@@ -27,9 +27,29 @@ uv run python skills/okf-generate/scripts/validate.py bundle
 uv run --group site mkdocs build --strict
 ```
 
+Refresh takes the highest package version per connector, without filtering by
+Power BI engine compatibility. Connectors missing from the feed are removed.
+A successful refresh records a receipt in `knowledge/refresh.json` and renews
+connector freshness for 14 days; `pqkb build` alone does not renew it.
+
 `pqkb refresh --source-dir <folder>` uses a complete local set of `.mez`/`.pqx`
-packages instead of downloading. Never edit files in `bundle/` by hand; change
-`knowledge/` or `src/pqkb/` and rebuild.
+packages instead of downloading. Keep the folder outside `connectors/`; absent
+connectors are removed, and local packages have no publisher, version, or
+certification. Never edit files in `bundle/` by hand; change `knowledge/` or
+`src/pqkb/` and rebuild.
+
+## When a refresh fails
+
+- Download or extraction failure: the archive is left untouched.
+- Installation failure: refresh rolls back, and reports the backup location if
+  rollback fails.
+- Bundle build failure: the new archive stays in place. Fix the reported problem
+  and run `uv run pqkb build`.
+- Failed tests, lint, OKF validation, or site build leave the PR as a draft; a
+  failed secret scan stops the PR from being created.
+- Pages publish fails with "No artifacts named github-pages": run
+  `gh workflow run pages.yml`. Do not re-run the failed job; that creates a
+  duplicate artifact.
 
 ## Read the refresh PR
 
