@@ -1,6 +1,6 @@
 You are labelling the GOLD SET for an evaluation. Accuracy matters more than speed: these labels are the ground truth that an LLM's answers will be scored against.
 
-Repository (read-only except for your output files): F:\Shehab Projects\node24-bump\repos\powerbi-custom-connectors-source-code
+Repository (read-only except for your output files): this repository; run commands from its root, the folder that holds `AGENTS.md`.
 - Connector source: `connectors/<Name>/` (`.pq`/`.m` section documents, `.pqm` modules, `Config.json`, `.resx`, etc.).
 - The questions and allowed answer ids: `knowledge/checklist.yaml`. Read it first and use ONLY its answer ids.
 - Function index: run `uv run pqkb functions <Name>` from the repo root (lists every top-level function with file, line range, and calls). Use it to navigate, then read the full source. Read every source file of the connector, including `.pqm` modules; do not label from function names alone.

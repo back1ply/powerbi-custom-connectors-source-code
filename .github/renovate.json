@@ -17,6 +17,7 @@
     "**/__fixtures__/**",
     "reference/**"
   ],
+  "dependencyDashboard": false,
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
