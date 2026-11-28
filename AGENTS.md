@@ -15,8 +15,7 @@ and publishes it as an Open Knowledge Format (OKF) v0.3 bundle.
 | Renew a drifted pattern page | Skill: `skills/review-pattern`. |
 | Write, validate, or read OKF | Official skills: `skills/okf-generate` (validator: `scripts/validate.py`), `skills/okf-consume`. |
 
-The skills are also packaged as a plugin (`.claude-plugin/marketplace.json`,
-`.agents/plugins/marketplace.json`); `.claude/settings.json` pre-registers it.
+The skills are also packaged as a Claude Code plugin (`.claude-plugin/marketplace.json`).
 
 ## CodeScene
 

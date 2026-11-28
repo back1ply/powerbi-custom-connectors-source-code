@@ -6,10 +6,9 @@ import pytest
 from pqkb import bundle, frontmatter, provenance, repo, reviews
 
 ROOT = Path(__file__).resolve().parents[1]
-# Files that must hold literal URLs (manifests, settings, prose); everything else derives them.
+# Files that must hold literal URLs (manifests, prose); everything else derives them.
 STATIC_FILES = [
     "README.md",
-    ".claude/settings.json",
     ".claude-plugin/marketplace.json",
     "skills/.claude-plugin/plugin.json",
     "skills/.codex-plugin/plugin.json",

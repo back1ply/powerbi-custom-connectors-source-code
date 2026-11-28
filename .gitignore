@@ -5,7 +5,6 @@ __pycache__/
 .cache/
 .pytest_cache/
 .ruff_cache/
-.claude/*
-!.claude/settings.json
+.claude/
 .playwright-mcp/
 public/
